@@ -9,6 +9,7 @@ import {
   mergeScope,
   assertBranchInTenant,
   assertUserInTenant,
+  assertCounsellorInTenant,
   assertEnquiryInTenant,
   assertEnquiryIdsInTenant,
   assertLeadInTenant,
@@ -48,7 +49,7 @@ async function syncOrphanLeadsToEnquiries(user, createFromLead) {
 }
 
 async function requireEnquiry(id, user) {
-  const scopeWhere = mergeScope(user);
+  const scopeWhere = mergeScope(user, { entity: 'enquiry' });
   const enquiry = await enquiryRepository.findById(id, scopeWhere);
   if (!enquiry) throw new AppError('Enquiry not found', 404);
   return enquiry;
@@ -69,7 +70,7 @@ export const enquiryService = {
     await syncOrphanLeadsToEnquiries(user, enquiryService.createFromLead.bind(enquiryService));
     const { page, limit, sortBy, sortOrder, ...filters } = query;
     const sort = parseSort({ sortBy, sortOrder }, ENQUIRY_SORT_FIELDS);
-    const scopeWhere = mergeScope(user);
+    const scopeWhere = mergeScope(user, { entity: 'enquiry' });
     return enquiryRepository.findMany({
       ...filters,
       scopeWhere,
@@ -82,12 +83,12 @@ export const enquiryService = {
 
   getSummary: async (query, user) => {
     await syncOrphanLeadsToEnquiries(user, enquiryService.createFromLead.bind(enquiryService));
-    const scopeWhere = mergeScope(user);
+    const scopeWhere = mergeScope(user, { entity: 'enquiry' });
     return enquiryRepository.getSummary({ ...query, scopeWhere, userId: user.id });
   },
 
   getById: async (id, user) => {
-    const scopeWhere = mergeScope(user);
+    const scopeWhere = mergeScope(user, { entity: 'enquiry' });
     let enquiry = await enquiryRepository.findById(id, scopeWhere);
     if (!enquiry) throw new AppError('Enquiry not found', 404);
     enquiry = await smartReminderService.evaluateAndProcess(enquiry);
@@ -95,7 +96,7 @@ export const enquiryService = {
   },
 
   checkDuplicates: async (params, user) => {
-    const scopeWhere = mergeScope(user);
+    const scopeWhere = mergeScope(user, { entity: 'enquiry' });
     const matches = await enquiryRepository.findDuplicates({ ...params, scopeWhere });
     return {
       hasDuplicate: matches.length > 0,
@@ -105,7 +106,7 @@ export const enquiryService = {
 
   create: async (data, userId, req) => {
     const branch = await assertBranchInTenant(data.branchId, req.user);
-    if (data.assignedToId) await assertUserInTenant(data.assignedToId, req.user);
+    if (data.assignedToId) await assertCounsellorInTenant(data.assignedToId, req.user);
     const enquiryCode = await enquiryRepository.generateCode(branch.companyId);
     const payload = {
       ...mapEnquiryInput(data),
@@ -219,7 +220,7 @@ export const enquiryService = {
   update: async (id, data, userId, req) => {
     const existing = await requireEnquiry(id, req.user);
     if (data.branchId !== undefined) await assertBranchInTenant(data.branchId, req.user);
-    if (data.assignedToId) await assertUserInTenant(data.assignedToId, req.user);
+    if (data.assignedToId) await assertCounsellorInTenant(data.assignedToId, req.user);
     const payload = { ...mapEnquiryInput(data), updatedBy: userId };
     if (data.assignedToId !== undefined) payload.assignedById = data.assignedToId ? userId : null;
     const enquiry = await enquiryRepository.update(id, payload);
@@ -342,7 +343,7 @@ export const enquiryService = {
 
   bulkAssign: async (ids, assignedToId, userId, req) => {
     await assertEnquiryIdsInTenant(ids, req.user);
-    await assertUserInTenant(assignedToId, req.user);
+    await assertCounsellorInTenant(assignedToId, req.user);
     await enquiryRepository.bulkAssign(ids, assignedToId, userId, userId);
     for (const id of ids) {
       await logEnquiryAudit({
@@ -544,7 +545,7 @@ export const enquiryService = {
 
   addAppointment: async (id, data, userId, req) => {
     await requireEnquiry(id, req.user);
-    if (data.counsellorId) await assertUserInTenant(data.counsellorId, req.user);
+    if (data.counsellorId) await assertCounsellorInTenant(data.counsellorId, req.user);
     const appointment = await enquiryRepository.addAppointment({
       enquiryId: id,
       userId,

@@ -24,6 +24,9 @@
     "db:backfill-enquiries": "node scripts/backfill-enquiries-from-leads.js",
     "db:create": "node scripts/setup-database.js",
     "db:setup": "node scripts/setup-database.js",
+    "db:seed-enquiry-tags": "node scripts/seed-enquiry-tags.js",
+    "db:seed-organization": "node scripts/seed-organization.js",
+    "db:seed-counsellors": "node scripts/seed-counsellors.js",
     "db:export": "node scripts/export-database.js",
     "db:verify-backup": "node scripts/verify-database-backup.js",
     "db:studio": "prisma studio"

@@ -18,6 +18,10 @@ import alertService from '../../../services/alert/alert.service';
 import MasterToolbar from '../components/MasterToolbar';
 import MasterFilters from '../components/MasterFilters';
 import MasterFormDrawer from '../components/MasterFormDrawer';
+import MasterItemPage, { isMasterItemSlug } from '../pages/MasterItemPage';
+import OrganizationCompanyPage from '../pages/OrganizationCompanyPage';
+import OrganizationBranchPage from '../pages/OrganizationBranchPage';
+import MasterStaffPage from '../pages/MasterStaffPage';
 import { useMasterList } from '../hooks/useMasterList';
 import { masterApi, getApiErrorMessage } from '../services/masterApi.service';
 
@@ -242,7 +246,17 @@ export default function MasterDataPage() {
     );
   }
 
-  // Non-engine placeholders (Company, Branch, Feature Toggle route, fee-type, tags)
+  // Legacy MasterItem pages (tags, fee-type)
+  if (isMasterItemSlug(slug)) {
+    return <MasterItemPage />;
+  }
+
+  // Organization module (Company / Branch)
+  if (slug === 'company') return <OrganizationCompanyPage />;
+  if (slug === 'branch') return <OrganizationBranchPage />;
+  if (slug === 'staff') return <MasterStaffPage />;
+
+  // Non-engine placeholders (Feature Toggle route)
   if (!entityConfig) {
     return (
       <ModulePageCard
@@ -263,7 +277,7 @@ export default function MasterDataPage() {
               </span>
               <h3 className="text-lg font-semibold text-text">{hubItem.label}</h3>
               <p className="text-text-muted text-sm">
-                This master is outside the relational Master engine (Organization / MasterItem / Feature Toggle).
+                This master is outside the relational Master engine (MasterItem / Feature Toggle).
                 It will be wired in a later wave.
               </p>
               <Link to={ROUTES.MASTER} className="text-sm text-primary hover:underline">

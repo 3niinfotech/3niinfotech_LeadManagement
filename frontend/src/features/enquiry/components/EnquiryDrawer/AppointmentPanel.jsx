@@ -24,7 +24,10 @@ import toastService from '../../../../services/toast/toast.service';
 const ROOM_OPTIONS = APPOINTMENT_ROOMS.map((r) => ({ value: r, label: r }));
 
 export default function AppointmentPanel({ enquiryId, enquiry, isEditMode, onBooked }) {
-  const { options: counsellorOptions, loading: counsellorsLoading } = useCounsellorOptions();
+  const { options: counsellorOptions, loading: counsellorsLoading } = useCounsellorOptions({
+    branchId: enquiry?.branchId,
+    enabled: Boolean(enquiry?.branchId || !isEditMode),
+  });
   const [addAppointment, { isLoading }] = useAddAppointmentMutation();
 
   const [date, setDate] = useState('');

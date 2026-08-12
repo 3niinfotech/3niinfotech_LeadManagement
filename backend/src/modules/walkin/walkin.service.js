@@ -5,7 +5,7 @@ import { buildDataScopeWhere } from '../../utils/scope.util.js';
 import {
   mergeScope,
   assertBranchInTenant,
-  assertUserInTenant,
+  assertCounsellorInTenant,
   assertLeadInTenant,
   resolveCompanyIdForBranch,
   requireTenantCompany,
@@ -15,6 +15,7 @@ import { assignmentService } from '../assignment/assignment.service.js';
 import { featureService } from '../feature/feature.service.js';
 import { enquiryService } from '../enquiry/enquiry.service.js';
 import { walkinRepository } from './walkin.repository.js';
+import { userRepository } from '../user/user.repository.js';
 import { WALKIN_SORT_FIELDS } from './walkin.validators.js';
 import { splitFullName, buildQrPayload } from './walkin.utils.js';
 
@@ -58,7 +59,7 @@ export const walkinService = {
   create: async (data, userId, req) => {
     const user = req.user;
     const branch = await assertBranchInTenant(data.branchId, user);
-    if (data.assignedToId) await assertUserInTenant(data.assignedToId, user);
+    if (data.assignedToId) await assertCounsellorInTenant(data.assignedToId, user);
 
     const dup = await walkinRepository.findByPhone(data.phone, data.branchId);
     if (dup) {
@@ -166,7 +167,7 @@ export const walkinService = {
     const existing = await assertLeadInTenant(id, req.user);
 
     if (data.branchId) await assertBranchInTenant(data.branchId, req.user);
-    if (data.assignedToId) await assertUserInTenant(data.assignedToId, req.user);
+    if (data.assignedToId) await assertCounsellorInTenant(data.assignedToId, req.user);
 
     if (data.phone && data.branchId) {
       const dup = await walkinRepository.findByPhone(data.phone, data.branchId, id);
@@ -303,10 +304,10 @@ export const walkinService = {
     const effectiveBranch = branchId || user.branchId;
     if (effectiveBranch) {
       return assertBranchInTenant(effectiveBranch, user).then(() =>
-        walkinRepository.listCounsellors(effectiveBranch, companyId),
+        userRepository.listCounsellors({ branchId: effectiveBranch, companyId }),
       );
     }
-    return walkinRepository.listCounsellors(null, companyId);
+    return userRepository.listCounsellors({ companyId });
   },
 
   applyCounsellorDecision: async (id, input, userId, req) => {

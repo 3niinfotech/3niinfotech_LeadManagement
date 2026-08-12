@@ -520,6 +520,8 @@ model User {
   assignmentOffers AssignmentOffer[] @relation("OfferCounsellor")
   counsellingSessions CounsellingSession[] @relation("SessionCounsellor")
   managedBranches Branch[] @relation("BranchManager")
+  studentProfile  Student? @relation("StudentPortalUser")
+  partnerProfile  Partner? @relation("PartnerPortalUser")
 
   @@index([email])
   @@index([companyId])
@@ -598,6 +600,7 @@ model Lead {
 
 model Partner {
   id          String    @id @default(uuid())
+  userId      String?   @unique
   name        String
   code        String    @unique
   type        String?
@@ -614,9 +617,11 @@ model Partner {
   createdBy   String?
   updatedBy   String?
 
+  user        User?     @relation("PartnerPortalUser", fields: [userId], references: [id])
   students    Student[]
 
   @@index([code])
+  @@index([userId])
   @@map("partners")
 }
 
@@ -624,6 +629,7 @@ model Partner {
 
 model Student {
   id              String        @id @default(uuid())
+  userId          String?       @unique
   branchId        String
   partnerId       String?
   assignedToId    String?
@@ -650,6 +656,7 @@ model Student {
   updatedBy       String?
 
   branch          Branch        @relation(fields: [branchId], references: [id])
+  user            User?         @relation("StudentPortalUser", fields: [userId], references: [id])
   partner         Partner?      @relation(fields: [partnerId], references: [id])
   assignedTo      User?         @relation("StudentAssignee", fields: [assignedToId], references: [id])
   lead            Lead?
@@ -665,6 +672,7 @@ model Student {
   admissionPayments AdmissionPayment[]
 
   @@index([branchId])
+  @@index([userId])
   @@index([assignedToId])
   @@index([status])
   @@index([studentCode])

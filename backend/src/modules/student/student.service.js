@@ -4,6 +4,14 @@ import { parseSort } from '../../utils/response.util.js';
 import { studentRepository, STUDENT_SORT_FIELDS } from './student.repository.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
 import prisma from '../../config/database.js';
+import {
+  mergeScope,
+  assertBranchInTenant,
+  assertUserInTenant,
+  assertStudentInTenant,
+  assertStudentIdsInTenant,
+  resolveCompanyIdForBranch,
+} from '../../utils/tenant.util.js';
 
 export const createStudentSchema = z.object({
   branchId: z.string().uuid(),
@@ -28,19 +36,22 @@ export const createStudentSchema = z.object({
 export const updateStudentSchema = createStudentSchema.partial();
 
 export const studentService = {
-  getAll: async (query) => {
+  getAll: async (query, user) => {
     const sort = parseSort(query, STUDENT_SORT_FIELDS);
-    return studentRepository.findMany({ ...query, sort });
+    const scopeWhere = mergeScope(user, { entity: 'student' });
+    return studentRepository.findMany({ ...query, sort, scopeWhere });
   },
 
-  getById: async (id) => {
-    const student = await studentRepository.findById(id);
-    if (!student) throw new AppError('Student not found', 404);
-    return student;
+  getById: async (id, user) => {
+    return assertStudentInTenant(id, user);
   },
 
   create: async (data, userId, req) => {
-    const studentCode = await studentRepository.generateCode();
+    await assertBranchInTenant(data.branchId, req.user);
+    if (data.assignedToId) await assertUserInTenant(data.assignedToId, req.user);
+
+    const companyId = await resolveCompanyIdForBranch(data.branchId, req.user);
+    const studentCode = await studentRepository.generateCode(companyId);
     const student = await studentRepository.create({
       ...data,
       studentCode,
@@ -57,8 +68,9 @@ export const studentService = {
   },
 
   update: async (id, data, userId, req) => {
-    const existing = await studentRepository.findById(id);
-    if (!existing) throw new AppError('Student not found', 404);
+    const existing = await assertStudentInTenant(id, req.user);
+    if (data.branchId) await assertBranchInTenant(data.branchId, req.user);
+    if (data.assignedToId) await assertUserInTenant(data.assignedToId, req.user);
 
     const student = await studentRepository.update(id, {
       ...data,
@@ -75,19 +87,21 @@ export const studentService = {
   },
 
   delete: async (id, userId, req) => {
-    const existing = await studentRepository.findById(id);
-    if (!existing) throw new AppError('Student not found', 404);
+    const existing = await assertStudentInTenant(id, req.user);
     await studentRepository.softDelete(id, userId);
     await auditLog({ userId, action: 'DELETE', entityType: 'Student', entityId: id, oldData: existing, req });
   },
 
   bulkDelete: async (ids, userId, req) => {
-    await studentRepository.bulkSoftDelete(ids, userId);
+    await assertStudentIdsInTenant(ids, req.user);
+    await studentRepository.bulkSoftDelete(ids, userId, mergeScope(req.user, { entity: 'student' }));
     await auditLog({ userId, action: 'DELETE', entityType: 'Student', entityId: ids.join(','), req });
   },
 
   bulkAssign: async (ids, assignedToId, userId, req) => {
-    await studentRepository.bulkAssign(ids, assignedToId, userId);
+    await assertStudentIdsInTenant(ids, req.user);
+    if (assignedToId) await assertUserInTenant(assignedToId, req.user);
+    await studentRepository.bulkAssign(ids, assignedToId, userId, mergeScope(req.user, { entity: 'student' }));
     await auditLog({ userId, action: 'ASSIGN', entityType: 'Student', entityId: ids.join(','), newData: { assignedToId }, req });
   },
 };

@@ -180,27 +180,12 @@ export function getEnquiryPriorityMeta(value) {
   return ENQUIRY_PRIORITIES.find((p) => p.value === value);
 }
 
-export const ENQUIRY_TAGS = [
-  { value: 'IELTS', label: 'IELTS', color: 'info' },
-  { value: 'PTE', label: 'PTE', color: 'info' },
-  { value: 'CANADA', label: 'Canada', color: 'primary' },
-  { value: 'AUSTRALIA', label: 'Australia', color: 'primary' },
-  { value: 'VIP', label: 'VIP', color: 'success' },
-  { value: 'SCHOLARSHIP', label: 'Scholarship', color: 'warning' },
-  { value: 'PARENT_INTERESTED', label: 'Parent Interested', color: 'primary' },
-  { value: 'WALK_IN', label: 'Walk-In', color: 'info' },
-  { value: 'REFERRAL', label: 'Referral', color: 'success' },
-  { value: 'URGENT', label: 'Urgent', color: 'danger' },
-  { value: 'RETURNING', label: 'Returning', color: 'secondary' },
-];
-
-export function getEnquiryTagLabel(value) {
-  return ENQUIRY_TAGS.find((t) => t.value === value)?.label ?? value;
-}
-
-export function getEnquiryTagMeta(value) {
-  return ENQUIRY_TAGS.find((t) => t.value === value);
-}
+export {
+  ENQUIRY_TAGS,
+  ENQUIRY_TAG_LABELS,
+  getEnquiryTagLabel,
+  getEnquiryTagMeta,
+} from '../features/enquiry/config/enquiryTags.config';
 
 export const ENQUIRY_VIEW_TABS = [
   { id: 'all', label: 'All' },

@@ -103,7 +103,7 @@ export const enquiryConversionService = {
           },
         });
       } else {
-        const studentCode = await studentRepository.generateCode();
+        const studentCode = await studentRepository.generateCode(enquiry.branch?.companyId);
         student = await studentRepository.create({
           ...buildStudentPayload(enquiry, userId),
           studentCode,

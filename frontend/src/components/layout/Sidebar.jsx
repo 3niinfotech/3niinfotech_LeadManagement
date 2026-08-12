@@ -390,7 +390,7 @@ function isNavPathActive(pathname, navPath) {
   if (!navPath) return false;
   if (pathname === navPath) return true;
   // Hub routes like /master should not stay active for every child path
-  if (navPath === '/master') return false;
+  if (navPath === '/admin/master') return false;
   return pathname.startsWith(`${navPath}/`);
 }
 
@@ -580,7 +580,7 @@ function SidebarItem({
   const link = (
     <NavLink
       to={item.path}
-      end={item.path === '/master'}
+      end={item.path === '/admin/master'}
       className="block outline-none focus:outline-none focus-visible:outline-none"
     >
       {({ isActive: active }) => (

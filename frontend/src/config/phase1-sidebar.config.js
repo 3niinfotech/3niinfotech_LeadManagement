@@ -14,24 +14,24 @@ export const PHASE1_ROOT_IDS = new Set([
 ]);
 
 export const PHASE1_ROUTES = new Set([
-  '/dashboard',
-  '/enquiries',
-  '/demo',
-  '/students',
-  '/fees',
-  '/reports',
-  '/settings',
-  '/master',
+  '/admin/dashboard',
+  '/admin/enquiries',
+  '/admin/demo',
+  '/admin/students',
+  '/admin/fees',
+  '/admin/reports',
+  '/admin/settings',
+  '/admin/master',
 ]);
 
 /** Path prefixes that belong to Phase 1 */
 export function isPhase1Path(path) {
   if (!path) return false;
   if (PHASE1_ROUTES.has(path)) return true;
-  if (path.startsWith('/master')) return true;
-  if (path.startsWith('/enquiries')) return true;
-  if (path.startsWith('/students')) return true;
-  if (path.startsWith('/settings')) return true;
+  if (path.startsWith('/admin/master')) return true;
+  if (path.startsWith('/admin/enquiries')) return true;
+  if (path.startsWith('/admin/students')) return true;
+  if (path.startsWith('/admin/settings')) return true;
   return false;
 }
 

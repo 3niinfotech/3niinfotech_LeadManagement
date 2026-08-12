@@ -1,24 +1,26 @@
-import { useFieldArray } from 'react-hook-form';
+import { useFieldArray, useWatch } from 'react-hook-form';
 import { FiPlus, FiTrash2 } from 'react-icons/fi';
 import Input from '../../../../components/ui/Input';
 import Textarea from '../../../../components/ui/Textarea';
 import Button from '../../../../components/ui/Button';
 import FormSection from '../../../../components/ui/FormSection';
 import FormSelectField from './FormSelectField';
-import { ENQUIRY_STATUSES, ENQUIRY_PRIORITIES, ENQUIRY_TAGS } from '../../../../config/constants';
+import { ENQUIRY_STATUSES, ENQUIRY_PRIORITIES } from '../../../../config/constants';
 import { useEnquiryFormOptions } from '../../hooks/useEnquiryFormOptions';
 import { useCounsellorOptions } from '../../hooks/useCounsellorOptions';
+import { useEnquiryTagOptions } from '../../hooks/useEnquiryTagOptions';
 
 const STATUS_OPTIONS = ENQUIRY_STATUSES.map(({ value, label }) => ({ value, label }));
 const PRIORITY_OPTIONS = ENQUIRY_PRIORITIES.map(({ value, label }) => ({ value, label }));
-const TAG_OPTIONS = ENQUIRY_TAGS.map(({ value, label }) => ({ value, label }));
 const FIELD_GRID = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-4';
 
 export default function OtherDetailsTab({
   register, errors, control, variant = 'full', disabled = false,
 }) {
+  const branchId = useWatch({ control, name: 'branchId' });
   const { getOptions } = useEnquiryFormOptions();
-  const { options: counsellorOptions, loading: counsellorsLoading } = useCounsellorOptions();
+  const { options: counsellorOptions, loading: counsellorsLoading } = useCounsellorOptions({ branchId });
+  const { options: tagOptions, loading: tagsLoading } = useEnquiryTagOptions();
   const isEnquiry = variant === 'enquiry';
   const { fields, append, remove } = useFieldArray({ control, name: 'testsGiven' });
 
@@ -126,10 +128,10 @@ export default function OtherDetailsTab({
               name="tags"
               control={control}
               label="Tags"
-              options={TAG_OPTIONS}
+              options={tagOptions}
               errors={errors}
               mode="multiple"
-              placeholder="Select tags"
+              placeholder={tagsLoading ? 'Loading tags...' : 'Select tags'}
               allowClear
               searchable
             />

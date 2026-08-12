@@ -9,11 +9,11 @@ const buildSearchWhere = (search, fields) => {
 };
 
 export const studentRepository = {
-  findMany: async ({ search, status, branchId, assignedToId, page, limit, sort }) => {
+  findMany: async ({ search, status, assignedToId, page, limit, sort, scopeWhere = {} }) => {
     const { skip } = parsePagination({ page, limit });
     const where = {
       ...softDeleteWhere,
-      ...(branchId && { branchId }),
+      ...scopeWhere,
       ...(status && { status }),
       ...(assignedToId && { assignedToId }),
       ...buildSearchWhere(search, ['firstName', 'lastName', 'email', 'studentCode', 'phone']),
@@ -62,21 +62,27 @@ export const studentRepository = {
       data: { deletedAt: new Date(), updatedBy: userId },
     }),
 
-  bulkSoftDelete: (ids, userId) =>
+  bulkSoftDelete: (ids, userId, scopeWhere = {}) =>
     prisma.student.updateMany({
-      where: { id: { in: ids }, ...softDeleteWhere },
+      where: { id: { in: ids }, ...softDeleteWhere, ...scopeWhere },
       data: { deletedAt: new Date(), updatedBy: userId },
     }),
 
-  bulkAssign: (ids, assignedToId, userId) =>
+  bulkAssign: (ids, assignedToId, userId, scopeWhere = {}) =>
     prisma.student.updateMany({
-      where: { id: { in: ids }, ...softDeleteWhere },
+      where: { id: { in: ids }, ...softDeleteWhere, ...scopeWhere },
       data: { assignedToId, updatedBy: userId },
     }),
 
-  generateCode: async () => {
-    const count = await prisma.student.count();
-    return `STU${String(count + 1).padStart(6, '0')}`;
+  generateCode: async (companyId) => {
+    const company = companyId
+      ? await prisma.company.findUnique({ where: { id: companyId }, select: { code: true } })
+      : null;
+    const coPrefix = (company?.code || 'CO').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    const count = await prisma.student.count({
+      where: companyId ? { branch: { companyId } } : undefined,
+    });
+    return `${coPrefix}-STU${String(count + 1).padStart(6, '0')}`;
   },
 };
 

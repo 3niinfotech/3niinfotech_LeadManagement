@@ -1,10 +1,22 @@
 import { Link } from 'react-router-dom';
-import { FiSliders, FiToggleLeft, FiDatabase, FiChevronRight } from 'react-icons/fi';
+import { FiSliders, FiToggleLeft, FiDatabase, FiChevronRight, FiUsers, FiShield } from 'react-icons/fi';
 import ModulePageCard from '../../components/layout/ModulePageLayout';
 import Card from '../../components/ui/Card';
 import { ROUTES } from '../../config/routes';
 
 const LINKS = [
+  {
+    title: 'Staff & Users',
+    description: 'Add counsellors, assign roles, and manage team members',
+    path: `${ROUTES.MASTER}/staff`,
+    icon: FiUsers,
+  },
+  {
+    title: 'Roles & Permissions',
+    description: 'Configure role permissions and access matrix',
+    path: ROUTES.ROLES,
+    icon: FiShield,
+  },
   {
     title: 'Feature Toggle',
     description: 'ON/OFF queue, live timing, manual register, enterprise modules',

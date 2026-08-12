@@ -17,7 +17,7 @@ function newChecklistId() {
 export default function RichNoteEditor({ onSubmit, loading, disabled }) {
   const editorRef = useRef(null);
   const fileRef = useRef(null);
-  const { users } = useCounsellorOptions();
+  const { users } = useCounsellorOptions({ branchId: undefined });
 
   const [isPinned, setIsPinned] = useState(false);
   const [checklist, setChecklist] = useState([]);

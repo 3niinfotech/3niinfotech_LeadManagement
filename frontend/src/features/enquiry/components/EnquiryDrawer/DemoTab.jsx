@@ -29,7 +29,9 @@ function formatFacultyName(user) {
 }
 
 export default function DemoTab({ enquiryId, enquiry, isEditMode, onRecorded }) {
-  const { options: facultyOptions, loading: facultyLoading } = useCounsellorOptions();
+  const { options: facultyOptions, loading: facultyLoading } = useCounsellorOptions({
+    branchId: enquiry?.branchId,
+  });
   const [addDemo, { isLoading }] = useAddDemoMutation();
 
   const [demoDate, setDemoDate] = useState('');

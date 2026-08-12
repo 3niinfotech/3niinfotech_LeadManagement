@@ -1,5 +1,14 @@
 import prisma from '../../config/database.js';
 import { softDeleteWhere } from '../../utils/response.util.js';
+import { COUNSELLOR_ROLE_SLUGS } from '../assignment/assignment.config.js';
+
+const counsellorSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  branch: { select: { id: true, name: true, code: true } },
+};
 
 const userInclude = {
   role: { select: { id: true, name: true, slug: true, permissions: true } },
@@ -86,4 +95,40 @@ export const userRepository = {
 
     return { roles, totals: { enquiries, leads, students, unassignedEnquiries } };
   },
+
+  /** Active users with counsellor-eligible roles — tenant + optional branch scope */
+  listCounsellors: ({ branchId, companyId } = {}) =>
+    prisma.user.findMany({
+      where: {
+        status: 'ACTIVE',
+        deletedAt: null,
+        ...(companyId ? { companyId } : {}),
+        ...(branchId ? { branchId } : {}),
+        role: { slug: { in: COUNSELLOR_ROLE_SLUGS } },
+      },
+      select: counsellorSelect,
+      orderBy: { firstName: 'asc' },
+    }),
+
+  findByEmail: (email, excludeId = null) =>
+    prisma.user.findFirst({
+      where: {
+        email,
+        ...softDeleteWhere,
+        ...(excludeId ? { NOT: { id: excludeId } } : {}),
+      },
+    }),
+
+  create: (data) =>
+    prisma.user.create({
+      data,
+      include: { ...userInclude, ...workloadSelect },
+    }),
+
+  update: (id, data) =>
+    prisma.user.update({
+      where: { id },
+      data,
+      include: { ...userInclude, ...workloadSelect },
+    }),
 };

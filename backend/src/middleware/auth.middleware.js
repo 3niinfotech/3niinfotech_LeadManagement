@@ -32,6 +32,7 @@ export const authenticate = async (req, res, next) => {
       dataScope,
       companyId: user.companyId,
       branchId: user.branchId,
+      portal: decoded.portal || null,
     };
 
     next();

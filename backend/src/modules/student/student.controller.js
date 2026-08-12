@@ -5,12 +5,12 @@ import { studentService, createStudentSchema, updateStudentSchema } from './stud
 
 export const getStudents = asyncHandler(async (req, res) => {
   const { page, limit } = parsePagination(req.query);
-  const result = await studentService.getAll({ ...req.query, page, limit });
+  const result = await studentService.getAll({ ...req.query, page, limit }, req.user);
   sendPaginated(res, result.data, result.pagination);
 });
 
 export const getStudent = asyncHandler(async (req, res) => {
-  const student = await studentService.getById(req.params.id);
+  const student = await studentService.getById(req.params.id, req.user);
   sendSuccess(res, student);
 });
 

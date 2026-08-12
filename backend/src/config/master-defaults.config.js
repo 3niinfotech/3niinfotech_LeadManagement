@@ -1,7 +1,4 @@
-/**
- * Default master lookup values — seeded per company for CRM / Visa ERP testing.
- * Category keys match master registry slugs and enquiry form option keys.
- */
+import { ENQUIRY_TAG_SEED_LABELS } from './enquiry-tags.seed.config.js';
 
 function buildIntakeLabels(monthsAhead = 24) {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -249,18 +246,7 @@ export const MASTER_DEFAULTS = {
     'DROPPED',
     'ON_HOLD',
   ],
-  tags: [
-    'Hot Lead',
-    'Warm Lead',
-    'Cold Lead',
-    'High Priority',
-    'Budget Concern',
-    'Visa Ready',
-    'Needs IELTS',
-    'Parent Involved',
-    'Repeat Visit',
-    'Scholarship Interest',
-  ],
+  tags: ENQUIRY_TAG_SEED_LABELS,
 
   // ── Profile / form helpers ───────────────────────────────────────────────
   gender: [

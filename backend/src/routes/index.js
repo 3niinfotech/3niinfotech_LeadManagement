@@ -13,6 +13,7 @@ import walkinRoutes from '../modules/walkin/walkin.routes.js';
 import assignmentRoutes from '../modules/assignment/assignment.routes.js';
 import featureRoutes from '../modules/feature/feature.routes.js';
 import masterRoutes from '../modules/master/master.routes.js';
+import organizationRoutes from '../modules/organization/organization.routes.js';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use('/walk-ins', walkinRoutes);
 router.use('/assignment', assignmentRoutes);
 router.use('/features', featureRoutes);
 router.use('/masters', masterRoutes);
+router.use('/organization', organizationRoutes);
 router.use('/enquiries', enquiryRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/notifications', notificationRoutes);

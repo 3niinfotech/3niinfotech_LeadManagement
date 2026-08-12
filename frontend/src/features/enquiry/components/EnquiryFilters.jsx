@@ -2,7 +2,8 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import DatePicker from '../../../components/ui/DatePicker';
 import FilterPanel from '../../../components/ui/FilterPanel';
-import { ENQUIRY_STATUSES, ENQUIRY_PRIORITIES, ENQUIRY_TAGS } from '../../../config/constants';
+import { ENQUIRY_STATUSES, ENQUIRY_PRIORITIES } from '../../../config/constants';
+import { useEnquiryTagOptions } from '../hooks/useEnquiryTagOptions';
 
 const FIELDS = [
   { key: 'keyword', label: 'Keyword', placeholder: 'Name, email, mobile...' },
@@ -20,6 +21,7 @@ const FIELDS = [
 ];
 
 export default function EnquiryFilters({ open, values, onChange, onSearch, onReset, onClose }) {
+  const { options: tagOptions } = useEnquiryTagOptions();
   const activeCount = Object.values(values || {}).filter(Boolean).length;
 
   const renderField = (field) => {
@@ -29,7 +31,7 @@ export default function EnquiryFilters({ open, values, onChange, onSearch, onRes
       const optionList = field.options === 'priority'
         ? ENQUIRY_PRIORITIES
         : field.options === 'tag'
-          ? ENQUIRY_TAGS
+          ? tagOptions
           : ENQUIRY_STATUSES;
       const placeholder = field.options === 'priority'
         ? 'All priorities'

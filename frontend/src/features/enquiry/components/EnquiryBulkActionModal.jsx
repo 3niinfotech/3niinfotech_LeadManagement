@@ -5,8 +5,9 @@ import Select from '../../../components/ui/Select';
 import Textarea from '../../../components/ui/Textarea';
 import Input from '../../../components/ui/Input';
 import {
-  ENQUIRY_STATUSES, ENQUIRY_TAGS,
+  ENQUIRY_STATUSES,
 } from '../../../config/constants';
+import { useEnquiryTagOptions } from '../hooks/useEnquiryTagOptions';
 import { useCounsellorOptions } from '../hooks/useCounsellorOptions';
 import { useBranchOptions } from '../hooks/useBranchOptions';
 import {
@@ -20,7 +21,6 @@ import {
 import toastService from '../../../services/toast/toast.service';
 
 const STATUS_OPTIONS = ENQUIRY_STATUSES.map(({ value, label }) => ({ value, label }));
-const TAG_OPTIONS = ENQUIRY_TAGS.map(({ value, label }) => ({ value, label }));
 
 const TITLES = {
   assign: 'Assign Enquiries',
@@ -41,8 +41,16 @@ export default function EnquiryBulkActionModal({
   selectedRows = [],
   onSuccess,
 }) {
-  const { options: counsellorOptions, loading: counsellorsLoading } = useCounsellorOptions();
+  const assignBranchId = useMemo(() => {
+    const ids = [...new Set((selectedRows || []).map((r) => r.branchId).filter(Boolean))];
+    return ids.length === 1 ? ids[0] : undefined;
+  }, [selectedRows]);
+
+  const { options: counsellorOptions, loading: counsellorsLoading } = useCounsellorOptions({
+    branchId: assignBranchId,
+  });
   const { options: branchOptions, loading: branchesLoading } = useBranchOptions();
+  const { options: tagOptions } = useEnquiryTagOptions();
 
   const [assigneeId, setAssigneeId] = useState('');
   const [status, setStatus] = useState('CONTACTED');
@@ -173,7 +181,7 @@ export default function EnquiryBulkActionModal({
             mode="multiple"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
-            options={TAG_OPTIONS}
+            options={tagOptions}
             placeholder="Select tags"
           />
         )}

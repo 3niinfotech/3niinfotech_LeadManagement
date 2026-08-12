@@ -3,17 +3,24 @@ import { AppError } from '../../utils/response.util.js';
 import { comparePassword } from '../../utils/password.util.js';
 import { generateAccessToken, generateRefreshToken } from '../../utils/jwt.util.js';
 import { authRepository } from './auth.repository.js';
-import config from '../../config/index.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
 import prisma from '../../config/database.js';
 import { attachAccessToUser } from '../rbac/rbac.resolve.js';
+import {
+  PORTALS,
+  resolvePortalFromRole,
+  assertRoleMatchesPortal,
+  getDefaultRoute,
+} from '../../config/portal.config.js';
 
 const userInclude = { role: true, company: true, branch: true };
 
-const sanitizeUser = (user) => {
+const sanitizeUser = (user, portal) => {
   const { _count, password, ...rest } = user;
   const permissions = user.permissions || user.role?.permissions || [];
   const dataScope = user.dataScope || user.role?.dataScope || 'OWN';
+  const resolvedPortal = portal || resolvePortalFromRole(user.role.slug);
+
   const base = {
     id: rest.id,
     email: rest.email,
@@ -27,6 +34,8 @@ const sanitizeUser = (user) => {
     createdAt: rest.createdAt,
     dataScope,
     permissions,
+    portal: resolvedPortal,
+    defaultRoute: getDefaultRoute(resolvedPortal, user),
     role: {
       id: user.role.id,
       name: user.role.name,
@@ -53,16 +62,47 @@ const sanitizeUser = (user) => {
 };
 
 export const authService = {
-  login: async (email, password, req) => {
+  login: async (email, password, portal, req) => {
     const user = await authRepository.findByEmail(email);
-    if (!user) throw new AppError('Invalid email or password', 401);
+    if (!user) {
+      await auditLog({
+        action: 'LOGIN_FAILED',
+        entityType: 'User',
+        entityId: email,
+        newData: { reason: 'unknown_email', portal },
+        req,
+      });
+      throw new AppError('Invalid email or password', 401);
+    }
 
     const isValid = await comparePassword(password, user.password);
-    if (!isValid) throw new AppError('Invalid email or password', 401);
+    if (!isValid) {
+      await auditLog({
+        userId: user.id,
+        action: 'LOGIN_FAILED',
+        entityType: 'User',
+        entityId: user.id,
+        newData: { reason: 'invalid_password', portal },
+        req,
+      });
+      throw new AppError('Invalid email or password', 401);
+    }
 
     if (user.status !== 'ACTIVE') throw new AppError('Account is not active', 403);
 
-    const payload = { userId: user.id, email: user.email, role: user.role.slug };
+    const resolvedPortal = portal || resolvePortalFromRole(user.role.slug);
+    try {
+      assertRoleMatchesPortal(user.role.slug, resolvedPortal);
+    } catch (err) {
+      throw new AppError(err.message, err.statusCode || 403);
+    }
+
+    const payload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role.slug,
+      portal: resolvedPortal,
+    };
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
@@ -72,10 +112,23 @@ export const authService = {
     await authRepository.createRefreshToken({ userId: user.id, token: refreshToken, expiresAt });
     await authRepository.updateLastLogin(user.id);
 
-    await auditLog({ userId: user.id, action: 'LOGIN', entityType: 'User', entityId: user.id, req });
+    await auditLog({
+      userId: user.id,
+      action: 'LOGIN',
+      entityType: 'User',
+      entityId: user.id,
+      newData: { portal: resolvedPortal },
+      req,
+    });
 
     const userWithAccess = await attachAccessToUser(user);
-    return { user: sanitizeUser(userWithAccess), accessToken, refreshToken };
+    return {
+      user: sanitizeUser(userWithAccess, resolvedPortal),
+      accessToken,
+      refreshToken,
+      portal: resolvedPortal,
+      defaultRoute: getDefaultRoute(resolvedPortal, userWithAccess),
+    };
   },
 
   refresh: async (token) => {
@@ -83,11 +136,17 @@ export const authService = {
     if (!stored) throw new AppError('Invalid refresh token', 401);
 
     const user = stored.user;
-    const payload = { userId: user.id, email: user.email, role: user.role.slug };
+    const portal = resolvePortalFromRole(user.role.slug);
+    const payload = { userId: user.id, email: user.email, role: user.role.slug, portal };
     const accessToken = generateAccessToken(payload);
 
     const userWithAccess = await attachAccessToUser(user);
-    return { accessToken, user: sanitizeUser(userWithAccess) };
+    return {
+      accessToken,
+      user: sanitizeUser(userWithAccess, portal),
+      portal,
+      defaultRoute: getDefaultRoute(portal, userWithAccess),
+    };
   },
 
   logout: async (userId, refreshToken, req) => {
@@ -99,7 +158,8 @@ export const authService = {
     const user = await authRepository.findById(userId);
     if (!user) throw new AppError('User not found', 404);
     const userWithAccess = await attachAccessToUser(user);
-    return sanitizeUser(userWithAccess);
+    const portal = resolvePortalFromRole(user.role.slug);
+    return sanitizeUser(userWithAccess, portal);
   },
 
   updatePreferences: async (userId, preferences) => {
@@ -137,7 +197,8 @@ export const authService = {
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  portal: z.enum([PORTALS.ADMIN, PORTALS.STUDENT, PORTALS.AGENT]).optional(),
 });
 
 export const refreshSchema = z.object({

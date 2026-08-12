@@ -306,7 +306,7 @@ export default function EnquiryDrawer() {
           <PersonalDetailsTab register={register} control={control} errors={errors} />
         )}
         {!isEditMode && drawerTab === 'other' && (
-          <OtherDetailsTab register={register} control={control} errors={errors} />
+          <OtherDetailsTab register={register} control={control} errors={errors} variant="enquiry" />
         )}
         {!isEditMode && drawerTab === 'followup' && (
           <FollowUpActionsPanel

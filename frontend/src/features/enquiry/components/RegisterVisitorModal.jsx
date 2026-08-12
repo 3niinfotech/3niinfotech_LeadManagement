@@ -11,7 +11,7 @@ import Textarea from '../../../components/ui/Textarea';
 import Button from '../../../components/ui/Button';
 import { selectUser } from '../../../redux/slices/authSlice';
 import { useCreateWalkInMutation } from '../../walkin/redux/walkinApiSlice';
-import { useGetWalkInCounsellorsQuery } from '../../walkin/redux/walkinApiSlice';
+import { useCounsellorOptions } from '../hooks/useCounsellorOptions';
 import { useLazyResolveIdentityQuery } from '../../assignment/redux/assignmentApiSlice';
 import { useFeature } from '../../../hooks/useFeature';
 import { useMasterOptions } from '../../master/hooks/useMasterOptions';
@@ -46,11 +46,10 @@ export default function RegisterVisitorModal({
   const [createWalkIn, { isLoading }] = useCreateWalkInMutation();
   const showCounsellorPicker = manualCounsellor && !autoAssign;
 
-  const { data: counsellorsData, isLoading: counsellorsLoading } = useGetWalkInCounsellorsQuery(
+  const { options: counsellorOptions, loading: counsellorsLoading } = useCounsellorOptions({
     branchId,
-    { skip: !branchId || !open || !showCounsellorPicker },
-  );
-  const counsellors = counsellorsData ?? [];
+    enabled: Boolean(open && showCounsellorPicker && branchId),
+  });
 
   const {
     options: visitPurposeOptions,
@@ -207,10 +206,7 @@ export default function RegisterVisitorModal({
 
   const counsellorSelectOptions = [
     { value: '', label: 'Unassigned' },
-    ...counsellors.map((u) => ({
-      value: u.id,
-      label: `${u.firstName} ${u.lastName || ''}`.trim(),
-    })),
+    ...counsellorOptions,
   ];
 
   return (
@@ -276,7 +272,7 @@ export default function RegisterVisitorModal({
                   searchable
                   value={field.value || ''}
                   onChange={(e) => field.onChange(e.target.value)}
-                  hint={counsellors.length === 0 && !counsellorsLoading
+                  hint={counsellorOptions.length === 0 && !counsellorsLoading
                     ? 'No counsellors — add users with Counsellor role'
                     : undefined}
                 />

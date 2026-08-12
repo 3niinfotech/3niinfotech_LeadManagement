@@ -219,18 +219,6 @@ export const walkinRepository = {
     orderBy: { name: 'asc' },
   }),
 
-  listCounsellors: (branchId, companyId) => prisma.user.findMany({
-    where: {
-      status: 'ACTIVE',
-      deletedAt: null,
-      ...(companyId ? { companyId } : {}),
-      ...(branchId && { branchId }),
-      role: { slug: { in: ['super_admin', 'counsellor', 'team_leader', 'branch_manager', 'company_admin'] } },
-    },
-    select: userSelect,
-    orderBy: { firstName: 'asc' },
-  }),
-
   listNotes: (leadId) => prisma.note.findMany({
     where: {
       entityType: 'LEAD',

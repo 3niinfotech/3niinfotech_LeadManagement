@@ -24,7 +24,7 @@ export default function ReceptionPageHeader({
         icon={FiUserPlus}
         iconColor="primary"
         breadcrumbs={[
-          { label: 'Dashboard', path: '/dashboard' },
+          { label: 'Dashboard', path: '/admin/dashboard' },
           { label: 'Reception Registration' },
         ]}
         embedded

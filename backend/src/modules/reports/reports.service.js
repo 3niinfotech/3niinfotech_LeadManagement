@@ -1,13 +1,16 @@
 import prisma from '../../config/database.js';
 import { softDeleteWhere } from '../../utils/response.util.js';
-import { buildDataScopeWhere } from '../../utils/scope.util.js';
+import { mergeScope, assertBranchInTenant } from '../../utils/tenant.util.js';
 import { ENQUIRY_STATUSES } from '../enquiry/enquiryStatus.config.js';
 
-function buildReportWhere(query, user) {
-  const scopeWhere = buildDataScopeWhere(user, { companyViaBranch: true });
+async function buildReportWhere(query, user) {
+  const scopeWhere = mergeScope(user, { entity: 'enquiry' });
   const where = { ...softDeleteWhere, ...scopeWhere };
 
-  if (query.branchId) where.branchId = query.branchId;
+  if (query.branchId && user.dataScope === 'COMPANY') {
+    await assertBranchInTenant(query.branchId, user);
+    where.branchId = query.branchId;
+  }
   if (query.from || query.to) {
     where.createdAt = {};
     if (query.from) where.createdAt.gte = new Date(query.from);
@@ -46,7 +49,7 @@ async function loadCounsellorNames(ids) {
 
 export const reportsService = {
   getEnquiryReports: async (query, user) => {
-    const where = buildReportWhere(query, user);
+    const where = await buildReportWhere(query, user);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);

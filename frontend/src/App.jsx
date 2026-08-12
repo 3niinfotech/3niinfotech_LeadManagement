@@ -1,25 +1,32 @@
 import { useEffect, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Provider, useDispatch, useSelector } from 'react-redux';
+import { Provider, useDispatch } from 'react-redux';
 import ToastProvider from './components/ui/ToastProvider';
 import AntdProvider from './components/providers/AntdProvider';
 import { store } from './redux/store';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import RequirePortal from './components/common/RequirePortal';
 import PermissionRoute from './components/common/PermissionRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import AppLayout from './components/layout/AppLayout';
+import StudentShell from './components/layout/StudentShell';
+import AgentShell from './components/layout/AgentShell';
 import GlobalLoader from './components/ui/GlobalLoader';
 import { useAppTheme } from './hooks/useAppTheme';
 import toastService from './services/toast/toast.service';
 import { ROUTES } from './config/routes';
 import { PERMISSIONS } from './config/permissions';
+import { PORTALS } from './config/portal.config';
 import { useSocket } from './hooks/useSocket';
 import { lazyImport } from './utils/lazyImport';
 import AssignmentHeartbeat from './components/common/AssignmentHeartbeat';
 import FeatureBootstrap from './components/common/FeatureBootstrap';
 import AuthInitGate from './components/common/AuthInitGate';
 
-const LoginPage = lazyImport(() => import('./pages/auth/LoginPage'));
+const PortalSelectorPage = lazyImport(() => import('./pages/auth/PortalSelectorPage'));
+const AuthLoginForm = lazyImport(() => import('./components/auth/AuthLoginForm'));
+const StudentRegisterPage = lazyImport(() => import('./pages/auth/StudentRegisterPage'));
+const AgentRegisterPage = lazyImport(() => import('./pages/auth/AgentRegisterPage'));
 const DashboardPage = lazyImport(() => import('./pages/dashboard/DashboardPage'));
 const StudentsPage = lazyImport(() => import('./pages/students/StudentsPage'));
 const EnquiryPage = lazyImport(() => import('./features/enquiry/pages/EnquiryPage'));
@@ -39,15 +46,59 @@ const MasterDataPage = lazyImport(() => import('./features/master/pages/MasterDa
 const DemoPage = lazyImport(() => import('./features/demo/pages/DemoPage'));
 const FeesPage = lazyImport(() => import('./features/fees/pages/FeesPage'));
 const ForbiddenPage = lazyImport(() => import('./pages/errors/ForbiddenPage'));
+const StudentDashboardPage = lazyImport(() => import('./pages/student-portal/StudentDashboardPage'));
+const AgentDashboardPage = lazyImport(() => import('./pages/agent-portal/AgentDashboardPage'));
+const AgentStudentsPage = lazyImport(() => import('./pages/agent-portal/AgentStudentsPage'));
 
 function AppRoutes() {
   useSocket();
   return (
     <Routes>
-      <Route path="/login" element={
-        <Suspense fallback={<GlobalLoader />}><LoginPage /></Suspense>
-      } />
-      <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+      {/* Public auth */}
+      <Route path="/login" element={<Suspense fallback={<GlobalLoader />}><PortalSelectorPage /></Suspense>} />
+      <Route path="/login/admin" element={<Suspense fallback={<GlobalLoader />}><AuthLoginForm portal={PORTALS.ADMIN} /></Suspense>} />
+      <Route path="/login/student" element={<Suspense fallback={<GlobalLoader />}><AuthLoginForm portal={PORTALS.STUDENT} /></Suspense>} />
+      <Route path="/login/agent" element={<Suspense fallback={<GlobalLoader />}><AuthLoginForm portal={PORTALS.AGENT} /></Suspense>} />
+      <Route path="/register/student" element={<Suspense fallback={<GlobalLoader />}><StudentRegisterPage /></Suspense>} />
+      <Route path="/register/agent" element={<Suspense fallback={<GlobalLoader />}><AgentRegisterPage /></Suspense>} />
+
+      {/* Legacy redirects */}
+      <Route path="/dashboard" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+      <Route path="/enquiries/*" element={<Navigate to={ROUTES.ENQUIRIES} replace />} />
+      <Route path="/students/*" element={<Navigate to={ROUTES.STUDENTS} replace />} />
+
+      {/* Student portal */}
+      <Route path="/student" element={
+        <ProtectedRoute portal={PORTALS.STUDENT}>
+          <RequirePortal portal={PORTALS.STUDENT}><StudentShell /></RequirePortal>
+        </ProtectedRoute>
+      }>
+        <Route index element={<Navigate to={ROUTES.STUDENT_DASHBOARD} replace />} />
+        <Route path="dashboard" element={<StudentDashboardPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+      </Route>
+
+      {/* Agent portal */}
+      <Route path="/agent" element={
+        <ProtectedRoute portal={PORTALS.AGENT}>
+          <RequirePortal portal={PORTALS.AGENT}><AgentShell /></RequirePortal>
+        </ProtectedRoute>
+      }>
+        <Route index element={<Navigate to={ROUTES.AGENT_DASHBOARD} replace />} />
+        <Route path="dashboard" element={<AgentDashboardPage />} />
+        <Route path="students" element={
+          <PermissionRoute permission={PERMISSIONS.STUDENTS_VIEW}>
+            <AgentStudentsPage />
+          </PermissionRoute>
+        } />
+      </Route>
+
+      {/* Admin portal */}
+      <Route path="/admin" element={
+        <ProtectedRoute portal={PORTALS.ADMIN}>
+          <RequirePortal portal={PORTALS.ADMIN}><AppLayout /></RequirePortal>
+        </ProtectedRoute>
+      }>
         <Route index element={<Navigate to={ROUTES.DASHBOARD} replace />} />
         <Route path="dashboard" element={
           <PermissionRoute permission={PERMISSIONS.DASHBOARD_VIEW}>
@@ -55,18 +106,10 @@ function AppRoutes() {
           </PermissionRoute>
         } />
         <Route path="reception/walk-ins" element={<Navigate to={ROUTES.ENQUIRIES} replace />} />
-        <Route path="enquiries/new/:tab" element={
-          <EnquiryCreatePage />
-        } />
-        <Route path="enquiries/new" element={
-          <EnquiryCreatePage />
-        } />
-        <Route path="enquiries/:id/:tab" element={
-          <EnquiryDetailPage />
-        } />
-        <Route path="enquiries/:id" element={
-          <EnquiryDetailPage />
-        } />
+        <Route path="enquiries/new/:tab" element={<EnquiryCreatePage />} />
+        <Route path="enquiries/new" element={<EnquiryCreatePage />} />
+        <Route path="enquiries/:id/:tab" element={<EnquiryDetailPage />} />
+        <Route path="enquiries/:id" element={<EnquiryDetailPage />} />
         <Route path="enquiries" element={
           <PermissionRoute permission={PERMISSIONS.ENQUIRIES_VIEW}>
             <EnquiryPage />
@@ -157,21 +200,16 @@ function AppRoutes() {
         <Route path="course-finder" element={<PlaceholderPage title="Course Finder" module="Course Finder" />} />
         <Route path="tasks" element={<PlaceholderPage title="View Task" module="Tasks" />} />
       </Route>
-      <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+
+      <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
+      <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
     </Routes>
   );
 }
 
-import { fetchProfile, selectIsAuthenticated } from './redux/slices/authSlice';
-
 function AppShell() {
   useAppTheme();
   const dispatch = useDispatch();
-  const isAuthenticated = useSelector(selectIsAuthenticated);
-
-  useEffect(() => {
-    if (isAuthenticated) dispatch(fetchProfile());
-  }, [dispatch, isAuthenticated]);
 
   useEffect(() => {
     toastService.dismissAll();

@@ -7,11 +7,16 @@ export const API = {
   PROFILE: '/auth/profile',
   PROFILE_UPDATE: '/auth/profile',
   PREFERENCES: '/auth/preferences',
+  REGISTER_BRANCHES: '/auth/register/branches',
+  REGISTER_STUDENT: '/auth/register/student',
+  REGISTER_AGENT: '/auth/register/agent',
 
   USERS: '/users',
   USER_BY_ID: (id) => `/users/${id}`,
+  USER_STATUS: (id) => `/users/${id}/status`,
   USER_ROLES: '/users/roles',
   USER_TEAM_SUMMARY: '/users/team-summary',
+  USERS_COUNSELLORS: '/users/counsellors',
 
   DASHBOARD_STATS: '/dashboard/stats',
   DASHBOARD_ACTIVITY: '/dashboard/activity',
@@ -111,4 +116,9 @@ export const API = {
   MASTER_ENTITY: (entity) => `/masters/${entity}`,
   MASTER_ENTITY_BY_ID: (entity, id) => `/masters/${entity}/${id}`,
   MASTER_ENTITY_STATUS: (entity, id) => `/masters/${entity}/${id}/status`,
+
+  ORGANIZATION_COMPANY: '/organization/company',
+  ORGANIZATION_BRANCHES: '/organization/branches',
+  ORGANIZATION_BRANCH: (id) => `/organization/branches/${id}`,
+  ORGANIZATION_BRANCH_STATUS: (id) => `/organization/branches/${id}/status`,
 };

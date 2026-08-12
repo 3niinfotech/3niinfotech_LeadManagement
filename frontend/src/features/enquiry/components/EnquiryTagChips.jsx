@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { FiPlus, FiChevronDown } from 'react-icons/fi';
-import { ENQUIRY_TAGS, getEnquiryTagMeta } from '../../../config/constants';
+import { getEnquiryTagMeta } from '../config/enquiryTags.config';
+import { useEnquiryTagOptions } from '../hooks/useEnquiryTagOptions';
 import { handleGridCellMenuScroll, gridCellMenuWheelProps } from '../../../components/table/gridCellMenu.utils';
 
 const colorMap = {
@@ -31,6 +32,7 @@ function TagChip({ tag, compact = false }) {
 }
 
 export default function EnquiryTagChips({ tags = [], onChange }) {
+  const { options: tagOptions } = useEnquiryTagOptions();
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
   const [draft, setDraft] = useState(tags);
@@ -106,7 +108,7 @@ export default function EnquiryTagChips({ tags = [], onChange }) {
         <p className="text-[10px] text-text-muted">Select multiple</p>
       </div>
       <div className="p-2 max-h-52 overflow-y-auto no-scrollbar flex flex-wrap gap-1.5">
-        {ENQUIRY_TAGS.map((tag) => {
+        {tagOptions.map((tag) => {
           const active = draft.includes(tag.value);
           const chipClass = colorMap[tag.color || 'secondary'];
           return (

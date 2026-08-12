@@ -2,9 +2,11 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { apiGet, apiPost } from '../../../api/apiClient';
 import { API } from '../../../config/api';
 import { VISIT_PURPOSES } from '../../assignment/config/assignment.constants';
+import { ENQUIRY_TAGS } from '../../enquiry/config/enquiryTags.config';
 
 const FALLBACK_OPTIONS = {
   'visit-purpose': VISIT_PURPOSES.map((label) => ({ value: label, label })),
+  tags: ENQUIRY_TAGS.map(({ value, label }) => ({ value, label })),
 };
 
 /**

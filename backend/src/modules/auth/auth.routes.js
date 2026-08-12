@@ -12,4 +12,8 @@ router.get('/profile', authenticate, authController.getProfile);
 router.patch('/profile', authenticate, authController.updateProfile);
 router.patch('/preferences', authenticate, authController.updatePreferences);
 
+router.get('/register/branches', authLimiter, authController.getRegistrationBranches);
+router.post('/register/student', authLimiter, authController.registerStudent);
+router.post('/register/agent', authLimiter, authController.registerAgent);
+
 export default router;
