@@ -1,0 +1,107 @@
+/**
+ * Tailwind color map — all values reference CSS variables from colors.theme.js.
+ * Do NOT hardcode hex here; edit src/theme/colors.theme.js instead.
+ */
+export const colors = {
+  page: 'var(--bg-page)',
+  brand: {
+    DEFAULT: 'var(--brand)',
+    hover: 'var(--brand-hover)',
+    soft: 'var(--brand-soft)',
+    accent: 'var(--brand-accent)',
+  },
+  primary: {
+    50: 'var(--brand-soft)',
+    100: 'var(--brand-soft)',
+    200: 'color-mix(in srgb, var(--brand) 25%, white)',
+    300: 'color-mix(in srgb, var(--brand) 40%, white)',
+    400: 'var(--brand-accent)',
+    500: 'color-mix(in srgb, var(--brand) 85%, white)',
+    600: 'var(--brand)',
+    700: 'var(--brand-hover)',
+    800: 'color-mix(in srgb, var(--brand) 80%, black)',
+    900: 'color-mix(in srgb, var(--brand) 65%, black)',
+    DEFAULT: 'var(--brand)',
+  },
+  secondary: {
+    50: 'var(--row-hover)',
+    100: 'var(--row-hover)',
+    200: 'var(--border)',
+    300: 'var(--border-strong)',
+    400: 'var(--text-muted)',
+    500: 'var(--text-secondary)',
+    600: 'var(--text-secondary)',
+    700: 'var(--text-primary)',
+    800: 'var(--text-primary)',
+    900: 'var(--text-primary)',
+    DEFAULT: 'var(--text-secondary)',
+  },
+  success: {
+    DEFAULT: 'var(--success)',
+    soft: 'var(--success-soft)',
+    light: 'var(--success-soft)',
+    action: 'var(--success-action)',
+    dark: 'var(--success-action)',
+  },
+  warning: {
+    DEFAULT: 'var(--warning)',
+    soft: 'var(--warning-soft)',
+    light: 'var(--warning-soft)',
+    dark: 'var(--warning)',
+  },
+  danger: {
+    DEFAULT: 'var(--danger)',
+    soft: 'var(--danger-soft)',
+    light: 'var(--danger-soft)',
+    dark: 'var(--danger)',
+  },
+  info: {
+    DEFAULT: 'var(--info)',
+    soft: 'var(--info-soft)',
+    light: 'var(--info-soft)',
+    dark: 'var(--info)',
+  },
+  border: {
+    DEFAULT: 'var(--border)',
+    strong: 'var(--border-strong)',
+    hover: 'var(--border-hover)',
+    field: 'var(--field-border)',
+    grid: 'var(--grid-border)',
+  },
+  row: { hover: 'var(--row-hover)' },
+  sidebar: {
+    bg: 'var(--bg-sidebar)',
+    bgHover: 'var(--sidebar-hover)',
+    activeBg: 'var(--sidebar-active-bg)',
+    submenuBg: 'var(--sidebar-submenu-bg)',
+    groupOpen: 'var(--sidebar-group-open)',
+    text: 'var(--text-secondary)',
+    textActive: 'var(--sidebar-active-text)',
+    submenuText: 'var(--sidebar-submenu-text)',
+    submenuLine: 'var(--sidebar-submenu-line)',
+    border: 'var(--border)',
+    activeBar: 'var(--sidebar-active-bar)',
+  },
+  navbar: {
+    bg: 'var(--bg-navbar)',
+    border: 'var(--border)',
+  },
+  card: {
+    bg: 'var(--bg-card)',
+    border: 'var(--border)',
+  },
+  background: {
+    DEFAULT: 'var(--bg-page)',
+  },
+  text: {
+    DEFAULT: 'var(--text-primary)',
+    secondary: 'var(--text-secondary)',
+    muted: 'var(--text-muted)',
+  },
+  grid: {
+    header: 'var(--text-grid-header)',
+    cell: 'var(--text-grid-cell)',
+    actionEdit: 'var(--grid-action-edit)',
+    actionDelete: 'var(--grid-action-delete)',
+  },
+};

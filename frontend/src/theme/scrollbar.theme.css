@@ -1,0 +1,100 @@
+/**
+ * CRM scroll policy — ONE visible scrollbar per view region.
+ * Primary panes: thin styled thumb. Popups/dropdowns: wheel scroll, no visible bar.
+ */
+
+/* ── Primary scroll regions (visible thin scrollbar) ── */
+[data-page-scroll],
+.scroll-area:not(.no-scrollbar),
+.sidebar-nav,
+.crm-modal-body:not(.no-scrollbar),
+.crm-drawer-body,
+.crm-reception-page__scroll,
+.ag-theme-crm .ag-body-viewport,
+.ag-theme-crm .ag-body-horizontal-scroll-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+[data-page-scroll]::-webkit-scrollbar,
+.scroll-area:not(.no-scrollbar)::-webkit-scrollbar,
+.sidebar-nav::-webkit-scrollbar,
+.crm-modal-body:not(.no-scrollbar)::-webkit-scrollbar,
+.crm-drawer-body::-webkit-scrollbar,
+.crm-reception-page__scroll::-webkit-scrollbar,
+.ag-theme-crm .ag-body-viewport::-webkit-scrollbar,
+.ag-theme-crm .ag-body-horizontal-scroll-viewport::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-page-scroll]::-webkit-scrollbar-track,
+.scroll-area:not(.no-scrollbar)::-webkit-scrollbar-track,
+.sidebar-nav::-webkit-scrollbar-track,
+.crm-modal-body:not(.no-scrollbar)::-webkit-scrollbar-track,
+.crm-drawer-body::-webkit-scrollbar-track,
+.crm-reception-page__scroll::-webkit-scrollbar-track,
+.ag-theme-crm .ag-body-viewport::-webkit-scrollbar-track,
+.ag-theme-crm .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-page-scroll]::-webkit-scrollbar-thumb,
+.scroll-area:not(.no-scrollbar)::-webkit-scrollbar-thumb,
+.sidebar-nav::-webkit-scrollbar-thumb,
+.crm-modal-body:not(.no-scrollbar)::-webkit-scrollbar-thumb,
+.crm-drawer-body::-webkit-scrollbar-thumb,
+.crm-reception-page__scroll::-webkit-scrollbar-thumb,
+.ag-theme-crm .ag-body-viewport::-webkit-scrollbar-thumb,
+.ag-theme-crm .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+[data-page-scroll]::-webkit-scrollbar-thumb:hover,
+.scroll-area:not(.no-scrollbar)::-webkit-scrollbar-thumb:hover,
+.sidebar-nav::-webkit-scrollbar-thumb:hover,
+.crm-modal-body:not(.no-scrollbar)::-webkit-scrollbar-thumb:hover,
+.crm-drawer-body::-webkit-scrollbar-thumb:hover,
+.crm-reception-page__scroll::-webkit-scrollbar-thumb:hover,
+.ag-theme-crm .ag-body-viewport::-webkit-scrollbar-thumb:hover,
+.ag-theme-crm .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ── Popups & dropdowns — scroll with wheel, no visible scrollbar ── */
+.no-scrollbar,
+.crm-ant-select-dropdown,
+.crm-ant-select-dropdown .rc-virtual-list-holder,
+.ant-select-dropdown,
+.ant-dropdown,
+.ant-picker-dropdown,
+.ant-cascader-menus,
+.crm-form-tabs__track {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior: contain;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.crm-ant-select-dropdown::-webkit-scrollbar,
+.crm-ant-select-dropdown .rc-virtual-list-holder::-webkit-scrollbar,
+.ant-select-dropdown::-webkit-scrollbar,
+.ant-dropdown::-webkit-scrollbar,
+.ant-picker-dropdown::-webkit-scrollbar,
+.ant-cascader-menus::-webkit-scrollbar,
+.crm-form-tabs__track::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Legacy alias */
+.crm-scrollbar:not(.scroll-area) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}

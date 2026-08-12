@@ -1,0 +1,129 @@
+.crm-assignment-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.crm-assignment-stat {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 0.85rem 1rem;
+}
+
+.crm-assignment-stat__value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.crm-assignment-stat__label {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.crm-assignment-offer {
+  border: 1px solid var(--brand);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 8%, transparent), transparent);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.crm-assignment-offer__timer {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--warning);
+}
+
+.crm-assignment-section {
+  margin-bottom: 1.25rem;
+}
+
+.crm-assignment-section__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.5rem;
+}
+
+.crm-assignment-visitor-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  margin-bottom: 0.5rem;
+}
+
+.crm-assignment-visitor-row__name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.crm-assignment-visitor-row__meta {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.crm-assignment-presence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.crm-assignment-presence__btn {
+  font-size: 0.6875rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.crm-assignment-presence__btn--active {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.crm-assignment-active-session {
+  border: 1px solid var(--success);
+  background: color-mix(in srgb, var(--success) 6%, transparent);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.crm-identity-banner {
+  border: 1px solid var(--warning);
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.crm-identity-banner__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.crm-identity-banner__sub {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}

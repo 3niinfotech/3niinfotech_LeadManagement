@@ -1,0 +1,32 @@
+export const HISTORY_ACTION_LABELS = {
+  CREATE: 'Created',
+  UPDATE: 'Updated',
+  DELETE: 'Deleted',
+  ASSIGN: 'Assigned',
+  IMPORTED: 'Imported',
+  MERGED: 'Merged',
+  EXPORTED: 'Exported',
+  STATUS_CHANGE: 'Updated',
+  FOLLOWUP: 'Follow-up',
+  APPOINTMENT: 'Appointment',
+  DEMO: 'Demo',
+  NOTE: 'Note',
+  DOCUMENT: 'Document uploaded',
+  DOCUMENT_DELETE: 'Document removed',
+  COMMUNICATION: 'Communication',
+  DROP: 'Dropped',
+};
+
+export const HISTORY_FIELD_LABELS = {
+  status: 'Status',
+  priority: 'Priority',
+  tags: 'Tags',
+  stage: 'Stage',
+  firstName: 'First name',
+  lastName: 'Last name',
+  email: 'Email',
+  mobile: 'Mobile',
+  interestedCourse: 'Course',
+  interestedCountry: 'Country',
+  smartReminder: 'Smart reminder',
+};

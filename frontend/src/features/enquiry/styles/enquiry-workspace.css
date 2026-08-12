@@ -1,0 +1,595 @@
+.crm-enquiry-page {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.crm-enquiry-page__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Unified page header (name + code once) ── */
+.crm-enquiry-hero {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--brand) 5%, var(--bg-card)) 0%,
+      var(--bg-card) 100%
+    );
+}
+
+.crm-enquiry-hero__crumb {
+  padding: 0.75rem 1.5rem 0;
+}
+
+.crm-enquiry-hero__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.875rem 1.5rem 1rem;
+}
+
+.crm-enquiry-hero__lead {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.crm-enquiry-hero__avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.875rem;
+  display: grid;
+  place-items: center;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 12%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--brand) 22%, var(--border));
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.crm-enquiry-hero__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  padding-top: 0.125rem;
+}
+
+.crm-enquiry-hero__name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.crm-enquiry-hero__subline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem 0.75rem;
+}
+
+.crm-enquiry-hero__code {
+  display: inline-flex;
+  align-items: center;
+  height: 1.5rem;
+  padding: 0 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  border-radius: 0.375rem;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  line-height: 1;
+}
+
+.crm-enquiry-hero__badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.crm-enquiry-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.crm-enquiry-hero__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.75rem 1.5rem 1rem;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-page) 40%, var(--bg-card));
+}
+
+.crm-enquiry-hero__meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+}
+
+.crm-enquiry-hero__meta-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0 1.25rem;
+  border-right: 1px solid var(--border);
+  min-height: 2.25rem;
+}
+
+.crm-enquiry-hero__meta-item:first-child {
+  padding-left: 0;
+}
+
+.crm-enquiry-hero__meta-item:last-child {
+  border-right: 0;
+}
+
+.crm-enquiry-hero__meta-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.crm-enquiry-hero__meta-value {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.crm-enquiry-hero__student-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.crm-enquiry-hero__student-link:hover {
+  text-decoration: underline;
+}
+
+.crm-enquiry-hero__student-link svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.crm-enquiry-readonly-banner {
+  margin: 0 1.25rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  background: color-mix(in srgb, var(--success) 12%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--success) 30%, var(--border));
+  color: var(--text-secondary);
+}
+
+.crm-enquiry-page__tabs {
+  flex-shrink: 0;
+  padding: 0 1.25rem;
+  background: var(--bg-card);
+}
+
+/* ── Underline tabs (icon + label, one row) ── */
+.crm-enquiry-tabs {
+  flex-shrink: 0;
+}
+
+.crm-enquiry-tabs__scroll {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+.crm-enquiry-tabs__track {
+  display: flex;
+  align-items: stretch;
+  gap: 0.125rem;
+  min-width: min-content;
+  padding: 0 0.125rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.crm-enquiry-tabs__tab {
+  position: relative;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 0.9rem;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition:
+    color 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.crm-enquiry-tabs__indicator {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--brand);
+  z-index: 1;
+  transition: background-color 0.25s ease;
+}
+
+.crm-enquiry-tabs__tab--convert.crm-enquiry-tabs__tab--active .crm-enquiry-tabs__indicator {
+  background: var(--success);
+}
+
+.crm-enquiry-tabs__tab:hover:not(.crm-enquiry-tabs__tab--active) {
+  color: var(--text);
+  background: color-mix(in srgb, var(--row-hover) 60%, transparent);
+}
+
+.crm-enquiry-tabs__tab--active {
+  color: var(--brand);
+  font-weight: 600;
+  border-bottom-color: transparent;
+}
+
+.crm-enquiry-tabs__tab--convert:not(.crm-enquiry-tabs__tab--active) {
+  color: color-mix(in srgb, var(--success) 80%, var(--text-secondary));
+}
+
+.crm-enquiry-tabs__tab--convert.crm-enquiry-tabs__tab--active {
+  color: var(--success);
+}
+
+.crm-enquiry-tabs__icon {
+  width: 0.9375rem;
+  height: 0.9375rem;
+  flex-shrink: 0;
+  opacity: 0.8;
+  transition:
+    opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.22s ease;
+}
+
+.crm-enquiry-tabs__tab--active .crm-enquiry-tabs__icon {
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+.crm-enquiry-tabs__tab--convert.crm-enquiry-tabs__tab--active .crm-enquiry-tabs__icon {
+  color: var(--success);
+}
+
+.crm-enquiry-tabs__label {
+  line-height: 1;
+}
+
+.crm-enquiry-tabs__error-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: var(--danger);
+  flex-shrink: 0;
+}
+
+.crm-enquiry-page__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* FormTabPanel was built for modal — needs height chain on full page */
+.crm-enquiry-page__content .crm-form-panel {
+  flex: 1;
+  min-height: 12rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.crm-enquiry-page__content .crm-form-panel__layer {
+  position: relative;
+  inset: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem 1.25rem 1.5rem;
+}
+
+.crm-enquiry-tab-panel .crm-enquiry-tab-panel__layer {
+  position: absolute;
+  inset: 0;
+  will-change: opacity, transform;
+}
+
+.crm-followup-actions-panel.crm-form-section {
+  overflow: visible;
+}
+
+.crm-followup-actions-panel .crm-form-section__body {
+  overflow: visible;
+}
+
+/* Inline channel row — 7 equal tabs, single line, full width */
+.crm-followup-tab-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.crm-followup-tab-layout__strip {
+  width: 100%;
+  padding: 0 2px 4px;
+}
+
+.crm-followup-channel-tabs--inline {
+  width: 100%;
+}
+
+.crm-followup-channel-tabs--inline .crm-followup-channel-tabs__scroll {
+  width: 100%;
+  overflow: visible;
+}
+
+.crm-followup-channel-tabs--inline .crm-followup-channel-tabs__track {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: 100%;
+  gap: 0.25rem;
+  padding: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, var(--bg-page) 55%, var(--bg-card));
+  box-sizing: border-box;
+}
+
+.crm-followup-channel-tabs--inline .crm-followup-channel-tabs__tab {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  padding: 0.5rem 0.3rem;
+  font-size: 0.6875rem;
+  gap: 0.3rem;
+}
+
+.crm-followup-channel-tabs--inline .crm-followup-channel-tabs__icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.crm-followup-channel-tabs--inline .crm-followup-channel-tabs__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-followup-channel-tabs--inline .crm-followup-channel-tabs__indicator {
+  z-index: 0;
+}
+
+@media (min-width: 640px) {
+  .crm-followup-channel-tabs--inline .crm-followup-channel-tabs__tab {
+    padding: 0.55rem 0.45rem;
+    font-size: 0.75rem;
+    gap: 0.35rem;
+  }
+
+  .crm-followup-channel-tabs--inline .crm-followup-channel-tabs__icon {
+    width: 0.9375rem;
+    height: 0.9375rem;
+  }
+}
+
+.crm-followup-actions-panel .crm-followup-channel-tabs-wrap {
+  padding: 0 2px 4px;
+}
+
+.crm-enquiry-page .crm-enquiry-analytics {
+  width: 100%;
+  margin: 0;
+  padding: 1rem;
+  border: 0;
+  max-height: none;
+  min-height: 100%;
+}
+
+.crm-followup-contact-card {
+  padding: 0.75rem 0.875rem;
+  border-radius: 0.625rem;
+  border: 1px solid color-mix(in srgb, var(--brand) 22%, var(--border));
+  background: color-mix(in srgb, var(--brand) 6%, var(--bg-card));
+}
+
+.crm-followup-contact-card__row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.crm-followup-contact-card__icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--brand);
+  flex-shrink: 0;
+}
+
+.crm-followup-contact-card__label {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.crm-followup-contact-card__value {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.crm-followup-contact-card__hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* Follow-up + Appointment — side by side on wide screens, stacked on mobile */
+.crm-followup-appointment-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.crm-followup-appointment-row > .crm-form-section {
+  min-width: 0;
+  height: 100%;
+}
+
+.crm-followup-appointment-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .crm-followup-appointment-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .crm-followup-appointment-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .crm-followup-appointment-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .crm-followup-appointment-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1536px) {
+  .crm-followup-appointment-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.crm-followup-appointment-fields > .col-span-full {
+  grid-column: 1 / -1;
+}
+
+.crm-enquiry-quick-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.crm-enquiry-quick-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.crm-enquiry-quick-bar__btn:hover {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--primary) 8%, var(--bg-card));
+}
+
+@media (max-width: 1200px) {
+  .crm-enquiry-page {
+    flex-direction: column;
+  }
+
+  .crm-enquiry-hero__main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .crm-enquiry-hero__actions {
+    justify-content: flex-start;
+    align-self: stretch;
+  }
+
+  .crm-enquiry-hero__meta-item {
+    padding: 0.5rem 0.75rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    min-height: auto;
+    width: calc(50% - 0.25rem);
+  }
+
+  .crm-enquiry-hero__meta-grid {
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .crm-enquiry-tabs__tab {
+    padding: 0.6rem 0.7rem;
+    font-size: 0.75rem;
+  }
+}

@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.vite/
+
+# Environment & secrets
+.env
+.env.local
+.env.production
+.env.*.local
+backend/.env
+frontend/.env
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Uploads & runtime data
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Cursor local config (keep rules out of repo unless intentional)
+.cursor/
+
+# Test / temp
+coverage/
+*.tmp
+*.temp
+
+# Prisma local
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+
+# Optional local backup copies (canonical backup lives in database/backups/)
+database/backups/*.bak
+database/backups/*_old.sql

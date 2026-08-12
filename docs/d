@@ -1,0 +1,496 @@
+# Enterprise Refactoring Prompt – Keep Infrastructure, Rebuild Business Modules
+
+We are **NOT** building this ERP from scratch.
+
+We are **refactoring** an existing production-level Enterprise Multi-Tenant Visa ERP + CRM.
+
+## Objective
+
+The current UI infrastructure is excellent and must remain unchanged.
+
+The business flow, pages, and modules no longer match the new enterprise workflow, so only those parts must be rebuilt.
+
+This is a **business-flow refactoring**, not a UI redesign.
+
+---
+
+# KEEP (Do Not Modify)
+
+These are already completed and production-ready.
+
+Never redesign, replace, or recreate them.
+
+## UI Framework
+
+* Global Theme
+* Color System
+* Typography
+* Icons
+* Responsive Layout
+* Header
+* Sidebar
+* Footer
+* Breadcrumbs
+* Dashboard Layout
+* Drawer Component
+* Modal Component
+* Tabs
+* Cards
+* Timeline
+* Loading UI
+* Empty State
+* Skeleton
+* Toast Notifications
+
+## Common Components
+
+* AG Grid Table
+* Global Search
+* Advanced Filters
+* Pagination
+* Form Components
+* Buttons
+* Inputs
+* Select
+* Date Picker
+* Status Badge
+* Permission Wrapper
+* Upload Component
+
+## Technical Infrastructure
+
+* Authentication
+* JWT
+* RBAC
+* Redux Toolkit
+* Axios
+* API Service Layer
+* Repository Pattern
+* Routing
+* Utility Functions
+* Hooks
+* Validation
+* Audit Log Infrastructure
+* Notification Infrastructure
+
+These components are shared across the system and must continue to be reused.
+
+---
+
+# REMOVE
+
+Remove only business-specific pages, workflows, forms, and components that no longer match the new enterprise architecture.
+
+Do NOT delete reusable infrastructure.
+
+Archive old code whenever possible.
+
+Remove or archive:
+
+* Old Student Module UI
+* Old Admission Pages
+* Old Follow-up Pages
+* Old Counselling UI
+* Old Demo UI
+* Old Enquiry Flow
+* Old Dashboard Widgets
+* Old Business Forms
+* Duplicate APIs
+* Duplicate Components
+* Duplicate Business Logic
+
+Never delete shared utilities.
+
+---
+
+# Reception Queue
+
+Completely remove the Reception Queue module.
+
+Do not rebuild it.
+
+Reception is a user role, not a module.
+
+Reception users will work directly inside the Enquiry module according to their permissions.
+
+Remove:
+
+* Reception Queue Page
+* Reception Queue Routes
+* Reception Queue Sidebar Menu
+* Reception Queue Components
+* Reception Queue APIs
+* Reception Queue Redux
+* Reception Queue UI
+
+Only remove code related to this module.
+
+Do not affect any shared components.
+
+---
+
+# Business Flow
+
+The entire system must follow this workflow.
+
+Reception
+
+↓
+
+Enquiry
+
+↓
+
+Counsellor Assignment (Manual)
+
+↓
+
+Counselling (Manual)
+
+↓
+
+Demo (Optional)
+
+↓
+
+Admission
+
+↓
+
+Student Created
+
+↓
+
+Attendance
+
+↓
+
+Fees
+
+↓
+
+Documents
+
+↓
+
+Visa
+
+↓
+
+University
+
+↓
+
+Reports
+
+---
+
+# Manual Workflow
+
+This ERP is intentionally designed for manual business operations.
+
+Do NOT automate business decisions.
+
+Reception manually creates enquiries.
+
+Counsellor manually updates counselling.
+
+Counsellor manually schedules follow-ups.
+
+Admission Officer manually verifies documents.
+
+Finance manually records payments.
+
+Admission Manager manually approves admission.
+
+Faculty manually marks attendance.
+
+The system should never automatically decide business actions.
+
+---
+
+# Automation
+
+Automation is only allowed after Admission is Confirmed.
+
+Automatically:
+
+* Create Student
+* Generate Student ID
+* Generate Admission Number
+* Generate QR
+* Create Student Portal
+* Create Ledger
+* Create Timeline
+* Create Audit Logs
+* Send Notifications
+* Generate Welcome Credentials
+
+No other business process should be automated.
+
+---
+
+# Development Order
+
+Build only one module at a time.
+
+1. Masters
+2. Enquiry
+3. Counselling
+4. Demo
+5. Admission
+6. Student Workspace
+7. Attendance
+8. Fees
+9. Documents
+10. Visa
+11. University
+12. Reports
+
+Do not jump to another module until the current one is complete.
+
+---
+
+# Masters First
+
+Every dropdown must come from master tables.
+
+Examples:
+
+* Course
+* Branch
+* Counselor
+* Country
+* State
+* City
+* University
+* Intake
+* Source
+* Campaign
+* Qualification
+* Occupation
+* Fee Type
+* Payment Method
+* Document Type
+* Visa Type
+* Batch
+* Subject
+* Faculty
+
+Never hardcode dropdown values.
+
+---
+
+# Before Every Task
+
+Always perform the following:
+
+1. Analyze existing implementation.
+2. Identify reusable components.
+3. Identify duplicate logic.
+4. Keep shared infrastructure.
+5. Remove only business-specific implementation.
+6. Explain business impact.
+7. Explain files affected.
+8. Wait for approval before generating production code.
+
+Never recreate components that already exist.
+
+Never redesign the UI.
+
+Never modify the global theme.
+
+Never modify the sidebar framework.
+
+Never modify AG Grid styling.
+
+Never modify the design system.
+
+Only rebuild the business modules while reusing the existing enterprise infrastructure.
+
+
+# Phase 1 Sidebar & Module Plan
+
+## Objective
+
+Do not redesign or modify the existing UI framework.
+
+Keep the current:
+
+* Global Theme
+* Sidebar Design
+* Header
+* Layout
+* AG Grid Theme
+* Table UI
+* Drawer UI
+* Modal UI
+* Global Search
+* Filters
+* Common Components
+* Forms
+* Buttons
+* Cards
+* Tabs
+
+Only remove existing business pages that do not match the new enterprise workflow and build new pages using the existing reusable UI components.
+
+---
+
+# Sidebar (Phase 1)
+
+Dashboard
+
+Masters
+
+Enquiry
+
+Demo
+
+Students
+
+Fees
+
+Reports
+
+Settings
+
+---
+
+# Masters Module
+
+Create separate CRUD pages for all master data.
+
+Examples:
+
+* Courses
+* Branches
+* Countries
+* States
+* Cities
+* Sources
+* Campaigns
+* Counselors
+* Universities
+* Intake
+* Document Types
+* Fee Types
+* Payment Methods
+* Batches
+* Subjects
+* Faculty
+* Nationality
+* Qualification
+* Occupation
+
+Every dropdown in the ERP must load data from these master tables.
+
+---
+
+# Enquiry Module
+
+This is the CRM entry point.
+
+Features:
+
+* New Enquiry Registration
+* Complete Student Information
+* Parent Information
+* Address
+* Education History
+* Course Preference
+* Source Details
+* Counselor Assignment
+* Follow-up
+* Notes
+* Timeline
+* Activity Log
+* Attachments
+* Audit Log
+
+Use a single Enquiry Workspace with tabs instead of multiple pages.
+
+---
+
+# Demo Module
+
+Manage:
+
+* Demo Scheduling
+* Faculty Assignment
+* Attendance
+* Demo Feedback
+* Student Evaluation
+* Demo Status
+* Timeline
+* Notes
+* Audit Log
+
+---
+
+# Students Module
+
+Student 360° Workspace
+
+Tabs:
+
+* Overview
+* Profile
+* Attendance
+* Fees
+* Documents
+* Communication
+* Timeline
+* Audit
+
+Admission and Student creation will be integrated later.
+
+---
+
+# Fees Module
+
+Manage:
+
+* Fee Plans
+* Installments
+* Payments
+* Receipts
+* Ledger
+* Discounts
+* Refunds
+* Outstanding Balance
+* Payment History
+
+---
+
+# Reports Module
+
+Provide reports for:
+
+* Enquiries
+* Demo
+* Students
+* Fees
+
+Include:
+
+* Filters
+* Export
+* Print
+* Dashboard KPIs
+
+---
+
+# Development Rules
+
+* Never change the existing table UI.
+* Never change the global theme.
+* Never redesign drawers or modals.
+* Never duplicate components.
+* Reuse existing AG Grid components.
+* Reuse existing form components.
+* Reuse existing global search.
+* Reuse existing layouts.
+* Remove only old business pages and workflows.
+* Build every new page using the existing enterprise design system.
+* Do not generate code until the implementation plan is finalized and approved.

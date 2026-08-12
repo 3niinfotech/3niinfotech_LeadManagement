@@ -1,0 +1,1992 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum LeadStatus {
+  WALK_IN
+  WAITING
+  IN_COUNSELLING
+  COMPLETED
+  CANCELLED
+  APPOINTMENT
+}
+
+enum LeadPriority {
+  NORMAL
+  HIGH
+  VIP
+}
+
+enum CounsellorPresenceStatus {
+  AVAILABLE
+  BUSY
+  IN_COUNSELLING
+  MEETING
+  BREAK
+  LUNCH
+  TRAINING
+  LEAVE
+  OFFLINE
+  DND
+  WFH
+}
+
+enum AssignmentOfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum CounsellingSessionStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum StudentStatus {
+  ENQUIRY
+  REGISTERED
+  DOCUMENT_PENDING
+  APPLICATION_SUBMITTED
+  OFFER_RECEIVED
+  VISA_APPLIED
+  VISA_GRANTED
+  ENROLLED
+  DEFERRED
+  WITHDRAWN
+}
+
+enum VisaStatus {
+  NOT_STARTED
+  DOCUMENTS_COLLECTED
+  APPLICATION_SUBMITTED
+  BIOMETRICS_DONE
+  INTERVIEW_SCHEDULED
+  APPROVED
+  REJECTED
+  APPEAL
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  CONDITIONAL_OFFER
+  UNCONDITIONAL_OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIAL
+  OVERDUE
+  CANCELLED
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  REMINDER
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  INTERESTED
+  HIGHLY_INTERESTED
+  FOLLOW_UP
+  APPOINTMENT
+  DEMO_SCHEDULED
+  DEMO_ATTENDED
+  COUNSELLING
+  DOCUMENTS_PENDING
+  APPLICATION_STARTED
+  CONVERTED
+  HOLD
+  LOST
+  NOT_INTERESTED
+  SPAM
+  DUPLICATE
+}
+
+enum EnquiryPriority {
+  URGENT
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum MeetingPlatform {
+  GOOGLE_MEET
+  ZOOM
+}
+
+enum DemoAttendance {
+  PRESENT
+  ABSENT
+  LATE
+  PARTIAL
+  NOT_MARKED
+}
+
+enum DemoResult {
+  PENDING
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+  CONVERTED
+}
+
+enum AppointmentMode {
+  ONLINE
+  OFFLINE
+}
+
+enum CommunicationChannel {
+  CALL
+  WHATSAPP
+  EMAIL
+  SMS
+  VOICE_NOTE
+}
+
+enum CommunicationDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum CommunicationStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  LOGIN
+  LOGOUT
+  EXPORT
+  IMPORT
+  ASSIGN
+  STATUS_CHANGE
+}
+
+enum DataScope {
+  OWN
+  TEAM
+  BRANCH
+  COMPANY
+  GLOBAL
+}
+
+enum RoleActivityAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  CLONE
+  PERMISSION_CHANGE
+  ASSIGN_USER
+  REMOVE_USER
+  STATUS_CHANGE
+  EXPORT
+}
+
+// Preserved orphan tables (Admission / Fee) — DB is source of truth
+enum AdmissionStatus {
+  DRAFT
+  DOCS_PENDING
+  FEE_PENDING
+  APPROVAL_PENDING
+  CONFIRMED
+  REJECTED
+  CANCELLED
+}
+
+enum AdmissionDocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum AdmissionPaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum FeePlanStatus {
+  DRAFT
+  ACTIVE
+  FULLY_PAID
+  CANCELLED
+}
+
+enum FeeInstallmentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+// ─── CORE ENTITIES ───────────────────────────────────────────────────────────
+
+model Company {
+  id                 String    @id @default(uuid())
+  name               String
+  code               String    @unique
+  legalName          String?
+  email              String?
+  phone              String?
+  address            String?   @db.Text
+  addressLine1       String?
+  addressLine2       String?
+  city               String?
+  state              String?
+  countryId          String?
+  postalCode         String?
+  taxNumber          String?
+  registrationNumber String?
+  logo               String?
+  website            String?
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  country            Country?  @relation("CompanyPrimaryCountry", fields: [countryId], references: [id], onDelete: SetNull)
+  branches           Branch[]
+  users              User[]
+  roles              Role[]
+  featureOverrides   TenantFeatureOverride[]
+  masterItems        MasterItem[]
+  departments        Department[]
+  countries          Country[]  @relation("CountryTenant")
+  universities       University[]
+  courses            Course[]
+  intakes            Intake[]
+  qualifications     Qualification[]
+  visaTypes          VisaType[]
+  documentTypes      DocumentType[]
+  documentRequirements DocumentRequirement[]
+  embassies          Embassy[]
+  currencies         Currency[]
+  paymentModes       PaymentMode[]
+  taxes              Tax[]
+  leadSources        LeadSource[]
+  leadStatuses        CrmLeadStatus[]
+  lostReasons        LostReason[]
+  followupTypes      FollowupType[]
+  visitPurposes      VisitPurpose[]
+  counsellorSkills   CounsellorSkill[]
+  communicationTemplates CommunicationTemplate[]
+
+  @@index([code])
+  @@index([countryId])
+  @@map("companies")
+}
+
+model Branch {
+  id           String    @id @default(uuid())
+  companyId    String
+  name         String
+  code         String
+  email        String?
+  phone        String?
+  address      String?   @db.Text
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  state        String?
+  countryId    String?
+  postalCode   String?
+  managerId    String?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  createdBy    String?
+  updatedBy    String?
+
+  company      Company   @relation(fields: [companyId], references: [id])
+  country      Country?  @relation("BranchCountry", fields: [countryId], references: [id], onDelete: SetNull)
+  manager      User?     @relation("BranchManager", fields: [managerId], references: [id], onDelete: SetNull)
+  users        User[]
+  leads        Lead[]
+  students     Student[]
+  enquiries    Enquiry[]
+  counsellorPresences CounsellorPresence[]
+  featureOverrides TenantFeatureOverride[]
+  departments  Department[]
+  admissions   Admission[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([countryId])
+  @@index([managerId])
+  @@map("branches")
+}
+
+model Role {
+  id             String     @id @default(uuid())
+  companyId      String?
+  name           String
+  slug           String     @unique
+  description    String?
+  permissions    Json       @default("[]")
+  dataScope      DataScope  @default(OWN)
+  parentRoleId   String?
+  hierarchyLevel Int        @default(0)
+  isSystem       Boolean    @default(false)
+  isCustom       Boolean    @default(false)
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  deletedAt      DateTime?
+  createdBy      String?
+  updatedBy      String?
+
+  company        Company?   @relation(fields: [companyId], references: [id])
+  parentRole     Role?      @relation("RoleHierarchy", fields: [parentRoleId], references: [id])
+  childRoles     Role[]     @relation("RoleHierarchy")
+  users          User[]
+  rolePermissions RolePermission[]
+  activityLogs   RoleActivityLog[]
+
+  @@index([companyId])
+  @@index([isActive])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  module      String
+  action      String
+  name        String
+  description String?  @db.Text
+  groupName   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rolePermissions  RolePermission[]
+  menuItems        MenuItem[]
+  userOverrides    UserPermissionOverride[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String
+  permissionId String
+  granted      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model MenuItem {
+  id            String   @id @default(uuid())
+  name          String
+  icon          String?
+  route         String?
+  permissionKey String?
+  parentId      String?
+  displayOrder  Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  parent     MenuItem?  @relation("MenuTree", fields: [parentId], references: [id])
+  children   MenuItem[] @relation("MenuTree")
+  permission Permission? @relation(fields: [permissionKey], references: [key])
+
+  @@index([parentId])
+  @@index([displayOrder])
+  @@map("menu_items")
+}
+
+model RoleActivityLog {
+  id        String             @id @default(uuid())
+  roleId    String
+  userId    String?
+  action    RoleActivityAction
+  oldValue  Json?
+  newValue  Json?
+  ipAddress String?
+  userAgent String?            @db.Text
+  createdAt DateTime           @default(now())
+
+  role Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user User? @relation("RoleActivityActor", fields: [userId], references: [id])
+
+  @@index([roleId])
+  @@index([createdAt])
+  @@map("role_activity_logs")
+}
+
+model UserPermissionOverride {
+  id           String    @id @default(uuid())
+  userId       String
+  permissionId String
+  granted      Boolean   @default(true)
+  expiresAt    DateTime?
+  reason       String?   @db.Text
+  createdAt    DateTime  @default(now())
+  createdBy    String?
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@map("user_permission_overrides")
+}
+
+model User {
+  id            String     @id @default(uuid())
+  companyId     String?
+  branchId      String?
+  roleId        String
+  firstName     String
+  lastName      String
+  email         String     @unique
+  password      String
+  phone         String?
+  avatar        String?
+  status        UserStatus @default(ACTIVE)
+  lastLoginAt   DateTime?
+  preferences   Json       @default("{}")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?
+  createdBy     String?
+  updatedBy     String?
+
+  company       Company?   @relation(fields: [companyId], references: [id])
+  branch        Branch?    @relation(fields: [branchId], references: [id])
+  role          Role       @relation(fields: [roleId], references: [id])
+  refreshTokens RefreshToken[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  assignedLeads Lead[]     @relation("LeadAssignee")
+  assignedStudents Student[] @relation("StudentAssignee")
+  assignedEnquiries Enquiry[] @relation("EnquiryAssignee")
+  assignedEnquiriesBy Enquiry[] @relation("EnquiryAssigner")
+  receivedWalkIns Lead[] @relation("LeadReception")
+  enquiryFollowups EnquiryFollowup[]
+  enquiryAppointments EnquiryAppointment[]
+  appointmentCounselling EnquiryAppointment[] @relation("AppointmentCounsellor")
+  enquiryDemos EnquiryDemo[]
+  demoFaculty EnquiryDemo[] @relation("DemoFaculty")
+  enquiryCommunications EnquiryCommunication[]
+  enquiryNotes EnquiryNote[]
+  enquiryImports EnquiryImportBatch[]
+  enquiryAuditLogs EnquiryAuditLog[] @relation("EnquiryAuditActor")
+  notes         Note[]
+  activities    Activity[]
+  roleActivityLogs RoleActivityLog[] @relation("RoleActivityActor")
+  permissionOverrides UserPermissionOverride[]
+  counsellorPresence CounsellorPresence?
+  assignmentOffers AssignmentOffer[] @relation("OfferCounsellor")
+  counsellingSessions CounsellingSession[] @relation("SessionCounsellor")
+  managedBranches Branch[] @relation("BranchManager")
+
+  @@index([email])
+  @@index([companyId])
+  @@index([branchId])
+  @@index([roleId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique @db.VarChar(500)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ─── CRM MODULE ──────────────────────────────────────────────────────────────
+
+model Lead {
+  id                String        @id @default(uuid())
+  leadCode          String        @unique
+  tokenNumber       String
+  branchId          String
+  assignedToId      String?
+  receptionUserId   String?
+  firstName         String
+  lastName          String?
+  email             String?
+  phone             String
+  country           String?
+  interestedCourse  String?
+  source            String?       @default("Walk-in")
+  status            LeadStatus    @default(WAITING)
+  priority          LeadPriority  @default(NORMAL)
+  notes             String?       @db.Text
+  followUpAt        DateTime?
+  walkInAt          DateTime      @default(now())
+  convertedAt       DateTime?
+  studentId         String?       @unique
+  metadata          Json          @default("{}")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+  createdBy         String?
+  updatedBy         String?
+
+  branch            Branch        @relation(fields: [branchId], references: [id])
+  assignedTo        User?         @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  receptionUser     User?         @relation("LeadReception", fields: [receptionUserId], references: [id])
+  student           Student?      @relation(fields: [studentId], references: [id])
+  enquiry           Enquiry?
+  activities        Activity[]
+  assignmentOffers  AssignmentOffer[]
+  counsellingSessions CounsellingSession[]
+  assignmentAudits  AssignmentAuditLog[]
+
+  @@index([branchId])
+  @@index([assignedToId])
+  @@index([receptionUserId])
+  @@index([status])
+  @@index([priority])
+  @@index([followUpAt])
+  @@index([walkInAt])
+  @@index([phone])
+  @@index([leadCode])
+  @@index([tokenNumber])
+  @@map("leads")
+}
+
+model Partner {
+  id          String    @id @default(uuid())
+  name        String
+  code        String    @unique
+  type        String?
+  email       String?
+  phone       String?
+  country     String?
+  website     String?
+  commission  Decimal?  @db.Decimal(10, 2)
+  isActive    Boolean   @default(true)
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  students    Student[]
+
+  @@index([code])
+  @@map("partners")
+}
+
+// ─── STUDENT MODULE ──────────────────────────────────────────────────────────
+
+model Student {
+  id              String        @id @default(uuid())
+  branchId        String
+  partnerId       String?
+  assignedToId    String?
+  studentCode     String        @unique
+  firstName       String
+  lastName        String
+  email           String?
+  phone           String?
+  dateOfBirth     DateTime?
+  gender          String?
+  nationality     String?
+  passportNo      String?
+  address         String?       @db.Text
+  status          StudentStatus @default(ENQUIRY)
+  intake          String?
+  course          String?
+  university      String?
+  country         String?
+  metadata        Json          @default("{}")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+  createdBy       String?
+  updatedBy       String?
+
+  branch          Branch        @relation(fields: [branchId], references: [id])
+  partner         Partner?      @relation(fields: [partnerId], references: [id])
+  assignedTo      User?         @relation("StudentAssignee", fields: [assignedToId], references: [id])
+  lead            Lead?
+  enquiry         Enquiry?
+  applications    Application[]
+  visas           Visa[]
+  documents       Document[]
+  invoices        Invoice[]
+  notes           Note[]
+  activities      Activity[]
+  appointments    Appointment[]
+  feePlan         FeePlan?
+  admissionPayments AdmissionPayment[]
+
+  @@index([branchId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([studentCode])
+  @@index([email])
+  @@map("students")
+}
+
+model Application {
+  id              String            @id @default(uuid())
+  studentId       String
+  university      String
+  course          String
+  intake          String?
+  country         String?
+  status          ApplicationStatus @default(DRAFT)
+  applicationNo   String?
+  submittedAt     DateTime?
+  offerDate       DateTime?
+  metadata        Json              @default("{}")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  deletedAt       DateTime?
+  createdBy       String?
+  updatedBy       String?
+
+  student         Student           @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([status])
+  @@map("applications")
+}
+
+model Visa {
+  id              String     @id @default(uuid())
+  studentId       String
+  country         String
+  visaType        String?
+  status          VisaStatus @default(NOT_STARTED)
+  applicationNo   String?
+  submittedAt     DateTime?
+  decisionAt      DateTime?
+  expiryDate      DateTime?
+  metadata        Json       @default("{}")
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+  createdBy       String?
+  updatedBy       String?
+
+  student         Student    @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([status])
+  @@map("visas")
+}
+
+// ─── FINANCE MODULE ──────────────────────────────────────────────────────────
+
+model Invoice {
+  id            String        @id @default(uuid())
+  studentId     String?
+  invoiceNo     String        @unique
+  amount        Decimal       @db.Decimal(12, 2)
+  tax           Decimal       @default(0) @db.Decimal(12, 2)
+  total         Decimal       @db.Decimal(12, 2)
+  currency      String        @default("USD")
+  status        InvoiceStatus @default(DRAFT)
+  dueDate       DateTime?
+  paidAt        DateTime?
+  notes         String?       @db.Text
+  metadata      Json          @default("{}")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+  createdBy     String?
+  updatedBy     String?
+
+  student       Student?      @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([status])
+  @@index([invoiceNo])
+  @@map("invoices")
+}
+
+// ─── SHARED ENTITIES ─────────────────────────────────────────────────────────
+
+model Document {
+  id          String    @id @default(uuid())
+  studentId   String?
+  entityType  String?
+  entityId    String?
+  name        String
+  fileName    String
+  filePath    String
+  fileSize    Int
+  mimeType    String
+  category    String?
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+
+  student     Student?  @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([entityType, entityId])
+  @@map("documents")
+}
+
+model Note {
+  id          String    @id @default(uuid())
+  studentId   String?
+  entityType  String?
+  entityId    String?
+  userId      String
+  content     String    @db.Text
+  isPinned    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  student     Student?  @relation(fields: [studentId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([studentId])
+  @@index([entityType, entityId])
+  @@map("notes")
+}
+
+model Activity {
+  id          String    @id @default(uuid())
+  userId      String?
+  leadId      String?
+  studentId   String?
+  entityType  String?
+  entityId    String?
+  action      String
+  description String?   @db.Text
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+
+  user        User?     @relation(fields: [userId], references: [id])
+  lead        Lead?     @relation(fields: [leadId], references: [id])
+  student     Student?  @relation(fields: [studentId], references: [id])
+
+  @@index([leadId])
+  @@index([studentId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("activities")
+}
+
+model Appointment {
+  id          String    @id @default(uuid())
+  studentId   String?
+  title       String
+  description String?   @db.Text
+  startAt     DateTime
+  endAt       DateTime?
+  location    String?
+  isCompleted Boolean   @default(false)
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+
+  student     Student?  @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([startAt])
+  @@map("appointments")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType @default(INFO)
+  title     String
+  message   String           @db.Text
+  link      String?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  metadata  Json             @default("{}")
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String?
+  action     AuditAction
+  entityType String
+  entityId   String?
+  oldData    Json?
+  newData    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  user       User?       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SavedFilter {
+  id         String   @id @default(uuid())
+  userId     String
+  module     String
+  name       String
+  filters    Json
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId, module])
+  @@map("saved_filters")
+}
+
+// ─── ENQUIRY MODULE ──────────────────────────────────────────────────────────
+
+model Enquiry {
+  id                String        @id @default(uuid())
+  enquiryCode       String        @unique
+  branchId          String
+  assignedToId      String?
+  assignedById      String?
+  firstName         String
+  lastName          String?
+  email             String
+  mobile            String
+  mobileCountry     String?       @default("+91")
+  alternateNo       String?
+  passportNo        String?
+  dateOfBirth       DateTime?
+  gender            String?
+  nationality       String?
+  maritalStatus     String?
+  address           String?       @db.Text
+  highestQual       String?
+  interestedCourse  String?
+  testsGiven        Json          @default("[]")
+  interestedCountry String?
+  intake            String?
+  applyLevel        String?
+  source            String?
+  otherReference    String?
+  status            EnquiryStatus @default(NEW)
+  priority          EnquiryPriority @default(MEDIUM)
+  tags              Json            @default("[]")
+  remark            String?       @db.Text
+  lastRemark        String?       @db.Text
+  dropReason        String?       @db.Text
+  droppedAt         DateTime?
+  convertedAt       DateTime?
+  lastTouchedAt     DateTime?
+  studentId         String?       @unique
+  leadId            String?       @unique
+  metadata          Json          @default("{}")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+  createdBy         String?
+  updatedBy         String?
+
+  branch            Branch        @relation(fields: [branchId], references: [id])
+  assignedTo        User?         @relation("EnquiryAssignee", fields: [assignedToId], references: [id])
+  assignedBy        User?         @relation("EnquiryAssigner", fields: [assignedById], references: [id])
+  student           Student?      @relation(fields: [studentId], references: [id])
+  lead              Lead?         @relation(fields: [leadId], references: [id])
+  followups         EnquiryFollowup[]
+  appointments      EnquiryAppointment[]
+  demos             EnquiryDemo[]
+  notes             EnquiryNote[]
+  documents         EnquiryDocument[]
+  communications    EnquiryCommunication[]
+  auditLogs         EnquiryAuditLog[]
+  admission         Admission?
+
+  @@index([branchId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([priority])
+  @@index([email])
+  @@index([mobile])
+  @@index([passportNo])
+  @@index([studentId])
+  @@index([leadId])
+  @@index([createdAt])
+  @@index([lastTouchedAt])
+  @@map("enquiries")
+}
+
+model EnquiryFollowup {
+  id          String    @id @default(uuid())
+  enquiryId   String
+  userId      String
+  remark      String    @db.Text
+  stage       String?
+  attempt     Int       @default(1)
+  nextDate    DateTime?
+  followupAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  enquiry     Enquiry   @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([enquiryId])
+  @@map("enquiry_followups")
+}
+
+model EnquiryAppointment {
+  id            String            @id @default(uuid())
+  enquiryId     String
+  userId        String
+  counsellorId  String?
+  title         String?
+  remark        String?           @db.Text
+  room          String?
+  mode          AppointmentMode   @default(OFFLINE)
+  platform      MeetingPlatform?
+  meetingLink   String?
+  startAt       DateTime
+  endAt         DateTime?
+  isCompleted   Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+
+  enquiry       Enquiry           @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  user          User              @relation(fields: [userId], references: [id])
+  counsellor    User?             @relation("AppointmentCounsellor", fields: [counsellorId], references: [id])
+
+  @@index([enquiryId])
+  @@index([counsellorId])
+  @@map("enquiry_appointments")
+}
+
+model EnquiryDemo {
+  id          String          @id @default(uuid())
+  enquiryId   String
+  userId      String
+  facultyId   String?
+  demoDate    DateTime
+  className   String?         @map("class_name")
+  batch       String?
+  attendance  DemoAttendance  @default(NOT_MARKED)
+  feedback    String?         @db.Text
+  result      DemoResult      @default(PENDING)
+  remark      String?         @db.Text
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  enquiry     Enquiry         @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id])
+  faculty     User?           @relation("DemoFaculty", fields: [facultyId], references: [id])
+
+  @@index([enquiryId])
+  @@index([facultyId])
+  @@map("enquiry_demos")
+}
+
+model EnquiryNote {
+  id          String    @id @default(uuid())
+  enquiryId   String
+  userId      String
+  content     String    @db.Text
+  contentHtml String?   @db.Text
+  mentions    Json      @default("[]")
+  checklist   Json      @default("[]")
+  isPinned    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  enquiry     Enquiry   @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+  attachments EnquiryNoteAttachment[]
+
+  @@index([enquiryId])
+  @@index([isPinned])
+  @@map("enquiry_notes")
+}
+
+model EnquiryNoteAttachment {
+  id        String      @id @default(uuid())
+  noteId    String
+  name      String
+  fileName  String
+  filePath  String
+  fileSize  Int
+  mimeType  String
+  createdAt DateTime    @default(now())
+
+  note      EnquiryNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([noteId])
+  @@map("enquiry_note_attachments")
+}
+
+model EnquiryDocument {
+  id          String    @id @default(uuid())
+  enquiryId   String
+  name        String
+  fileName    String
+  filePath    String
+  fileSize    Int
+  mimeType    String
+  category    String?
+  createdAt   DateTime  @default(now())
+  createdBy   String?
+
+  enquiry     Enquiry   @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@index([enquiryId])
+  @@map("enquiry_documents")
+}
+
+model EnquiryCommunication {
+  id          String                @id @default(uuid())
+  enquiryId   String
+  userId      String?
+  channel     CommunicationChannel
+  status      CommunicationStatus   @default(SENT)
+  direction   CommunicationDirection @default(OUTBOUND)
+  subject     String?
+  body        String?               @db.Text
+  durationSec Int?
+  fileName    String?
+  filePath    String?
+  fileSize    Int?
+  mimeType    String?
+  sentAt      DateTime              @default(now())
+  createdBy   String?
+
+  enquiry     Enquiry               @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  user        User?                 @relation(fields: [userId], references: [id])
+
+  @@index([enquiryId])
+  @@index([channel])
+  @@map("enquiry_communications")
+}
+
+model EnquiryAuditLog {
+  id          String    @id @default(uuid())
+  enquiryId   String
+  userId      String?
+  action      String
+  field       String?
+  oldValue    String?   @db.Text
+  newValue    String?   @db.Text
+  description String?   @db.Text
+  ipAddress   String?
+  createdAt   DateTime  @default(now())
+
+  enquiry     Enquiry   @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  user        User?     @relation("EnquiryAuditActor", fields: [userId], references: [id])
+
+  @@index([enquiryId])
+  @@index([createdAt])
+  @@map("enquiry_audit_logs")
+}
+
+model EnquiryImportBatch {
+  id          String    @id @default(uuid())
+  userId      String
+  branchId    String?
+  fileName    String
+  totalRows   Int       @default(0)
+  uploaded    Int       @default(0)
+  duplicates  Int       @default(0)
+  failed      Int       @default(0)
+  errors      Json      @default("[]")
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id])
+  duplicateRows EnquiryImportDuplicate[]
+
+  @@index([userId])
+  @@map("enquiry_import_batches")
+}
+
+model EnquiryImportDuplicate {
+  id          String    @id @default(uuid())
+  batchId     String
+  rowData     Json
+  reason      String?
+  createdAt   DateTime  @default(now())
+
+  batch       EnquiryImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@map("enquiry_import_duplicates")
+}
+
+// ─── COUNSELLOR ASSIGNMENT ENGINE ────────────────────────────────────────────
+
+model CounsellorPresence {
+  id               String                   @id @default(uuid())
+  userId           String                   @unique
+  branchId         String
+  status           CounsellorPresenceStatus @default(OFFLINE)
+  maxDailyCapacity Int                      @default(20)
+  todayAssigned    Int                      @default(0)
+  lastHeartbeatAt  DateTime?
+  lastAssignedAt   DateTime?
+  skills           Json                     @default("{}")
+  metadata         Json                     @default("{}")
+  updatedAt        DateTime                 @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@index([status])
+  @@map("counsellor_presence")
+}
+
+model AssignmentOffer {
+  id              String                @id @default(uuid())
+  leadId          String
+  counsellorId    String
+  branchId        String
+  status          AssignmentOfferStatus @default(PENDING)
+  offeredAt       DateTime              @default(now())
+  expiresAt       DateTime
+  respondedAt     DateTime?
+  rejectReason    String?               @db.Text
+  assignmentScore Float?
+  ruleSnapshot    Json                  @default("{}")
+  createdBy       String?
+
+  lead       Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  counsellor User @relation("OfferCounsellor", fields: [counsellorId], references: [id])
+
+  @@index([leadId])
+  @@index([counsellorId])
+  @@index([branchId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("assignment_offers")
+}
+
+model CounsellingSession {
+  id              String                   @id @default(uuid())
+  leadId          String
+  counsellorId    String
+  branchId        String
+  status          CounsellingSessionStatus @default(ACTIVE)
+  startedAt       DateTime                 @default(now())
+  endedAt         DateTime?
+  durationMinutes Int?
+  outcome         String?
+
+  lead       Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  counsellor User @relation("SessionCounsellor", fields: [counsellorId], references: [id])
+
+  @@index([leadId])
+  @@index([counsellorId])
+  @@index([branchId])
+  @@index([status])
+  @@map("counselling_sessions")
+}
+
+model AssignmentAuditLog {
+  id          String   @id @default(uuid())
+  leadId      String
+  branchId    String
+  actorId     String?
+  action      String
+  fromUserId  String?
+  toUserId    String?
+  description String?  @db.Text
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([branchId])
+  @@index([createdAt])
+  @@map("assignment_audit_logs")
+}
+
+// ─── PRESERVED ORPHAN TABLES (Admission / Fee) — DB source of truth ───────────
+
+model Admission {
+  id           String          @id @default(uuid())
+  admissionNo  String          @unique
+  enquiryId    String?         @unique
+  branchId     String
+  firstName    String
+  lastName     String
+  email        String?
+  phone        String
+  dateOfBirth  DateTime?
+  gender       String?
+  nationality  String?
+  passportNo   String?
+  address      String?         @db.Text
+  course       String
+  university   String
+  intake       String?
+  country      String?
+  status       AdmissionStatus @default(DRAFT)
+  metadata     String          @db.LongText
+  createdBy    String
+  updatedBy    String?
+  approvedBy   String?
+  approvedAt   DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deletedAt    DateTime?
+
+  branch    Branch              @relation(fields: [branchId], references: [id])
+  enquiry   Enquiry?            @relation(fields: [enquiryId], references: [id])
+  documents AdmissionDocument[]
+  payments  AdmissionPayment[]
+  feePlan   FeePlan?
+
+  @@index([branchId])
+  @@index([status])
+  @@index([admissionNo])
+  @@map("admissions")
+}
+
+model AdmissionDocument {
+  id              String                  @id @default(uuid())
+  admissionId     String
+  name            String
+  fileName        String
+  filePath        String
+  fileSize        Int
+  mimeType        String
+  category        String?
+  isMandatory     Boolean                 @default(false)
+  status          AdmissionDocumentStatus @default(PENDING)
+  rejectionReason String?                 @db.Text
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  admission Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+
+  @@index([admissionId])
+  @@map("admission_documents")
+}
+
+model FeePlan {
+  id                String        @id @default(uuid())
+  admissionId       String?       @unique
+  studentId         String?       @unique
+  totalAmount       Decimal       @db.Decimal(12, 2)
+  discountAmount    Decimal       @default(0) @db.Decimal(12, 2)
+  scholarshipAmount Decimal       @default(0) @db.Decimal(12, 2)
+  netAmount         Decimal       @db.Decimal(12, 2)
+  currency          String        @default("INR")
+  status            FeePlanStatus @default(DRAFT)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+
+  admission    Admission?        @relation(fields: [admissionId], references: [id])
+  student      Student?          @relation(fields: [studentId], references: [id])
+  installments FeeInstallment[]
+  payments     AdmissionPayment[]
+
+  @@map("fee_plans")
+}
+
+model FeeInstallment {
+  id         String               @id @default(uuid())
+  feePlanId  String
+  title      String
+  amount     Decimal              @db.Decimal(12, 2)
+  dueDate    DateTime
+  amountPaid Decimal              @default(0) @db.Decimal(12, 2)
+  status     FeeInstallmentStatus @default(PENDING)
+  paidAt     DateTime?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  feePlan  FeePlan            @relation(fields: [feePlanId], references: [id], onDelete: Cascade)
+  payments AdmissionPayment[]
+
+  @@index([feePlanId])
+  @@map("fee_installments")
+}
+
+model AdmissionPayment {
+  id             String                 @id @default(uuid())
+  admissionId    String?
+  studentId      String?
+  feePlanId      String
+  installmentId  String?
+  amount         Decimal                @db.Decimal(12, 2)
+  mode           String
+  referenceNo    String?
+  receiptNo      String                 @unique
+  status         AdmissionPaymentStatus @default(SUCCESS)
+  idempotencyKey String                 @unique
+  createdBy      String
+  paidAt         DateTime               @default(now())
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  admission   Admission?       @relation(fields: [admissionId], references: [id])
+  student     Student?         @relation(fields: [studentId], references: [id])
+  feePlan     FeePlan          @relation(fields: [feePlanId], references: [id])
+  installment FeeInstallment?  @relation(fields: [installmentId], references: [id])
+  receipts    AdmissionReceipt[]
+
+  @@index([admissionId])
+  @@index([studentId])
+  @@index([feePlanId])
+  @@index([installmentId])
+  @@map("admission_payments")
+}
+
+model AdmissionReceipt {
+  id        String   @id @default(uuid())
+  paymentId String
+  receiptNo String   @unique
+  amount    Decimal  @db.Decimal(12, 2)
+  details   String   @db.LongText
+  createdAt DateTime @default(now())
+
+  payment AdmissionPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@map("admission_receipts")
+}
+
+// ─── MASTER DATA (lookup lists) ──────────────────────────────────────────────
+
+model MasterItem {
+  id        String    @id @default(uuid())
+  companyId String
+  category  String
+  label     String
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  createdBy String?
+  updatedBy String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, category, label])
+  @@index([companyId, category])
+  @@index([category])
+  @@map("master_items")
+}
+
+// ─── RELATIONAL MASTERS (Type A) ─────────────────────────────────────────────
+
+model Department {
+  id          String    @id @default(uuid())
+  companyId   String
+  branchId    String?
+  code        String
+  name        String
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company @relation(fields: [companyId], references: [id])
+  branch  Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([branchId])
+  @@index([isActive])
+  @@map("departments")
+}
+
+model Country {
+  id           String    @id @default(uuid())
+  companyId    String
+  code         String
+  name         String
+  isoCode      String?
+  phoneCode    String?
+  currencyCode String?
+  nationality  String?
+  description  String?   @db.Text
+  isActive     Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  createdBy    String?
+  updatedBy    String?
+
+  company              Company               @relation("CountryTenant", fields: [companyId], references: [id])
+  primaryForCompanies  Company[]             @relation("CompanyPrimaryCountry")
+  branches             Branch[]              @relation("BranchCountry")
+  universities         University[]
+  courses              Course[]
+  visaTypes            VisaType[]
+  embassies            Embassy[]
+  documentRequirements DocumentRequirement[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("countries")
+}
+
+model University {
+  id             String    @id @default(uuid())
+  companyId      String
+  countryId      String
+  code           String
+  name           String
+  city           String?
+  state          String?
+  website        String?
+  ranking        Int?
+  universityType String?
+  description    String?   @db.Text
+  isActive       Boolean   @default(true)
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  createdBy      String?
+  updatedBy      String?
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  country  Country  @relation(fields: [countryId], references: [id])
+  courses  Course[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([countryId])
+  @@index([isActive])
+  @@map("universities")
+}
+
+model Course {
+  id              String    @id @default(uuid())
+  companyId       String
+  universityId    String
+  countryId       String?
+  code            String
+  name            String
+  level           String?
+  discipline      String?
+  duration        Decimal?  @db.Decimal(8, 2)
+  durationUnit    String?
+  tuitionFee      Decimal?  @db.Decimal(14, 2)
+  currencyCode    String?
+  intakeAvailable String?   @db.Text
+  description     String?   @db.Text
+  isActive        Boolean   @default(true)
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  createdBy       String?
+  updatedBy       String?
+
+  company    Company    @relation(fields: [companyId], references: [id])
+  university University @relation(fields: [universityId], references: [id])
+  country    Country?   @relation(fields: [countryId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([universityId])
+  @@index([countryId])
+  @@index([isActive])
+  @@map("courses")
+}
+
+model Intake {
+  id                  String    @id @default(uuid())
+  companyId           String
+  code                String
+  name                String
+  startDate           DateTime?
+  endDate             DateTime?
+  applicationDeadline DateTime?
+  description         String?   @db.Text
+  isActive            Boolean   @default(true)
+  sortOrder           Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+  createdBy           String?
+  updatedBy           String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("intakes")
+}
+
+model Qualification {
+  id          String    @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  level       String?
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("qualifications")
+}
+
+model VisaType {
+  id             String    @id @default(uuid())
+  companyId      String
+  countryId      String?
+  code           String
+  name           String
+  category       String?
+  description    String?   @db.Text
+  processingTime String?
+  fee            Decimal?  @db.Decimal(14, 2)
+  currencyCode   String?
+  isActive       Boolean   @default(true)
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  createdBy      String?
+  updatedBy      String?
+
+  company              Company               @relation(fields: [companyId], references: [id])
+  country              Country?              @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  documentRequirements DocumentRequirement[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([countryId])
+  @@index([isActive])
+  @@map("visa_types")
+}
+
+model DocumentType {
+  id          String    @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  category    String?
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company      Company               @relation(fields: [companyId], references: [id])
+  requirements DocumentRequirement[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([category])
+  @@index([isActive])
+  @@map("document_types")
+}
+
+model DocumentRequirement {
+  id             String    @id @default(uuid())
+  companyId      String
+  documentTypeId String
+  countryId      String?
+  visaTypeId     String?
+  code           String
+  name           String
+  applicableFor  String?
+  isMandatory    Boolean   @default(true)
+  description    String?   @db.Text
+  isActive       Boolean   @default(true)
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  createdBy      String?
+  updatedBy      String?
+
+  company      Company      @relation(fields: [companyId], references: [id])
+  documentType DocumentType @relation(fields: [documentTypeId], references: [id])
+  country      Country?     @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  visaType     VisaType?    @relation(fields: [visaTypeId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([documentTypeId])
+  @@index([countryId])
+  @@index([visaTypeId])
+  @@index([isActive])
+  @@map("document_requirements")
+}
+
+model Embassy {
+  id           String    @id @default(uuid())
+  companyId    String
+  countryId    String?
+  code         String
+  name         String
+  city         String?
+  address      String?   @db.Text
+  phone        String?
+  email        String?
+  website      String?
+  jurisdiction String?   @db.Text
+  description  String?   @db.Text
+  isActive     Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  createdBy    String?
+  updatedBy    String?
+
+  company Company  @relation(fields: [companyId], references: [id])
+  country Country? @relation(fields: [countryId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([countryId])
+  @@index([isActive])
+  @@map("embassies")
+}
+
+model Currency {
+  id            String    @id @default(uuid())
+  companyId     String
+  code          String
+  name          String
+  symbol        String?
+  decimalPlaces Int       @default(2)
+  description   String?   @db.Text
+  isActive      Boolean   @default(true)
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  createdBy     String?
+  updatedBy     String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("currencies")
+}
+
+model PaymentMode {
+  id          String    @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("payment_modes")
+}
+
+model Tax {
+  id            String    @id @default(uuid())
+  companyId     String
+  code          String
+  name          String
+  taxPercentage Decimal?  @db.Decimal(8, 4)
+  description   String?   @db.Text
+  isActive      Boolean   @default(true)
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  createdBy     String?
+  updatedBy     String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("taxes")
+}
+
+model LeadSource {
+  id          String    @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("lead_sources")
+}
+
+model CrmLeadStatus {
+  id          String    @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("lead_statuses")
+}
+
+model LostReason {
+  id          String    @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("lost_reasons")
+}
+
+model FollowupType {
+  id          String    @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("followup_types")
+}
+
+model VisitPurpose {
+  id          String    @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("visit_purposes")
+}
+
+model CounsellorSkill {
+  id          String    @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("counsellor_skills")
+}
+
+model CommunicationTemplate {
+  id          String    @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  channel     String?
+  subject     String?
+  body        String?   @db.Text
+  variables   Json      @default("[]")
+  eventType   String?
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([channel])
+  @@index([isActive])
+  @@map("communication_templates")
+}
+
+// ─── FEATURE TOGGLE (Master) ─────────────────────────────────────────────────
+
+model FeatureFlag {
+  id             String   @id @default(uuid())
+  key            String   @unique
+  module         String   @default("legacy")
+  name           String
+  description    String?  @db.Text
+  defaultEnabled Boolean  @default(false)
+  dependsOn      Json     @default("[]")
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  overrides TenantFeatureOverride[]
+
+  @@index([module])
+  @@map("feature_flags")
+}
+
+model TenantFeatureOverride {
+  id         String   @id @default(uuid())
+  companyId  String
+  branchId   String?
+  featureKey String
+  enabled    Boolean
+  updatedBy  String?
+  updatedAt  DateTime @updatedAt
+
+  company Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch  Branch?     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  feature FeatureFlag @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+
+  @@unique([companyId, featureKey])
+  @@index([companyId])
+  @@map("tenant_feature_overrides")
+}
