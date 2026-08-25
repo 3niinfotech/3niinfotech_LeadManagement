@@ -1,5 +1,5 @@
 import {
-  FiTrendingUp, FiLink, FiGlobe, FiUser, FiAward, FiPhone, FiMonitor, FiXCircle,
+  FiTrendingUp, FiLink, FiGlobe, FiUser, FiAward, FiPhone, FiMonitor, FiXCircle, FiDownload, FiCheck,
 } from 'react-icons/fi';
 import { ENQUIRY_REPORT_TABS } from '../config/reports.config';
 
@@ -11,7 +11,9 @@ const ICONS = {
   award: FiAward,
   phone: FiPhone,
   monitor: FiMonitor,
+  check: FiCheck,
   xCircle: FiXCircle,
+  download: FiDownload,
 };
 
 export default function ReportsNav({ activeTab, onChange }) {

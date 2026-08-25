@@ -18,6 +18,11 @@ export const updateCompany = asyncHandler(async (req, res) => {
   sendSuccess(res, data, 'Company updated');
 });
 
+export const uploadBranding = asyncHandler(async (req, res) => {
+  const data = await organizationService.uploadBranding(req.file, req.query.kind, req.user, req);
+  sendSuccess(res, data, 'Branding uploaded');
+});
+
 export const listBranches = asyncHandler(async (req, res) => {
   const data = await organizationService.listBranches(req.query, req.user);
   sendSuccess(res, data);
@@ -39,4 +44,15 @@ export const updateBranchStatus = asyncHandler(async (req, res) => {
   const { isActive } = branchStatusSchema.parse(req.body);
   const data = await organizationService.updateBranchStatus(req.params.id, isActive, req.user, req);
   sendSuccess(res, data, 'Branch status updated');
+});
+
+export const getViewingBranch = asyncHandler(async (req, res) => {
+  const data = await organizationService.getViewingBranchContext(req.user);
+  sendSuccess(res, data);
+});
+
+export const setViewingBranch = asyncHandler(async (req, res) => {
+  const branchId = req.body?.branchId ?? null;
+  const data = await organizationService.setViewingBranch(branchId, req.user, req);
+  sendSuccess(res, data, 'Viewing branch updated');
 });

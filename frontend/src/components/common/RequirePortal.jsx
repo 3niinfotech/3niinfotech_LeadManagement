@@ -8,7 +8,7 @@ export default function RequirePortal({ portal, children }) {
   const userPortal = user?.portal || resolvePortalFromRole(user?.role?.slug);
 
   if (userPortal !== portal) {
-    return <Navigate to={user?.defaultRoute || getDefaultRoute(userPortal)} replace />;
+    return <Navigate to={user?.defaultRoute || getDefaultRoute(userPortal, user)} replace />;
   }
 
   return children;

@@ -4,7 +4,7 @@ import { WALKIN_PRIORITY_VALUES } from './walkinPriority.config.js';
 import { WALKIN_SOURCES } from './walkinSource.config.js';
 import { COUNSELLOR_DECISION_VALUES } from './walkinCounsellorDecision.config.js';
 
-/** Reception — minimal fields only (30-second registration) */
+/** Reception — minimal fields + required manual counsellor assign */
 export const createWalkInSchema = z.object({
   fullName: z.string().min(2).max(150),
   phone: z.string().min(8).max(20),
@@ -14,7 +14,7 @@ export const createWalkInSchema = z.object({
   interestedCourse: z.string().max(150).optional().nullable(),
   source: z.enum(WALKIN_SOURCES).optional().default('Walk-in'),
   branchId: z.string().uuid(),
-  assignedToId: z.string().uuid().optional().nullable(),
+  assignedToId: z.string().uuid({ message: 'Counsellor assignment is required' }),
   priority: z.enum(WALKIN_PRIORITY_VALUES).optional().default('NORMAL'),
   notes: z.string().max(2000).optional().nullable(),
   visitPurpose: z.string().min(2).max(200).optional().default('Study Abroad Enquiry'),

@@ -26,6 +26,21 @@ export function buildIntakeOptions(monthsAhead = 24) {
   return options;
 }
 
+/** Dial codes from Country master — label/value are code only (+91), deduped */
+export function mapCountryPhoneCodeOptions(countryOptions = []) {
+  const seen = new Set();
+  const out = [];
+  for (const row of countryOptions) {
+    let code = String(row?.phoneCode || '').trim();
+    if (!code) continue;
+    if (!code.startsWith('+')) code = `+${code.replace(/^\+/, '')}`;
+    if (seen.has(code)) continue;
+    seen.add(code);
+    out.push({ value: code, label: code });
+  }
+  return out;
+}
+
 export const ENQUIRY_FORM_OPTIONS = {
   gender: [
     { value: 'Male', label: 'Male' },
@@ -48,69 +63,21 @@ export const ENQUIRY_FORM_OPTIONS = {
     { value: 'Widowed', label: 'Widowed' },
   ],
   countryCode: [
-    { value: '+91', label: '+91 India' },
-    { value: '+1', label: '+1 USA / Canada' },
-    { value: '+44', label: '+44 UK' },
-    { value: '+61', label: '+61 Australia' },
-    { value: '+64', label: '+64 New Zealand' },
-    { value: '+971', label: '+971 UAE' },
-    { value: '+49', label: '+49 Germany' },
-    { value: '+353', label: '+353 Ireland' },
+    { value: '+91', label: '+91' },
+    { value: '+1', label: '+1' },
+    { value: '+44', label: '+44' },
+    { value: '+61', label: '+61' },
+    { value: '+64', label: '+64' },
+    { value: '+971', label: '+971' },
+    { value: '+49', label: '+49' },
+    { value: '+353', label: '+353' },
   ],
-  highestQual: [
-    { value: '10th', label: '10th Standard' },
-    { value: '12th', label: '12th Standard' },
-    { value: 'Diploma', label: 'Diploma' },
-    { value: 'Bachelors', label: "Bachelor's Degree" },
-    { value: 'Masters', label: "Master's Degree" },
-    { value: 'PhD', label: 'PhD / Doctorate' },
-  ],
-  course: [
-    { value: 'MBA', label: 'MBA' },
-    { value: 'MSc Computer Science', label: 'MSc Computer Science' },
-    { value: 'BBA', label: 'BBA' },
-    { value: 'MS Data Science', label: 'MS Data Science' },
-    { value: 'Mechanical Engineering', label: 'Mechanical Engineering' },
-    { value: 'Hotel Management', label: 'Hotel Management' },
-    { value: 'LLM', label: 'LLM' },
-    { value: 'Nursing', label: 'Nursing' },
-    { value: 'Business Analytics', label: 'Business Analytics' },
-    { value: 'Graphic Design', label: 'Graphic Design' },
-    { value: 'MBA Finance', label: 'MBA Finance' },
-    { value: 'Architecture', label: 'Architecture' },
-    { value: 'IT', label: 'Information Technology' },
-    { value: 'Public Health', label: 'Public Health' },
-    { value: 'Automobile Engineering', label: 'Automobile Engineering' },
-  ],
-  country: [
-    { value: 'Canada', label: 'Canada' },
-    { value: 'UK', label: 'United Kingdom' },
-    { value: 'Australia', label: 'Australia' },
-    { value: 'USA', label: 'United States' },
-    { value: 'Germany', label: 'Germany' },
-    { value: 'New Zealand', label: 'New Zealand' },
-    { value: 'Ireland', label: 'Ireland' },
-  ],
-  intake: buildIntakeOptions(),
-  applyLevel: [
-    { value: 'Certificate', label: 'Certificate' },
-    { value: 'Diploma', label: 'Diploma' },
-    { value: 'Bachelors', label: 'Bachelors' },
-    { value: 'Masters', label: 'Masters' },
-    { value: 'PhD', label: 'PhD' },
-  ],
-  source: [
-    { value: 'Website', label: 'Website' },
-    { value: 'Walk-in', label: 'Walk-in' },
-    { value: 'Referral', label: 'Referral' },
-    { value: 'Facebook Ads', label: 'Facebook Ads' },
-    { value: 'Google Ads', label: 'Google Ads' },
-    { value: 'Instagram', label: 'Instagram' },
-    { value: 'Education Fair', label: 'Education Fair' },
-    { value: 'Partner', label: 'Partner / Agent' },
-    { value: 'WhatsApp', label: 'WhatsApp' },
-    { value: 'Phone Call', label: 'Phone Call' },
-  ],
+  highestQual: [],
+  course: [],
+  country: [],
+  intake: [],
+  applyLevel: [],
+  source: [],
   testName: [
     { value: 'IELTS', label: 'IELTS' },
     { value: 'TOEFL', label: 'TOEFL' },

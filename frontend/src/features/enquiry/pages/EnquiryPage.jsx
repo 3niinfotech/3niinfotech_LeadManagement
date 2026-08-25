@@ -1,10 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FiInbox } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiInbox, FiUserPlus } from 'react-icons/fi';
 import ModulePageCard from '../../../components/layout/ModulePageLayout';
+import Button from '../../../components/ui/Button';
+import PermissionGate from '../../../components/common/PermissionGate';
 import { buildEnquirySummaryItems } from '../config/enquirySummary.config';
 import alertService from '../../../services/alert/alert.service';
 import { ROUTES } from '../../../config/routes';
+import { PERMISSIONS } from '../../../config/permissions';
+import { usePermissions } from '../../../hooks/usePermissions';
 import toastService from '../../../services/toast/toast.service';
 import EnquiryToolbar from '../components/EnquiryToolbar';
 import RegisterVisitorModal from '../components/RegisterVisitorModal';
@@ -18,20 +23,29 @@ import {
 } from '../redux/enquiryApiSlice';
 import {
   selectEnquiryUi, toggleFilters, setActiveView, openImportModal,
-  closeImportModal, setSelectedRowIds, setSummaryFilter,
+  closeImportModal, setSelectedRowIds, setSummaryFilter, resetEnquiryListUi,
 } from '../redux/enquiryUiSlice';
 import { useEnquiryFilters } from '../hooks/useEnquiryFilters';
 import { useEnquiryNav } from '../hooks/useEnquiryNav';
 import { closeWalkInDrawer } from '../../walkin/redux/walkinUiSlice';
+import { DEMO_DRIVEN_ENQUIRY_STATUSES } from '../config/enquiryDemo.config';
 
 export default function EnquiryPage() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { can } = usePermissions();
   const { filtersOpen, activeView, activeSummaryFilter, importModalOpen, columnDensity, selectedRowIds } = useSelector(selectEnquiryUi);
   const { queryParams, search, setSearch, applyFilters, resetFilters, selectSummaryCard } = useEnquiryFilters();
   const { openEnquiry } = useEnquiryNav();
   const [filterDraft, setFilterDraft] = useState({});
   const [bulkAction, setBulkAction] = useState(null);
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  const canUpdate = can(PERMISSIONS.ENQUIRIES_UPDATE);
+  const canDelete = can(PERMISSIONS.ENQUIRIES_DELETE);
+  const canCreate = can(PERMISSIONS.ENQUIRIES_CREATE) || can(PERMISSIONS.WALKIN_CREATE);
 
   useEffect(() => {
     dispatch(closeWalkInDrawer());
@@ -45,13 +59,13 @@ export default function EnquiryPage() {
   const { data: listResult, isLoading, isFetching, refetch } = useGetEnquiriesQuery(queryParams, {
     placeholderData: (previousData) => previousData,
   });
-  const { data: summary, isLoading: summaryLoading } = useGetEnquirySummaryQuery(summaryParams);
+  const { data: summary, isLoading: summaryLoading, refetch: refetchSummary } = useGetEnquirySummaryQuery(summaryParams);
   const [patchStatus] = usePatchEnquiryStatusMutation();
   const [patchPriority] = usePatchEnquiryPriorityMutation();
   const [patchTags] = usePatchEnquiryTagsMutation();
   const [deleteEnquiry] = useDeleteEnquiryMutation();
   const [bulkDelete] = useBulkDeleteEnquiriesMutation();
-  const [exportEnquiries] = useExportEnquiriesMutation();
+  const [exportEnquiries, { isLoading: exportLoading }] = useExportEnquiriesMutation();
 
   const rows = listResult?.data || [];
   const gridLoading = isLoading && rows.length === 0;
@@ -59,6 +73,11 @@ export default function EnquiryPage() {
   const statItems = useMemo(() => buildEnquirySummaryItems(summary), [summary]);
 
   const handleStatusChange = async (id, status) => {
+    if (DEMO_DRIVEN_ENQUIRY_STATUSES.has(status)) {
+      toastService.info('Schedule the demo date and time on the Demo tab. Status updates after the session is saved.');
+      openEnquiry(id, 'demo');
+      return;
+    }
     try {
       await patchStatus({ id, status }).unwrap();
       toastService.success('Status updated');
@@ -118,10 +137,59 @@ export default function EnquiryPage() {
     }
   };
 
-  const handleBulkExport = async () => {
-    const res = await exportEnquiries({ ids: selectedRowIds, ...queryParams }).unwrap();
-    toastService.success(`Exported ${res?.length || res?.data?.length || 0} records`);
+  const handleExport = async () => {
+    try {
+      const body = { ...queryParams };
+      if (selectedRowIds.length > 0) {
+        body.ids = selectedRowIds;
+      }
+      const res = await exportEnquiries(body).unwrap();
+      const url = URL.createObjectURL(res.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = res.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      const count = res.count || 0;
+      toastService.create(
+        {
+          title: res.selected
+            ? `${count} selected enquir${count === 1 ? 'y' : 'ies'} exported`
+            : `${count} enquir${count === 1 ? 'y' : 'ies'} exported`,
+          description: 'Excel is ready — open and share, no edits needed.',
+        },
+        { label: 'Exported' },
+      );
+    } catch (e) {
+      toastService.error(e?.data?.message || 'Export failed');
+    }
   };
+
+  const handleBulkExport = () => handleExport();
+
+  const handleRefresh = () => {
+    setFilterDraft({});
+    resetFilters();
+    dispatch(resetEnquiryListUi());
+    setRefreshToken((n) => n + 1);
+  };
+
+  useEffect(() => {
+    if (!refreshToken) return undefined;
+    let cancelled = false;
+    setRefreshing(true);
+    Promise.all([refetch(), refetchSummary()])
+      .catch((e) => {
+        if (!cancelled) toastService.error(e?.data?.message || 'Refresh failed');
+      })
+      .finally(() => {
+        if (!cancelled) setRefreshing(false);
+      });
+    return () => { cancelled = true; };
+  }, [refreshToken, refetch, refetchSummary]);
 
   const selectedRows = useMemo(
     () => rows.filter((row) => selectedRowIds.includes(row.id)),
@@ -140,10 +208,17 @@ export default function EnquiryPage() {
       <div className="h-full min-h-0 flex flex-col">
       <ModulePageCard
         title="Manage Enquiry"
-        subtitle="Register visitors · auto counsellor assignment · manage qualified enquiries"
+        subtitle="Follow-up, counselling & convert · walk-ins stay on Reception until Interested"
         icon={FiInbox}
         iconColor="primary"
         breadcrumbs={[{ label: 'Dashboard', path: ROUTES.DASHBOARD }, { label: 'Manage Enquiry' }]}
+        actions={canCreate ? (
+          <PermissionGate permissions={[PERMISSIONS.ENQUIRIES_CREATE, PERMISSIONS.WALKIN_CREATE]}>
+            <Button variant="primary" size="sm" icon={FiUserPlus} onClick={() => navigate(ROUTES.WALK_INS)}>
+              Register at Reception
+            </Button>
+          </PermissionGate>
+        ) : null}
       >
         <ModulePageCard.Stats
           items={statItems}
@@ -161,13 +236,16 @@ export default function EnquiryPage() {
             activeView={activeView}
             onViewChange={(v) => dispatch(setActiveView(v))}
             onImport={() => dispatch(openImportModal())}
-            onRegisterVisitor={() => setRegisterOpen(true)}
+            onExport={handleExport}
+            exportLoading={exportLoading}
             filtersOpen={filtersOpen}
             onToggleFilters={() => dispatch(toggleFilters())}
             selectedCount={selectedRowIds.length}
             onBulkAction={setBulkAction}
             onBulkExport={handleBulkExport}
             onBulkDelete={handleBulkDelete}
+            onRefresh={handleRefresh}
+            refreshLoading={refreshing || isFetching}
           />
         </ModulePageCard.Toolbar>
 
@@ -189,34 +267,37 @@ export default function EnquiryPage() {
             fetching={gridFetching}
             density={columnDensity}
             onRowClick={(row) => openEnquiry(row.id)}
-            onEdit={(id) => openEnquiry(id)}
-            onDelete={handleDelete}
-            onStatusChange={handleStatusChange}
-            onPriorityChange={handlePriorityChange}
-            onTagsChange={handleTagsChange}
+            onEdit={canUpdate ? (id) => openEnquiry(id) : undefined}
+            onDelete={canDelete ? handleDelete : undefined}
+            onStatusChange={canUpdate ? handleStatusChange : undefined}
+            onPriorityChange={canUpdate ? handlePriorityChange : undefined}
+            onTagsChange={canUpdate ? handleTagsChange : undefined}
             onSelectionChanged={(selected) => dispatch(setSelectedRowIds((selected || []).map((r) => r.id)))}
-            onRegisterVisitor={() => setRegisterOpen(true)}
+            onRegisterVisitor={() => navigate(ROUTES.WALK_INS)}
           />
         </ModulePageCard.Table>
       </ModulePageCard>
       </div>
 
-      <RegisterVisitorModal
-        open={registerOpen}
-        onClose={() => setRegisterOpen(false)}
-        onRegistered={() => {
-          dispatch(setActiveView('all'));
-          dispatch(setSummaryFilter(null));
-          refetch();
-        }}
-        onOpenLead={() => {
-          toastService.info('Open Reception → Walk-ins to view visitor queue');
-        }}
-        onOpenEnquiry={(id) => openEnquiry(id)}
-        onOpenStudent={(student) => {
-          toastService.info(`Open student ${student.studentCode}`);
-        }}
-      />
+      {registerOpen && (
+        <RegisterVisitorModal
+          open={registerOpen}
+          onClose={() => setRegisterOpen(false)}
+          onRegistered={() => {
+            dispatch(setActiveView('all'));
+            dispatch(setSummaryFilter(null));
+            refetch();
+            navigate(ROUTES.WALK_INS);
+          }}
+          onOpenLead={() => {
+            navigate(ROUTES.WALK_INS);
+          }}
+          onOpenEnquiry={(id) => openEnquiry(id)}
+          onOpenStudent={(student) => {
+            toastService.info(`Open student ${student.studentCode}`);
+          }}
+        />
+      )}
       <ImportModal open={importModalOpen} onClose={() => dispatch(closeImportModal())} />
       <EnquiryBulkActionModal
         action={bulkAction}

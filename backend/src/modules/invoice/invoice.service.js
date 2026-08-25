@@ -13,7 +13,7 @@ export const createInvoiceSchema = z.object({
   amount: z.coerce.number(),
   tax: z.coerce.number().optional().default(0),
   total: z.coerce.number(),
-  currency: z.string().optional().default('USD'),
+  currency: z.string().max(10).optional().nullable(),
   status: z.enum(['DRAFT', 'SENT', 'PAID', 'PARTIAL', 'OVERDUE', 'CANCELLED']).optional(),
   dueDate: dateInput,
   paidAt: dateInput,
@@ -24,41 +24,53 @@ export const updateInvoiceSchema = createInvoiceSchema.partial();
 
 const parseDate = (value) => (value ? new Date(value) : null);
 
+function requireCompany(user) {
+  const companyId = user?.companyId;
+  if (!companyId) throw new AppError('Company context required', 403);
+  return companyId;
+}
+
 export const invoiceService = {
-  getAll: async (query) => {
+  getAll: async (query, user) => {
+    const companyId = requireCompany(user);
     const sort = parseSort(query, INVOICE_SORT_FIELDS);
-    return invoiceRepository.findMany({ ...query, sort });
+    return invoiceRepository.findMany({ ...query, sort, companyId });
   },
 
-  getById: async (id) => {
-    const record = await invoiceRepository.findById(id);
+  getById: async (id, user) => {
+    const companyId = requireCompany(user);
+    const record = await invoiceRepository.findById(id, companyId);
     if (!record) throw new AppError('Invoice not found', 404);
     return record;
   },
 
-  create: async (data, userId, req) => {
+  create: async (data, user, req) => {
+    const companyId = requireCompany(user);
     const record = await invoiceRepository.create({
       ...data,
       amount: data.amount,
       tax: data.tax,
       total: data.total,
+      currency: data.currency || undefined,
       dueDate: parseDate(data.dueDate),
       paidAt: parseDate(data.paidAt),
-      createdBy: userId,
+      metadata: { companyId },
+      createdBy: user.id,
     });
 
-    await prisma.activity.create({ data: { userId, action: 'CREATE', entityType: 'Invoice', entityId: record.id, description: `Invoice ${record.invoiceNo} created` } });
-    await auditLog({ userId, action: 'CREATE', entityType: 'Invoice', entityId: record.id, newData: record, req });
+    await prisma.activity.create({ data: { userId: user.id, action: 'CREATE', entityType: 'Invoice', entityId: record.id, description: `Invoice ${record.invoiceNo} created` } });
+    await auditLog({ userId: user.id, action: 'CREATE', entityType: 'Invoice', entityId: record.id, newData: record, req });
     return record;
   },
 
-  update: async (id, data, userId, req) => {
-    const existing = await invoiceRepository.findById(id);
+  update: async (id, data, user, req) => {
+    const companyId = requireCompany(user);
+    const existing = await invoiceRepository.findById(id, companyId);
     if (!existing) throw new AppError('Invoice not found', 404);
 
     const record = await invoiceRepository.update(id, {
       ...data,
-      updatedBy: userId,
+      updatedBy: user.id,
       amount: data.amount,
       tax: data.tax,
       total: data.total,
@@ -66,15 +78,16 @@ export const invoiceService = {
       paidAt: data.paidAt !== undefined ? parseDate(data.paidAt) : undefined,
     });
 
-    await prisma.activity.create({ data: { userId, action: 'UPDATE', entityType: 'Invoice', entityId: id, description: 'Invoice updated' } });
-    await auditLog({ userId, action: 'UPDATE', entityType: 'Invoice', entityId: id, oldData: existing, newData: record, req });
+    await prisma.activity.create({ data: { userId: user.id, action: 'UPDATE', entityType: 'Invoice', entityId: id, description: 'Invoice updated' } });
+    await auditLog({ userId: user.id, action: 'UPDATE', entityType: 'Invoice', entityId: id, oldData: existing, newData: record, req });
     return record;
   },
 
-  delete: async (id, userId, req) => {
-    const existing = await invoiceRepository.findById(id);
+  delete: async (id, user, req) => {
+    const companyId = requireCompany(user);
+    const existing = await invoiceRepository.findById(id, companyId);
     if (!existing) throw new AppError('Invoice not found', 404);
-    await invoiceRepository.softDelete(id, userId);
-    await auditLog({ userId, action: 'DELETE', entityType: 'Invoice', entityId: id, oldData: existing, req });
+    await invoiceRepository.softDelete(id, user.id);
+    await auditLog({ userId: user.id, action: 'DELETE', entityType: 'Invoice', entityId: id, oldData: existing, req });
   },
 };

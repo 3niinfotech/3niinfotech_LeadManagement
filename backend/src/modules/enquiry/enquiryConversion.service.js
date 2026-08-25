@@ -1,5 +1,6 @@
 import prisma from '../../config/database.js';
 import { softDeleteWhere } from '../../utils/response.util.js';
+import { mergeScope, assertStudentInTenant } from '../../utils/tenant.util.js';
 import { studentRepository } from '../student/student.repository.js';
 import { enquiryRepository } from './enquiry.repository.js';
 import { logEnquiryAudit } from './enquiry.audit.js';
@@ -36,26 +37,34 @@ function buildStudentPayload(enquiry, userId) {
   };
 }
 
-async function findExistingStudent(enquiry) {
+/** Company/branch-scoped duplicate match — never cross-tenant */
+async function findExistingStudent(enquiry, user) {
   const or = [];
   if (enquiry.email?.trim()) or.push({ email: enquiry.email.trim() });
   if (enquiry.mobile?.trim()) or.push({ phone: enquiry.mobile.trim() });
-  if (enquiry.passportNo?.trim()) or.push({ passportNo: enquiry.passportNo.trim().toUpperCase() });
+  if (enquiry.passportNo?.trim()) {
+    or.push({ passportNo: enquiry.passportNo.trim().toUpperCase() });
+  }
 
   if (or.length === 0) return null;
 
+  const scopeWhere = mergeScope(user, { entity: 'student' });
   return prisma.student.findFirst({
-    where: { ...softDeleteWhere, OR: or },
+    where: { ...softDeleteWhere, ...scopeWhere, OR: or },
   });
 }
 
 export const enquiryConversionService = {
   convertToStudent: async (enquiryId, userId, req) => {
-    const enquiry = await enquiryRepository.findById(enquiryId);
+    const user = req?.user;
+    if (!user) throw new AppError('Authentication required', 401);
+
+    const enquiryScope = mergeScope(user, { entity: 'enquiry' });
+    const enquiry = await enquiryRepository.findById(enquiryId, enquiryScope);
     if (!enquiry) throw new AppError('Enquiry not found', 404);
 
     if (enquiry.status === 'CONVERTED' && enquiry.studentId) {
-      const linked = enquiry.student || await studentRepository.findById(enquiry.studentId);
+      const linked = await assertStudentInTenant(enquiry.studentId, user);
       return {
         enquiry,
         student: linked,
@@ -81,14 +90,15 @@ export const enquiryConversionService = {
     let linkedExisting = false;
 
     if (enquiry.studentId && student) {
+      student = await assertStudentInTenant(enquiry.studentId, user);
       linkedExisting = true;
     } else if (enquiry.studentId) {
-      student = await studentRepository.findById(enquiry.studentId);
+      student = await assertStudentInTenant(enquiry.studentId, user);
       linkedExisting = Boolean(student);
     }
 
     if (!student) {
-      const existing = await findExistingStudent(enquiry);
+      const existing = await findExistingStudent(enquiry, user);
       if (existing) {
         student = existing;
         linkedExisting = true;
@@ -141,7 +151,7 @@ export const enquiryConversionService = {
       convertedAt: enquiry.convertedAt || now.toISOString(),
     };
 
-    const updated = await enquiryRepository.update(enquiryId, {
+    await enquiryRepository.update(enquiryId, {
       status: 'CONVERTED',
       studentId: student.id,
       convertedAt: enquiry.convertedAt || now,
@@ -176,7 +186,7 @@ export const enquiryConversionService = {
       req,
     });
 
-    const fullEnquiry = await enquiryRepository.findById(enquiryId);
+    const fullEnquiry = await enquiryRepository.findById(enquiryId, enquiryScope);
 
     return {
       enquiry: fullEnquiry,

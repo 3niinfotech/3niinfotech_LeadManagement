@@ -3,6 +3,11 @@ import { extractToken, verifyAccessToken } from '../utils/jwt.util.js';
 import prisma from '../config/database.js';
 import { resolveUserAccess } from '../modules/rbac/rbac.resolve.js';
 import { hasAnyPermission } from '../modules/rbac/rbac.util.js';
+import {
+  assertBranchInTenant,
+  canSwitchViewingBranch,
+  getViewingBranchId,
+} from '../utils/tenant.util.js';
 
 export const authenticate = async (req, res, next) => {
   try {
@@ -21,8 +26,9 @@ export const authenticate = async (req, res, next) => {
     const legacyPerms = Array.isArray(user.role?.permissions) ? user.role.permissions : [];
     const permissions = access?.permissions?.length ? access.permissions : legacyPerms;
     const dataScope = access?.dataScope || user.role?.dataScope || 'OWN';
+    const prefs = user.preferences && typeof user.preferences === 'object' ? user.preferences : {};
 
-    req.user = {
+    const draftUser = {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
@@ -32,8 +38,22 @@ export const authenticate = async (req, res, next) => {
       dataScope,
       companyId: user.companyId,
       branchId: user.branchId,
+      preferences: prefs,
       portal: decoded.portal || null,
     };
+
+    let viewingBranchId = prefs.activeViewingBranchId || null;
+    if (viewingBranchId && canSwitchViewingBranch(draftUser)) {
+      try {
+        await assertBranchInTenant(viewingBranchId, draftUser);
+      } catch {
+        viewingBranchId = null;
+      }
+    } else {
+      viewingBranchId = null;
+    }
+
+    req.user = { ...draftUser, viewingBranchId };
 
     next();
   } catch (err) {

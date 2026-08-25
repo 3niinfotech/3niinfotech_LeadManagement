@@ -74,6 +74,23 @@ export const PERMISSIONS = {
   MASTERS_MANAGE: 'masters.manage',
 
   AUDIT_VIEW: 'audit:view',
+
+  CALENDAR_VIEW: 'calendar.view',
+  CALENDAR_CREATE: 'calendar.create',
+  CALENDAR_UPDATE: 'calendar.update',
+  CALENDAR_DELETE: 'calendar.delete',
+  CALENDAR_ASSIGN: 'calendar.assign',
+  CALENDAR_COMPLETE: 'calendar.complete',
+  CALENDAR_RESCHEDULE: 'calendar.reschedule',
+
+  BRANCH_SWITCH: 'branch.switch',
+  BRANCH_VIEW_MULTIPLE: 'branch.view_multiple',
+
+  ATTENDANCE_VIEW: 'attendance.view',
+  ATTENDANCE_MARK: 'attendance.mark',
+  ATTENDANCE_EDIT: 'attendance.edit',
+  ATTENDANCE_CORRECT: 'attendance.correct',
+  ATTENDANCE_REPORT: 'attendance.report',
 };
 
 export const ROLE_PERMISSIONS = {
@@ -94,7 +111,6 @@ export const ROLE_PERMISSIONS = {
   ],
   counselor: [
     PERMISSIONS.DASHBOARD_VIEW,
-    PERMISSIONS.WALKIN_VIEW, PERMISSIONS.WALKIN_CREATE, PERMISSIONS.WALKIN_UPDATE,
     PERMISSIONS.ENQUIRIES_VIEW, PERMISSIONS.ENQUIRIES_CREATE, PERMISSIONS.ENQUIRIES_UPDATE,
     PERMISSIONS.LEADS_VIEW, PERMISSIONS.LEADS_CREATE, PERMISSIONS.LEADS_UPDATE,
     PERMISSIONS.STUDENTS_VIEW, PERMISSIONS.STUDENTS_CREATE, PERMISSIONS.STUDENTS_UPDATE,

@@ -1,14 +1,29 @@
-/** Counsellor role slugs eligible for auto-assignment */
+/** Roles that may receive counselling work / appear in assign lists */
 export const COUNSELLOR_ROLE_SLUGS = [
   'counsellor',
   'team_leader',
-  'branch_manager',
-  'company_admin',
-  'super_admin',
+];
+
+/** Reception assign list — counselling staff only (never Admin / Super Admin) */
+export const RECEPTION_ASSIGN_ROLE_SLUGS = [
+  'counsellor',
+  'team_leader',
 ];
 
 /** Presence statuses that can receive new offers */
 export const ROUTABLE_PRESENCE = ['AVAILABLE', 'WFH'];
+
+/** Manual presence holds — auto Free resumes after TTL (ms). LEAVE stays until cleared. */
+export const PRESENCE_HOLD_MS = {
+  LUNCH: 60 * 60 * 1000,
+  BREAK: 20 * 60 * 1000,
+  MEETING: 2 * 60 * 60 * 1000,
+  TRAINING: 4 * 60 * 60 * 1000,
+  DND: 60 * 60 * 1000,
+  BUSY: 2 * 60 * 60 * 1000,
+};
+
+export const PRESENCE_PERMANENT_HOLD = ['LEAVE'];
 
 /** Default SLA thresholds (minutes) — overridable per branch in metadata */
 export const DEFAULT_SLA = {

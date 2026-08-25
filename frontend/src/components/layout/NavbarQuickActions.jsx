@@ -1,17 +1,33 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSelector } from 'react-redux';
 import { HEADER_ACTIONS, HEADER_ACTION_TONES } from '../../config/headerActions.config';
+import { hasAnyPermission } from '../../config/permissions';
 import { REMINDER_ITEMS, ANNOUNCEMENTS, TASK_PREVIEW } from '../../config/headerMock.data';
 import { selectUnreadCount } from '../../modules/notification/redux/notificationSlice';
+import { selectPermissions } from '../../redux/slices/authSlice';
 import { iconSize } from '../../theme/icons';
-import HeaderActionDrawer from './HeaderActionDrawer';
+import HeaderActionPopover from './HeaderActionPopover';
+import NotificationPanel, { NotificationHeaderActions } from './header-panels/NotificationPanel';
+import ReminderPanel from './header-panels/ReminderPanel';
+import AnnouncementPanel from './header-panels/AnnouncementPanel';
+import CourseFinderPanel from './header-panels/CourseFinderPanel';
+import TaskPanel from './header-panels/TaskPanel';
+
+const PANEL_MAP = {
+  reminder: ReminderPanel,
+  notification: NotificationPanel,
+  announcement: AnnouncementPanel,
+  courseFinder: CourseFinderPanel,
+  task: TaskPanel,
+};
 
 function getBadgeCount(key, unreadNotifications) {
   switch (key) {
     case 'reminder':
       return REMINDER_ITEMS.filter((r) => r.isToday).length;
     case 'notification':
-      return unreadNotifications || 2;
+      return unreadNotifications || 0;
     case 'announcement':
       return ANNOUNCEMENTS.length;
     case 'task':
@@ -42,14 +58,32 @@ function CountBadge({ count, tone }) {
   );
 }
 
-function QuickActionButton({ action, badge, isActive, onClick }) {
+function QuickActionButton({ action, badge, isActive, onClick, buttonRef }) {
   const Icon = action.icon;
   const tone = HEADER_ACTION_TONES[action.tone] || HEADER_ACTION_TONES.brand;
+  const [tip, setTip] = useState(null);
+
+  const showTip = (el) => {
+    if (!el || isActive) return;
+    const rect = el.getBoundingClientRect();
+    setTip({
+      top: rect.bottom + 8,
+      left: rect.left + rect.width / 2,
+    });
+  };
 
   return (
     <button
+      ref={buttonRef}
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        setTip(null);
+        onClick?.(e);
+      }}
+      onMouseEnter={(e) => showTip(e.currentTarget)}
+      onMouseLeave={() => setTip(null)}
+      onFocus={(e) => showTip(e.currentTarget)}
+      onBlur={() => setTip(null)}
       aria-label={badge > 0 ? `${action.label}, ${badge} unread` : action.label}
       aria-pressed={isActive}
       className={`
@@ -63,22 +97,34 @@ function QuickActionButton({ action, badge, isActive, onClick }) {
         {badge > 0 && <CountBadge count={badge} tone={tone} />}
       </span>
 
-      <span
-        className="pointer-events-none absolute top-[calc(100%+6px)] left-1/2 -translate-x-1/2 z-[1050]
-          px-2.5 py-1 rounded-md bg-text text-white text-[10px] font-medium whitespace-nowrap
-          opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100
-          transition-all duration-150 shadow-lg border border-white/10"
-        role="tooltip"
-      >
-        {action.label}
-      </span>
+      {tip && createPortal(
+        <span
+          className="fixed z-[1500] px-2.5 py-1 rounded-md bg-text text-white text-[10px] font-medium whitespace-nowrap
+            shadow-lg border border-white/10 pointer-events-none -translate-x-1/2"
+          style={{ top: tip.top, left: tip.left }}
+          role="tooltip"
+        >
+          {action.label}
+        </span>,
+        document.body,
+      )}
     </button>
   );
 }
 
 export default function NavbarQuickActions() {
   const unreadCount = useSelector(selectUnreadCount);
+  const permissions = useSelector(selectPermissions);
   const [activeAction, setActiveAction] = useState(null);
+  const buttonRefs = useRef({});
+
+  const visibleActions = useMemo(
+    () => HEADER_ACTIONS.filter((action) => {
+      if (!action.permissions?.length) return true;
+      return hasAnyPermission(permissions, action.permissions);
+    }),
+    [permissions],
+  );
 
   const badges = useMemo(
     () =>
@@ -95,10 +141,13 @@ export default function NavbarQuickActions() {
     setActiveAction((prev) => (prev === actionId ? null : actionId));
   };
 
-  const closeDrawer = () => setActiveAction(null);
+  const close = () => setActiveAction(null);
 
-  const primaryActions = HEADER_ACTIONS.filter((a) => a.badgeKey);
-  const secondaryActions = HEADER_ACTIONS.filter((a) => !a.badgeKey);
+  const activeMeta = visibleActions.find((a) => a.id === activeAction);
+  const Panel = activeAction ? PANEL_MAP[activeAction] : null;
+
+  const primaryActions = visibleActions.filter((a) => a.badgeKey);
+  const secondaryActions = visibleActions.filter((a) => !a.badgeKey);
 
   return (
     <>
@@ -113,6 +162,9 @@ export default function NavbarQuickActions() {
               action={action}
               badge={badges[action.id] || 0}
               isActive={activeAction === action.id}
+              buttonRef={(el) => {
+                buttonRefs.current[action.id] = el;
+              }}
               onClick={() => handleClick(action.id)}
             />
           ))}
@@ -128,6 +180,9 @@ export default function NavbarQuickActions() {
                   action={action}
                   badge={badges[action.id] || 0}
                   isActive={activeAction === action.id}
+                  buttonRef={(el) => {
+                    buttonRefs.current[action.id] = el;
+                  }}
                   onClick={() => handleClick(action.id)}
                 />
               ))}
@@ -136,11 +191,21 @@ export default function NavbarQuickActions() {
         )}
       </nav>
 
-      <HeaderActionDrawer
-        actionId={activeAction}
-        open={Boolean(activeAction)}
-        onClose={closeDrawer}
-      />
+      <HeaderActionPopover
+        open={Boolean(activeAction && Panel)}
+        onClose={close}
+        anchorEl={buttonRefs.current[activeAction]}
+        title={activeMeta?.label || ''}
+        width={activeMeta?.width || 400}
+        maxHeight={560}
+        headerRight={
+          activeAction === 'notification'
+            ? <NotificationHeaderActions onClose={close} />
+            : null
+        }
+      >
+        {Panel ? <Panel onClose={close} compact /> : null}
+      </HeaderActionPopover>
     </>
   );
 }

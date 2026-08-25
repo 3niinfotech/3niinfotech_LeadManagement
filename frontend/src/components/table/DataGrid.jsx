@@ -32,6 +32,14 @@ export default function DataGrid({
   className = '',
   density: densityProp,
   getRowId,
+  /** Extra AG Grid rowClassRules merged with defaults */
+  rowClassRules: extraRowClassRules,
+  /** Height follows the row count instead of stretching to the container */
+  fitContent = false,
+  /** Row cap before the grid starts scrolling (only with fitContent) */
+  maxVisibleRows = 12,
+  /** Footer is noise when everything already fits on one page */
+  hideSinglePagePagination = false,
 }) {
   const gridRef = useRef(null);
   const [gridApi, setGridApi] = useState(null);
@@ -58,7 +66,8 @@ export default function DataGrid({
 
   const rowClassRules = useMemo(() => ({
     'crm-grid-row--selected': (params) => params.node.isSelected(),
-  }), []);
+    ...(extraRowClassRules || {}),
+  }), [extraRowClassRules]);
 
   const handleSelectionChanged = useCallback(() => {
     if (onSelectionChanged && gridRef.current) {
@@ -89,17 +98,29 @@ export default function DataGrid({
     return base;
   }, [rowSelection]);
 
+  const pageRowCount = pagination ? Math.min(rowData.length, paginationPageSize) : rowData.length;
+  // +10px keeps the last row clear of the horizontal scrollbar when columns overflow
+  const fittedHeight = headerHeight
+    + Math.max(Math.min(pageRowCount, maxVisibleRows), 1) * rowHeight
+    + 10;
+  const showPagination = pagination
+    && (!hideSinglePagePagination || rowData.length > paginationPageSize);
+
   if (loading && !rowData.length) {
     return (
-      <div className="relative flex-1 min-h-[280px] w-full overflow-hidden border-t border-border">
-        <TableLoader rows={10} columns={Math.min(columns?.length || 7, 8)} height="100%" />
+      <div className={`relative w-full overflow-hidden border-t border-border ${fitContent ? '' : 'flex-1 min-h-[280px]'}`}>
+        <TableLoader
+          rows={fitContent ? Math.min(maxVisibleRows, 6) : 10}
+          columns={Math.min(columns?.length || 7, 8)}
+          height={fitContent ? undefined : '100%'}
+        />
       </div>
     );
   }
 
   if (!rowData.length && !fetching) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-[320px] border-t border-border bg-card-bg">
+      <div className={`flex items-center justify-center border-t border-border bg-card-bg ${fitContent ? 'min-h-[220px]' : 'flex-1 min-h-[320px]'}`}>
         <EmptyState
           title={emptyTitle}
           description={emptyDescription}
@@ -111,11 +132,18 @@ export default function DataGrid({
   }
 
   return (
-    <div className={`crm-grid-shell relative flex flex-col flex-1 min-h-[280px] w-full overflow-hidden ${className}`} style={{ height }}>
+    <div
+      className={`crm-grid-shell relative flex flex-col w-full overflow-hidden ${fitContent ? '' : 'flex-1 min-h-[280px]'} ${className}`}
+      style={fitContent ? undefined : { height }}
+    >
       {fetching && <TableFetchOverlay />}
-      <div className="ag-theme-crm flex-1 min-h-0 w-full overflow-hidden">
+      <div
+        className={`ag-theme-crm w-full overflow-hidden ${fitContent ? '' : 'flex-1 min-h-0'}`}
+        style={fitContent ? { height: fittedHeight } : undefined}
+      >
         <AgGridReact
           ref={gridRef}
+          theme="legacy"
           columnDefs={columns}
           rowData={rowData}
           defaultColDef={defaultColDef}
@@ -144,7 +172,7 @@ export default function DataGrid({
           suppressHorizontalScroll={false}
         />
       </div>
-      {pagination && (
+      {showPagination && (
         <GridPagination
           api={gridApi}
           totalRows={rowData.length}

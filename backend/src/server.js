@@ -1,62 +1,48 @@
-import express from 'express';
 import http from 'http';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import cookieParser from 'cookie-parser';
-import morgan from 'morgan';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import os from 'os';
 import config from './config/index.js';
-import routes from './routes/index.js';
-import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
-import { apiLimiter } from './middleware/rateLimit.middleware.js';
+import { createApp } from './app.js';
 import { initSocket } from './socket/index.js';
 import { assignmentEngine } from './modules/assignment/assignment.engine.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const app = express();
+const app = createApp();
 const server = http.createServer(app);
 
-app.use(helmet());
-app.use(cors({
-  origin: config.env === 'development'
-    ? (origin, callback) => {
-        if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
-      }
-    : config.cors.origin,
-  credentials: true,
-}));
-app.use(compression());
-app.use(morgan(config.env === 'development' ? 'dev' : 'combined'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use('/uploads', express.static(path.join(__dirname, '..', config.upload.dir)));
-app.use('/api', apiLimiter, routes);
+/** Bind all interfaces so LAN devices can reach API directly if needed */
+const HOST = process.env.HOST || '0.0.0.0';
 
-app.get('/api/health', (_req, res) => {
-  res.json({ success: true, message: 'API is running', timestamp: new Date().toISOString() });
-});
+if (config.env !== 'test') {
+  initSocket(server);
 
-app.use(notFoundHandler);
-app.use(errorHandler);
+  setInterval(() => {
+    assignmentEngine.processExpiredOffers().catch((err) => {
+      console.error('[assignment] expired offer processor:', err.message);
+    });
+  }, 30000);
 
-initSocket(server);
+  function listLanIPv4() {
+    const nets = os.networkInterfaces();
+    const ips = [];
+    Object.values(nets).forEach((list) => {
+      (list || []).forEach((net) => {
+        if (net.family === 'IPv4' && !net.internal) ips.push(net.address);
+      });
+    });
+    return ips;
+  }
 
-setInterval(() => {
-  assignmentEngine.processExpiredOffers().catch((err) => {
-    console.error('[assignment] expired offer processor:', err.message);
+  server.listen(config.port, HOST, () => {
+    const lan = listLanIPv4();
+    console.log(`Server running on http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${config.port} [${config.env}]`);
+    if (config.env === 'development' && lan.length) {
+      console.log('LAN access (other devices):');
+      lan.forEach((ip) => {
+        console.log(`  Frontend → http://${ip}:3000`);
+        console.log(`  API      → http://${ip}:${config.port}/api/health`);
+      });
+      console.log('Tip: open the Frontend URL on phone/PC — Vite proxies /api to this backend.');
+    }
   });
-}, 30000);
-
-server.listen(config.port, () => {
-  console.log(`Server running on port ${config.port} [${config.env}]`);
-});
+}
 
 export default app;

@@ -1,55 +1,41 @@
-import { useState } from 'react';
-import Textarea from '../../../../components/ui/Textarea';
-import Button from '../../../../components/ui/Button';
-import { useAddWalkInNoteMutation } from '../../redux/walkinApiSlice';
-import toastService from '../../../../services/toast/toast.service';
+import { FiMessageSquare } from 'react-icons/fi';
 
-export default function NotesTab({ leadId, notes = [], onRefresh }) {
-  const [content, setContent] = useState('');
-  const [addNote, { isLoading }] = useAddWalkInNoteMutation();
+function initials(user) {
+  const first = user?.firstName?.[0] || '';
+  const last = user?.lastName?.[0] || '';
+  return (first + last).toUpperCase() || 'U';
+}
 
-  const handleAdd = async () => {
-    if (!content.trim()) return;
-    try {
-      await addNote({ id: leadId, content: content.trim() }).unwrap();
-      setContent('');
-      toastService.success('Note added');
-      onRefresh?.();
-    } catch (e) {
-      toastService.error(e?.data?.message || 'Failed to add note');
-    }
-  };
+export default function NotesTab({ notes = [] }) {
+  if (!notes.length) {
+    return (
+      <div className="crm-walkin-empty-panel">
+        <FiMessageSquare className="w-7 h-7 text-text-muted" aria-hidden />
+        <p className="crm-walkin-empty-panel__title">No notes yet</p>
+        <p className="crm-walkin-empty-panel__sub">
+          Counselling notes written by the assigned counsellor will appear here.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Textarea
-          label="Add Note"
-          rows={3}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Counselling notes..."
-        />
-        <Button size="sm" onClick={handleAdd} loading={isLoading} disabled={!content.trim()}>
-          Save Note
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        {notes.length === 0 && (
-          <p className="text-sm text-text-secondary">No notes yet.</p>
-        )}
-        {notes.map((note) => (
-          <div key={note.id} className="crm-walkin-note-card">
-            <p className="text-sm text-text">{note.content}</p>
-            <p className="text-xs text-text-muted mt-1">
+    <ul className="crm-walkin-note-list">
+      {notes.map((note) => (
+        <li key={note.id} className="crm-walkin-note-card">
+          <span className="crm-walkin-note-card__avatar" aria-hidden>{initials(note.user)}</span>
+          <div className="min-w-0">
+            <p className="crm-walkin-note-card__text">{note.content}</p>
+            <p className="crm-walkin-note-card__meta">
               {note.user ? `${note.user.firstName} ${note.user.lastName || ''}`.trim() : 'User'}
               {' · '}
-              {new Date(note.createdAt).toLocaleString('en-IN')}
+              {new Date(note.createdAt).toLocaleString('en-IN', {
+                day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+              })}
             </p>
           </div>
-        ))}
-      </div>
-    </div>
+        </li>
+      ))}
+    </ul>
   );
 }

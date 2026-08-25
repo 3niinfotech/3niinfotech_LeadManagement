@@ -1,10 +1,13 @@
 import { useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import DataGrid from '../../../components/table/DataGrid';
 import { createActionsColumn, createAvatarColumn, GridRowActions } from '../../../components/table/grid.columns';
 import EnquiryStatusPill from './EnquiryStatusPill';
 import EnquiryPriorityBadge from './EnquiryPriorityBadge';
 import EnquiryTagChips from './EnquiryTagChips';
 import { TABLE_DENSITY, getEnquiryStatusLabel, getEnquiryPriorityLabel } from '../../../config/constants';
+import { getDocumentUrl } from '../config/enquiryDocument.config';
+import { selectUser } from '../../../redux/slices/authSlice';
 
 const centerCell = 'crm-grid-cell--center';
 const centerHeader = 'crm-grid-header-cell--center';
@@ -13,18 +16,25 @@ export default function EnquiryGrid({
   rows, loading, fetching = false, onRowClick, onStatusChange, onPriorityChange, onTagsChange, onEdit, onDelete, onSelectionChanged, onRegisterVisitor, density,
 }) {
   const gridDensity = density === 'comfortable' ? TABLE_DENSITY.COMFORTABLE : TABLE_DENSITY.COMPACT;
+  const user = useSelector(selectUser);
+  const myId = user?.id;
+
+  const rowClassRules = useMemo(() => ({
+    'crm-grid-row--mine': (params) => Boolean(myId && params.data?.assignedToId === myId),
+  }), [myId]);
 
   const columns = useMemo(() => [
     {
       field: 'enquiryCode',
       headerName: 'ID',
-      width: 104,
-      minWidth: 96,
-      maxWidth: 116,
+      width: 168,
+      minWidth: 156,
       cellClass: `font-medium text-text tabular-nums ${centerCell}`,
       headerClass: centerHeader,
     },
-    createAvatarColumn(),
+    createAvatarColumn({
+      srcGetter: (row) => getDocumentUrl(row?.photoUrl) || '',
+    }),
     {
       field: 'name',
       headerName: 'Name',
@@ -113,9 +123,33 @@ export default function EnquiryGrid({
     {
       field: 'assignedTo',
       headerName: 'Assigned To',
-      width: 128,
+      width: 148,
       valueGetter: (p) => p.data.assignedTo
         ? `${p.data.assignedTo.firstName} ${p.data.assignedTo.lastName}` : '—',
+      cellRenderer: (p) => {
+        const name = p.value;
+        if (!name || name === '—') return <span className="text-text-muted">—</span>;
+        const isMine = Boolean(myId && p.data?.assignedToId === myId);
+        return (
+          <span className="inline-flex items-center gap-1.5 max-w-full">
+            <span className="truncate">{name}</span>
+            {isMine ? (
+              <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-800 border border-amber-200/80 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
+                You
+              </span>
+            ) : null}
+          </span>
+        );
+      },
+      cellClass: `text-text-secondary crm-grid-cell--truncate ${centerCell}`,
+      headerClass: centerHeader,
+    },
+    {
+      field: 'assignedBy',
+      headerName: 'Assigned By',
+      width: 128,
+      valueGetter: (p) => p.data.assignedBy
+        ? `${p.data.assignedBy.firstName} ${p.data.assignedBy.lastName}` : '—',
       cellClass: `text-text-secondary crm-grid-cell--truncate ${centerCell}`,
       headerClass: centerHeader,
     },
@@ -124,6 +158,15 @@ export default function EnquiryGrid({
       headerName: 'Intake',
       width: 92,
       cellClass: `text-text-secondary ${centerCell}`,
+      headerClass: centerHeader,
+    },
+    {
+      field: 'applyLevel',
+      headerName: 'Apply Level',
+      width: 120,
+      minWidth: 110,
+      valueGetter: (p) => p.data.applyLevel || '—',
+      cellClass: `text-text-secondary crm-grid-cell--truncate ${centerCell}`,
       headerClass: centerHeader,
     },
     {
@@ -142,6 +185,16 @@ export default function EnquiryGrid({
       headerClass: centerHeader,
     },
     {
+      field: 'lastRemark',
+      headerName: 'Last Remark',
+      width: 160,
+      minWidth: 140,
+      valueGetter: (p) => p.data.lastRemark || '—',
+      cellClass: `text-text-secondary crm-grid-cell--truncate ${centerCell}`,
+      headerClass: centerHeader,
+      tooltipValueGetter: (p) => p.data.lastRemark || '',
+    },
+    {
       field: 'createdAt',
       headerName: 'Created',
       width: 96,
@@ -149,11 +202,25 @@ export default function EnquiryGrid({
       cellClass: `text-text-muted tabular-nums ${centerCell}`,
       headerClass: centerHeader,
     },
+    {
+      field: 'updatedAt',
+      headerName: 'Updated',
+      width: 96,
+      valueFormatter: (p) => (p.value
+        ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })
+        : '—'),
+      cellClass: `text-text-muted tabular-nums ${centerCell}`,
+      headerClass: centerHeader,
+    },
     createActionsColumn({
-      pinned: null,
-      cellRenderer: GridRowActions({ onEdit, onDelete }),
+      pinned: 'right',
+      cellRenderer: GridRowActions({
+        onOpenDetail: onRowClick ? (id, data) => onRowClick(data) : undefined,
+        onEdit,
+        onDelete,
+      }),
     }),
-  ], [onStatusChange, onPriorityChange, onTagsChange, onEdit, onDelete]);
+  ], [myId, onStatusChange, onPriorityChange, onTagsChange, onRowClick, onEdit, onDelete]);
 
   return (
     <DataGrid
@@ -169,10 +236,11 @@ export default function EnquiryGrid({
       paginationPageSize={25}
       height="100%"
       emptyTitle="No enquiries yet"
-      emptyDescription="Click Register Visitor — new entries appear in this table with status New."
-      emptyActionLabel="Register Visitor"
+      emptyDescription="Assigned visitors appear here after Reception assigns you. Open a row to counsel, update status, then convert."
+      emptyActionLabel="Open Reception"
       onEmptyAction={onRegisterVisitor}
       getRowId={(p) => p.data.id}
+      rowClassRules={rowClassRules}
     />
   );
 }

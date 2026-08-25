@@ -1,13 +1,12 @@
-import {
-  FiUserPlus, FiRefreshCw, FiDownload, FiSettings, FiPrinter, FiMaximize2,
-} from 'react-icons/fi';
+import { FiUserPlus, FiRefreshCw } from 'react-icons/fi';
 import Button from '../../../../components/ui/Button';
 import ModulePageHeader from '../../../../components/layout/ModulePageHeader';
+import PermissionGate from '../../../../components/common/PermissionGate';
+import { PERMISSIONS } from '../../../../config/permissions';
 
 export default function ReceptionPageHeader({
   onRegister,
   onRefresh,
-  onExport,
   refreshing = false,
 }) {
   const now = new Date();
@@ -20,7 +19,7 @@ export default function ReceptionPageHeader({
     <div className="crm-reception-header">
       <ModulePageHeader
         title="Reception Registration"
-        subtitle="Register walk-in visitors in seconds, generate queue tokens, assign counsellors, and start the complete student journey."
+        subtitle="Walk-ins, waiting list, and counsellor assign"
         icon={FiUserPlus}
         iconColor="primary"
         breadcrumbs={[
@@ -35,23 +34,13 @@ export default function ReceptionPageHeader({
               {' · '}
               {timeStr}
             </span>
-            <Button size="sm" icon={FiUserPlus} onClick={onRegister}>
-              Register Visitor
-            </Button>
-            <Button size="sm" variant="outline" icon={FiMaximize2} disabled title="Coming soon">
-              Scan QR
-            </Button>
+            <PermissionGate permission={PERMISSIONS.WALKIN_CREATE}>
+              <Button size="sm" icon={FiUserPlus} onClick={onRegister}>
+                Register Visitor
+              </Button>
+            </PermissionGate>
             <Button size="sm" variant="outline" icon={FiRefreshCw} onClick={onRefresh} loading={refreshing}>
               Refresh
-            </Button>
-            <Button size="sm" variant="outline" icon={FiPrinter} disabled title="Select visitor to print">
-              Print Token
-            </Button>
-            <Button size="sm" variant="outline" icon={FiDownload} onClick={onExport}>
-              Export
-            </Button>
-            <Button size="sm" variant="ghost" icon={FiSettings} disabled title="Reception settings">
-              Settings
             </Button>
           </div>
         )}

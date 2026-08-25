@@ -1,11 +1,15 @@
 import Badge from '../../../components/ui/Badge';
-import { getWalkInStatusLabel, getWalkInStatusMeta } from '../config/walkin.constants';
+import { getWalkInStatusLabel, getWalkInStatusMeta, toneToBadgeColor } from '../config/walkin.constants';
 
 export default function WalkInStatusBadge({ status, onChange, compact = false }) {
   const meta = getWalkInStatusMeta(status) || { label: status, tone: 'neutral' };
 
   if (!onChange) {
-    return <Badge tone={meta.tone} size={compact ? 'sm' : 'md'}>{meta.label}</Badge>;
+    return (
+      <Badge color={toneToBadgeColor(meta.tone)} className={compact ? 'text-[0.6875rem] px-2' : ''}>
+        {meta.label}
+      </Badge>
+    );
   }
 
   return (

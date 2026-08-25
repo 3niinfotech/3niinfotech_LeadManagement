@@ -46,7 +46,7 @@ export default function PersonalDetailsTab({
           />
 
           {/* Row 2 */}
-          <div className="grid grid-cols-[5.5rem_1fr] gap-2 items-end min-w-0">
+          <div className="grid grid-cols-[4.75rem_1fr] gap-2 items-end min-w-0">
             <FormSelectField
               name="mobileCountry"
               control={control}
@@ -54,6 +54,7 @@ export default function PersonalDetailsTab({
               options={getOptions('countryCode')}
               errors={errors}
               allowClear={false}
+              searchable
             />
             <Input
               label="Mobile"

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import {
   FiUpload, FiFileText, FiImage, FiAward, FiBookOpen, FiEdit3, FiMail, FiFolder, FiEye, FiTrash2,
 } from 'react-icons/fi';
@@ -14,6 +15,7 @@ import {
   isPreviewable,
 } from '../../config/enquiryDocument.config';
 import { enquiryService } from '../../services/enquiryService';
+import { enquiryApi } from '../../redux/enquiryApiSlice';
 import toastService from '../../../../services/toast/toast.service';
 
 const ICONS = {
@@ -34,11 +36,17 @@ function normalizeCategory(value) {
 }
 
 export default function DocumentsTab({ enquiryId, documents = [], onRefresh }) {
+  const dispatch = useDispatch();
   const inputRef = useRef(null);
   const [category, setCategory] = useState('PASSPORT');
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [previewDoc, setPreviewDoc] = useState(null);
+
+  const refreshAfterDocChange = () => {
+    onRefresh?.();
+    dispatch(enquiryApi.util.invalidateTags(['EnquiryList']));
+  };
 
   const grouped = useMemo(() => {
     const map = new Map(DOCUMENT_CATEGORIES.map((c) => [c.value, []]));
@@ -59,7 +67,7 @@ export default function DocumentsTab({ enquiryId, documents = [], onRefresh }) {
     try {
       await enquiryService.uploadDocument(enquiryId, file, category);
       toastService.success(`${getDocumentCategoryLabel(category)} uploaded`);
-      onRefresh?.();
+      refreshAfterDocChange();
     } catch (e) {
       toastService.error(e?.response?.data?.message || 'Upload failed');
     } finally {
@@ -84,7 +92,7 @@ export default function DocumentsTab({ enquiryId, documents = [], onRefresh }) {
     try {
       await enquiryService.deleteDocument(enquiryId, docId);
       toastService.success('Document removed');
-      onRefresh?.();
+      refreshAfterDocChange();
     } catch (e) {
       toastService.error(e?.response?.data?.message || 'Failed to delete');
     }

@@ -1,3 +1,5 @@
+import { getRoleDefaultRoute } from './role-workspace.js';
+
 /** Portal identifiers — one login surface, role-validated per portal */
 export const PORTALS = {
   ADMIN: 'admin',
@@ -16,6 +18,7 @@ export const ADMIN_ROLE_SLUGS = [
   'branch_manager',
   'team_leader',
   'counsellor',
+  'teacher',
   'application_officer',
   'visa_officer',
   'finance_manager',
@@ -53,13 +56,14 @@ export function assertRoleMatchesPortal(roleSlug, portal) {
 }
 
 export function getDefaultRoute(portal, user = null) {
+  const slug = user?.role?.slug;
   switch (portal) {
     case PORTALS.STUDENT:
-      return '/student/dashboard';
+      return getRoleDefaultRoute(slug, '/student/dashboard');
     case PORTALS.AGENT:
-      return '/agent/dashboard';
+      return getRoleDefaultRoute(slug, '/agent/dashboard');
     default:
-      return '/admin/dashboard';
+      return getRoleDefaultRoute(slug, '/admin/dashboard');
   }
 }
 

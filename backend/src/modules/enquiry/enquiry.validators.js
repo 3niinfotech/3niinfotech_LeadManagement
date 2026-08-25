@@ -3,7 +3,7 @@ import { ENQUIRY_STATUS_VALUES } from './enquiryStatus.config.js';
 import { ENQUIRY_TAG_VALUES } from './enquiryTags.config.js';
 import { FOLLOWUP_ACTION_VALUES } from './enquiryFollowup.config.js';
 import { APPOINTMENT_MODES, MEETING_PLATFORMS } from './enquiryAppointment.config.js';
-import { DEMO_ATTENDANCE_VALUES, DEMO_RESULT_VALUES } from './enquiryDemo.config.js';
+import { DEMO_ATTENDANCE_VALUES, DEMO_RESULT_VALUES, DEMO_SESSION_STATUS_VALUES } from './enquiryDemo.config.js';
 import {
   COMMUNICATION_CHANNEL_VALUES,
   COMMUNICATION_STATUS_VALUES,
@@ -119,13 +119,35 @@ export const appointmentSchema = z.object({
 
 export const demoSchema = z.object({
   demoDate: z.string(),
+  endAt: z.string().optional().nullable(),
   facultyId: z.string().uuid().optional().nullable(),
   className: z.string().optional().nullable(),
   batch: z.string().optional().nullable(),
+  sessionStatus: z.enum(DEMO_SESSION_STATUS_VALUES).optional(),
   attendance: z.enum(DEMO_ATTENDANCE_VALUES).optional().default('NOT_MARKED'),
   feedback: z.string().optional().nullable(),
   result: z.enum(DEMO_RESULT_VALUES).optional().default('PENDING'),
   remark: z.string().optional().nullable(),
+});
+
+export const demoAttendanceSchema = z.object({
+  attendance: z.enum(['NOT_MARKED', 'ATTENDED', 'PRESENT', 'ABSENT', 'LATE', 'NO_SHOW', 'PARTIAL']),
+  feedback: z.string().optional().nullable(),
+  remark: z.string().optional().nullable(),
+  result: z.enum(DEMO_RESULT_VALUES).optional(),
+});
+
+export const demoRescheduleSchema = z.object({
+  demoDate: z.string(),
+  endAt: z.string().optional().nullable(),
+  facultyId: z.string().uuid().optional().nullable(),
+  className: z.string().optional().nullable(),
+  batch: z.string().optional().nullable(),
+  remark: z.string().optional().nullable(),
+});
+
+export const demoCancelSchema = z.object({
+  reason: z.string().min(3).max(2000),
 });
 
 export const noteSchema = z.object({

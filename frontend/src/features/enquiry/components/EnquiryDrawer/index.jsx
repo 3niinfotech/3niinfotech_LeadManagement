@@ -7,7 +7,7 @@ import {
 } from 'react-icons/fi';
 import Button from '../../../../components/ui/Button';
 import { ENQUIRY_PROFILE_TABS, ENQUIRY_CREATE_FORM_TABS } from '../../../../config/constants';
-import { enquiryFormSchema } from '../../schemas/enquirySchema';
+import { buildEnquiryFormSchema } from '../../schemas/enquirySchema';
 import {
   useGetEnquiryQuery,
   useCreateEnquiryMutation,
@@ -17,6 +17,8 @@ import {
   useConvertEnquiryMutation,
 } from '../../redux/enquiryApiSlice';
 import { selectUser } from '../../../../redux/slices/authSlice';
+import { useCompanyRuntime } from '../../../organization/CompanyRuntime';
+import { suggestedFollowupFromSettings } from '../../../../config/company-settings.config';
 import toastService from '../../../../services/toast/toast.service';
 import EnquiryFormModal from './EnquiryFormModal';
 import OverviewTab from './OverviewTab';
@@ -97,6 +99,17 @@ function stripFormExtras(data) {
 
 export default function EnquiryDrawer() {
   const user = useSelector(selectUser);
+  const { settings } = useCompanyRuntime();
+  const enquirySchema = useMemo(
+    () => buildEnquiryFormSchema(settings?.mandatoryFields),
+    [settings?.mandatoryFields],
+  );
+  const formDefaults = useMemo(() => ({
+    ...defaultValues,
+    mobileCountry: settings?.defaultMobileCode || defaultValues.mobileCountry,
+    nationality: settings?.defaultNationality || '',
+    ...suggestedFollowupFromSettings(settings),
+  }), [settings]);
   const { drawerOpen, drawerTab, selectedEnquiryId, isEditMode, closeDrawer, setTab, openDrawer } = useEnquiryDrawer();
   const { data: enquiry, refetch } = useGetEnquiryQuery(selectedEnquiryId, { skip: !selectedEnquiryId });
   const [createEnquiry, { isLoading: creating }] = useCreateEnquiryMutation();
@@ -112,8 +125,8 @@ export default function EnquiryDrawer() {
     control,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(enquiryFormSchema),
-    defaultValues,
+    resolver: zodResolver(enquirySchema),
+    defaultValues: formDefaults,
     mode: 'onTouched',
   });
 
@@ -138,11 +151,12 @@ export default function EnquiryDrawer() {
   useEffect(() => {
     if (!drawerOpen) return;
     if (enquiry && isEditMode) {
-      reset(mapEnquiryToFormValues(enquiry, defaultValues));
+      reset(mapEnquiryToFormValues(enquiry, formDefaults));
     } else if (!isEditMode) {
-      reset({ ...defaultValues, branchId: user?.branchId });
+      reset({ ...formDefaults, branchId: user?.branchId });
+      if (settings?.followupPopup) setTab('followup');
     }
-  }, [drawerOpen, enquiry, isEditMode, reset, user?.branchId]);
+  }, [drawerOpen, enquiry, isEditMode, reset, user?.branchId, formDefaults, settings?.followupPopup, setTab]);
 
   const visibleTabs = useMemo(
     () => (isEditMode

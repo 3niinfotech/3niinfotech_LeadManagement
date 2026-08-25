@@ -81,3 +81,8 @@ export const getCounsellors = asyncHandler(async (req, res) => {
   const data = await walkinService.getCounsellors(req.query.branchId, req.user);
   sendSuccess(res, data);
 });
+
+export const recommendCounsellors = asyncHandler(async (req, res) => {
+  const data = await walkinService.recommendCounsellors(req.query, req.user);
+  sendSuccess(res, data);
+});

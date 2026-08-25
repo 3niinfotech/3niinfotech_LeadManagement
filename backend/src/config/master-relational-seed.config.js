@@ -119,6 +119,14 @@ export const RELATIONAL_COUNSELLOR_SKILLS = [
   { code: 'FOLLOW_UP', name: 'Follow-up' },
 ];
 
+export const RELATIONAL_FACULTY = [
+  { code: 'IELTS', name: 'IELTS Faculty', description: 'IELTS coaching demos' },
+  { code: 'PTE', name: 'PTE Faculty', description: 'PTE coaching demos' },
+  { code: 'SPOKEN_ENGLISH', name: 'Spoken English Faculty', description: 'Spoken English demos' },
+  { code: 'GRE', name: 'GRE Faculty', description: 'GRE prep demos' },
+  { code: 'SAT', name: 'SAT Faculty', description: 'SAT prep demos' },
+];
+
 export const RELATIONAL_LEAD_SOURCES = [
   { code: 'WEBSITE', name: 'Website' },
   { code: 'WALK_IN', name: 'Walk-in' },
@@ -458,4 +466,62 @@ export const RELATIONAL_COMMUNICATION_TEMPLATES = [
     eventType: 'VISIT_COMPLETED',
     variables: ['firstName'],
   },
+];
+
+export const RELATIONAL_APPLICATION_CHECKLISTS = [
+  { name: '10th Mark Sheet', documentType: 'Academic', isMandatory: true, enquiryForm: false, sortOrder: 1 },
+  { name: '12th Mark Sheet', documentType: 'Academic', isMandatory: true, enquiryForm: false, sortOrder: 2 },
+  { name: 'Academic Transcripts', documentType: 'Academic', isMandatory: true, enquiryForm: false, sortOrder: 3 },
+  { name: "Bachelor's Degree Certificate", documentType: 'Academic', isMandatory: false, enquiryForm: false, sortOrder: 4 },
+  { name: 'Passport', documentType: 'Identity', isMandatory: true, enquiryForm: true, sortOrder: 5 },
+  { name: 'Bank Statement', documentType: 'Financial', isMandatory: true, enquiryForm: false, sortOrder: 6 },
+  { name: 'Curriculum Vitae (CV)', documentType: 'Professional', isMandatory: false, enquiryForm: false, sortOrder: 7 },
+  { name: 'Recommendation Letter', documentType: 'Professional', isMandatory: false, enquiryForm: false, sortOrder: 8 },
+  { name: 'Language Proficiency Certificate', documentType: 'Academic', isMandatory: false, enquiryForm: false, sortOrder: 9 },
+  { name: 'Photograph', documentType: 'Identity', isMandatory: true, enquiryForm: true, sortOrder: 10 },
+];
+
+export const RELATIONAL_APPLICATION_STATUSES = [
+  { name: 'Application Started', mailSend: false, defaultStatus: true, setOfferLetter: false, position: 1 },
+  { name: 'Documents Pending', mailSend: true, defaultStatus: false, setOfferLetter: false, position: 2 },
+  { name: 'Application Submitted', mailSend: true, defaultStatus: false, setOfferLetter: false, position: 3 },
+  { name: 'Application Under Review', mailSend: false, defaultStatus: false, setOfferLetter: false, position: 4 },
+  { name: 'Conditional Offer Received', mailSend: true, defaultStatus: false, setOfferLetter: true, position: 5 },
+  { name: 'Unconditional Offer Received', mailSend: true, defaultStatus: false, setOfferLetter: true, position: 6 },
+  { name: 'Fee Paid', mailSend: false, defaultStatus: false, setOfferLetter: false, position: 7 },
+  { name: 'Visa Applied', mailSend: false, defaultStatus: false, setOfferLetter: false, position: 8 },
+  { name: 'Approved', mailSend: true, defaultStatus: false, setOfferLetter: false, position: 9 },
+  { name: 'Rejected', mailSend: true, defaultStatus: false, setOfferLetter: false, position: 10 },
+];
+
+export const RELATIONAL_VISA_CHECKLISTS = [
+  { name: 'Passport', documentType: 'Identity', isMandatory: true, sortOrder: 1 },
+  { name: 'Visa Application Form', documentType: 'Application', isMandatory: true, sortOrder: 2 },
+  { name: 'COE / CAS Letter', documentType: 'Academic', isMandatory: true, sortOrder: 3 },
+  { name: 'Financial Evidence', documentType: 'Financial', isMandatory: true, sortOrder: 4 },
+  { name: 'Medical Certificate', documentType: 'Medical', isMandatory: false, sortOrder: 5 },
+  { name: 'Police Clearance', documentType: 'Identity', isMandatory: false, sortOrder: 6 },
+];
+
+export const RELATIONAL_VISA_STATUSES = [
+  { name: 'Not Started', visaApproved: false, visaWithdraw: false, visaRejected: false, mailSend: false, defaultStatus: true, position: 1 },
+  { name: 'Documents Collected', visaApproved: false, visaWithdraw: false, visaRejected: false, mailSend: false, defaultStatus: false, position: 2 },
+  { name: 'Application Submitted', visaApproved: false, visaWithdraw: false, visaRejected: false, mailSend: true, defaultStatus: false, position: 3 },
+  { name: 'Biometrics Done', visaApproved: false, visaWithdraw: false, visaRejected: false, mailSend: false, defaultStatus: false, position: 4 },
+  { name: 'Visa Approved', visaApproved: true, visaWithdraw: false, visaRejected: false, mailSend: true, defaultStatus: false, position: 5 },
+  { name: 'Visa Rejected', visaApproved: false, visaWithdraw: false, visaRejected: true, mailSend: true, defaultStatus: false, position: 6 },
+  { name: 'Visa Withdrawn', visaApproved: false, visaWithdraw: true, visaRejected: false, mailSend: false, defaultStatus: false, position: 7 },
+];
+
+export const RELATIONAL_STUDENT_STATUSES = [
+  { code: 'ENQUIRY', name: 'Enquiry', defaultStatus: true, colorCode: 'info', sortOrder: 1 },
+  { code: 'REGISTERED', name: 'Registered', defaultStatus: false, colorCode: 'primary', sortOrder: 2 },
+  { code: 'DOCUMENT_PENDING', name: 'Document Pending', defaultStatus: false, colorCode: 'warning', sortOrder: 3 },
+  { code: 'APPLICATION_SUBMITTED', name: 'Application Submitted', defaultStatus: false, colorCode: 'info', sortOrder: 4 },
+  { code: 'OFFER_RECEIVED', name: 'Offer Received', defaultStatus: false, colorCode: 'success', sortOrder: 5 },
+  { code: 'VISA_APPLIED', name: 'Visa Applied', defaultStatus: false, colorCode: 'warning', sortOrder: 6 },
+  { code: 'VISA_GRANTED', name: 'Visa Granted', defaultStatus: false, colorCode: 'success', sortOrder: 7 },
+  { code: 'ENROLLED', name: 'Enrolled', defaultStatus: false, colorCode: 'success', sortOrder: 8 },
+  { code: 'DEFERRED', name: 'Deferred', defaultStatus: false, colorCode: 'secondary', sortOrder: 9 },
+  { code: 'WITHDRAWN', name: 'Withdrawn', defaultStatus: false, colorCode: 'danger', sortOrder: 10 },
 ];

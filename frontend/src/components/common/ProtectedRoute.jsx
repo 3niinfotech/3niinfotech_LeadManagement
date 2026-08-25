@@ -17,7 +17,7 @@ export default function ProtectedRoute({ children, portal }) {
   if (portal && user) {
     const userPortal = user.portal || resolvePortalFromRole(user.role?.slug);
     if (userPortal !== portal) {
-      return <Navigate to={user.defaultRoute || getDefaultRoute(userPortal)} replace />;
+      return <Navigate to={user.defaultRoute || getDefaultRoute(userPortal, user)} replace />;
     }
   }
 

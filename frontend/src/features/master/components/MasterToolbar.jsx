@@ -5,7 +5,7 @@ import ModuleToolbar, {
 import SearchInput from '../../../components/ui/SearchInput';
 import Button from '../../../components/ui/Button';
 import IconButton from '../../../components/ui/IconButton';
-import { FiFilter, FiPlus, FiRefreshCw } from 'react-icons/fi';
+import { FiFilter, FiPlus, FiRefreshCw, FiDownload } from 'react-icons/fi';
 import PermissionGate from '../../../components/common/PermissionGate';
 import { PERMISSIONS } from '../../../config/permissions';
 
@@ -18,6 +18,12 @@ export default function MasterToolbar({
   onRefresh,
   refreshing = false,
   onAdd,
+  onExport,
+  exporting = false,
+  selectedCount = 0,
+  onBulkActivate,
+  onBulkDeactivate,
+  onBulkDelete,
   singularLabel = 'Record',
   canManage = false,
 }) {
@@ -49,6 +55,28 @@ export default function MasterToolbar({
           disabled={refreshing}
           className={refreshing ? 'animate-spin' : ''}
         />
+        {canManage && selectedCount > 0 && (
+          <>
+            <Button size="sm" variant="outline" onClick={onBulkActivate}>
+              Activate ({selectedCount})
+            </Button>
+            <Button size="sm" variant="outline" onClick={onBulkDeactivate}>
+              Deactivate ({selectedCount})
+            </Button>
+            <Button size="sm" variant="outline-danger" onClick={onBulkDelete}>
+              Delete ({selectedCount})
+            </Button>
+          </>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          icon={FiDownload}
+          onClick={onExport}
+          loading={exporting}
+        >
+          Export CSV
+        </Button>
         {canManage && (
           <PermissionGate permission={PERMISSIONS.MASTERS_MANAGE}>
             <Button size="sm" icon={FiPlus} onClick={onAdd}>

@@ -1,12 +1,16 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { FiHome, FiUsers, FiLogOut } from 'react-icons/fi';
+import {
+  FiCalendar, FiHome, FiUsers, FiLogOut, FiUser,
+} from 'react-icons/fi';
 import Button from '../ui/Button';
 import { logoutUser, selectUser } from '../../redux/slices/authSlice';
 
 const navItems = [
   { to: '/agent/dashboard', label: 'Dashboard', icon: FiHome },
   { to: '/agent/students', label: 'My Students', icon: FiUsers },
+  { to: '/agent/calendar', label: 'My Calendar', icon: FiCalendar },
+  { to: '/agent/profile', label: 'My Profile', icon: FiUser },
 ];
 
 export default function AgentShell() {
@@ -29,7 +33,7 @@ export default function AgentShell() {
           </Button>
         </div>
       </header>
-      <nav className="bg-card-bg border-b border-card-border px-4 flex gap-1">
+      <nav className="bg-card-bg border-b border-card-border px-4 flex gap-1 overflow-x-auto">
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}

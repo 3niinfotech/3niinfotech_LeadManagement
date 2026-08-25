@@ -10,17 +10,30 @@ import { PERMISSIONS } from '../../../config/permissions';
 import PermissionGate from '../../../components/common/PermissionGate';
 import toastService from '../../../services/toast/toast.service';
 import alertService from '../../../services/alert/alert.service';
+import { useRelationalMasterOptions } from '../../master/hooks/useRelationalMasterOptions';
+import MasterManageLink from '../../master/components/MasterManageLink';
+import { organizationApi } from '../../master/services/organizationApi.service';
 
 export default function InvoicesPage() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ studentId: '', invoiceNo: '', amount: '0', tax: '0', total: '0', status: 'DRAFT', notes: '' });
+  const [company, setCompany] = useState(null);
+  const [form, setForm] = useState({ studentId: '', invoiceNo: '', amount: '0', tax: '0', total: '0', currency: '', status: 'DRAFT', notes: '' });
+  const { options: currencyOptions } = useRelationalMasterOptions('currency');
 
   const load = async () => {
     setLoading(true);
     try {
-      const response = await apiGet(API.INVOICES);
-      setRecords(response?.data || []);
+      const [invoiceRes, companyData] = await Promise.all([
+        apiGet(API.INVOICES),
+        organizationApi.getCompany().catch(() => null),
+      ]);
+      setRecords(invoiceRes?.data || []);
+      setCompany(companyData);
+      const defaultCurrency = companyData?.settings?.defaultCurrencyCode;
+      if (defaultCurrency) {
+        setForm((prev) => (prev.currency ? prev : { ...prev, currency: defaultCurrency }));
+      }
     } catch {
       setRecords([]);
     } finally {
@@ -37,7 +50,7 @@ export default function InvoicesPage() {
     try {
       await apiPost(API.INVOICES, { ...form, amount: Number(form.amount), tax: Number(form.tax), total: Number(form.total) });
       toastService.success('Invoice created');
-      setForm({ studentId: '', invoiceNo: '', amount: '0', tax: '0', total: '0', status: 'DRAFT', notes: '' });
+      setForm({ studentId: '', invoiceNo: '', amount: '0', tax: '0', total: '0', currency: form.currency, status: 'DRAFT', notes: '' });
       load();
     } catch (err) {
       toastService.error(err?.message || 'Unable to create invoice');
@@ -58,7 +71,24 @@ export default function InvoicesPage() {
 
   return (
     <PageShell>
-      <PageHeader title="Invoices" subtitle="Create fee invoices, track payments, and manage dues" icon={FiDollarSign} iconColor="primary" />
+      <PageHeader
+        title="Invoices"
+        subtitle="Create fee invoices, track payments, and manage dues"
+        icon={FiDollarSign}
+        iconColor="primary"
+        actions={<MasterManageLink to="/admin/master/currency">Manage Currency</MasterManageLink>}
+      />
+      {company && (
+        <div className="mb-4 rounded-xl border border-card-border bg-card-bg p-4 text-sm">
+          <p className="font-semibold text-text">{company.name}</p>
+          <p className="text-text-muted">
+            {[company.taxNumber && `Tax: ${company.taxNumber}`, company.email, company.phone].filter(Boolean).join(' · ')}
+          </p>
+          {company.settings?.invoiceTerms && (
+            <p className="text-text-muted mt-1">{company.settings.invoiceTerms}</p>
+          )}
+        </div>
+      )}
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-2xl border border-card-border bg-card-bg p-4 shadow-card">
           <div className="mb-4 flex items-center justify-between">
@@ -102,6 +132,14 @@ export default function InvoicesPage() {
             <input className="w-full rounded-lg border border-card-border bg-surface px-3 py-2" placeholder="Amount" type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
             <input className="w-full rounded-lg border border-card-border bg-surface px-3 py-2" placeholder="Tax" type="number" value={form.tax} onChange={(e) => setForm({ ...form, tax: e.target.value })} />
             <input className="w-full rounded-lg border border-card-border bg-surface px-3 py-2" placeholder="Total" type="number" value={form.total} onChange={(e) => setForm({ ...form, total: e.target.value })} required />
+            <select className="w-full rounded-lg border border-card-border bg-surface px-3 py-2" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
+              <option value="">Select currency</option>
+              {currencyOptions.map((opt) => (
+                <option key={opt.value} value={opt.code || opt.label}>
+                  {(opt.code ? `${opt.code} — ` : '') + opt.label}
+                </option>
+              ))}
+            </select>
             <select className="w-full rounded-lg border border-card-border bg-surface px-3 py-2" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
               <option value="DRAFT">Draft</option>
               <option value="SENT">Sent</option>

@@ -1,15 +1,16 @@
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiHash, FiTag } from 'react-icons/fi';
+import {
+  FiX, FiPhone, FiMessageCircle, FiMail, FiCopy, FiLayout, FiClock, FiEdit3,
+} from 'react-icons/fi';
 import IconButton from '../../../../components/ui/IconButton';
-import ProfileTabs from '../../../../components/ui/ProfileTabs';
-import FormTabPanel from '../../../../components/ui/FormTabPanel';
 import ScrollArea from '../../../../components/ui/ScrollArea';
 import WalkInStatusBadge from '../WalkInStatusBadge';
 import WalkInPriorityBadge from '../WalkInPriorityBadge';
-import { navbar as navbarTheme } from '../../../../theme';
+import toastService from '../../../../services/toast/toast.service';
+import { buildTelUrl, buildWhatsAppUrl, buildMailtoUrl } from '../../../enquiry/utils/followupCalendar.utils';
 
-const NAVBAR_HEIGHT = navbarTheme.height || '64px';
+const TAB_ICONS = { layout: FiLayout, clock: FiClock, edit: FiEdit3 };
 
 function getInitials(lead) {
   const first = lead?.firstName?.[0] || '';
@@ -17,11 +18,31 @@ function getInitials(lead) {
   return (first + last).toUpperCase() || '?';
 }
 
+function formatDateTime(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function QuickAction({ icon: Icon, label, onClick, disabled }) {
+  return (
+    <button
+      type="button"
+      className="crm-walkin-quick-action"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={disabled ? `${label} not available` : label}
+    >
+      <Icon className="w-3.5 h-3.5" aria-hidden />
+    </button>
+  );
+}
+
 export default function WalkInProfileModal({
   open,
   onClose,
-  title,
-  subtitle,
   lead,
   tabs,
   activeTab,
@@ -31,9 +52,30 @@ export default function WalkInProfileModal({
 }) {
   if (typeof document === 'undefined') return null;
 
-  const name = lead
-    ? `${lead.firstName || ''} ${lead.lastName || ''}`.trim()
-    : title;
+  const name = `${lead?.firstName || ''} ${lead?.lastName || ''}`.trim() || 'Visitor profile';
+  const phone = lead?.phone?.trim();
+  const email = lead?.email?.trim();
+
+  const openUrl = (url, missing, sameTab = false) => {
+    if (!url) {
+      toastService.info(missing);
+      return;
+    }
+    window.open(url, sameTab ? '_self' : '_blank', 'noopener');
+  };
+
+  const copy = async (value, label) => {
+    if (!value) {
+      toastService.info(`${label} not available`);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      toastService.success(`${label} copied`);
+    } catch {
+      toastService.error('Could not copy');
+    }
+  };
 
   return createPortal(
     <AnimatePresence>
@@ -54,75 +96,93 @@ export default function WalkInProfileModal({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 340 }}
-            style={{ top: NAVBAR_HEIGHT, height: `calc(100% - ${NAVBAR_HEIGHT})` }}
           >
-            {/* Hero header */}
-            <div className="crm-walkin-profile-hero">
-              <div className="crm-walkin-profile-hero__glow" aria-hidden />
-              <div className="crm-walkin-profile-hero__main">
-                <div className="crm-walkin-profile-hero__avatar" aria-hidden>
+            <header className="crm-walkin-profile-head">
+              <div className="crm-walkin-profile-head__row">
+                <span className="crm-walkin-profile-head__avatar" aria-hidden>
                   {getInitials(lead)}
-                </div>
-                <div className="crm-walkin-profile-hero__info min-w-0">
-                  <p className="crm-walkin-profile-hero__eyebrow">Reception · Walk-in Lead</p>
-                  <h2 id="walkin-profile-title" className="crm-walkin-profile-hero__name">
-                    {name || 'Lead Profile'}
-                  </h2>
-                  {subtitle && (
-                    <p className="crm-walkin-profile-hero__meta">{subtitle}</p>
-                  )}
+                </span>
+
+                <div className="crm-walkin-profile-head__info min-w-0">
+                  <div className="crm-walkin-profile-head__title-row">
+                    <h2 id="walkin-profile-title" className="crm-walkin-profile-head__name">{name}</h2>
+                    {lead?.leadCode && (
+                      <span className="crm-walkin-profile-head__code">{lead.leadCode}</span>
+                    )}
+                  </div>
                   {lead && (
-                    <div className="crm-walkin-profile-hero__chips">
+                    <div className="crm-walkin-profile-head__chips">
                       <WalkInStatusBadge status={lead.status} compact />
-                      <WalkInPriorityBadge priority={lead.priority} />
+                      {lead.priority && lead.priority !== 'NORMAL' && (
+                        <WalkInPriorityBadge priority={lead.priority} />
+                      )}
+                      <span className="crm-walkin-profile-head__time">
+                        {formatDateTime(lead.walkInAt || lead.createdAt)}
+                      </span>
                     </div>
                   )}
                 </div>
-                <IconButton icon={FiX} onClick={onClose} label="Close" className="crm-walkin-profile-hero__close shrink-0" />
+
+                {lead && (
+                  <div className="crm-walkin-profile-head__quick">
+                    <QuickAction
+                      icon={FiPhone}
+                      label="Call"
+                      disabled={!phone}
+                      onClick={() => openUrl(buildTelUrl(phone), 'Mobile not available', true)}
+                    />
+                    <QuickAction
+                      icon={FiMessageCircle}
+                      label="WhatsApp"
+                      disabled={!phone}
+                      onClick={() => openUrl(buildWhatsAppUrl(phone, `Hi ${lead.firstName || ''},`), 'Mobile not available')}
+                    />
+                    <QuickAction
+                      icon={FiMail}
+                      label="Email"
+                      disabled={!email}
+                      onClick={() => openUrl(buildMailtoUrl(email, `Regarding your visit (${lead.leadCode || ''})`), 'Email not available', true)}
+                    />
+                    <QuickAction
+                      icon={FiCopy}
+                      label="Copy number"
+                      disabled={!phone}
+                      onClick={() => copy(phone, 'Mobile')}
+                    />
+                  </div>
+                )}
+
+                <IconButton icon={FiX} onClick={onClose} label="Close" className="shrink-0" />
               </div>
 
-              {lead && (
-                <div className="crm-walkin-profile-hero__ids">
-                  <div className="crm-walkin-profile-id-pill crm-walkin-profile-id-pill--token">
-                    <FiTag className="crm-walkin-profile-id-pill__icon" aria-hidden />
-                    <div>
-                      <span className="crm-walkin-profile-id-pill__label">Token</span>
-                      <span className="crm-walkin-profile-id-pill__value">{lead.tokenNumber || '—'}</span>
-                    </div>
-                  </div>
-                  <div className="crm-walkin-profile-id-pill">
-                    <FiHash className="crm-walkin-profile-id-pill__icon" aria-hidden />
-                    <div>
-                      <span className="crm-walkin-profile-id-pill__label">Lead ID</span>
-                      <span className="crm-walkin-profile-id-pill__value">{lead.leadCode || '—'}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+              <nav className="crm-walkin-tabs" role="tablist" aria-label="Profile sections">
+                {tabs.map((tab) => {
+                  const Icon = TAB_ICONS[tab.icon] || FiLayout;
+                  const active = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => onTabChange(tab.id)}
+                      className={`crm-walkin-tab${active ? ' is-active' : ''}`}
+                    >
+                      <Icon className="w-3.5 h-3.5" aria-hidden />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </header>
 
-            {/* Tabs — compact icons + horizontal scroll */}
-            <div className="crm-walkin-profile-tabs-shell">
-              <ProfileTabs
-                tabs={tabs}
-                activeTab={activeTab}
-                onChange={onTabChange}
-                layoutId="crm-walkin-profile-tab"
-                compact
-              />
-            </div>
-
-            <ScrollArea axis="y" className="crm-walkin-profile-body flex-1 min-h-0">
-              <FormTabPanel panelKey={activeTab} className="crm-walkin-profile-body__panel">
+            <ScrollArea axis="y" className="crm-walkin-profile-body">
+              <div key={activeTab} className="crm-walkin-profile-body__panel">
                 {children}
-              </FormTabPanel>
+              </div>
             </ScrollArea>
 
-            {footer && (
-              <div className="crm-walkin-profile-footer">
-                {footer}
-              </div>
-            )}
+            {footer && <div className="crm-walkin-profile-footer">{footer}</div>}
           </motion.aside>
         </div>
       )}

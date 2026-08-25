@@ -3,11 +3,17 @@ export const PHASE1_ROOT_IDS = new Set([
   'dashboard',
   'master',
   'master-data',
+  'reception',
   'enquiries',
   'enquiry',
   'manage-enquiry',
+  'calendar',
   'demo',
   'students',
+  'batches',
+  'applications',
+  'visas',
+  'partners',
   'fees',
   'reports',
   'settings',
@@ -15,13 +21,20 @@ export const PHASE1_ROOT_IDS = new Set([
 
 export const PHASE1_ROUTES = new Set([
   '/admin/dashboard',
+  '/admin/reception',
+  '/admin/reception/walk-ins',
   '/admin/enquiries',
+  '/admin/calendar',
   '/admin/demo',
   '/admin/students',
+  '/admin/batches',
+  '/admin/applications',
+  '/admin/visas',
   '/admin/fees',
   '/admin/reports',
   '/admin/settings',
   '/admin/master',
+  '/admin/master/partners',
 ]);
 
 /** Path prefixes that belong to Phase 1 */
@@ -29,8 +42,13 @@ export function isPhase1Path(path) {
   if (!path) return false;
   if (PHASE1_ROUTES.has(path)) return true;
   if (path.startsWith('/admin/master')) return true;
+  if (path.startsWith('/admin/reception')) return true;
   if (path.startsWith('/admin/enquiries')) return true;
+  if (path.startsWith('/admin/calendar')) return true;
   if (path.startsWith('/admin/students')) return true;
+  if (path.startsWith('/admin/batches')) return true;
+  if (path.startsWith('/admin/applications')) return true;
+  if (path.startsWith('/admin/visas')) return true;
   if (path.startsWith('/admin/settings')) return true;
   return false;
 }

@@ -12,9 +12,11 @@ import FormField from '../../../components/ui/FormField';
 import Drawer from '../../../components/ui/Drawer';
 import DataGrid from '../../../components/table/DataGrid';
 import { createActionsColumn } from '../../../components/table/grid.columns';
+import MasterListToolbar from '../components/MasterListToolbar';
 import RoleBadge from '../../../components/profile/RoleBadge';
 import { ROUTES } from '../../../config/routes';
-import { resolveMasterPage } from '../../../config/master-registry.config';
+import { getRoleMeta } from '../../../config/roles';
+import { resolveMasterPage, buildMasterBreadcrumbs } from '../../../config/master-registry.config';
 import { PERMISSIONS } from '../../../config/permissions';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { useBranchOptions } from '../../enquiry/hooks/useBranchOptions';
@@ -34,6 +36,9 @@ const USER_STATUS_FORM = [
   { value: 'INACTIVE', label: 'Inactive' },
   { value: 'SUSPENDED', label: 'Suspended' },
 ];
+
+/** Portal logins are not staff — hide from Add team member */
+const NON_STAFF_ROLE_SLUGS = new Set(['student_portal', 'partner']);
 
 function StatusPill({ status }) {
   const tone =
@@ -75,7 +80,7 @@ function userToForm(row) {
 }
 
 export default function MasterStaffPage() {
-  const hubItem = resolveMasterPage('staff');
+  const hubItem = resolveMasterPage('staff')?.hubItem;
   const { can } = usePermissions();
   const canView = can(PERMISSIONS.USERS_VIEW);
   const canCreate = can(PERMISSIONS.USERS_CREATE);
@@ -97,9 +102,22 @@ export default function MasterStaffPage() {
 
   const { options: branchOptions, loading: branchesLoading } = useBranchOptions();
 
-  const roleOptions = useMemo(
-    () => roles.map((r) => ({ value: r.id, label: r.name, slug: r.slug, description: r.description })),
+  const staffRoles = useMemo(
+    () => roles.filter((r) => !NON_STAFF_ROLE_SLUGS.has(r.slug)),
     [roles],
+  );
+
+  const roleOptions = useMemo(
+    () => staffRoles.map((r) => {
+      const meta = getRoleMeta(r.slug);
+      return {
+        value: r.id,
+        label: r.name,
+        slug: r.slug,
+        description: r.description || meta.description || '',
+      };
+    }),
+    [staffRoles],
   );
 
   const roleFilterOptions = useMemo(
@@ -297,42 +315,58 @@ export default function MasterStaffPage() {
         title={hubItem?.label || 'Staff & Users'}
         subtitle={hubItem?.description || 'Add counsellors, assign roles, and manage team access'}
         icon={FiUsers}
-        breadcrumbs={[
-          { label: 'Dashboard', path: ROUTES.DASHBOARD },
-          { label: 'Master', path: ROUTES.MASTER },
-          { label: hubItem?.label || 'Staff & Users' },
-        ]}
+        breadcrumbs={buildMasterBreadcrumbs(hubItem, hubItem?.label || 'Staff')}
         actions={(
           <div className="flex flex-wrap items-center gap-2">
             {canManageRoles && (
-              <Link to={ROUTES.ROLES}>
-                <Button size="sm" variant="outline" icon={FiShield}>Manage Roles</Button>
+              <Link to={ROUTES.ADVANCED_ACCESS}>
+                <Button size="sm" variant="outline" icon={FiShield}>Roles & Access</Button>
               </Link>
             )}
             {canCreate && (
-              <Button size="sm" icon={FiPlus} onClick={() => openDrawer('add')}>Add User</Button>
+              <Button size="sm" icon={FiPlus} onClick={() => openDrawer('add')}>Add team member</Button>
             )}
           </div>
         )}
       >
         <div className="flex flex-col flex-1 min-h-0">
-          <Card className="!p-3 mx-4 mt-4 mb-0 shrink-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search name or email..."
-                className="max-w-xs"
-              />
-              <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} options={roleFilterOptions} className="w-40" />
-              <Select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} options={[{ value: '', label: 'All branches' }, ...branchOptions]} className="w-44" disabled={branchesLoading} />
-              <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={STATUS_OPTIONS} className="w-36" />
-              <Button variant="outline" size="sm" onClick={() => load(true)} disabled={fetching}>Refresh</Button>
-            </div>
-            <p className="text-[11px] text-text-muted mt-2">
-              Counsellors are users with the Counsellor role — they appear in Enquiry and Register dropdowns automatically.
-            </p>
-          </Card>
+          <MasterListToolbar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search name or email…"
+            searchAriaLabel="Search staff"
+            showStatus={false}
+            filters={[
+              {
+                key: 'role',
+                value: roleFilter,
+                onChange: setRoleFilter,
+                options: roleFilterOptions,
+                widthClass: 'w-[150px]',
+                ariaLabel: 'Filter by role',
+              },
+              {
+                key: 'branch',
+                value: branchFilter,
+                onChange: setBranchFilter,
+                options: [{ value: '', label: 'All branches' }, ...branchOptions],
+                widthClass: 'w-[170px]',
+                disabled: branchesLoading,
+                ariaLabel: 'Filter by branch',
+              },
+              {
+                key: 'status',
+                value: statusFilter,
+                onChange: setStatusFilter,
+                options: STATUS_OPTIONS,
+                widthClass: 'w-[140px]',
+                ariaLabel: 'Filter by status',
+              },
+            ]}
+            onRefresh={() => load(true)}
+            refreshing={fetching}
+            hint="Add a person here and pick their role (Counsellor, Receptionist, Teacher…). Change what that role can do in Roles & Access."
+          />
 
           <ModulePageCard.Table className="min-h-[320px]">
             <DataGrid
@@ -343,8 +377,8 @@ export default function MasterStaffPage() {
               pagination={false}
               getRowId={(p) => p.data.id}
               emptyTitle="No team members yet"
-              emptyDescription="Add staff with any role — Counsellor, Team Leader, Receptionist, etc."
-              emptyActionLabel={canCreate ? 'Add User' : undefined}
+              emptyDescription="Add staff and assign a role — Counsellor, Team Leader, Receptionist, Teacher."
+              emptyActionLabel={canCreate ? 'Add team member' : undefined}
               onEmptyAction={canCreate ? () => openDrawer('add') : undefined}
             />
           </ModulePageCard.Table>
@@ -365,13 +399,16 @@ export default function MasterStaffPage() {
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={closeDrawer} disabled={saving}>Cancel</Button>
               <Button onClick={handleSubmit} loading={saving}>
-                {drawer.mode === 'add' ? 'Create user' : 'Save changes'}
+                {drawer.mode === 'add' ? 'Create team member' : 'Save changes'}
               </Button>
             </div>
           )
         }
       >
         <div className="space-y-4">
+          <p className="text-xs text-text-muted leading-relaxed rounded-lg bg-surface px-3 py-2">
+            Assign an existing role here. Example: pick <strong>Counsellor</strong> — they show in Reception assign list. To change menus and buttons for a role, use Roles & Access.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="First name" required>
               <Input value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} disabled={readOnly} />
@@ -386,17 +423,28 @@ export default function MasterStaffPage() {
           <FormField label="Phone">
             <Input value={form.phone} onChange={(e) => setField('phone', e.target.value)} disabled={readOnly} />
           </FormField>
-          <FormField label="Role" required>
+          <FormField label="Role" required hint="This is the job they do — Counsellor, Receptionist, Teacher, etc.">
             <Select
               value={form.roleId}
               onChange={(e) => setField('roleId', e.target.value)}
               options={roleOptions}
-              placeholder="Select role"
+              placeholder="Select role — Counsellor, Receptionist…"
               disabled={readOnly}
+              optionRender={(option) => (
+                <div className="py-0.5">
+                  <div className="text-sm font-medium">{option.data?.label}</div>
+                  {option.data?.description ? (
+                    <div className="text-[11px] text-text-muted leading-snug">{option.data.description}</div>
+                  ) : null}
+                </div>
+              )}
             />
           </FormField>
           {selectedRole?.description && (
-            <p className="text-xs text-text-muted -mt-2 px-1">{selectedRole.description}</p>
+            <div className="rounded-lg border border-border bg-card-bg px-3 py-2 -mt-1">
+              <p className="text-xs font-semibold text-text">{selectedRole.label}</p>
+              <p className="text-[11px] text-text-muted mt-0.5">{selectedRole.description}</p>
+            </div>
           )}
           <FormField label="Branch" required>
             <Select
@@ -427,9 +475,9 @@ export default function MasterStaffPage() {
           </FormField>
           {canManageRoles && !readOnly && (
             <p className="text-xs text-text-muted border-t border-card-border pt-3">
-              Need custom permissions?{' '}
-              <Link to={ROUTES.ROLES} className="text-primary hover:underline" onClick={closeDrawer}>
-                Manage Roles & Permissions
+              Role access (menus / buttons) is not set per person.{' '}
+              <Link to={ROUTES.ADVANCED_ACCESS} className="text-primary hover:underline" onClick={closeDrawer}>
+                Open Roles & Access
               </Link>
             </p>
           )}

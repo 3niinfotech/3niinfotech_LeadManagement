@@ -35,6 +35,44 @@ function requireLegacyOrRelationalOptions(req, _res, next) {
 // Hub summary — before /:entity
 router.get('/hub/summary', view, masterController.hubSummary);
 
+// Application Status country-grouped summary (must be before /:entity/:id)
+router.get('/application-status-master/country-summary', view, masterController.applicationStatusCountrySummary);
+router.get('/application-status-master/workflow', view, masterController.applicationStatusWorkflow);
+router.get('/application-checklist/by-country', view, masterController.applicationChecklistByCountry);
+router.post('/application-checklist/bulk', manage, masterController.bulkCreateApplicationChecklist);
+router.get('/lead-status/workflow', view, masterController.leadStatusWorkflow);
+router.get('/visa-status-master/country-summary', view, masterController.visaStatusCountrySummary);
+router.get('/visa-status-master/workflow', view, masterController.visaStatusWorkflow);
+router.get('/visa-checklist/by-country', view, masterController.visaChecklistByCountry);
+router.post('/visa-checklist/bulk', manage, masterController.bulkCreateVisaChecklist);
+router.get('/student-status-master/workflow', view, masterController.studentStatusWorkflow);
+
+// Legacy MasterItem management (applyLevel, tags, fee-type, etc.)
+router.get('/items/:category', (req, _res, next) => {
+  if (!isValidMasterCategory(req.params.category)) {
+    return next(new AppError('Unknown master category', 404));
+  }
+  return next();
+}, legacyView, masterController.listMasterItems);
+router.put('/items/:category/:id', (req, _res, next) => {
+  if (!isValidMasterCategory(req.params.category)) {
+    return next(new AppError('Unknown master category', 404));
+  }
+  return next();
+}, manage, masterController.updateMasterItem);
+router.patch('/items/:category/:id/status', (req, _res, next) => {
+  if (!isValidMasterCategory(req.params.category)) {
+    return next(new AppError('Unknown master category', 404));
+  }
+  return next();
+}, manage, masterController.updateMasterItemStatus);
+router.delete('/items/:category/:id', (req, _res, next) => {
+  if (!isValidMasterCategory(req.params.category)) {
+    return next(new AppError('Unknown master category', 404));
+  }
+  return next();
+}, manage, masterController.deleteMasterItem);
+
 // Options dispatcher (legacy MasterItem default for overlapping categories)
 router.get(
   '/:entity/options',
@@ -58,6 +96,9 @@ router.post(
 );
 
 // Relational CRUD
+router.get('/:entity/export', requireRelationalEntity, view, masterController.exportEntity);
+router.post('/:entity/bulk/status', requireRelationalEntity, manage, masterController.bulkUpdateStatus);
+router.post('/:entity/bulk/delete', requireRelationalEntity, manage, masterController.bulkRemove);
 router.get('/:entity', requireRelationalEntity, view, masterController.listEntity);
 router.get('/:entity/:id', requireRelationalEntity, view, masterController.getEntity);
 router.post('/:entity', requireRelationalEntity, manage, masterController.createEntity);

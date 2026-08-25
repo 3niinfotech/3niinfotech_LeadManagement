@@ -3,15 +3,19 @@
  */
 @import 'ag-grid-community/styles/ag-grid.css';
 
-.ag-theme-crm {
+/* Higher specificity than AG Grid's [class*=ag-theme-] defaults (#fff rows in dark mode) */
+.ag-theme-crm.ag-theme-crm {
   --ag-border-color: var(--grid-border);
   --ag-header-background-color: var(--bg-grid-header);
   --ag-header-foreground-color: var(--text-grid-header);
   --ag-background-color: var(--bg-card);
   --ag-foreground-color: var(--text-primary);
+  --ag-data-color: var(--text-grid-cell);
   --ag-secondary-foreground-color: var(--text-grid-header);
   --ag-row-hover-color: var(--grid-row-hover);
   --ag-selected-row-background-color: var(--grid-row-selected);
+  --ag-range-selection-border-color: transparent;
+  --ag-selected-row-border: none;
   --ag-odd-row-background-color: var(--grid-odd-row);
   --ag-row-border-color: var(--grid-border);
   --ag-font-family: 'Inter', system-ui, sans-serif;
@@ -28,6 +32,8 @@
   --ag-header-column-resize-handle-display: none;
   width: 100%;
   height: 100%;
+  color: var(--text-primary);
+  background-color: var(--bg-card);
 }
 
 .ag-theme-crm .ag-root-wrapper {
@@ -93,9 +99,35 @@
   background-color: var(--grid-row-hover) !important;
 }
 
+/*
+ * Rows assigned to the logged-in user.
+ * Warm amber tint — light cream in light mode, dark amber in dark mode.
+ * No left accent bar (looks broken with pinned checkbox + ID columns).
+ */
+.ag-theme-crm .crm-grid-row--mine {
+  background-color: var(--grid-row-mine) !important;
+}
+
+.ag-theme-crm .crm-grid-row--mine.ag-row-odd {
+  background-color: var(--grid-row-mine-odd) !important;
+}
+
+.ag-theme-crm .crm-grid-row--mine.ag-row-hover {
+  background-color: var(--grid-row-mine-hover) !important;
+}
+
+.ag-theme-crm .crm-grid-row--mine .ag-cell {
+  background-color: transparent;
+}
+
 .ag-theme-crm .crm-grid-row--selected {
   background-color: var(--grid-row-selected) !important;
-  box-shadow: inset 2px 0 0 0 var(--grid-selected-accent);
+  box-shadow: none;
+}
+
+.ag-theme-crm .crm-grid-row--mine.crm-grid-row--selected {
+  background-color: var(--grid-row-mine-selected) !important;
+  box-shadow: none;
 }
 
 .ag-theme-crm .crm-grid-row--selected .ag-cell {
@@ -108,15 +140,36 @@
 
 .ag-theme-crm .ag-row.ag-row-selected::before {
   background-color: var(--grid-row-selected);
+  content: none; /* kill AG Grid selected left accent strip */
+  display: none;
 }
 
 .ag-theme-crm .ag-row-hover.ag-row-selected::before {
   background-color: color-mix(in srgb, var(--grid-row-selected) 60%, var(--grid-row-hover));
   background-image: none;
+  content: none;
+  display: none;
+}
+
+/* No blue edge bars on pinned checkbox when row is selected */
+.ag-theme-crm .ag-row-selected .crm-grid-select-cell,
+.ag-theme-crm .crm-grid-row--selected .crm-grid-select-cell,
+.ag-theme-crm .ag-pinned-left-cols-container .ag-row-selected .ag-cell {
+  box-shadow: none !important;
+  border-left: none !important;
+}
+
+.ag-theme-crm .ag-row,
+.ag-theme-crm .crm-grid-row {
+  background-color: var(--bg-card);
 }
 
 .ag-theme-crm .ag-row-odd {
   background-color: var(--grid-odd-row);
+}
+
+.ag-theme-crm .ag-row .ag-cell {
+  background-color: transparent;
 }
 
 /* ── Cells ── */
@@ -280,52 +333,123 @@
   letter-spacing: 0.04em;
 }
 
+/* ── Selection checkboxes (custom — do not rely on AG Grid icon font) ── */
 .ag-theme-crm .ag-checkbox-input-wrapper {
+  position: relative;
+  box-sizing: border-box;
   width: 16px;
   height: 16px;
+  min-width: 16px;
+  min-height: 16px;
   border-radius: 4px;
   border: 1.5px solid var(--grid-checkbox-border);
   background: var(--grid-checkbox-bg);
   box-shadow: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  overflow: hidden;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+  line-height: 0;
+  color: transparent;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.ag-theme-crm .ag-checkbox-input-wrapper.ag-checked {
-  background: var(--grid-checkbox-checked);
-  border-color: var(--grid-checkbox-checked);
+.ag-theme-crm .ag-checkbox-input-wrapper input,
+.ag-theme-crm .ag-checkbox-input-wrapper input[type='checkbox'] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  cursor: pointer;
+  z-index: 1;
+}
+
+/* Kill AG Grid icon-font / image glyphs (broken without theme font) */
+.ag-theme-crm .ag-checkbox-input-wrapper::before,
+.ag-theme-crm .ag-checkbox-input-wrapper::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  font-size: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
 }
 
 .ag-theme-crm .ag-checkbox-input-wrapper:hover {
   border-color: var(--grid-checkbox-checked);
 }
 
-.ag-theme-crm .ag-checkbox-input-wrapper::after {
-  color: #fff;
+.ag-theme-crm .ag-checkbox-input-wrapper:focus-within,
+.ag-theme-crm .ag-checkbox-input-wrapper:active {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--grid-checkbox-checked) 28%, transparent);
 }
 
-/* Header select-all checkbox sizing */
-.ag-theme-crm .ag-header-select-all .ag-checkbox-input-wrapper {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  border: 1.5px solid var(--grid-checkbox-border);
-  background: var(--grid-checkbox-bg);
-  box-shadow: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.ag-theme-crm .ag-header-select-all .ag-checkbox-input-wrapper:hover {
-  border-color: var(--grid-checkbox-checked);
-}
-
-.ag-theme-crm .ag-header-select-all .ag-checkbox-input-wrapper.ag-checked,
-.ag-theme-crm .ag-header-select-all .ag-checkbox-input-wrapper.ag-indeterminate {
+.ag-theme-crm .ag-checkbox-input-wrapper.ag-checked,
+.ag-theme-crm .ag-checkbox-input-wrapper.ag-indeterminate {
   background: var(--grid-checkbox-checked);
   border-color: var(--grid-checkbox-checked);
 }
 
-.ag-theme-crm .ag-header-select-all .ag-checkbox-input-wrapper::after {
-  color: #fff;
+/* White checkmark */
+.ag-theme-crm .ag-checkbox-input-wrapper.ag-checked::after {
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  top: 2px !important;
+  left: 5px !important;
+  width: 4px !important;
+  height: 8px !important;
+  border: solid #fff !important;
+  border-width: 0 2px 2px 0 !important;
+  background: none !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  transform: rotate(45deg);
+  pointer-events: none;
+  box-sizing: border-box;
+  font-size: 0 !important;
+}
+
+/* Indeterminate dash */
+.ag-theme-crm .ag-checkbox-input-wrapper.ag-indeterminate::after {
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 8px !important;
+  height: 2px !important;
+  margin: -1px 0 0 -4px !important;
+  border: none !important;
+  border-radius: 1px;
+  background: #fff !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  transform: none;
+  pointer-events: none;
+}
+
+.ag-theme-crm .ag-checkbox-input-wrapper.ag-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Header select-all uses the same wrapper styles */
+.ag-theme-crm .ag-header-select-all .ag-checkbox-input-wrapper {
+  width: 16px;
+  height: 16px;
 }
 
 /* ── Actions column ── */

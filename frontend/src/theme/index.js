@@ -25,7 +25,7 @@ export const zIndex = {
 };
 
 export const sidebar = {
-  width: '260px',
+  width: '280px',
   collapsedWidth: '76px',
   miniWidth: '76px',
   headerHeight: '64px',

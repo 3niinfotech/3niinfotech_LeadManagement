@@ -5,11 +5,16 @@ export default function ToastProvider() {
   return (
     <Toaster
       position="top-right"
-      gutter={12}
-      containerStyle={{ top: 72, zIndex: toastTheme.zIndex }}
+      gutter={10}
+      containerStyle={{ top: 68, right: 14, zIndex: toastTheme.zIndex }}
       toastOptions={{
         duration: 4000,
-        style: { background: 'transparent', boxShadow: 'none', padding: 0 },
+        style: {
+          background: 'transparent',
+          boxShadow: 'none',
+          padding: 0,
+          maxWidth: 400,
+        },
       }}
     />
   );

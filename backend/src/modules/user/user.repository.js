@@ -1,6 +1,6 @@
 import prisma from '../../config/database.js';
 import { softDeleteWhere } from '../../utils/response.util.js';
-import { COUNSELLOR_ROLE_SLUGS } from '../assignment/assignment.config.js';
+import { RECEPTION_ASSIGN_ROLE_SLUGS } from '../assignment/assignment.config.js';
 
 const counsellorSelect = {
   id: true,
@@ -104,7 +104,7 @@ export const userRepository = {
         deletedAt: null,
         ...(companyId ? { companyId } : {}),
         ...(branchId ? { branchId } : {}),
-        role: { slug: { in: COUNSELLOR_ROLE_SLUGS } },
+        role: { slug: { in: RECEPTION_ASSIGN_ROLE_SLUGS } },
       },
       select: counsellorSelect,
       orderBy: { firstName: 'asc' },

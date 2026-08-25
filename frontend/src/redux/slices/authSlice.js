@@ -6,7 +6,11 @@ export const loginUser = createAsyncThunk('auth/login', async (credentials, { re
   try {
     return await authService.login(credentials);
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || 'Login failed');
+    const data = err.response?.data;
+    return rejectWithValue({
+      message: data?.message || 'Login failed',
+      suggestedLoginPath: data?.errors?.suggestedLoginPath || null,
+    });
   }
 });
 
@@ -23,6 +27,22 @@ export const updateProfile = createAsyncThunk('auth/updateProfile', async (paylo
     return await authService.updateProfile(payload);
   } catch (err) {
     return rejectWithValue(err.response?.data?.message || 'Update failed');
+  }
+});
+
+export const uploadProfileAvatar = createAsyncThunk('auth/uploadAvatar', async (file, { rejectWithValue }) => {
+  try {
+    return await authService.uploadAvatar(file);
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message || 'Photo upload failed');
+  }
+});
+
+export const removeProfileAvatar = createAsyncThunk('auth/removeAvatar', async (_, { rejectWithValue }) => {
+  try {
+    return await authService.removeAvatar();
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message || 'Photo removal failed');
   }
 });
 
@@ -56,10 +76,12 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload?.message || action.payload || 'Login failed';
       })
       .addCase(fetchProfile.fulfilled, (state, action) => { state.user = action.payload; })
       .addCase(updateProfile.fulfilled, (state, action) => { state.user = action.payload; })
+      .addCase(uploadProfileAvatar.fulfilled, (state, action) => { state.user = action.payload; })
+      .addCase(removeProfileAvatar.fulfilled, (state, action) => { state.user = action.payload; })
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
         state.isAuthenticated = false;

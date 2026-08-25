@@ -14,6 +14,7 @@ router.use(authenticate);
 router.get('/summary', view, walkinController.getSummary);
 router.get('/branches', view, walkinController.getBranches);
 router.get('/counsellors', view, walkinController.getCounsellors);
+router.get('/recommend-counsellors', view, walkinController.recommendCounsellors);
 router.get('/check-duplicate', view, walkinController.checkDuplicate);
 router.get('/', view, walkinController.getWalkIns);
 router.post('/', create, walkinController.createWalkIn);

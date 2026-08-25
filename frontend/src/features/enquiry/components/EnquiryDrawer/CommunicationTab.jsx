@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   FiExternalLink, FiPlus, FiPhone, FiMail, FiMessageSquare, FiMic,
 } from 'react-icons/fi';
@@ -28,6 +28,7 @@ import {
 } from '../../utils/followupCalendar.utils';
 import { useAddCommunicationMutation, useAddVoiceNoteMutation } from '../../redux/enquiryApiSlice';
 import toastService from '../../../../services/toast/toast.service';
+import { masterApi } from '../../../master/services/masterApi.service';
 
 const ICONS = {
   phone: FiPhone,
@@ -70,6 +71,8 @@ export default function CommunicationTab({ enquiryId, enquiry, isEditMode, onLog
 
   const [addCommunication, { isLoading }] = useAddCommunicationMutation();
   const [addVoiceNote, { isLoading: savingVoice }] = useAddVoiceNoteMutation();
+  const [templates, setTemplates] = useState([]);
+  const [templateId, setTemplateId] = useState('');
 
   const history = enquiry?.communications || [];
   const filtered = useMemo(
@@ -79,12 +82,42 @@ export default function CommunicationTab({ enquiryId, enquiry, isEditMode, onLog
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
   const selected = COMMUNICATION_CHANNELS.find((c) => c.value === channel);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await masterApi.list('communication-template', { pageSize: 100, status: 'active' });
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        if (!cancelled) setTemplates(rows);
+      } catch {
+        if (!cancelled) setTemplates([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const channelTemplates = useMemo(() => {
+    const map = { EMAIL: 'EMAIL', SMS: 'SMS', WHATSAPP: 'WHATSAPP' };
+    const wanted = map[channel];
+    if (!wanted) return [];
+    return templates.filter((t) => String(t.channel || '').toUpperCase() === wanted);
+  }, [templates, channel]);
+
+  const applyTemplate = (id) => {
+    setTemplateId(id);
+    const tpl = templates.find((t) => t.id === id);
+    if (!tpl) return;
+    if (tpl.subject) setSubject(tpl.subject);
+    if (tpl.body) setBody(tpl.body);
+  };
+
   const resetForm = () => {
     setSubject('');
     setBody('');
     setDurationMin('');
     setDirection('OUTBOUND');
     setStatus('SENT');
+    setTemplateId('');
   };
 
   const launchExternal = () => {
@@ -182,6 +215,21 @@ export default function CommunicationTab({ enquiryId, enquiry, isEditMode, onLog
 
           {channel !== 'VOICE_NOTE' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3.5">
+              {channelTemplates.length > 0 && (
+                <div className="sm:col-span-2">
+                  <Select
+                    label="Template"
+                    value={templateId}
+                    onChange={(e) => applyTemplate(e.target.value)}
+                    options={[
+                      { value: '', label: 'Select a communication template' },
+                      ...channelTemplates.map((t) => ({ value: t.id, label: t.name })),
+                    ]}
+                    disabled={!isEditMode}
+                    allowClear
+                  />
+                </div>
+              )}
               {channel === 'EMAIL' && (
                 <div className="sm:col-span-2">
                   <Input

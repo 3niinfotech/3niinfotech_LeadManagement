@@ -4,6 +4,12 @@ import { parseSort } from '../../utils/response.util.js';
 import { applicationRepository, APPLICATION_SORT_FIELDS } from './application.repository.js';
 import prisma from '../../config/database.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
+import { masterRepository } from '../master/master.repository.js';
+import {
+  assertApplicationInTenant,
+  assertStudentInTenant,
+  mergeStudentRelationScope,
+} from '../../utils/tenant.util.js';
 
 const dateInput = z.string().optional().nullable();
 
@@ -13,63 +19,182 @@ export const createApplicationSchema = z.object({
   course: z.string().min(1),
   intake: z.string().optional().nullable(),
   country: z.string().optional().nullable(),
+  countryId: z.string().uuid().optional().nullable(),
+  applicationStatusMasterId: z.string().uuid().optional().nullable(),
   status: z.enum(['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL_OFFER', 'UNCONDITIONAL_OFFER', 'REJECTED', 'WITHDRAWN']).optional(),
   applicationNo: z.string().optional().nullable(),
   submittedAt: dateInput,
   offerDate: dateInput,
+  metadata: z.record(z.unknown()).optional(),
 });
 
 export const updateApplicationSchema = createApplicationSchema.partial();
 
 const parseDate = (value) => (value ? new Date(value) : null);
 
+function requireCompany(user) {
+  const companyId = user?.companyId;
+  if (!companyId) throw new AppError('Company context required', 403);
+  return companyId;
+}
+
+async function resolveStatusMetadata(companyId, { countryId, applicationStatusMasterId }) {
+  if (!countryId) return {};
+
+  const country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+  if (!country) throw new AppError('Country not found in your company', 422);
+
+  let statusRecord = null;
+  if (applicationStatusMasterId) {
+    statusRecord = await masterRepository.findApplicationStatusById(companyId, applicationStatusMasterId);
+    if (!statusRecord || statusRecord.countryId !== countryId) {
+      throw new AppError('Application status not found for this country', 422);
+    }
+  } else {
+    statusRecord = await masterRepository.findDefaultApplicationStatus(companyId, countryId);
+  }
+
+  if (!statusRecord) {
+    return {
+      countryId,
+      countryName: country.name,
+    };
+  }
+
+  return {
+    countryId,
+    countryName: country.name,
+    applicationStatusMasterId: statusRecord.id,
+    applicationStatusName: statusRecord.name,
+    mailSend: statusRecord.mailSend,
+    setOfferLetter: statusRecord.setOfferLetter,
+    defaultStatus: statusRecord.defaultStatus,
+    position: statusRecord.position,
+  };
+}
+
+function mergeMetadata(existing = {}, patch = {}) {
+  const base = typeof existing === 'object' && existing !== null ? existing : {};
+  return { ...base, ...patch };
+}
+
 export const applicationService = {
-  getAll: async (query) => {
+  getAll: async (query, user) => {
     const sort = parseSort(query, APPLICATION_SORT_FIELDS);
-    return applicationRepository.findMany({ ...query, sort });
+    const scopeWhere = mergeStudentRelationScope(user);
+    if (query.studentId) await assertStudentInTenant(query.studentId, user);
+    return applicationRepository.findMany({ ...query, sort, scopeWhere });
   },
 
-  getById: async (id) => {
-    const record = await applicationRepository.findById(id);
-    if (!record) throw new AppError('Application not found', 404);
-    return record;
-  },
+  getById: async (id, user) => assertApplicationInTenant(id, user),
 
-  create: async (data, userId, req) => {
-    const applicationNo = data.applicationNo || await applicationRepository.generateCode();
+  create: async (data, user, req) => {
+    const userId = user?.id;
+    const companyId = requireCompany(user);
+    await assertStudentInTenant(data.studentId, user);
+
+    const {
+      countryId,
+      applicationStatusMasterId,
+      metadata: inputMetadata,
+      ...rest
+    } = data;
+
+    const statusMeta = await resolveStatusMetadata(companyId, { countryId, applicationStatusMasterId });
+    const metadata = mergeMetadata(inputMetadata, statusMeta);
+
+    const applicationNo = rest.applicationNo || await applicationRepository.generateCode();
     const record = await applicationRepository.create({
-      ...data,
+      ...rest,
+      country: rest.country || statusMeta.countryName || null,
       applicationNo,
-      submittedAt: parseDate(data.submittedAt),
-      offerDate: parseDate(data.offerDate),
+      submittedAt: parseDate(rest.submittedAt),
+      offerDate: parseDate(rest.offerDate),
+      metadata,
       createdBy: userId,
     });
 
-    await prisma.activity.create({ data: { userId, action: 'CREATE', entityType: 'Application', entityId: record.id, description: `Application ${applicationNo} created` } });
-    await auditLog({ userId, action: 'CREATE', entityType: 'Application', entityId: record.id, newData: record, req });
+    await prisma.activity.create({
+      data: {
+        userId,
+        action: 'CREATE',
+        entityType: 'Application',
+        entityId: record.id,
+        description: `Application ${applicationNo} created${statusMeta.applicationStatusName ? ` — ${statusMeta.applicationStatusName}` : ''}`,
+      },
+    });
+    await auditLog({
+      userId,
+      action: 'CREATE',
+      entityType: 'Application',
+      entityId: record.id,
+      newData: { id: record.id, applicationNo, studentId: record.studentId },
+      req,
+    });
     return record;
   },
 
-  update: async (id, data, userId, req) => {
-    const existing = await applicationRepository.findById(id);
-    if (!existing) throw new AppError('Application not found', 404);
+  update: async (id, data, user, req) => {
+    const userId = user?.id;
+    const companyId = requireCompany(user);
+    const existing = await assertApplicationInTenant(id, user);
+    if (data.studentId) await assertStudentInTenant(data.studentId, user);
+
+    const {
+      countryId,
+      applicationStatusMasterId,
+      metadata: inputMetadata,
+      ...rest
+    } = data;
+
+    let metadata = existing.metadata;
+    if (countryId !== undefined || applicationStatusMasterId !== undefined) {
+      const resolvedCountryId = countryId ?? existing.metadata?.countryId;
+      const resolvedStatusId = applicationStatusMasterId ?? (
+        countryId !== undefined ? undefined : existing.metadata?.applicationStatusMasterId
+      );
+      const statusMeta = await resolveStatusMetadata(companyId, {
+        countryId: resolvedCountryId,
+        applicationStatusMasterId: resolvedStatusId,
+      });
+      metadata = mergeMetadata(existing.metadata, mergeMetadata(inputMetadata, statusMeta));
+    } else if (inputMetadata) {
+      metadata = mergeMetadata(existing.metadata, inputMetadata);
+    }
 
     const record = await applicationRepository.update(id, {
-      ...data,
+      ...rest,
+      ...(rest.country === undefined && metadata?.countryName ? { country: metadata.countryName } : {}),
       updatedBy: userId,
-      submittedAt: data.submittedAt !== undefined ? parseDate(data.submittedAt) : undefined,
-      offerDate: data.offerDate !== undefined ? parseDate(data.offerDate) : undefined,
+      submittedAt: rest.submittedAt !== undefined ? parseDate(rest.submittedAt) : undefined,
+      offerDate: rest.offerDate !== undefined ? parseDate(rest.offerDate) : undefined,
+      metadata,
     });
 
     await prisma.activity.create({ data: { userId, action: 'UPDATE', entityType: 'Application', entityId: id, description: 'Application updated' } });
-    await auditLog({ userId, action: 'UPDATE', entityType: 'Application', entityId: id, oldData: existing, newData: record, req });
+    await auditLog({
+      userId,
+      action: 'UPDATE',
+      entityType: 'Application',
+      entityId: id,
+      oldData: { id: existing.id, status: existing.status },
+      newData: { id: record.id, status: record.status },
+      req,
+    });
     return record;
   },
 
-  delete: async (id, userId, req) => {
-    const existing = await applicationRepository.findById(id);
-    if (!existing) throw new AppError('Application not found', 404);
+  delete: async (id, user, req) => {
+    const userId = user.id;
+    const existing = await assertApplicationInTenant(id, user);
     await applicationRepository.softDelete(id, userId);
-    await auditLog({ userId, action: 'DELETE', entityType: 'Application', entityId: id, oldData: existing, req });
+    await auditLog({
+      userId,
+      action: 'DELETE',
+      entityType: 'Application',
+      entityId: id,
+      oldData: { id: existing.id },
+      req,
+    });
   },
 };

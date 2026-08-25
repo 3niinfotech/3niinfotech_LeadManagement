@@ -16,6 +16,8 @@ export const updateCompanySchema = z.object({
   taxNumber: optionalStr(80),
   registrationNumber: optionalStr(80),
   website: optionalStr(200),
+  logo: optionalStr(2000),
+  settings: z.record(z.any()).optional(),
   isActive: z.boolean().optional(),
 });
 

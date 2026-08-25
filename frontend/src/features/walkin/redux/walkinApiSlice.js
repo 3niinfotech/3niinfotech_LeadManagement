@@ -54,7 +54,7 @@ export const walkinApi = createApi({
         try {
           await queryFulfilled;
           const { assignmentApi } = await import('../../assignment/redux/assignmentApiSlice');
-          dispatch(assignmentApi.util.invalidateTags(['MyQueue', 'BranchOps']));
+          dispatch(assignmentApi.util.invalidateTags(['BranchOps']));
           const { enquiryApi } = await import('../../enquiry/redux/enquiryApiSlice');
           dispatch(enquiryApi.util.invalidateTags(['EnquiryList', 'EnquirySummary']));
         } catch { /* ignore */ }
@@ -92,6 +92,10 @@ export const walkinApi = createApi({
       query: (branchId) => ({ url: API.WALK_IN_COUNSELLORS, params: { branchId } }),
       transformResponse: (res) => res.data,
     }),
+    recommendCounsellors: builder.query({
+      query: (params) => ({ url: API.WALK_IN_RECOMMEND_COUNSELLORS, params }),
+      transformResponse: (res) => res.data,
+    }),
   }),
 });
 
@@ -108,4 +112,5 @@ export const {
   useAddWalkInNoteMutation,
   useGetWalkInBranchesQuery,
   useGetWalkInCounsellorsQuery,
+  useRecommendCounsellorsQuery,
 } = walkinApi;

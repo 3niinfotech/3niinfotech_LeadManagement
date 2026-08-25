@@ -18,9 +18,12 @@ import StudentSummaryStrip from './StudentSummaryStrip';
 import StudentOverviewTab from './tabs/StudentOverviewTab';
 import StudentPersonalTab from './tabs/StudentPersonalTab';
 import StudentAcademicTab from './tabs/StudentAcademicTab';
+import StudentAttendanceTab from './tabs/StudentAttendanceTab';
 import StudentRecordListTab, { formatDate } from './tabs/StudentRecordListTab';
 import { useStudentNav } from '../../hooks/useStudentNav';
 import { ROUTES } from '../../../../config/routes';
+import { PERMISSIONS } from '../../../../config/permissions';
+import { usePermissions } from '../../../../hooks/usePermissions';
 import '../../../enquiry/styles/enquiry-workspace.css';
 
 const defaultValues = {
@@ -42,6 +45,25 @@ const defaultValues = {
 
 const EDIT_TABS = new Set(['personal', 'academic']);
 
+const TAB_PERMISSIONS = {
+  documents: [PERMISSIONS.DOCUMENTS_VIEW],
+  applications: [PERMISSIONS.APPLICATIONS_VIEW],
+  visa: [PERMISSIONS.VISAS_VIEW],
+  finance: [PERMISSIONS.INVOICES_VIEW],
+  attendance: [PERMISSIONS.ATTENDANCE_VIEW],
+};
+
+const TEACHER_HIDDEN_TABS = new Set(['applications', 'visa', 'finance', 'documents', 'notes']);
+
+function visibleStudentTabs(canAny, roleSlug) {
+  return STUDENT_PROFILE_TABS.filter((tab) => {
+    if (roleSlug === 'teacher' && TEACHER_HIDDEN_TABS.has(tab.id)) return false;
+    const required = TAB_PERMISSIONS[tab.id];
+    if (!required) return true;
+    return canAny(required);
+  });
+}
+
 export default function StudentWorkspace({
   studentId,
   activeTab: activeTabProp = 'overview',
@@ -50,10 +72,10 @@ export default function StudentWorkspace({
   const dispatch = useDispatch();
   const student = useSelector(selectCurrentStudent);
   const { backToList } = useStudentNav();
+  const { can, canAny, roleSlug } = usePermissions();
+  const tabs = visibleStudentTabs(canAny, roleSlug);
   const [loading, setLoading] = useState(true);
-  const activeTab = STUDENT_PROFILE_TABS.some((t) => t.id === activeTabProp)
-    ? activeTabProp
-    : 'overview';
+  const activeTab = tabs.some((t) => t.id === activeTabProp) ? activeTabProp : 'overview';
 
   const {
     register,
@@ -139,12 +161,12 @@ export default function StudentWorkspace({
       subtitle={subtitle}
       icon={FiUsers}
       breadcrumbs={breadcrumbs}
-      tabs={STUDENT_PROFILE_TABS}
+      tabs={tabs}
       activeTab={activeTab}
       onTabChange={handleTabChange}
       onBack={backToList}
       summary={<StudentSummaryStrip student={student} />}
-      footer={showFooter ? (
+      footer={showFooter && can(PERMISSIONS.STUDENTS_UPDATE) ? (
         <>
           <Button variant="outline" onClick={backToList}>Cancel</Button>
           <Button icon={FiSave} onClick={handleSubmit(onSubmit)} loading={isSubmitting}>
@@ -154,7 +176,9 @@ export default function StudentWorkspace({
       ) : null}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="min-h-[200px]">
-        {activeTab === 'overview' && <StudentOverviewTab student={student} />}
+        {activeTab === 'overview' && (
+          <StudentOverviewTab student={student} onTabChange={handleTabChange} />
+        )}
         {activeTab === 'personal' && (
           <StudentPersonalTab register={register} control={control} errors={errors} />
         )}
@@ -208,6 +232,9 @@ export default function StudentWorkspace({
             title="Finance"
             description="Fee quotations, payments, and instalment tracking."
           />
+        )}
+        {activeTab === 'attendance' && (
+          <StudentAttendanceTab studentId={studentId} />
         )}
         {activeTab === 'notes' && (
           <StudentRecordListTab

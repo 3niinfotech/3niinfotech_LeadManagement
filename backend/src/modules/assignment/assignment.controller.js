@@ -14,16 +14,6 @@ export const resolveIdentity = asyncHandler(async (req, res) => {
   sendSuccess(res, result);
 });
 
-export const getMyQueue = asyncHandler(async (req, res) => {
-  const data = await assignmentService.getMyQueue(req.user.id);
-  sendSuccess(res, data);
-});
-
-export const getBranchOps = asyncHandler(async (req, res) => {
-  const data = await assignmentService.getBranchOps(req.user);
-  sendSuccess(res, data);
-});
-
 export const updatePresence = asyncHandler(async (req, res) => {
   const data = await assignmentService.updatePresence(
     req.user.id,
@@ -35,6 +25,11 @@ export const updatePresence = asyncHandler(async (req, res) => {
 
 export const heartbeat = asyncHandler(async (req, res) => {
   const data = await assignmentService.heartbeat(req.user.id, req.user.branchId);
+  sendSuccess(res, data);
+});
+
+export const goOffline = asyncHandler(async (req, res) => {
+  const data = await assignmentService.goOffline(req.user.id, req.user.branchId);
   sendSuccess(res, data);
 });
 

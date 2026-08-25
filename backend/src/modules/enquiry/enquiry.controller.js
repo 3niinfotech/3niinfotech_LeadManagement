@@ -5,6 +5,7 @@ import { enquiryImportService } from './enquiry.import.service.js';
 import {
   createEnquirySchema, updateEnquirySchema, statusSchema, prioritySchema, tagsSchema, bulkIdsSchema,
   bulkAssignSchema, dropSchema, followupSchema, appointmentSchema, demoSchema,
+  demoAttendanceSchema, demoRescheduleSchema, demoCancelSchema,
   noteSchema, communicationSchema, bulkCommunicationSchema,
   notePinSchema, noteChecklistSchema, duplicateCheckSchema,
   bulkStatusSchema, bulkTagsSchema, bulkMoveBranchSchema, bulkMergeSchema,
@@ -132,6 +133,60 @@ export const addDemo = asyncHandler(async (req, res) => {
   sendSuccess(res, demo, 'Demo recorded', 201);
 });
 
+export const listDemos = asyncHandler(async (req, res) => {
+  const result = await enquiryService.listDemos(req.query, req.user);
+  sendPaginated(res, result.data, result.pagination);
+});
+
+export const getDemoSummary = asyncHandler(async (req, res) => {
+  const summary = await enquiryService.getDemoSummary(req.query, req.user);
+  sendSuccess(res, summary);
+});
+
+export const exportDemos = asyncHandler(async (req, res) => {
+  const result = await enquiryService.exportDemos(req.body, req.user, req.user.id, req);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+  res.setHeader('X-Export-Count', String(result.count));
+  res.setHeader('X-Export-Selected', result.selected ? '1' : '0');
+  res.send(result.buffer);
+});
+
+export const bulkMarkDemoAttendance = asyncHandler(async (req, res) => {
+  const { ids, attendance, result, feedback, remark } = req.body || {};
+  const data = await enquiryService.bulkMarkDemoAttendance(ids, { attendance, result, feedback, remark }, req.user.id, req);
+  sendSuccess(res, data, 'Attendance updated for selected demos');
+});
+
+export const bulkCancelDemos = asyncHandler(async (req, res) => {
+  const { ids, reason } = req.body || {};
+  const data = await enquiryService.bulkCancelDemos(ids, { reason }, req.user.id, req);
+  sendSuccess(res, data, 'Selected demos cancelled');
+});
+
+export const markDemoAttendance = asyncHandler(async (req, res) => {
+  const data = demoAttendanceSchema.parse(req.body);
+  const demo = await enquiryService.markDemoAttendance(req.params.id, req.params.demoId, data, req.user.id, req);
+  sendSuccess(res, demo, 'Demo attendance saved');
+});
+
+export const rescheduleDemo = asyncHandler(async (req, res) => {
+  const data = demoRescheduleSchema.parse(req.body);
+  const demo = await enquiryService.rescheduleDemo(req.params.id, req.params.demoId, data, req.user.id, req);
+  sendSuccess(res, demo, 'Demo rescheduled');
+});
+
+export const cancelDemo = asyncHandler(async (req, res) => {
+  const data = demoCancelSchema.parse(req.body);
+  const demo = await enquiryService.cancelDemo(req.params.id, req.params.demoId, data, req.user.id, req);
+  sendSuccess(res, demo, 'Demo cancelled');
+});
+
+export const completeDemo = asyncHandler(async (req, res) => {
+  const demo = await enquiryService.completeDemo(req.params.id, req.params.demoId, req.user.id, req);
+  sendSuccess(res, demo, 'Demo completed');
+});
+
 export const addNote = asyncHandler(async (req, res) => {
   const payload = req.body.payload
     ? noteSchema.parse(JSON.parse(req.body.payload))
@@ -172,32 +227,37 @@ export const getTimeline = asyncHandler(async (req, res) => {
 });
 
 export const getDocuments = asyncHandler(async (req, res) => {
-  const data = await enquiryService.getDocuments(req.params.id);
+  const data = await enquiryService.getDocuments(req.params.id, req.user);
   sendSuccess(res, data);
 });
 
 export const uploadDocument = asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'File required' });
   const doc = await enquiryService.addDocument(
-    req.params.id, req.file, req.user.id, req.body.category
+    req.params.id, req.file, req.user.id, req.body.category, req.user,
   );
   sendSuccess(res, doc, 'Document uploaded', 201);
 });
 
 export const deleteDocument = asyncHandler(async (req, res) => {
-  await enquiryService.removeDocument(req.params.docId, req.user.id, req.params.id);
+  await enquiryService.removeDocument(req.params.docId, req.user.id, req.params.id, req.user);
   sendSuccess(res, null, 'Document deleted');
 });
 
 export const parseImport = asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'File required' });
-  const rows = await enquiryImportService.parseFile(req.file.buffer, req.file.originalname);
+  const rows = await enquiryImportService.parseFile(
+    req.file.buffer,
+    req.file.originalname,
+    req.file.mimetype,
+  );
   sendSuccess(res, rows);
 });
 
 export const confirmImport = asyncHandler(async (req, res) => {
   const { rows, fileName } = req.body;
-  const branchId = req.body.branchId || req.user.branchId;
+  const { resolveWriteBranchId } = await import('../../utils/tenant.util.js');
+  const branchId = await resolveWriteBranchId(req.user, req.body.branchId || null);
   const result = await enquiryImportService.confirmImport(rows, req.user.id, branchId, fileName, req);
   sendSuccess(res, result, 'Import completed');
 });
@@ -213,8 +273,12 @@ export const importDuplicates = asyncHandler(async (req, res) => {
 });
 
 export const exportEnquiries = asyncHandler(async (req, res) => {
-  const data = await enquiryService.exportEnquiries(req.body, req.user, req.user.id, req);
-  sendSuccess(res, data, 'Export ready');
+  const result = await enquiryService.exportEnquiries(req.body, req.user, req.user.id, req);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+  res.setHeader('X-Export-Count', String(result.count));
+  res.setHeader('X-Export-Selected', result.selected ? '1' : '0');
+  res.send(result.buffer);
 });
 
 export const bulkCommunication = asyncHandler(async (req, res) => {
@@ -224,10 +288,22 @@ export const bulkCommunication = asyncHandler(async (req, res) => {
 });
 
 export const downloadSample = asyncHandler(async (req, res) => {
-  const csv = enquiryImportService.getSampleCsv();
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', 'attachment; filename=enquiry-import-sample.csv');
-  res.send(csv);
+  const format = String(req.query.format || 'xlsx').toLowerCase();
+  if (format === 'csv') {
+    const csv = enquiryImportService.getSampleCsv();
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=enquiry-import-sample.csv');
+    res.send(csv);
+    return;
+  }
+
+  const buffer = await enquiryImportService.getSampleExcelBuffer();
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename=enquiry-import-sample.xlsx');
+  res.send(buffer);
 });
 
 export const convertToStudent = asyncHandler(async (req, res) => {

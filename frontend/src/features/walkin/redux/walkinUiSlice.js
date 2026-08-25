@@ -4,9 +4,8 @@ const initialState = {
   drawerOpen: false,
   drawerTab: 'overview',
   selectedLeadId: null,
-  isEditMode: false,
   filtersOpen: false,
-  activeView: 'all',
+  activeView: 'today',
   activeSummaryFilter: null,
   selectedRowIds: [],
   columnDensity: 'comfortable',
@@ -19,13 +18,11 @@ const walkinUiSlice = createSlice({
     openWalkInDrawer: (state, { payload }) => {
       state.drawerOpen = true;
       state.selectedLeadId = payload?.id || null;
-      state.isEditMode = Boolean(payload?.id);
       state.drawerTab = 'overview';
     },
     closeWalkInDrawer: (state) => {
       state.drawerOpen = false;
       state.selectedLeadId = null;
-      state.isEditMode = false;
       state.drawerTab = 'overview';
     },
     setWalkInDrawerTab: (state, { payload }) => { state.drawerTab = payload; },

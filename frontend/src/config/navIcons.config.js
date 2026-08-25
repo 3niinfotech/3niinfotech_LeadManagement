@@ -2,20 +2,23 @@ import { sidebarConfig } from './sidebar.config';
 
 export function flattenNavItems(items = sidebarConfig) {
   const flat = [];
-  items.forEach((item) => {
+  const walk = (list, inheritedIcon) => list.forEach((item) => {
+    const icon = item.icon || inheritedIcon;
     if (item.path) {
-      flat.push({ id: item.id, label: item.label, description: item.description, path: item.path, icon: item.icon });
-    }
-    item.children?.forEach((child) => {
       flat.push({
-        id: child.id,
-        label: child.label,
-        description: child.description,
-        path: child.path,
-        icon: child.icon || item.icon,
+        id: item.id,
+        label: item.label,
+        description: item.description,
+        path: item.path,
+        icon,
+        permission: item.permission,
+        permissions: item.permissions,
+        keywords: item.keywords,
       });
-    });
+    }
+    if (item.children?.length) walk(item.children, icon);
   });
+  walk(items);
   return flat;
 }
 

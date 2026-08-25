@@ -24,32 +24,24 @@ const axiosBaseQuery = () => async ({ url, method = 'GET', body, params }) => {
 export const assignmentApi = createApi({
   reducerPath: 'assignmentApi',
   baseQuery: axiosBaseQuery(),
-  tagTypes: ['MyQueue', 'BranchOps'],
+  tagTypes: ['BranchOps'],
   endpoints: (builder) => ({
-    getMyQueue: builder.query({
-      query: () => ({ url: API.ASSIGNMENT_MY_QUEUE }),
-      providesTags: ['MyQueue'],
-      transformResponse: (res) => res.data,
-    }),
-    getBranchOps: builder.query({
-      query: () => ({ url: API.ASSIGNMENT_BRANCH_OPS }),
-      providesTags: ['BranchOps'],
-      transformResponse: (res) => res.data,
-    }),
     resolveIdentity: builder.query({
       query: (params) => ({ url: API.ASSIGNMENT_RESOLVE_IDENTITY, params }),
       transformResponse: (res) => res.data,
     }),
     updatePresence: builder.mutation({
       query: (body) => ({ url: API.ASSIGNMENT_PRESENCE, method: 'PATCH', body }),
-      invalidatesTags: ['MyQueue', 'BranchOps'],
+      invalidatesTags: ['BranchOps'],
+      transformResponse: (res) => res.data ?? res,
     }),
     heartbeat: builder.mutation({
       query: () => ({ url: API.ASSIGNMENT_HEARTBEAT, method: 'POST' }),
+      transformResponse: (res) => res.data ?? res,
     }),
     acceptOffer: builder.mutation({
       query: (id) => ({ url: API.ASSIGNMENT_OFFER_ACCEPT(id), method: 'POST' }),
-      invalidatesTags: ['MyQueue', 'BranchOps'],
+      invalidatesTags: ['BranchOps'],
     }),
     rejectOffer: builder.mutation({
       query: ({ id, reason }) => ({
@@ -57,11 +49,11 @@ export const assignmentApi = createApi({
         method: 'POST',
         body: { reason },
       }),
-      invalidatesTags: ['MyQueue', 'BranchOps'],
+      invalidatesTags: ['BranchOps'],
     }),
     startSession: builder.mutation({
       query: (leadId) => ({ url: API.ASSIGNMENT_SESSION_START(leadId), method: 'POST' }),
-      invalidatesTags: ['MyQueue', 'BranchOps'],
+      invalidatesTags: ['BranchOps'],
     }),
     completeSession: builder.mutation({
       query: ({ leadId, outcome }) => ({
@@ -69,7 +61,7 @@ export const assignmentApi = createApi({
         method: 'POST',
         body: { outcome },
       }),
-      invalidatesTags: ['MyQueue', 'BranchOps'],
+      invalidatesTags: ['BranchOps'],
     }),
     reassignLead: builder.mutation({
       query: ({ leadId, counsellorId, reason }) => ({
@@ -77,14 +69,12 @@ export const assignmentApi = createApi({
         method: 'POST',
         body: { counsellorId, reason },
       }),
-      invalidatesTags: ['MyQueue', 'BranchOps'],
+      invalidatesTags: ['BranchOps'],
     }),
   }),
 });
 
 export const {
-  useGetMyQueueQuery,
-  useGetBranchOpsQuery,
   useLazyResolveIdentityQuery,
   useUpdatePresenceMutation,
   useHeartbeatMutation,

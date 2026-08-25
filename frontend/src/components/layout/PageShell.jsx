@@ -6,8 +6,14 @@ import { pageStagger, pageItem } from '../../theme/pageMotion';
 /**
  * Scrollable page shell — dashboard, placeholder, settings, etc.
  * Module pages (enquiry/students) use ModulePageCard with internal table scroll instead.
+ * Pass `header` to pin it above the scroll area so only the body scrolls.
  */
-export default function PageShell({ children, className = '', scroll = true }) {
+export default function PageShell({
+  children,
+  header = null,
+  className = '',
+  scroll = true,
+}) {
   const items = Children.toArray(children).filter(Boolean);
 
   const content = (
@@ -25,7 +31,25 @@ export default function PageShell({ children, className = '', scroll = true }) {
     </motion.div>
   );
 
-  if (!scroll) return content;
+  if (!scroll) {
+    return header ? (
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="shrink-0">{header}</div>
+        {content}
+      </div>
+    ) : content;
+  }
+
+  if (header) {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="shrink-0">{header}</div>
+        <ScrollArea axis="y" data-page-scroll className="min-h-0 flex-1 pr-0.5">
+          {content}
+        </ScrollArea>
+      </div>
+    );
+  }
 
   return (
     <ScrollArea

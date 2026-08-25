@@ -17,6 +17,8 @@ const companySelect = {
   taxNumber: true,
   registrationNumber: true,
   website: true,
+  logo: true,
+  settings: true,
   isActive: true,
   createdAt: true,
   updatedAt: true,

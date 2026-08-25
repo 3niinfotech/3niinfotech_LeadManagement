@@ -7,17 +7,24 @@ import GlobalLoader from '../../components/ui/GlobalLoader';
 
 export default function AgentDashboardPage() {
   const user = useSelector(selectUser);
-  const [stats, setStats] = useState({ total: 0, students: [] });
+  const [stats, setStats] = useState({ total: 0, students: [], referrals: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    apiGet(API.STUDENTS, { limit: 100 })
-      .then((res) => {
-        if (!cancelled) {
-          const students = res.data || [];
-          setStats({ total: students.length, students: students.slice(0, 5) });
-        }
+    Promise.all([
+      apiGet(API.STUDENTS, { limit: 100 }).catch(() => ({ data: [] })),
+      apiGet(API.ENQUIRIES, { limit: 8 }).catch(() => ({ data: [] })),
+    ])
+      .then(([studentRes, enquiryRes]) => {
+        if (cancelled) return;
+        const students = studentRes.data || [];
+        const referrals = enquiryRes.data || [];
+        setStats({
+          total: students.length,
+          students: students.slice(0, 5),
+          referrals: referrals.slice(0, 5),
+        });
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -38,7 +45,24 @@ export default function AgentDashboardPage() {
           <p className="text-sm text-text-secondary">Referred Students</p>
           <p className="text-3xl font-semibold text-text mt-1">{stats.total}</p>
         </div>
+        <div className="bg-card-bg border border-card-border rounded-lg p-5 shadow-card">
+          <p className="text-sm text-text-secondary">My Referrals</p>
+          <p className="text-3xl font-semibold text-text mt-1">{stats.referrals.length}</p>
+        </div>
       </div>
+      {stats.referrals.length > 0 && (
+        <div className="bg-card-bg border border-card-border rounded-lg p-6 shadow-card mb-8">
+          <h3 className="font-semibold text-text mb-4">Recent referrals</h3>
+          <ul className="divide-y divide-card-border">
+            {stats.referrals.map((row) => (
+              <li key={row.id} className="py-3 flex justify-between text-sm">
+                <span className="font-medium text-text">{row.firstName} {row.lastName || ''}</span>
+                <span className="text-text-secondary">{row.enquiryCode || row.status}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {stats.students.length > 0 && (
         <div className="bg-card-bg border border-card-border rounded-lg p-6 shadow-card">
           <h3 className="font-semibold text-text mb-4">Recent Students</h3>

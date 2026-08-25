@@ -84,8 +84,9 @@ export default function FeatureTogglePage() {
       subtitle="Simple Mode vs Enterprise Mode — enable modules per company without code changes"
       icon={FiToggleLeft}
       breadcrumbs={[
-        { label: 'Dashboard', path: ROUTES.DASHBOARD },
-        { label: 'Master', path: ROUTES.MASTER },
+        { label: 'Admin', path: ROUTES.DASHBOARD },
+        { label: 'Masters', path: ROUTES.MASTER },
+        { label: 'System', path: `${ROUTES.MASTER}#master-system` },
         { label: 'Feature Toggle' },
       ]}
       actions={(

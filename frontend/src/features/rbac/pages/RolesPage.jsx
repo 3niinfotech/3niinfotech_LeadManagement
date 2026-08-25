@@ -76,6 +76,8 @@ export default function RolesPage() {
         if (!prev) return list[0] || null;
         return list.find((r) => r.id === prev.id) || list[0] || null;
       });
+    } catch (e) {
+      toastService.error(e?.response?.data?.message || e?.message || 'Failed to load roles');
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FiChevronDown } from 'react-icons/fi';
-import { getEnquiryStatusMeta, ENQUIRY_STATUSES } from '../../../config/constants';
+import { useEnquiryStatusOptions } from '../hooks/useEnquiryStatusOptions';
 import { handleGridCellMenuScroll, gridCellMenuWheelProps } from '../../../components/table/gridCellMenu.utils';
 
 const colorMap = {
@@ -13,14 +13,36 @@ const colorMap = {
   info: 'bg-info-soft text-info border-info/20',
 };
 
+function resolvePillClass(meta) {
+  const color = meta?.color;
+  if (color?.startsWith?.('#')) {
+    return 'border';
+  }
+  return colorMap[color || 'secondary'];
+}
+
+function resolvePillStyle(meta) {
+  const color = meta?.color;
+  if (color?.startsWith?.('#')) {
+    return {
+      backgroundColor: `${color}18`,
+      color,
+      borderColor: `${color}33`,
+    };
+  }
+  return undefined;
+}
+
 export default function EnquiryStatusPill({ status, onChange }) {
+  const { statusOptions, getStatusMeta } = useEnquiryStatusOptions();
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
   const btnRef = useRef(null);
   const menuRef = useRef(null);
 
-  const meta = getEnquiryStatusMeta(status);
-  const pillClass = colorMap[meta?.color || 'secondary'];
+  const meta = getStatusMeta(status);
+  const pillClass = resolvePillClass(meta);
+  const pillStyle = resolvePillStyle(meta);
   const displayLabel = meta?.label || status;
   const tooltipText = meta?.description ? `${displayLabel} — ${meta.description}` : displayLabel;
 
@@ -73,7 +95,7 @@ export default function EnquiryStatusPill({ status, onChange }) {
       onClick={(e) => e.stopPropagation()}
       {...gridCellMenuWheelProps}
     >
-      {ENQUIRY_STATUSES.map((s) => (
+      {statusOptions.map((s) => (
         <button
           key={s.value}
           type="button"
@@ -88,11 +110,6 @@ export default function EnquiryStatusPill({ status, onChange }) {
           >
             {s.label}
           </span>
-          {s.description && (
-            <span className="block text-[10px] leading-snug text-text-muted mt-0.5">
-              {s.description}
-            </span>
-          )}
         </button>
       ))}
     </div>,
@@ -106,6 +123,7 @@ export default function EnquiryStatusPill({ status, onChange }) {
         type="button"
         onClick={toggle}
         className={`inline-flex items-center justify-center gap-1 min-w-[6.5rem] max-w-full h-7 px-2.5 rounded-full border text-[10px] font-semibold leading-none ${pillClass}`}
+        style={pillStyle}
         title={tooltipText}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80 shrink-0" />

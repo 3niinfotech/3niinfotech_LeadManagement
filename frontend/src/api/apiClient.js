@@ -14,3 +14,5 @@ export const apiPatch = (url, data) =>
 
 export const apiDelete = (url) =>
   apiClient.delete(url).then((res) => res.data);
+
+export default apiClient;

@@ -8,6 +8,13 @@ import { navbar as navbarTheme } from '../../theme';
 
 const NAVBAR_HEIGHT = navbarTheme.height || '64px';
 
+const SIZE_WIDTH = {
+  sm: '400px',
+  md: '480px',
+  lg: '560px',
+  xl: '640px',
+};
+
 /**
  * Drawer overlay — portaled to document.body so header backdrop-blur
  * does not trap fixed positioning inside the navbar.
@@ -17,6 +24,8 @@ export default function Drawer({
   onClose,
   title,
   children,
+  footer = null,
+  size,
   width = '480px',
   anchor = 'full',
   zIndex = 1200,
@@ -39,6 +48,7 @@ export default function Drawer({
   if (!mounted) return null;
 
   const isHeaderAnchor = anchor === 'header';
+  const panelWidth = (size && SIZE_WIDTH[size]) || width;
 
   const panel = (
     <AnimatePresence>
@@ -69,7 +79,7 @@ export default function Drawer({
               ${isHeaderAnchor ? 'rounded-tl-2xl overflow-hidden' : ''}
             `}
             style={{
-              width,
+              width: panelWidth,
               ...(isHeaderAnchor
                 ? { top: NAVBAR_HEIGHT, height: `calc(100% - ${NAVBAR_HEIGHT})` }
                 : { top: 0, height: '100%' }),
@@ -82,6 +92,11 @@ export default function Drawer({
             <ScrollArea axis="y" className="crm-drawer-body flex-1 min-h-0 p-5 text-text">
               {children}
             </ScrollArea>
+            {footer ? (
+              <div className="shrink-0 border-t border-border px-5 py-3 bg-card-bg">
+                {footer}
+              </div>
+            ) : null}
           </motion.div>
         </div>
       )}

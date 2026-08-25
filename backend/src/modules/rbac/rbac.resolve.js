@@ -1,4 +1,5 @@
 import prisma from '../../config/database.js';
+import { sanitizePermissionKeysForRole } from '../../config/access-policy.js';
 import { mergeUserPermissions } from './rbac.util.js';
 
 const roleAccessInclude = {
@@ -19,7 +20,7 @@ async function resolveLegacyAccess(userId) {
 
   const legacyJson = Array.isArray(user.role.permissions) ? user.role.permissions : [];
   return {
-    permissions: mergeUserPermissions([], legacyJson, []),
+    permissions: sanitizePermissionKeysForRole(user.role.slug, mergeUserPermissions([], legacyJson, [])),
     dataScope: user.role.dataScope || 'OWN',
     role: user.role,
   };
@@ -36,10 +37,13 @@ export async function resolveUserAccess(userId) {
     if (!user?.role) return null;
 
     const legacyJson = Array.isArray(user.role.permissions) ? user.role.permissions : [];
-    const permissions = mergeUserPermissions(
-      user.role.rolePermissions || [],
-      legacyJson,
-      user.permissionOverrides || [],
+    const permissions = sanitizePermissionKeysForRole(
+      user.role.slug,
+      mergeUserPermissions(
+        user.role.rolePermissions || [],
+        legacyJson,
+        user.permissionOverrides || [],
+      ),
     );
 
     return {

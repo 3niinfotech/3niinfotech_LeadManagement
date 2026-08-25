@@ -1,21 +1,61 @@
-import { FiBriefcase, FiMail, FiMapPin, FiPhone, FiUser } from 'react-icons/fi';
+import {
+  FiBriefcase,
+  FiInbox,
+  FiLayers,
+  FiMail,
+  FiMapPin,
+  FiPhone,
+  FiUser,
+  FiUserPlus,
+  FiUsers,
+} from 'react-icons/fi';
 
 export function WorkloadStats({ workload }) {
   if (!workload) return null;
 
   const items = [
-    { label: 'Enquiries', value: workload.enquiries, color: 'text-brand bg-brand-soft' },
-    { label: 'Leads', value: workload.leads, color: 'text-info bg-info-soft' },
-    { label: 'Students', value: workload.students, color: 'text-success bg-success-soft' },
-    { label: 'Total assigned', value: workload.total, color: 'text-text bg-row-hover' },
+    {
+      label: 'Enquiries',
+      value: workload.enquiries,
+      icon: FiInbox,
+      tone: 'border-brand/15 bg-brand-soft/60 text-brand',
+    },
+    {
+      label: 'Leads',
+      value: workload.leads,
+      icon: FiUserPlus,
+      tone: 'border-info/15 bg-info-soft/60 text-info',
+    },
+    {
+      label: 'Students',
+      value: workload.students,
+      icon: FiUsers,
+      tone: 'border-success/15 bg-success-soft/60 text-success',
+    },
+    {
+      label: 'Total assigned',
+      value: workload.total,
+      icon: FiLayers,
+      tone: 'border-border bg-page text-text',
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      {items.map((item) => (
-        <div key={item.label} className={`rounded-xl border border-border p-3 ${item.color.split(' ').slice(1).join(' ')}`}>
-          <p className="text-[11px] font-medium text-text-muted uppercase tracking-wide">{item.label}</p>
-          <p className={`text-2xl font-bold mt-1 tabular-nums ${item.color.split(' ')[0]}`}>{item.value}</p>
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(112px,1fr))] gap-2.5">
+      {items.map(({ label, value, icon: Icon, tone }) => (
+        <div
+          key={label}
+          className={`min-w-0 rounded-xl border p-3 transition-transform duration-200 hover:-translate-y-0.5 ${tone}`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-card-bg/80 shadow-sm">
+              <Icon className="h-4 w-4" />
+            </span>
+            <strong className="text-xl font-bold leading-none tabular-nums">{value ?? 0}</strong>
+          </div>
+          <p className="mt-2 truncate text-[10px] font-semibold uppercase tracking-wide text-text-muted" title={label}>
+            {label}
+          </p>
         </div>
       ))}
     </div>

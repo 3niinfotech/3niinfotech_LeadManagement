@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, Navigate } from 'react-router-dom';
 import { FiDatabase, FiEye, FiEdit2, FiTrash2, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
 import * as FiIcons from 'react-icons/fi';
 import dayjs from 'dayjs';
@@ -10,7 +10,7 @@ import Pagination from '../../../components/ui/Pagination';
 import DataGrid from '../../../components/table/DataGrid';
 import { createActionsColumn } from '../../../components/table/grid.columns';
 import { ROUTES } from '../../../config/routes';
-import { resolveMasterPage } from '../../../config/master-registry.config';
+import { resolveMasterPage, buildMasterBreadcrumbs, getMasterTypeMeta, COMMUNICATION_CHANNEL_BY_SLUG } from '../../../config/master-registry.config';
 import { PERMISSIONS } from '../../../config/permissions';
 import { usePermissions } from '../../../hooks/usePermissions';
 import toastService from '../../../services/toast/toast.service';
@@ -22,6 +22,11 @@ import MasterItemPage, { isMasterItemSlug } from '../pages/MasterItemPage';
 import OrganizationCompanyPage from '../pages/OrganizationCompanyPage';
 import OrganizationBranchPage from '../pages/OrganizationBranchPage';
 import MasterStaffPage from '../pages/MasterStaffPage';
+import MasterPartnerPage from '../pages/MasterPartnerPage';
+import ApplicationStatusPage from '../pages/ApplicationStatusPage';
+import VisaStatusPage from '../pages/VisaStatusPage';
+import ApplicationChecklistBulkModal from '../components/ApplicationChecklistBulkModal';
+import VisaChecklistBulkModal from '../components/VisaChecklistBulkModal';
 import { useMasterList } from '../hooks/useMasterList';
 import { masterApi, getApiErrorMessage } from '../services/masterApi.service';
 
@@ -53,6 +58,30 @@ function formatCell(value, cellType) {
   return String(value);
 }
 
+function downloadMasterCsv(entity, rows = []) {
+  if (!rows.length) return;
+  const keys = ['id', 'code', 'name', 'isActive', 'createdAt', 'updatedAt'];
+  const extra = Object.keys(rows[0] || {}).filter((key) => (
+    !keys.includes(key) && ['string', 'number', 'boolean'].includes(typeof rows[0][key])
+  ));
+  const header = [...keys, ...extra];
+  const escape = (value) => {
+    const text = value == null ? '' : String(value);
+    return `"${text.replace(/"/g, '""')}"`;
+  };
+  const lines = [
+    header.join(','),
+    ...rows.map((row) => header.map((key) => escape(row[key])).join(',')),
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${entity}-export.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function MasterDataPage() {
   const { slug } = useParams();
   const resolved = resolveMasterPage(slug);
@@ -68,8 +97,26 @@ export default function MasterDataPage() {
   const [drawer, setDrawer] = useState({ open: false, mode: 'add', record: null });
   const [submitting, setSubmitting] = useState(false);
   const [actionId, setActionId] = useState(null);
+  const [bulkChecklistOpen, setBulkChecklistOpen] = useState(false);
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [exporting, setExporting] = useState(false);
 
-  const list = useMasterList(engineEntity, { enabled: Boolean(entityConfig && engineEntity) });
+  const list = useMasterList(engineEntity, {
+    enabled: Boolean(entityConfig && engineEntity),
+    defaultSort: entityConfig?.defaultSort || 'sortOrder',
+    initialFilters: COMMUNICATION_CHANNEL_BY_SLUG[slug]
+      ? { channel: COMMUNICATION_CHANNEL_BY_SLUG[slug] }
+      : slug === 'partner-document-checklist'
+        ? { applicableFor: 'PARTNER' }
+        : {},
+  });
+
+  const fieldDefaults = useMemo(() => {
+    const channel = COMMUNICATION_CHANNEL_BY_SLUG[slug];
+    if (channel) return { channel };
+    if (slug === 'partner-document-checklist') return { applicableFor: 'PARTNER' };
+    return {};
+  }, [slug]);
 
   const activeFilterCount = useMemo(() => Object.entries(list.filters || {}).filter(([k, v]) => {
     if (k === 'status') return v && v !== 'all';
@@ -141,6 +188,73 @@ export default function MasterDataPage() {
       toastService.error(getApiErrorMessage(err, 'Delete failed'));
     } finally {
       setActionId(null);
+    }
+  };
+
+  const selectedIds = selectedRows.map((row) => row.id).filter(Boolean);
+
+  const handleBulkStatus = async (isActive) => {
+    if (!canManage || !selectedIds.length) return;
+    const ok = await alertService.confirm({
+      title: isActive ? 'Activate selected' : 'Deactivate selected',
+      text: `${selectedIds.length} record(s) will be marked ${isActive ? 'active' : 'inactive'}.`,
+      confirmText: isActive ? 'Activate' : 'Deactivate',
+    });
+    if (!ok) return;
+    try {
+      await masterApi.bulkStatus(engineEntity, selectedIds, isActive);
+      toastService.success(`Updated ${selectedIds.length} record(s)`);
+      setSelectedRows([]);
+      list.reload();
+    } catch (err) {
+      toastService.error(getApiErrorMessage(err, 'Bulk status update failed'));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!canManage || !selectedIds.length) return;
+    const ok = await alertService.softDeleteConfirm({
+      title: 'Delete selected',
+      text: 'Records in use will be skipped. Deactivate those instead.',
+      itemName: `${selectedIds.length} selected`,
+    });
+    if (!ok) return;
+    try {
+      const res = await masterApi.bulkRemove(engineEntity, selectedIds);
+      const result = res?.data ?? res;
+      const deleted = result?.deleted ?? 0;
+      const blocked = result?.blocked || [];
+      if (deleted) toastService.success(`Deleted ${deleted} record(s)`);
+      if (blocked.length) {
+        toastService.error(`${blocked.length} could not be deleted because they are in use.`);
+      }
+      setSelectedRows([]);
+      list.reload();
+    } catch (err) {
+      toastService.error(getApiErrorMessage(err, 'Bulk delete failed'));
+    }
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await masterApi.exportList(engineEntity, {
+        search: list.search || undefined,
+        status: list.filters?.status,
+        ...Object.fromEntries(Object.entries(list.filters || {}).filter(([, v]) => v && v !== 'all')),
+      });
+      const payload = res?.data ?? res;
+      const rows = payload?.rows || [];
+      if (!rows.length) {
+        toastService.info('No records to export');
+        return;
+      }
+      downloadMasterCsv(engineEntity, rows);
+      toastService.success(`Exported ${rows.length} record(s)`);
+    } catch (err) {
+      toastService.error(getApiErrorMessage(err, 'Export failed'));
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -238,7 +352,7 @@ export default function MasterDataPage() {
 
   if (!hubItem) {
     return (
-      <ModulePageCard title="Master" icon={FiDatabase} breadcrumbs={[{ label: 'Dashboard', path: ROUTES.DASHBOARD }, { label: 'Master', path: ROUTES.MASTER }]}>
+      <ModulePageCard title="Master" icon={FiDatabase} breadcrumbs={[{ label: 'Admin', path: ROUTES.DASHBOARD }, { label: 'Masters', path: ROUTES.MASTER }, { label: 'Not found' }]}>
         <div className="p-6">
           <Card className="p-8 text-center text-text-muted">Master not found.</Card>
         </div>
@@ -251,10 +365,27 @@ export default function MasterDataPage() {
     return <MasterItemPage />;
   }
 
+  // Specialized parent/child UI (country summary + CRUD)
+  if (slug === 'application-status-master') {
+    return <ApplicationStatusPage />;
+  }
+
+  if (slug === 'visa-status-master') {
+    return <VisaStatusPage />;
+  }
+
+  if (slug === 'feature-toggle') return <Navigate to={ROUTES.FEATURE_TOGGLE} replace />;
+  if (slug === 'backup-export') return <Navigate to={`${ROUTES.REPORTS}?tab=export`} replace />;
+  if (slug === 'roles') return <Navigate to={ROUTES.ROLES} replace />;
+
   // Organization module (Company / Branch)
-  if (slug === 'company') return <OrganizationCompanyPage />;
+  if (slug === 'company' || slug === 'company-config' || slug === 'invoice-config') return <OrganizationCompanyPage />;
   if (slug === 'branch') return <OrganizationBranchPage />;
-  if (slug === 'staff') return <MasterStaffPage />;
+  if (slug === 'staff' || slug === 'contact-list') return <MasterStaffPage />;
+  if (slug === 'partners' || slug === 'partner-commission' || slug === 'partner-agreement' || slug === 'partner-agreement-email') {
+    return <MasterPartnerPage slug={slug} />;
+  }
+  if (slug === 'associates') return <MasterPartnerPage slug="associates" defaultType="ASSOCIATE" />;
 
   // Non-engine placeholders (Feature Toggle route)
   if (!entityConfig) {
@@ -263,11 +394,7 @@ export default function MasterDataPage() {
         title={hubItem.label}
         subtitle={hubItem.description}
         icon={Icon}
-        breadcrumbs={[
-          { label: 'Dashboard', path: ROUTES.DASHBOARD },
-          { label: 'Master', path: ROUTES.MASTER },
-          { label: hubItem.label },
-        ]}
+        breadcrumbs={buildMasterBreadcrumbs(hubItem)}
       >
         <div className="flex-1 min-h-0 overflow-auto p-4">
           <Card className="text-center !p-12">
@@ -304,13 +431,9 @@ export default function MasterDataPage() {
   return (
     <ModulePageCard
       title={hubItem.label}
-      subtitle={hubItem.aliasOf ? `${hubItem.description}` : entityConfig.description}
+      subtitle={`${getMasterTypeMeta(hubItem.type).label} · ${hubItem.aliasOf ? hubItem.description : entityConfig.description}${hubItem.usedIn?.length ? ` · Used in ${hubItem.usedIn.join(', ')}` : ''}`}
       icon={Icon}
-      breadcrumbs={[
-        { label: 'Dashboard', path: ROUTES.DASHBOARD },
-        { label: 'Master', path: ROUTES.MASTER },
-        { label: hubItem.label },
-      ]}
+      breadcrumbs={buildMasterBreadcrumbs(hubItem)}
       actions={null}
     >
       <div className="flex flex-col flex-1 min-h-0">
@@ -323,9 +446,31 @@ export default function MasterDataPage() {
           onRefresh={list.reload}
           refreshing={list.fetching}
           onAdd={() => openDrawer('add')}
-          singularLabel={entityConfig.singular}
+          onExport={handleExport}
+          exporting={exporting}
+          selectedCount={selectedIds.length}
+          onBulkActivate={() => handleBulkStatus(true)}
+          onBulkDeactivate={() => handleBulkStatus(false)}
+          onBulkDelete={handleBulkDelete}
+          singularLabel={hubItem.aliasOf ? hubItem.label : entityConfig.singular}
           canManage={canManage}
         />
+
+        {slug === 'application-checklist' && canManage && (
+          <div className="px-1 pb-2">
+            <Button size="sm" variant="outline" onClick={() => setBulkChecklistOpen(true)}>
+              Add Multiple Rows
+            </Button>
+          </div>
+        )}
+
+        {slug === 'visa-checklist' && canManage && (
+          <div className="px-1 pb-2">
+            <Button size="sm" variant="outline" onClick={() => setBulkChecklistOpen(true)}>
+              Add Multiple Rows
+            </Button>
+          </div>
+        )}
 
         <MasterFilters
           open={filtersOpen}
@@ -355,10 +500,12 @@ export default function MasterDataPage() {
                 loading={list.loading}
                 fetching={list.fetching}
                 pagination={false}
+                rowSelection={canManage ? { mode: 'multiRow', checkboxes: true, headerCheckbox: true } : false}
+                onSelectionChanged={setSelectedRows}
                 getRowId={(p) => p.data.id}
                 emptyTitle={emptyTitle}
                 emptyDescription={emptyDescription}
-                emptyActionLabel={canManage && !list.hasSearchOrFilters ? `Add ${entityConfig.singular}` : undefined}
+                emptyActionLabel={canManage && !list.hasSearchOrFilters ? `Add ${hubItem.aliasOf ? hubItem.label : entityConfig.singular}` : undefined}
                 onEmptyAction={canManage && !list.hasSearchOrFilters ? () => openDrawer('add') : undefined}
                 onGridReady={(params) => {
                   params.api.addEventListener('sortChanged', onSortChanged);
@@ -383,9 +530,26 @@ export default function MasterDataPage() {
         entityConfig={entityConfig}
         record={drawer.record}
         submitting={submitting}
+        fieldDefaults={fieldDefaults}
         onClose={closeDrawer}
         onSubmit={handleSubmit}
       />
+
+      {slug === 'application-checklist' && (
+        <ApplicationChecklistBulkModal
+          open={bulkChecklistOpen}
+          onClose={() => setBulkChecklistOpen(false)}
+          onSuccess={list.reload}
+        />
+      )}
+
+      {slug === 'visa-checklist' && (
+        <VisaChecklistBulkModal
+          open={bulkChecklistOpen}
+          onClose={() => setBulkChecklistOpen(false)}
+          onSuccess={list.reload}
+        />
+      )}
     </ModulePageCard>
   );
 }

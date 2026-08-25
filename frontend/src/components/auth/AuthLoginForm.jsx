@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toastService from '../../services/toast/toast.service';
 import { motion } from 'framer-motion';
 import { pageEase } from '../../theme/pageMotion';
@@ -21,21 +21,25 @@ import { PORTAL_META, PORTALS } from '../../config/portal.config';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 export default function AuthLoginForm({ portal = PORTALS.ADMIN }) {
   const meta = PORTAL_META[portal] || PORTAL_META[PORTALS.ADMIN];
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const loading = useSelector(selectAuthLoading);
   const error = useSelector(selectAuthError);
+  const emailFromQuery = searchParams.get('email') || '';
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: portal === PORTALS.ADMIN
-      ? { email: 'admin@crm.com', password: 'Admin@123' }
-      : { email: '', password: '' },
+    defaultValues: emailFromQuery
+      ? { email: emailFromQuery, password: '' }
+      : portal === PORTALS.ADMIN
+        ? { email: 'admin@crm.com', password: 'Admin@123' }
+        : { email: '', password: '' },
   });
 
   useEffect(() => {
@@ -49,6 +53,11 @@ export default function AuthLoginForm({ portal = PORTALS.ADMIN }) {
       toastService.action.success(MESSAGES.LOGIN_SUCCESS);
       const route = result.payload.defaultRoute || result.payload.user?.defaultRoute || '/admin/dashboard';
       navigate(route);
+      return;
+    }
+    const suggested = result.payload?.suggestedLoginPath;
+    if (suggested && suggested !== meta.loginPath) {
+      navigate(`${suggested}?email=${encodeURIComponent(data.email)}`);
     }
   };
 
@@ -84,8 +93,24 @@ export default function AuthLoginForm({ portal = PORTALS.ADMIN }) {
               <Input label="Password" type="password" icon={FiLock} error={errors.password?.message} {...register('password')} />
               <Button type="submit" loading={loading} className="w-full" size="lg">Sign In</Button>
             </form>
+            {portal === PORTALS.STUDENT && (
+              <p className="text-xs text-text-muted mt-4 text-center">
+                Counsellor / Reception / Admin?{' '}
+                <Link to="/login/admin" className="text-primary-600 hover:underline font-medium">
+                  Use Staff login
+                </Link>
+              </p>
+            )}
+            {portal === PORTALS.ADMIN && (
+              <p className="text-xs text-text-muted mt-4 text-center">
+                Student account?{' '}
+                <Link to="/login/student" className="text-primary-600 hover:underline font-medium">
+                  Student portal
+                </Link>
+              </p>
+            )}
             {meta.registerPath && (
-              <p className="text-sm text-text-secondary mt-6 text-center">
+              <p className="text-sm text-text-secondary mt-4 text-center">
                 No account?{' '}
                 <Link to={meta.registerPath} className="text-primary-600 hover:underline font-medium">
                   Register here

@@ -1,19 +1,14 @@
 import { useMemo } from 'react';
 import { useMasterOptions } from '../../master/hooks/useMasterOptions';
-import { ENQUIRY_TAGS, mapEnquiryTagOptions } from '../config/enquiryTags.config';
+import { mapEnquiryTagOptions } from '../config/enquiryTags.config';
 
 /**
- * Enquiry tag options from Tags master (MasterItem) with static fallback.
+ * Enquiry tag options from Tags master (MasterItem). Empty until the API returns.
  */
 export function useEnquiryTagOptions({ enabled = true } = {}) {
   const { options, loading, reload, ensureOption } = useMasterOptions('tags', { enabled });
 
-  const tagOptions = useMemo(() => {
-    if (options?.length) {
-      return mapEnquiryTagOptions(options);
-    }
-    return ENQUIRY_TAGS;
-  }, [options]);
+  const tagOptions = useMemo(() => mapEnquiryTagOptions(options), [options]);
 
   return { options: tagOptions, loading, reload, ensureOption };
 }

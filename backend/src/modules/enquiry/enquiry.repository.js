@@ -8,6 +8,7 @@ import {
 import { getMatchedFields, normalizeEmail, normalizePassport, normalizePhone } from './enquiryDuplicate.utils.js';
 
 const userSelect = { id: true, firstName: true, lastName: true, email: true };
+const facultySelect = { id: true, name: true, code: true, email: true };
 const branchSelect = { id: true, name: true, code: true };
 
 const buildWhere = (filters = {}) => {
@@ -17,8 +18,12 @@ const buildWhere = (filters = {}) => {
     search, status, priority, tag, branchId, assignedToId, unassigned, view,
     userId, keyword, enquiryId, country, staffId, source,
     otherReference, applyLevel, intake, course,
-    createdFrom, createdTo, updatedFrom, updatedTo, statusIn,
+    createdFrom, createdTo, updatedFrom, updatedTo, statusIn, ids,
   } = rest;
+
+  if (Array.isArray(ids) && ids.length) {
+    where.id = { in: ids };
+  }
 
   if (statusIn) {
     const values = String(statusIn).split(',').map((s) => s.trim()).filter(Boolean);
@@ -96,12 +101,34 @@ export const enquiryRepository = {
           branch: { select: branchSelect },
           assignedTo: { select: userSelect },
           assignedBy: { select: userSelect },
+          documents: {
+            where: { category: 'PHOTO' },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              filePath: true,
+              mimeType: true,
+              fileName: true,
+            },
+          },
         },
       }),
       prisma.enquiry.count({ where }),
     ]);
 
-    return { data, pagination: buildPagination(page, limit, total) };
+    const rows = data.map((row) => {
+      const photo = row.documents?.[0];
+      const isImage = photo?.mimeType?.startsWith('image/')
+        || /\.(jpe?g|png|gif|webp|bmp)$/i.test(photo?.fileName || '');
+      const { documents, ...rest } = row;
+      return {
+        ...rest,
+        photoUrl: isImage && photo?.filePath ? photo.filePath : null,
+      };
+    });
+
+    return { data: rows, pagination: buildPagination(page, limit, total) };
   },
 
   findById: (id, scopeWhere = {}) => prisma.enquiry.findFirst({
@@ -122,7 +149,8 @@ export const enquiryRepository = {
         orderBy: { demoDate: 'desc' },
         include: {
           user: { select: userSelect },
-          faculty: { select: userSelect },
+          faculty: { select: facultySelect },
+          attendanceMarkedBy: { select: userSelect },
         },
       },
       notes: {
@@ -220,7 +248,81 @@ export const enquiryRepository = {
 
   addFollowup: (data) => prisma.enquiryFollowup.create({ data }),
   addAppointment: (data) => prisma.enquiryAppointment.create({ data }),
-  addDemo: (data) => prisma.enquiryDemo.create({ data }),
+  addDemo: (data) => prisma.enquiryDemo.create({
+    data,
+    include: {
+      user: { select: userSelect },
+      faculty: { select: facultySelect },
+      attendanceMarkedBy: { select: userSelect },
+    },
+  }),
+
+  findDemoById: (id) => prisma.enquiryDemo.findUnique({
+    where: { id },
+    include: {
+      user: { select: userSelect },
+      faculty: { select: facultySelect },
+      attendanceMarkedBy: { select: userSelect },
+      enquiry: {
+        select: {
+          id: true,
+          enquiryCode: true,
+          firstName: true,
+          lastName: true,
+          branchId: true,
+          assignedToId: true,
+          assignedTo: { select: userSelect },
+          branch: { select: branchSelect },
+          studentId: true,
+          interestedCourse: true,
+          status: true,
+        },
+      },
+    },
+  }),
+
+  updateDemo: (id, data) => prisma.enquiryDemo.update({
+    where: { id },
+    data,
+    include: {
+      user: { select: userSelect },
+      faculty: { select: facultySelect },
+      attendanceMarkedBy: { select: userSelect },
+    },
+  }),
+
+  listDemos: (where, { skip = 0, take = 50 } = {}) => prisma.enquiryDemo.findMany({
+    where,
+    include: {
+      user: { select: userSelect },
+      faculty: { select: facultySelect },
+      attendanceMarkedBy: { select: userSelect },
+      enquiry: {
+        select: {
+          id: true,
+          enquiryCode: true,
+          firstName: true,
+          lastName: true,
+          mobile: true,
+          email: true,
+          priority: true,
+          interestedCountry: true,
+          branchId: true,
+          assignedToId: true,
+          assignedTo: { select: userSelect },
+          branch: { select: branchSelect },
+          studentId: true,
+          interestedCourse: true,
+          status: true,
+        },
+      },
+    },
+    orderBy: { demoDate: 'desc' },
+    skip,
+    take,
+  }),
+
+  countDemos: (where) => prisma.enquiryDemo.count({ where }),
   addNote: (data) => prisma.enquiryNote.create({
     data,
     include: {

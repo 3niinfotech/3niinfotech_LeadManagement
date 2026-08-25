@@ -1,6 +1,7 @@
 import {
   FiLayout, FiInbox, FiBookOpen, FiMonitor, FiDollarSign,
   FiBarChart2, FiSliders, FiDatabase, FiGrid, FiHome, FiGlobe, FiTarget,
+  FiFileText, FiMail, FiUsers, FiBriefcase, FiShield, FiCalendar, FiUserPlus,
 } from 'react-icons/fi';
 import * as FiIcons from 'react-icons/fi';
 import { ROUTES } from './routes';
@@ -10,24 +11,35 @@ import { MASTER_SECTIONS } from './master-registry.config';
 const MASTER_SECTION_ICONS = {
   organization: FiHome,
   academic: FiBookOpen,
+  crm: FiTarget,
+  application: FiFileText,
   visa: FiGlobe,
   finance: FiDollarSign,
-  crm: FiTarget,
-  reception: FiInbox,
+  partners: FiBriefcase,
+  communication: FiMail,
+  people: FiUsers,
   system: FiSliders,
+  access: FiShield,
 };
 
-function mapMasterItem(item) {
+function mapMasterItem(entry) {
   return {
-    id: item.id,
-    label: item.label,
-    description: item.description,
-    icon: FiIcons[item.icon] || FiDatabase,
-    path: item.route,
-    permission: item.permissionKey,
-    permissions: item.permissionKey
-      ? [item.permissionKey, PERMISSIONS.SETTINGS_VIEW, PERMISSIONS.MASTERS_VIEW]
-      : undefined,
+    id: entry.id,
+    label: entry.label,
+    description: entry.description,
+    icon: FiIcons[entry.icon] || FiDatabase,
+    path: entry.route,
+    permission: entry.permissionKey,
+    permissions: entry.permissionKey
+      ? [entry.permissionKey, PERMISSIONS.MASTERS_VIEW, PERMISSIONS.MASTERS_MANAGE]
+      : [PERMISSIONS.MASTERS_VIEW],
+    keywords: [
+      ...(entry.keywords || []),
+      ...(entry.usedIn || []),
+      entry.aliasOf,
+      entry.entity,
+      entry.id,
+    ].filter(Boolean),
   };
 }
 
@@ -39,7 +51,7 @@ export function buildMasterSidebarChildren() {
     icon: FiGrid,
     path: ROUTES.MASTER,
     permission: PERMISSIONS.MASTERS_VIEW,
-    permissions: [PERMISSIONS.MASTERS_VIEW, PERMISSIONS.SETTINGS_VIEW],
+    permissions: [PERMISSIONS.MASTERS_VIEW, PERMISSIONS.MASTERS_MANAGE],
   };
 
   const sectionGroups = MASTER_SECTIONS.map((section) => ({
@@ -47,13 +59,14 @@ export function buildMasterSidebarChildren() {
     label: section.label,
     description: section.description,
     icon: MASTER_SECTION_ICONS[section.id] || FiDatabase,
-    children: section.items.map(mapMasterItem),
+    keywords: [section.id, section.label],
+    children: section.items.filter((entry) => !entry.hidden).map(mapMasterItem),
   }));
 
   return [hub, ...sectionGroups];
 }
 
-/** Phase 1 sidebar — Dashboard, Masters, Enquiry, Demo, Students, Fees, Reports, Settings */
+/** Phase 1 sidebar — Dashboard, Masters, Reception, Enquiry, Calendar, Demo, Students, Fees, Reports, Settings */
 export const sidebarMenuStructure = [
   {
     id: 'dashboard',
@@ -68,15 +81,33 @@ export const sidebarMenuStructure = [
     label: 'Masters',
     description: 'Reference data & setup',
     icon: FiDatabase,
+    keywords: ['master hub', 'master data', 'setup', 'reference'],
+    permissions: [PERMISSIONS.MASTERS_VIEW, PERMISSIONS.MASTERS_MANAGE],
     children: buildMasterSidebarChildren(),
+  },
+  {
+    id: 'reception',
+    label: 'Reception',
+    description: 'Walk-in register & counsellor assignment',
+    icon: FiUserPlus,
+    path: ROUTES.WALK_INS,
+    permission: PERMISSIONS.WALKIN_VIEW,
   },
   {
     id: 'enquiries',
     label: 'Enquiry',
-    description: 'Register leads, follow-up & convert',
+    description: 'Follow-up, counselling & convert',
     icon: FiInbox,
     path: ROUTES.ENQUIRIES,
-    permissions: [PERMISSIONS.ENQUIRIES_VIEW, PERMISSIONS.LEADS_VIEW],
+    permission: PERMISSIONS.ENQUIRIES_VIEW,
+  },
+  {
+    id: 'calendar',
+    label: 'Calendar',
+    description: 'Follow-ups, appointments & due dates',
+    icon: FiCalendar,
+    path: ROUTES.CALENDAR,
+    permission: PERMISSIONS.CALENDAR_VIEW,
   },
   {
     id: 'demo',
@@ -84,7 +115,7 @@ export const sidebarMenuStructure = [
     description: 'Demo scheduling, attendance & feedback',
     icon: FiMonitor,
     path: ROUTES.DEMO,
-    permissions: [PERMISSIONS.ENQUIRIES_VIEW, PERMISSIONS.STUDENTS_VIEW],
+    permission: PERMISSIONS.ENQUIRIES_VIEW,
   },
   {
     id: 'students',
@@ -93,6 +124,38 @@ export const sidebarMenuStructure = [
     icon: FiBookOpen,
     path: ROUTES.STUDENTS,
     permission: PERMISSIONS.STUDENTS_VIEW,
+  },
+  {
+    id: 'batches',
+    label: 'Batches',
+    description: 'Class batches, timetable & attendance',
+    icon: FiUsers,
+    path: ROUTES.BATCHES,
+    permission: PERMISSIONS.ATTENDANCE_VIEW,
+  },
+  {
+    id: 'applications',
+    label: 'Applications',
+    description: 'University applications & documents',
+    icon: FiFileText,
+    path: ROUTES.APPLICATIONS,
+    permission: PERMISSIONS.APPLICATIONS_VIEW,
+  },
+  {
+    id: 'visas',
+    label: 'Visa',
+    description: 'Visa cases & status',
+    icon: FiGlobe,
+    path: ROUTES.VISAS,
+    permission: PERMISSIONS.VISAS_VIEW,
+  },
+  {
+    id: 'partners',
+    label: 'Partners',
+    description: 'Partner / agent directory',
+    icon: FiBriefcase,
+    path: ROUTES.PARTNERS,
+    permission: PERMISSIONS.PARTNERS_VIEW,
   },
   {
     id: 'fees',

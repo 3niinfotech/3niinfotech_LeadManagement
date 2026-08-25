@@ -9,15 +9,25 @@ import {
   assertLeadInTenant,
   resolveCompanyIdForBranch,
   requireTenantCompany,
+  resolveWriteBranchId,
 } from '../../utils/tenant.util.js';
-import { notificationService } from '../notification/notification.service.js';
+import { notifyUser, notifyVisitorRegistered, notifyCounsellorAssigned } from '../notification/notification.dispatcher.js';
 import { assignmentService } from '../assignment/assignment.service.js';
-import { featureService } from '../feature/feature.service.js';
+import { assignmentEngine } from '../assignment/assignment.engine.js';
 import { enquiryService } from '../enquiry/enquiry.service.js';
 import { walkinRepository } from './walkin.repository.js';
 import { userRepository } from '../user/user.repository.js';
 import { WALKIN_SORT_FIELDS } from './walkin.validators.js';
 import { splitFullName, buildQrPayload } from './walkin.utils.js';
+
+async function openEnquiryForAssignedVisitor(lead, userId, req) {
+  if (!lead?.assignedToId) return null;
+  return enquiryService.createFromLead(lead, userId, req, {
+    status: 'NEW',
+    priority: 'MEDIUM',
+    fromAssignment: true,
+  });
+}
 
 export const walkinService = {
   getAll: async (query, user) => {
@@ -58,31 +68,33 @@ export const walkinService = {
 
   create: async (data, userId, req) => {
     const user = req.user;
-    const branch = await assertBranchInTenant(data.branchId, user);
-    if (data.assignedToId) await assertCounsellorInTenant(data.assignedToId, user);
+    const branchId = await resolveWriteBranchId(user, data.branchId);
+    const branch = await assertBranchInTenant(branchId, user);
 
-    const dup = await walkinRepository.findByPhone(data.phone, data.branchId);
+    if (!data.assignedToId) {
+      throw new AppError('Counsellor assignment is required — Reception must select a counsellor', 400);
+    }
+    await assertCounsellorInTenant(data.assignedToId, user);
+
+    const dup = await walkinRepository.findByPhone(data.phone, branchId);
     if (dup) {
-      await enquiryService.createFromLead(dup, userId, req, { status: 'NEW', priority: 'MEDIUM' });
       throw new AppError(
-        `Active lead already exists for this mobile (${dup.leadCode}). Open the existing enquiry from the list.`,
+        `Active visitor already exists for this mobile (${dup.leadCode}). Open Reception to manage the visitor.`,
         409,
       );
     }
 
     const { firstName, lastName } = splitFullName(data.fullName);
-    const [leadCode, tokenNumber] = await Promise.all([
-      walkinRepository.generateLeadCode(branch.companyId),
-      walkinRepository.generateTokenNumber(data.branchId),
-    ]);
-
+    const leadCode = await walkinRepository.generateLeadCode(branch.companyId);
+    // Preserve required DB column — not a queue token (legacy field retained).
+    const tokenNumber = `REF-${leadCode}`;
     const qrPayload = buildQrPayload({ leadCode, tokenNumber });
 
     const lead = await walkinRepository.create({
       leadCode,
       tokenNumber,
-      branchId: data.branchId,
-      assignedToId: data.assignedToId || null,
+      branchId,
+      assignedToId: data.assignedToId,
       receptionUserId: userId,
       firstName,
       lastName,
@@ -91,7 +103,7 @@ export const walkinService = {
       country: data.interestedCountry?.trim() || data.country?.trim() || null,
       interestedCourse: data.interestedCourse?.trim() || null,
       source: data.source || 'Walk-in',
-      status: 'WAITING',
+      status: 'WALK_IN',
       priority: data.priority || 'NORMAL',
       notes: data.notes?.trim() || null,
       walkInAt: new Date(),
@@ -107,6 +119,7 @@ export const walkinService = {
         studyLevel: data.studyLevel || null,
         preferredLanguage: data.preferredLanguage || null,
         visitPurpose: data.visitPurpose || null,
+        assignedManually: true,
       },
     });
 
@@ -117,8 +130,8 @@ export const walkinService = {
         entityType: 'LEAD',
         entityId: lead.id,
         action: 'WALK_IN_REGISTERED',
-        description: `Walk-in registered — Token ${tokenNumber}`,
-        metadata: { leadCode, tokenNumber, status: 'WAITING' },
+        description: `Walk-in registered and assigned — ${leadCode}`,
+        metadata: { leadCode, status: 'WALK_IN', assignedToId: data.assignedToId },
       },
     });
 
@@ -127,40 +140,59 @@ export const walkinService = {
       action: 'CREATE',
       entityType: 'Lead',
       entityId: lead.id,
-      newData: { leadCode, tokenNumber, status: 'WAITING' },
+      newData: { leadCode, status: 'WALK_IN', branchId, assignedToId: data.assignedToId },
       req,
     });
 
-    if (lead.assignedToId) {
-      await notificationService.create({
-        userId: lead.assignedToId,
-        type: 'INFO',
-        title: 'New walk-in waiting',
-        message: `${firstName} ${lastName || ''}`.trim()
-          + (tokenNumber ? ` is waiting (Token ${tokenNumber}).` : ' has registered.')
-          + ' Please start counselling.',
-        link: `/counsellor/queue?lead=${lead.id}`,
-        metadata: { leadId: lead.id, leadCode, tokenNumber },
+    // No auto-queue / offer loop — Reception already assigned.
+    const freshLead = await walkinRepository.findById(lead.id);
+
+    let assigneeName = null;
+    let enquiry = null;
+    if (freshLead?.assignedToId) {
+      const assignee = await prisma.user.findFirst({
+        where: { id: freshLead.assignedToId, deletedAt: null },
+        select: { firstName: true, lastName: true },
       });
-    } else {
-      const autoAssign = await featureService.isEnabled(
-        'reception.auto_counsellor_assignment',
-        { companyId: branch.companyId },
-      );
-      if (autoAssign) {
-        const assignResult = await assignmentService.enqueueAfterRegistration(lead.id, userId);
-        if (assignResult?.offer) {
-          await assignmentService.notifyOffer(assignResult.offer, lead);
-        }
+      if (assignee) {
+        assigneeName = `${assignee.firstName || ''} ${assignee.lastName || ''}`.trim();
       }
+      enquiry = await openEnquiryForAssignedVisitor(freshLead, userId, req);
+      await notifyCounsellorAssigned({
+        counsellorId: freshLead.assignedToId,
+        lead: freshLead,
+        enquiry,
+        actorId: userId,
+      });
     }
 
-    const enquiry = await enquiryService.createFromLead(lead, userId, req, {
-      status: 'NEW',
-      priority: 'MEDIUM',
-    });
+    try {
+      await notifyVisitorRegistered({
+        lead: freshLead || lead,
+        enquiry,
+        actorId: userId,
+        companyId: branch.companyId,
+        assigneeName,
+      });
+    } catch {
+      // Registration must succeed even if manager notify fails
+    }
 
-    return { ...lead, enquiry };
+    return { ...(freshLead || lead), enquiry };
+  },
+
+  recommendCounsellors: async (query, user) => {
+    const branchId = await resolveWriteBranchId(user, query.branchId || null);
+    const branch = await assertBranchInTenant(branchId, user);
+    return assignmentEngine.recommendCounsellors({
+      branchId,
+      companyId: branch.companyId,
+      country: query.country || query.interestedCountry || null,
+      interestedCourse: query.interestedCourse || null,
+      preferredLanguage: query.preferredLanguage || null,
+      visitPurpose: query.visitPurpose || null,
+      priority: query.priority || 'NORMAL',
+    });
   },
 
   update: async (id, data, userId, req) => {
@@ -213,6 +245,17 @@ export const walkinService = {
       req,
     });
 
+    if (data.assignedToId && data.assignedToId !== existing.assignedToId) {
+      const enquiry = await openEnquiryForAssignedVisitor(lead, userId, req);
+      await notifyCounsellorAssigned({
+        counsellorId: data.assignedToId,
+        lead,
+        enquiry,
+        actorId: userId,
+      });
+      return { ...lead, enquiry };
+    }
+
     return lead;
   },
 
@@ -244,13 +287,12 @@ export const walkinService = {
     });
 
     if (status === 'IN_COUNSELLING' && existing.assignedToId && existing.assignedToId !== userId) {
-      await notificationService.create({
-        userId: existing.assignedToId,
+      await notifyUser(existing.assignedToId, {
         type: 'INFO',
         title: 'Counselling started',
         message: `Counselling started for ${existing.firstName} ${existing.lastName || ''}`.trim(),
         link: `/reception/walk-ins?lead=${id}`,
-        metadata: { leadId: id },
+        metadata: { leadId: id, event: 'COUNSELLING_STARTED' },
       });
     }
 
@@ -301,7 +343,7 @@ export const walkinService = {
 
   getCounsellors: (branchId, user) => {
     const companyId = requireTenantCompany(user);
-    const effectiveBranch = branchId || user.branchId;
+    const effectiveBranch = branchId || null;
     if (effectiveBranch) {
       return assertBranchInTenant(effectiveBranch, user).then(() =>
         userRepository.listCounsellors({ branchId: effectiveBranch, companyId }),
@@ -369,7 +411,7 @@ export const walkinService = {
 
     if (decision === 'FOLLOW_UP') {
       await walkinRepository.update(id, {
-        status: 'WAITING',
+        status: 'WALK_IN',
         followUpAt: followUpDate ? new Date(followUpDate) : null,
         updatedBy: userId,
       });

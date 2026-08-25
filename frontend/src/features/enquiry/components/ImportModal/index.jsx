@@ -37,17 +37,30 @@ export default function ImportModal({ open, onClose }) {
   };
 
   const handleFile = async (file) => {
-    setFileName(file.name);
-    const data = await parseImport(file).unwrap();
-    setRows(data);
-    setStep(2);
+    try {
+      setFileName(file.name);
+      const data = await parseImport(file).unwrap();
+      const rows = Array.isArray(data) ? data : (data?.rows || []);
+      if (!rows.length) {
+        toastService.error('No data rows found in the file');
+        return;
+      }
+      setRows(rows);
+      setStep(2);
+    } catch (err) {
+      toastService.error(err?.data?.message || 'Failed to parse import file');
+    }
   };
 
   const handleConfirm = async () => {
-    const res = await confirmImport({ rows, fileName }).unwrap();
-    setResult(res);
-    setStep(3);
-    toastService.success('Import completed');
+    try {
+      const res = await confirmImport({ rows, fileName }).unwrap();
+      setResult(res);
+      setStep(3);
+      toastService.success('Import completed');
+    } catch (err) {
+      toastService.error(err?.data?.message || 'Import failed');
+    }
   };
 
   return (
@@ -85,11 +98,22 @@ export default function ImportModal({ open, onClose }) {
               {step === 1 && <ImportUploadStep onFile={handleFile} loading={parsing} />}
               {step === 2 && <ImportPreviewStep rows={rows} />}
               {step === 3 && result && (
-                <div className="text-center py-8 space-y-2">
+                <div className="text-center py-8 space-y-3">
                   <p className="text-lg font-semibold text-text">Import Summary</p>
-                  <p className="text-sm text-text-secondary">
-                    Uploaded: {result.uploaded} · Duplicate: {result.duplicates} · Failed: {result.failed}
-                  </p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <span className="px-3 py-1.5 rounded-lg bg-page border border-border text-sm">
+                      Total <strong>{result.total ?? rows.length}</strong>
+                    </span>
+                    <span className="px-3 py-1.5 rounded-lg bg-success-soft text-success text-sm">
+                      Uploaded <strong>{result.uploaded}</strong>
+                    </span>
+                    <span className="px-3 py-1.5 rounded-lg bg-warning-soft text-warning text-sm">
+                      Duplicate <strong>{result.duplicates}</strong>
+                    </span>
+                    <span className="px-3 py-1.5 rounded-lg bg-danger-soft text-danger text-sm">
+                      Failed <strong>{result.failed}</strong>
+                    </span>
+                  </div>
                 </div>
               )}
             </>

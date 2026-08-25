@@ -6,7 +6,7 @@ import { FiSave, FiInbox } from 'react-icons/fi';
 import Button from '../../../../components/ui/Button';
 import ContentLoader from '../../../../components/ui/ContentLoader';
 import { ENQUIRY_PROFILE_TABS, ENQUIRY_CREATE_FORM_TABS } from '../../../../config/constants';
-import { enquiryFormSchema } from '../../schemas/enquirySchema';
+import { buildEnquiryFormSchema } from '../../schemas/enquirySchema';
 import {
   useGetEnquiryQuery,
   useCreateEnquiryMutation,
@@ -16,6 +16,8 @@ import {
   useConvertEnquiryMutation,
 } from '../../redux/enquiryApiSlice';
 import { selectUser } from '../../../../redux/slices/authSlice';
+import { useCompanyRuntime } from '../../../organization/CompanyRuntime';
+import { suggestedFollowupFromSettings } from '../../../../config/company-settings.config';
 import toastService from '../../../../services/toast/toast.service';
 import EnquiryWorkspaceLayout from './EnquiryWorkspaceLayout';
 import OverviewTab from '../EnquiryDrawer/OverviewTab';
@@ -25,6 +27,7 @@ import FollowUpActionsPanel from '../EnquiryDrawer/FollowUpActionsPanel';
 import AppointmentFormTab from '../EnquiryDrawer/AppointmentFormTab';
 import FollowUpTab from '../EnquiryDrawer/FollowUpTab';
 import ConversionTab from '../EnquiryDrawer/ConversionTab';
+import DemoTab from '../EnquiryDrawer/DemoTab';
 import DocumentsTab from '../EnquiryDrawer/DocumentsTab';
 import CommunicationTab from '../EnquiryDrawer/CommunicationTab';
 import TimelineTab from '../EnquiryDrawer/TimelineTab';
@@ -102,6 +105,17 @@ export default function EnquiryWorkspace({
   onTabChange,
 }) {
   const user = useSelector(selectUser);
+  const { settings } = useCompanyRuntime();
+  const enquirySchema = useMemo(
+    () => buildEnquiryFormSchema(settings?.mandatoryFields),
+    [settings?.mandatoryFields],
+  );
+  const formDefaults = useMemo(() => ({
+    ...defaultValues,
+    mobileCountry: settings?.defaultMobileCode || defaultValues.mobileCountry,
+    nationality: settings?.defaultNationality || '',
+    ...suggestedFollowupFromSettings(settings),
+  }), [settings]);
   const { openEnquiry, backToList, openStudent } = useEnquiryNav();
   const isEditMode = mode !== 'create';
   const activeTab = VALID_TABS.has(activeTabProp) ? activeTabProp : 'overview';
@@ -125,8 +139,8 @@ export default function EnquiryWorkspace({
     control,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(enquiryFormSchema),
-    defaultValues,
+    resolver: zodResolver(enquirySchema),
+    defaultValues: formDefaults,
     mode: 'onTouched',
   });
 
@@ -150,11 +164,12 @@ export default function EnquiryWorkspace({
 
   useEffect(() => {
     if (enquiry && isEditMode) {
-      reset(mapEnquiryToFormValues(enquiry, defaultValues));
+      reset(mapEnquiryToFormValues(enquiry, formDefaults));
     } else if (!isEditMode) {
-      reset({ ...defaultValues, branchId: user?.branchId });
+      reset({ ...formDefaults, branchId: user?.branchId });
+      if (settings?.followupPopup && onTabChange) onTabChange('followup');
     }
-  }, [enquiry, isEditMode, reset, user?.branchId]);
+  }, [enquiry, isEditMode, reset, user?.branchId, formDefaults, settings?.followupPopup, onTabChange]);
 
   const visibleTabs = useMemo(
     () => (isEditMode
@@ -350,6 +365,14 @@ export default function EnquiryWorkspace({
               isEditMode={isEditMode}
               onFollowUpLogged={refetch}
               onAppointmentBooked={refetch}
+            />
+          )}
+          {activeTab === 'demo' && isEditMode && (
+            <DemoTab
+              enquiryId={enquiryId}
+              enquiry={enquiry}
+              isEditMode={!readOnly}
+              onRecorded={refetch}
             />
           )}
           {activeTab === 'conversion' && isEditMode && (

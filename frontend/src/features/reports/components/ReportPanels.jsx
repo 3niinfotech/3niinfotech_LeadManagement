@@ -218,6 +218,49 @@ export function DemoReport({ data }) {
       <ChartCard title="Demo Results">
         <ReportBarChart data={data?.byResult || []} xKey="result" />
       </ChartCard>
+      {data?.bySessionStatus?.length > 0 && (
+        <ChartCard title="Demo Session Status">
+          <ReportBarChart data={data.bySessionStatus} xKey="status" />
+        </ChartCard>
+      )}
+    </div>
+  );
+}
+
+export function AttendanceReport({ data }) {
+  const students = data?.class?.students || [];
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <StatCard title="Records" value={data?.class?.totals?.records || 0} color="info" />
+        <StatCard title="Present" value={data?.class?.totals?.present || 0} color="success" />
+        <StatCard title="Absent" value={data?.class?.totals?.absent || 0} color="danger" />
+        <StatCard title="Late" value={data?.class?.totals?.late || 0} color="warning" />
+      </div>
+      <ChartCard title="Student attendance %">
+        <div className="overflow-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-text-muted">
+              <tr><th className="py-2">Student</th><th>Batch</th><th>Present</th><th>Absent</th><th>%</th></tr>
+            </thead>
+            <tbody>
+              {students.slice(0, 50).map((row) => (
+                <tr key={row.student?.id} className="border-t border-border">
+                  <td className="py-2">{row.student?.firstName} {row.student?.lastName}</td>
+                  <td>{row.batch || '—'}</td>
+                  <td>{row.present}</td>
+                  <td>{row.absent}</td>
+                  <td>{row.percent}%{row.low ? ' · At risk' : ''}</td>
+                </tr>
+              ))}
+              {students.length === 0 && (
+                <tr><td className="py-4 text-text-muted" colSpan={5}>No class attendance in this range.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </ChartCard>
+      <DemoReport data={data?.demo} />
     </div>
   );
 }

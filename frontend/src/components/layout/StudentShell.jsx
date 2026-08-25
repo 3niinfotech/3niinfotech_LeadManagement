@@ -1,17 +1,25 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { FiHome, FiUser, FiLogOut } from 'react-icons/fi';
+import {
+  FiCalendar, FiHome, FiUser, FiLogOut, FiCheckSquare, FiFileText,
+} from 'react-icons/fi';
 import Button from '../ui/Button';
 import { logoutUser, selectUser } from '../../redux/slices/authSlice';
-
-const navItems = [
-  { to: '/student/dashboard', label: 'Dashboard', icon: FiHome },
-  { to: '/student/profile', label: 'Profile', icon: FiUser },
-];
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSIONS } from '../../config/permissions';
 
 export default function StudentShell() {
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
+  const { can } = usePermissions();
+
+  const navItems = [
+    { to: '/student/dashboard', label: 'Dashboard', icon: FiHome, show: true },
+    { to: '/student/attendance', label: 'My Attendance', icon: FiCheckSquare, show: can(PERMISSIONS.ATTENDANCE_VIEW) || can(PERMISSIONS.STUDENTS_VIEW) },
+    { to: '/student/applications', label: 'My Applications', icon: FiFileText, show: can(PERMISSIONS.APPLICATIONS_VIEW) },
+    { to: '/student/calendar', label: 'My Calendar', icon: FiCalendar, show: can(PERMISSIONS.CALENDAR_VIEW) },
+    { to: '/student/profile', label: 'Profile', icon: FiUser, show: true },
+  ].filter((item) => item.show);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -29,7 +37,7 @@ export default function StudentShell() {
           </Button>
         </div>
       </header>
-      <nav className="bg-card-bg border-b border-card-border px-4 flex gap-1">
+      <nav className="bg-card-bg border-b border-card-border px-4 flex gap-1 overflow-x-auto">
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}

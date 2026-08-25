@@ -3,11 +3,47 @@ import { softDeleteWhere } from './response.util.js';
 import { buildDataScopeWhere } from './scope.util.js';
 import { COUNSELLOR_ROLE_SLUGS } from '../modules/assignment/assignment.config.js';
 import { STUDENT_ROLE_SLUGS, AGENT_ROLE_SLUGS } from '../config/portal.config.js';
+import { hasAnyPermission, hasPermission } from '../modules/rbac/rbac.util.js';
+import {
+  isPlatformGlobalUser,
+  resolveBranchAccessPolicy,
+  isBranchIdAllowedByPolicy,
+} from './branch-access.policy.js';
 import prisma from '../config/database.js';
 
-/** Platform operator — no company on account (rare; full access) */
-export function isPlatformGlobalUser(user) {
-  return user?.dataScope === 'GLOBAL' && !user?.companyId;
+export { isPlatformGlobalUser, resolveBranchAccessPolicy, isBranchIdAllowedByPolicy };
+
+/** User may use the Active Branch switcher (requires both permissions). */
+export function canSwitchViewingBranch(user) {
+  const perms = user?.permissions || [];
+  return hasPermission(perms, 'branch.switch') && hasPermission(perms, 'branch.view_multiple');
+}
+
+/**
+ * Server-side viewing branch from user preferences (never trust client body alone).
+ * Set in auth middleware after DB load; validated via assertBranchInTenant on write.
+ */
+export function getViewingBranchId(user) {
+  if (user?.viewingBranchId) return user.viewingBranchId;
+  const prefs = user?.preferences;
+  if (prefs && typeof prefs === 'object' && prefs.activeViewingBranchId) {
+    return prefs.activeViewingBranchId;
+  }
+  return null;
+}
+
+/** Narrow multi-branch users to a single active viewing branch when set. */
+export function applyViewingBranchClamp(user, branchField = 'branchId') {
+  const viewingId = getViewingBranchId(user);
+  if (!viewingId || !canSwitchViewingBranch(user)) return null;
+
+  const policy = resolveBranchAccessPolicy(user);
+  if (!isBranchIdAllowedByPolicy(policy, viewingId)) return null;
+
+  if (policy.mode === 'COMPANY' || policy.mode === 'ALL') {
+    return { [branchField]: viewingId };
+  }
+  return null;
 }
 
 /** Every tenant user MUST have companyId */
@@ -31,6 +67,31 @@ export function tenantBranchWhere(companyId) {
       deletedAt: null,
     },
   };
+}
+
+/**
+ * Optional list filter: never trust client branchId.
+ * Returns validated branchId to AND into where, or undefined to skip.
+ */
+export async function resolveOptionalBranchFilter(user, requestedBranchId) {
+  if (!requestedBranchId) return undefined;
+  await assertBranchInTenant(requestedBranchId, user);
+  return requestedBranchId;
+}
+
+/**
+ * Write path: derive effective branch. Client branchId is only accepted if allowed.
+ */
+export async function resolveWriteBranchId(user, requestedBranchId) {
+  if (requestedBranchId) {
+    await assertBranchInTenant(requestedBranchId, user);
+    return requestedBranchId;
+  }
+  if (user?.branchId) {
+    await assertBranchInTenant(user.branchId, user);
+    return user.branchId;
+  }
+  throw new AppError('Branch is required', 400);
 }
 
 /** Portal-specific ownership (student / partner) — never trust client branchId */
@@ -57,6 +118,9 @@ function portalScopeWhere(user, entity) {
 /**
  * Role scope (OWN / BRANCH / TEAM / COMPANY) + mandatory tenant wall.
  * VISA1 data can never appear in VISA2 queries.
+ *
+ * Counsellors and team leaders always see only their assigned records (OWN),
+ * even if role dataScope is TEAM/BRANCH (TEAM currently falls back to branch).
  */
 export function mergeScope(user, options = {}) {
   const portalWhere = portalScopeWhere(user, options.entity);
@@ -73,13 +137,56 @@ export function mergeScope(user, options = {}) {
   }
 
   const companyId = requireTenantCompany(user);
-  const scopeWhere = buildDataScopeWhere(user, { companyViaBranch: true, ...options });
   const tenantWall = tenantBranchWhere(companyId);
+  const slug = user.role?.slug;
+  const ownerField = options.ownerField || 'assignedToId';
 
-  const parts = [scopeWhere, tenantWall].filter((p) => p && Object.keys(p).length);
+  // Field assignees (counsellor + team leader) — only their assigned rows.
+  if (slug === 'counsellor' || slug === 'team_leader') {
+    const ownWhere = { [ownerField]: user.id };
+    return { AND: [ownWhere, tenantWall] };
+  }
+
+  // Teachers see only students enrolled in batches/sessions they instruct.
+  if (slug === 'teacher' && options.entity === 'student') {
+    const teacherStudents = {
+      batchEnrollments: {
+        some: {
+          isActive: true,
+          batch: {
+            deletedAt: null,
+            OR: [
+              { instructorId: user.id },
+              { sessions: { some: { instructorId: user.id, deletedAt: null } } },
+            ],
+          },
+        },
+      },
+    };
+    return { AND: [teacherStudents, tenantWall] };
+  }
+
+  const scopeWhere = buildDataScopeWhere(user, { companyViaBranch: true, ...options });
+  const policy = resolveBranchAccessPolicy(user);
+
+  // Narrow BRANCH/OWN/TEAM users to allowed branch ids even when dataScope is BRANCH
+  let branchClamp = policy.mode === 'LIST' && policy.branchIds?.length
+    ? { branchId: { in: policy.branchIds } }
+    : null;
+
+  const viewingClamp = applyViewingBranchClamp(user, 'branchId');
+  if (viewingClamp) branchClamp = viewingClamp;
+
+  const parts = [scopeWhere, tenantWall, branchClamp].filter((p) => p && Object.keys(p).length);
   if (parts.length === 0) return tenantWall;
   if (parts.length === 1) return parts[0];
   return { AND: parts };
+}
+
+/** Scope for Application / Visa / Invoice via related Student */
+export function mergeStudentRelationScope(user) {
+  const studentScope = mergeScope(user, { entity: 'student', ownerField: 'assignedToId' });
+  return { student: studentScope };
 }
 
 export async function resolveCompanyByCode(companyCode) {
@@ -112,6 +219,10 @@ export async function assertBranchBelongsToCompany(branchId, companyId) {
   return branch;
 }
 
+/**
+ * Branch must be in tenant company AND in the user's allowed branch set.
+ * Never trust client branchId beyond this check.
+ */
 export async function assertBranchInTenant(branchId, user) {
   if (!branchId) throw new AppError('Branch is required', 400);
 
@@ -125,8 +236,14 @@ export async function assertBranchInTenant(branchId, user) {
 
   const branch = await prisma.branch.findFirst({ where });
   if (!branch) {
-    throw new AppError('Branch not found or not in your company', 403);
+    throw new AppError('Forbidden: branch is outside your company', 403);
   }
+
+  const policy = resolveBranchAccessPolicy(user);
+  if (!isBranchIdAllowedByPolicy(policy, branchId)) {
+    throw new AppError('Forbidden: you are not authorized for this branch', 403);
+  }
+
   return branch;
 }
 
@@ -168,31 +285,47 @@ export async function assertCounsellorInTenant(targetUserId, user) {
   if (!target) {
     throw new AppError('Counsellor not found or not eligible in your company', 403);
   }
+
+  // Counsellor home branch must be allowed for the actor when assigning within a branch write
+  if (target.branchId) {
+    const policy = resolveBranchAccessPolicy(user);
+    if (policy.mode === 'LIST' && !isBranchIdAllowedByPolicy(policy, target.branchId)) {
+      throw new AppError('Forbidden: counsellor belongs to another branch', 403);
+    }
+  }
+
   return target;
 }
 
-export async function assertLeadInTenant(leadId, user) {
-  const scopeWhere = mergeScope(user);
-  const lead = await prisma.lead.findFirst({
-    where: { id: leadId, ...softDeleteWhere, ...scopeWhere },
+/**
+ * Load by id; if missing → 404; if out of scope → 403 with no record payload.
+ */
+async function assertEntityInScope(model, id, user, scopeOptions, notFoundLabel) {
+  const bare = await prisma[model].findFirst({
+    where: { id, ...softDeleteWhere },
+    select: { id: true },
+  });
+  if (!bare) throw new AppError(`${notFoundLabel} not found`, 404);
+
+  const scopeWhere = mergeScope(user, scopeOptions);
+  const record = await prisma[model].findFirst({
+    where: { id, ...softDeleteWhere, ...scopeWhere },
     include: {
       branch: { select: { id: true, name: true, code: true, companyId: true } },
     },
   });
-  if (!lead) throw new AppError('Lead not found', 404);
-  return lead;
+  if (!record) {
+    throw new AppError(`Forbidden: ${notFoundLabel.toLowerCase()} is outside your access`, 403);
+  }
+  return record;
+}
+
+export async function assertLeadInTenant(leadId, user) {
+  return assertEntityInScope('lead', leadId, user, {}, 'Lead');
 }
 
 export async function assertEnquiryInTenant(enquiryId, user) {
-  const scopeWhere = mergeScope(user, { entity: 'enquiry' });
-  const enquiry = await prisma.enquiry.findFirst({
-    where: { id: enquiryId, ...softDeleteWhere, ...scopeWhere },
-    include: {
-      branch: { select: { id: true, name: true, code: true, companyId: true } },
-    },
-  });
-  if (!enquiry) throw new AppError('Enquiry not found', 404);
-  return enquiry;
+  return assertEntityInScope('enquiry', enquiryId, user, { entity: 'enquiry' }, 'Enquiry');
 }
 
 export async function assertEnquiryIdsInTenant(ids, user) {
@@ -202,20 +335,12 @@ export async function assertEnquiryIdsInTenant(ids, user) {
     where: { id: { in: ids }, ...softDeleteWhere, ...scopeWhere },
   });
   if (count !== ids.length) {
-    throw new AppError('One or more enquiries are not in your company', 403);
+    throw new AppError('Forbidden: one or more enquiries are outside your access', 403);
   }
 }
 
 export async function assertStudentInTenant(studentId, user) {
-  const scopeWhere = mergeScope(user, { entity: 'student' });
-  const student = await prisma.student.findFirst({
-    where: { id: studentId, ...softDeleteWhere, ...scopeWhere },
-    include: {
-      branch: { select: { id: true, name: true, code: true, companyId: true } },
-    },
-  });
-  if (!student) throw new AppError('Student not found', 404);
-  return student;
+  return assertEntityInScope('student', studentId, user, { entity: 'student' }, 'Student');
 }
 
 export async function assertStudentIdsInTenant(ids, user) {
@@ -225,7 +350,7 @@ export async function assertStudentIdsInTenant(ids, user) {
     where: { id: { in: ids }, ...softDeleteWhere, ...scopeWhere },
   });
   if (count !== ids.length) {
-    throw new AppError('One or more students are not in your scope', 403);
+    throw new AppError('Forbidden: one or more students are outside your access', 403);
   }
 }
 
@@ -236,8 +361,58 @@ export async function assertLeadIdsInTenant(ids, user) {
     where: { id: { in: ids }, ...softDeleteWhere, ...scopeWhere },
   });
   if (count !== ids.length) {
-    throw new AppError('One or more records are not in your company', 403);
+    throw new AppError('Forbidden: one or more leads are outside your access', 403);
   }
+}
+
+export async function assertApplicationInTenant(applicationId, user) {
+  const bare = await prisma.application.findFirst({
+    where: { id: applicationId, ...softDeleteWhere },
+    select: { id: true },
+  });
+  if (!bare) throw new AppError('Application not found', 404);
+
+  const relScope = mergeStudentRelationScope(user);
+  const record = await prisma.application.findFirst({
+    where: { id: applicationId, ...softDeleteWhere, ...relScope },
+    include: {
+      student: {
+        select: {
+          id: true, studentCode: true, firstName: true, lastName: true, branchId: true,
+          branch: { select: { id: true, name: true, code: true, companyId: true } },
+        },
+      },
+    },
+  });
+  if (!record) {
+    throw new AppError('Forbidden: application is outside your access', 403);
+  }
+  return record;
+}
+
+export async function assertVisaInTenant(visaId, user) {
+  const bare = await prisma.visa.findFirst({
+    where: { id: visaId, ...softDeleteWhere },
+    select: { id: true },
+  });
+  if (!bare) throw new AppError('Visa case not found', 404);
+
+  const relScope = mergeStudentRelationScope(user);
+  const record = await prisma.visa.findFirst({
+    where: { id: visaId, ...softDeleteWhere, ...relScope },
+    include: {
+      student: {
+        select: {
+          id: true, studentCode: true, firstName: true, lastName: true, branchId: true,
+          branch: { select: { id: true, name: true, code: true, companyId: true } },
+        },
+      },
+    },
+  });
+  if (!record) {
+    throw new AppError('Forbidden: visa case is outside your access', 403);
+  }
+  return record;
 }
 
 /** Resolve company id for code generation */
@@ -254,3 +429,5 @@ export async function getCompanyBranchIds(companyId) {
   });
   return branches.map((b) => b.id);
 }
+
+export { hasPermission, hasAnyPermission };

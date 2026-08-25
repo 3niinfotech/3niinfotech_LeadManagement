@@ -2,7 +2,9 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSearch, FiMic, FiMicOff, FiCommand, FiTrash2, FiX } from 'react-icons/fi';
+import {
+  FiSearch, FiMic, FiMicOff, FiCommand, FiTrash2, FiX, FiSliders,
+} from 'react-icons/fi';
 import {
   closeCommandPalette,
   openCommandPalette,
@@ -33,6 +35,24 @@ import SearchResultItem from '../search/SearchResultItem';
 import Loader from '../ui/Loader';
 import ScrollArea from '../ui/ScrollArea';
 import { iconSize } from '../../theme/icons';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSIONS } from '../../config/permissions';
+import { navPages } from '../../config/navIcons.config';
+import {
+  isMastersForcedHidden,
+  isReceptionForcedHidden,
+} from '../../config/access-policy';
+
+const SEARCH_ENTITY_PERMISSIONS = {
+  enquiries: PERMISSIONS.ENQUIRIES_VIEW,
+  students: PERMISSIONS.STUDENTS_VIEW,
+  leads: PERMISSIONS.LEADS_VIEW,
+  visas: PERMISSIONS.VISAS_VIEW,
+  applications: PERMISSIONS.APPLICATIONS_VIEW,
+  invoices: PERMISSIONS.INVOICES_VIEW,
+  partners: PERMISSIONS.PARTNERS_VIEW,
+  users: PERMISSIONS.USERS_VIEW,
+};
 
 export default function CommandPalette() {
   const dispatch = useDispatch();
@@ -41,6 +61,7 @@ export default function CommandPalette() {
   const reduxQuery = useSelector(selectCommandPaletteQuery);
   const user = useSelector(selectUser);
   const userId = user?.id;
+  const { can, canAny, roleSlug } = usePermissions();
 
   const [query, setQuery] = useState('');
   const [apiResults, setApiResults] = useState(null);
@@ -79,13 +100,47 @@ export default function CommandPalette() {
 
   const trending = useMemo(() => getTrendingQueries(userId), [userId, history]);
 
+  const searchAccess = useMemo(() => {
+    const extraPages = roleSlug === 'receptionist'
+      ? [{
+          id: 'personal-settings',
+          label: 'Settings',
+          description: 'Personal profile and preferences',
+          path: ROUTES.PROFILE,
+          icon: FiSliders,
+        }]
+      : [];
+    const canAccessPage = (page) => {
+      if (!page?.path) return false;
+      if ((page.path === ROUTES.MASTER || page.path.startsWith(`${ROUTES.MASTER}/`))
+        && isMastersForcedHidden(roleSlug)) return false;
+      if ((page.path === ROUTES.WALK_INS || page.path.startsWith(`${ROUTES.WALK_INS}/`))
+        && isReceptionForcedHidden(roleSlug)) return false;
+      const required = page.permissions || (page.permission ? [page.permission] : []);
+      return !required.length || canAny(required);
+    };
+
+    const allowedPages = [...navPages, ...extraPages].filter(canAccessPage);
+    return {
+      extraPages,
+      canAccessPage,
+      canAccessPath: (path) => allowedPages.some(
+        (page) => path === page.path || path.startsWith(`${page.path}/`),
+      ),
+      canSearchEntity: (entity) => {
+        const permission = SEARCH_ENTITY_PERMISSIONS[entity];
+        return permission ? can(permission) : false;
+      },
+    };
+  }, [can, canAny, roleSlug]);
+
   const groups = useMemo(() => {
-    if (!trimmed) return buildIdleGroups(history, trending);
+    if (!trimmed) return buildIdleGroups(history, trending, searchAccess);
     if (!isFullSearch || (loading && !apiResults)) {
-      return buildSuggestionGroups(trimmed, history, apiSuggestions);
+      return buildSuggestionGroups(trimmed, history, apiSuggestions, searchAccess);
     }
-    return buildSearchGroups(trimmed, apiResults);
-  }, [trimmed, isFullSearch, loading, apiResults, apiSuggestions, history, trending]);
+    return buildSearchGroups(trimmed, apiResults, searchAccess);
+  }, [trimmed, isFullSearch, loading, apiResults, apiSuggestions, history, trending, searchAccess]);
 
   const flatItems = useMemo(() => flattenGroups(groups), [groups]);
   const resultCount = getTotalCount(groups);
@@ -251,7 +306,7 @@ export default function CommandPalette() {
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[1060] flex items-start justify-center pt-[6vh] px-4 sm:px-6">
+        <div className="fixed inset-0 z-[1300] flex items-start justify-center pt-[6vh] px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -325,6 +380,15 @@ export default function CommandPalette() {
                 Listening… say a name, email, enquiry code, or page
               </div>
             )}
+
+            <div className="px-5 py-1.5 border-b border-border/60 bg-page/50 flex items-center justify-between gap-3 text-[11px]">
+              <span className="text-text-muted">
+                Search is limited to records and pages available in your workspace.
+              </span>
+              <span className="shrink-0 rounded-md border border-border bg-card-bg px-2 py-0.5 font-medium text-text-secondary">
+                {user?.role?.name || 'Your access'}
+              </span>
+            </div>
 
             {/* Status bar */}
             {(loading || suggestLoading) && trimmed && (

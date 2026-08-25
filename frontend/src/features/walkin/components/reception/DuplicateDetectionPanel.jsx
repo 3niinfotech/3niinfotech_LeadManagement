@@ -41,7 +41,7 @@ export default function DuplicateDetectionPanel({
           </div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-text-secondary">
             <span>Lead ID: {match.leadCode || '—'}</span>
-            <span>Token: {match.tokenNumber || '—'}</span>
+            <span>Assigned: {match.assignedTo ? `${match.assignedTo.firstName || ''} ${match.assignedTo.lastName || ''}`.trim() : '—'}</span>
             <span>Mobile: {match.phone}</span>
             <span>Last visit: {formatTimeShort(match.walkInAt)}</span>
             <span>Country: {match.country || meta.interestedCountry || '—'}</span>

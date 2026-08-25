@@ -13,10 +13,11 @@ const buildSearchWhere = (search) => {
 };
 
 export const visaRepository = {
-  findMany: async ({ search, studentId, status, page, limit, sort }) => {
+  findMany: async ({ search, studentId, status, page, limit, sort, scopeWhere }) => {
     const { skip } = parsePagination({ page, limit });
     const where = {
       ...softDeleteWhere,
+      ...(scopeWhere || {}),
       ...(studentId && { studentId }),
       ...(status && { status }),
       ...buildSearchWhere(search),
@@ -28,7 +29,7 @@ export const visaRepository = {
         skip,
         take: limit,
         orderBy: sort,
-        include: { student: { select: { id: true, studentCode: true, firstName: true, lastName: true } } },
+        include: { student: { select: { id: true, studentCode: true, firstName: true, lastName: true, branchId: true } } },
       }),
       prisma.visa.count({ where }),
     ]);
@@ -38,7 +39,7 @@ export const visaRepository = {
 
   findById: (id) => prisma.visa.findFirst({
     where: { id, ...softDeleteWhere },
-    include: { student: { select: { id: true, studentCode: true, firstName: true, lastName: true } } },
+    include: { student: { select: { id: true, studentCode: true, firstName: true, lastName: true, branchId: true } } },
   }),
 
   create: (data) => prisma.visa.create({ data }),

@@ -4,9 +4,7 @@ import Button from '../../../components/ui/Button';
 import Select from '../../../components/ui/Select';
 import Textarea from '../../../components/ui/Textarea';
 import Input from '../../../components/ui/Input';
-import {
-  ENQUIRY_STATUSES,
-} from '../../../config/constants';
+import { useEnquiryStatusOptions } from '../hooks/useEnquiryStatusOptions';
 import { useEnquiryTagOptions } from '../hooks/useEnquiryTagOptions';
 import { useCounsellorOptions } from '../hooks/useCounsellorOptions';
 import { useBranchOptions } from '../hooks/useBranchOptions';
@@ -19,8 +17,8 @@ import {
   useBulkCommunicationMutation,
 } from '../redux/enquiryApiSlice';
 import toastService from '../../../services/toast/toast.service';
+import { DEMO_DRIVEN_ENQUIRY_STATUSES } from '../config/enquiryDemo.config';
 
-const STATUS_OPTIONS = ENQUIRY_STATUSES.map(({ value, label }) => ({ value, label }));
 
 const TITLES = {
   assign: 'Assign Enquiries',
@@ -51,6 +49,7 @@ export default function EnquiryBulkActionModal({
   });
   const { options: branchOptions, loading: branchesLoading } = useBranchOptions();
   const { options: tagOptions } = useEnquiryTagOptions();
+  const { statusOptions } = useEnquiryStatusOptions();
 
   const [assigneeId, setAssigneeId] = useState('');
   const [status, setStatus] = useState('CONTACTED');
@@ -98,6 +97,10 @@ export default function EnquiryBulkActionModal({
       }
 
       if (action === 'status') {
+        if (DEMO_DRIVEN_ENQUIRY_STATUSES.has(status)) {
+          toastService.info('Schedule demos from the Demo tab. Status cannot be bulk-set to Demo Scheduled / Attended.');
+          return;
+        }
         await bulkStatus({ ids: selectedIds, status }).unwrap();
         toastService.success(`Updated status for ${count} enquiries`);
       }
@@ -171,7 +174,7 @@ export default function EnquiryBulkActionModal({
             label="New status"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            options={STATUS_OPTIONS}
+            options={statusOptions.map(({ value, label }) => ({ value, label }))}
           />
         )}
 

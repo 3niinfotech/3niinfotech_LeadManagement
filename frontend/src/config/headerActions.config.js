@@ -6,7 +6,7 @@ import {
   FiVolume2,
 } from 'react-icons/fi';
 
-/** Navbar quick actions — tone drives hover accent colors */
+/** Navbar quick actions — all open as soft anchored popovers (no drawers). */
 export const HEADER_ACTIONS = [
   {
     id: 'reminder',
@@ -15,6 +15,8 @@ export const HEADER_ACTIONS = [
     tooltip: 'View upcoming reminders',
     badgeKey: 'reminder',
     tone: 'warning',
+    presentation: 'dropdown',
+    width: 380,
   },
   {
     id: 'notification',
@@ -23,6 +25,8 @@ export const HEADER_ACTIONS = [
     tooltip: 'Notifications & alerts',
     badgeKey: 'notification',
     tone: 'brand',
+    presentation: 'dropdown',
+    width: 400,
   },
   {
     id: 'announcement',
@@ -31,6 +35,8 @@ export const HEADER_ACTIONS = [
     tooltip: 'Company announcements',
     badgeKey: 'announcement',
     tone: 'info',
+    presentation: 'dropdown',
+    width: 400,
   },
   {
     id: 'courseFinder',
@@ -39,6 +45,9 @@ export const HEADER_ACTIONS = [
     tooltip: 'Course finder',
     badgeKey: null,
     tone: 'success',
+    presentation: 'dropdown',
+    width: 380,
+    permissions: ['masters.view', 'settings.view'],
   },
   {
     id: 'task',
@@ -47,6 +56,8 @@ export const HEADER_ACTIONS = [
     tooltip: 'Your tasks',
     badgeKey: 'task',
     tone: 'brand',
+    presentation: 'dropdown',
+    width: 400,
   },
 ];
 
@@ -77,6 +88,7 @@ export const HEADER_ACTION_TONES = {
   },
 };
 
+/** @deprecated Drawers removed — kept for any legacy imports */
 export const HEADER_ACTION_DRAWER_WIDTH = {
   reminder: '400px',
   notification: '420px',

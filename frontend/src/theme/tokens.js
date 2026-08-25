@@ -55,6 +55,10 @@ export function paletteToCssVars(palette) {
     'grid-row-selected': grid.rowSelected,
     'grid-row-hover': grid.rowHover,
     'grid-odd-row': grid.oddRow,
+    'grid-row-mine': grid.rowMine,
+    'grid-row-mine-odd': grid.rowMineOdd,
+    'grid-row-mine-hover': grid.rowMineHover,
+    'grid-row-mine-selected': grid.rowMineSelected,
     'grid-header-border': grid.headerBorder,
     'grid-column-border': grid.columnBorder,
     'grid-selected-accent': grid.selectedAccent,
@@ -180,32 +184,45 @@ export function getToastTheme(mode = 'light') {
   const t = getTokens(mode);
   const p = getPalette(mode);
   const isDark = mode === 'dark';
+  const sem = p.semantic;
 
-  const type = (key) => ({
-    bg: t['bg-card'],
-    border: t[`toast-${key}-border`],
-    icon: t[`toast-${key}-icon`],
-    iconBg: t[`toast-${key}-icon-bg`],
-    text: t['text-primary'],
-  });
+  const type = (key, semanticKey) => {
+    const soft = sem[semanticKey]?.soft || t['bg-card'];
+    const main = t[`toast-${key}-border`];
+    return {
+      bg: t['bg-card'],
+      softBg: soft,
+      border: main,
+      borderSoft: isDark ? `${main}66` : `${main}33`,
+      icon: t[`toast-${key}-icon`],
+      iconBg: t[`toast-${key}-icon-bg`],
+      text: t['text-primary'],
+      progressTrack: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)',
+    };
+  };
 
   return {
     zIndex: 1080,
     duration: {
       success: 3500,
-      error: 5000,
+      create: 3500,
+      deleted: 3500,
+      error: 5200,
       info: 4000,
       warning: 4500,
     },
     types: {
-      success: type('success'),
-      error: type('error'),
-      warning: type('warning'),
-      info: type('info'),
+      success: type('success', 'success'),
+      error: type('error', 'danger'),
+      warning: type('warning', 'warning'),
+      info: type('info', 'info'),
     },
     shell: {
       bg: t['bg-card'],
       border: t.border,
+      shadow: isDark
+        ? '0 12px 40px rgba(0,0,0,0.45)'
+        : '0 12px 32px rgba(15,23,42,0.12)',
     },
     isDark,
     palette: p,

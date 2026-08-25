@@ -15,6 +15,7 @@ import {
   RELATIONAL_TAXES,
   RELATIONAL_VISIT_PURPOSES,
   RELATIONAL_COUNSELLOR_SKILLS,
+  RELATIONAL_FACULTY,
   RELATIONAL_LEAD_SOURCES,
   RELATIONAL_LEAD_STATUSES,
   RELATIONAL_LOST_REASONS,
@@ -26,6 +27,11 @@ import {
   RELATIONAL_EMBASSIES,
   RELATIONAL_DOCUMENT_REQUIREMENTS,
   RELATIONAL_COMMUNICATION_TEMPLATES,
+  RELATIONAL_APPLICATION_CHECKLISTS,
+  RELATIONAL_APPLICATION_STATUSES,
+  RELATIONAL_VISA_CHECKLISTS,
+  RELATIONAL_VISA_STATUSES,
+  RELATIONAL_STUDENT_STATUSES,
 } from '../src/config/master-relational-seed.config.js';
 
 const prisma = new PrismaClient();
@@ -194,6 +200,18 @@ async function seedCompany(company, userId, stats) {
       userId,
     );
     countKey(stats, 'CounsellorSkill', created);
+  }
+
+  for (let i = 0; i < RELATIONAL_FACULTY.length; i += 1) {
+    const row = RELATIONAL_FACULTY[i];
+    const { created } = await upsertByCode(
+      prisma.faculty,
+      companyId,
+      row.code,
+      { name: row.name, description: row.description || null, sortOrder: i + 1 },
+      userId,
+    );
+    countKey(stats, 'Faculty', created);
   }
 
   // Lead sources
@@ -387,6 +405,141 @@ async function seedCompany(company, userId, stats) {
     countKey(stats, 'DocumentRequirement', created);
   }
 
+  // Application Checklists + Statuses are country-specific.
+  // We seed a minimal subset for the first 2 countries to enable the parent/child UI.
+  const seededCountryIds = [RELATIONAL_COUNTRIES[0]?.code, RELATIONAL_COUNTRIES[1]?.code]
+    .filter(Boolean)
+    .map((code) => countryByCode.get(code))
+    .filter(Boolean)
+    .map((c) => c.id);
+
+  for (const countryId of seededCountryIds) {
+    // Application Checklists (per-country)
+    for (let i = 0; i < RELATIONAL_APPLICATION_CHECKLISTS.length; i += 1) {
+      const row = RELATIONAL_APPLICATION_CHECKLISTS[i];
+      const existing = await prisma.applicationChecklist.findFirst({
+        where: { companyId, name: row.name, countryId },
+      });
+      if (!existing) {
+        await prisma.applicationChecklist.create({
+          data: {
+            companyId,
+            countryId,
+            name: row.name,
+            documentType: row.documentType ?? null,
+            enquiryForm: row.enquiryForm ?? false,
+            isMandatory: row.isMandatory ?? true,
+            sortOrder: row.sortOrder ?? i + 1,
+            createdBy: userId,
+            updatedBy: userId,
+          },
+        });
+        countKey(stats, 'ApplicationChecklist', true);
+      } else {
+        countKey(stats, 'ApplicationChecklist', false);
+      }
+    }
+
+    // Application Statuses (per-country)
+    for (let i = 0; i < RELATIONAL_APPLICATION_STATUSES.length; i += 1) {
+      const row = RELATIONAL_APPLICATION_STATUSES[i];
+      const existing = await prisma.applicationStatusMaster.findFirst({
+        where: { companyId, name: row.name, countryId },
+      });
+      if (!existing) {
+        await prisma.applicationStatusMaster.create({
+          data: {
+            companyId,
+            countryId,
+            name: row.name,
+            mailSend: row.mailSend ?? false,
+            defaultStatus: row.defaultStatus ?? false,
+            setOfferLetter: row.setOfferLetter ?? false,
+            position: row.position ?? i + 1,
+            createdBy: userId,
+            updatedBy: userId,
+          },
+        });
+        countKey(stats, 'ApplicationStatus', true);
+      } else {
+        countKey(stats, 'ApplicationStatus', false);
+      }
+    }
+  }
+
+  // Student statuses (company-wide)
+  for (let i = 0; i < RELATIONAL_STUDENT_STATUSES.length; i += 1) {
+    const row = RELATIONAL_STUDENT_STATUSES[i];
+    const { created } = await upsertByCode(
+      prisma.studentStatusMaster,
+      companyId,
+      row.code,
+      {
+        name: row.name,
+        defaultStatus: row.defaultStatus ?? false,
+        colorCode: row.colorCode ?? null,
+        sortOrder: row.sortOrder ?? i + 1,
+      },
+      userId,
+    );
+    countKey(stats, 'StudentStatus', created);
+  }
+
+  for (const countryId of seededCountryIds) {
+    // Visa Checklists (per-country)
+    for (let i = 0; i < RELATIONAL_VISA_CHECKLISTS.length; i += 1) {
+      const row = RELATIONAL_VISA_CHECKLISTS[i];
+      const existing = await prisma.visaChecklist.findFirst({
+        where: { companyId, name: row.name, countryId },
+      });
+      if (!existing) {
+        await prisma.visaChecklist.create({
+          data: {
+            companyId,
+            countryId,
+            name: row.name,
+            documentType: row.documentType ?? null,
+            isMandatory: row.isMandatory ?? true,
+            sortOrder: row.sortOrder ?? i + 1,
+            createdBy: userId,
+            updatedBy: userId,
+          },
+        });
+        countKey(stats, 'VisaChecklist', true);
+      } else {
+        countKey(stats, 'VisaChecklist', false);
+      }
+    }
+
+    // Visa Statuses (per-country)
+    for (let i = 0; i < RELATIONAL_VISA_STATUSES.length; i += 1) {
+      const row = RELATIONAL_VISA_STATUSES[i];
+      const existing = await prisma.visaStatusMaster.findFirst({
+        where: { companyId, name: row.name, countryId },
+      });
+      if (!existing) {
+        await prisma.visaStatusMaster.create({
+          data: {
+            companyId,
+            countryId,
+            name: row.name,
+            visaApproved: row.visaApproved ?? false,
+            visaWithdraw: row.visaWithdraw ?? false,
+            visaRejected: row.visaRejected ?? false,
+            mailSend: row.mailSend ?? false,
+            defaultStatus: row.defaultStatus ?? false,
+            position: row.position ?? i + 1,
+            createdBy: userId,
+            updatedBy: userId,
+          },
+        });
+        countKey(stats, 'VisaStatus', true);
+      } else {
+        countKey(stats, 'VisaStatus', false);
+      }
+    }
+  }
+
   // Communication templates
   for (let i = 0; i < RELATIONAL_COMMUNICATION_TEMPLATES.length; i += 1) {
     const row = RELATIONAL_COMMUNICATION_TEMPLATES[i];
@@ -465,6 +618,7 @@ async function main() {
     FollowupType: await prisma.followupType.count({ where: { companyId, deletedAt: null } }),
     VisitPurpose: await prisma.visitPurpose.count({ where: { companyId, deletedAt: null } }),
     CounsellorSkill: await prisma.counsellorSkill.count({ where: { companyId, deletedAt: null } }),
+    Faculty: await prisma.faculty.count({ where: { companyId, deletedAt: null } }),
     CommunicationTemplate: await prisma.communicationTemplate.count({ where: { companyId, deletedAt: null } }),
     MasterItem: await prisma.masterItem.count({ where: { companyId, deletedAt: null } }),
   };

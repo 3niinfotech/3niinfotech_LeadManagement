@@ -42,6 +42,13 @@ const enquiryUiSlice = createSlice({
     setSummaryFilter: (state, { payload }) => { state.activeSummaryFilter = payload; },
     setSelectedRowIds: (state, { payload }) => { state.selectedRowIds = payload; },
     setColumnDensity: (state, { payload }) => { state.columnDensity = payload; },
+    setFiltersOpen: (state, { payload }) => { state.filtersOpen = Boolean(payload); },
+    resetEnquiryListUi: (state) => {
+      state.filtersOpen = false;
+      state.activeView = 'all';
+      state.activeSummaryFilter = null;
+      state.selectedRowIds = [];
+    },
   },
 });
 
@@ -49,6 +56,7 @@ export const {
   openEnquiryDrawer, closeEnquiryDrawer, setDrawerTab, setFollowupSubTab,
   openImportModal, closeImportModal, setImportStep, toggleFilters,
   setActiveView, setSummaryFilter, setSelectedRowIds, setColumnDensity,
+  setFiltersOpen, resetEnquiryListUi,
 } = enquiryUiSlice.actions;
 
 export const selectEnquiryUi = (state) => state.enquiryUi;

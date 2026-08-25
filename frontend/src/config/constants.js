@@ -207,6 +207,7 @@ export const ENQUIRY_CREATE_FORM_TABS = [
 export const ENQUIRY_PROFILE_TABS = [
   { id: 'overview', label: 'Lead Details', icon: 'layout', group: 'workspace' },
   { id: 'followup', label: 'Follow-up', icon: 'calendar', editOnly: true, group: 'workspace' },
+  { id: 'demo', label: 'Demo', icon: 'monitor', editOnly: true, group: 'workspace' },
   { id: 'communication', label: 'Calls & WhatsApp', icon: 'message', editOnly: true, group: 'workspace' },
   { id: 'notes', label: 'Notes', icon: 'edit', editOnly: true, group: 'workspace' },
   { id: 'timeline', label: 'Timeline', icon: 'clock', editOnly: true, group: 'workspace' },
@@ -223,6 +224,7 @@ export const STUDENT_PROFILE_TABS = [
   { id: 'applications', label: 'Applications', icon: 'briefcase', group: 'journey' },
   { id: 'visa', label: 'Visa', icon: 'globe', group: 'journey' },
   { id: 'finance', label: 'Finance', icon: 'dollar', group: 'journey' },
+  { id: 'attendance', label: 'Attendance', icon: 'clock', group: 'journey' },
   { id: 'notes', label: 'Notes', icon: 'message', group: 'activity' },
   { id: 'timeline', label: 'Timeline', icon: 'clock', group: 'activity' },
 ];

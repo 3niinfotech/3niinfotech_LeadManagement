@@ -40,6 +40,20 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 14%, transparent);
   }
 
+  /* Premium themed toasts */
+  .crm-toast-progress {
+    width: 100%;
+    transform-origin: left center;
+    animation-name: crm-toast-shrink;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+
+  @keyframes crm-toast-shrink {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+  }
+
   /* ── Unified form controls (Input, Select, DatePicker) ── */
   .crm-field {
     --field-h: 36px;
@@ -158,6 +172,101 @@
 
   .crm-ant-select.crm-field--error .ant-select-selector {
     border-color: var(--danger) !important;
+  }
+
+  /* Multiple / tags select — chips must fit inside the field (no overflow) */
+  .crm-ant-select.crm-field.ant-select-multiple {
+    height: auto;
+    min-height: var(--field-h);
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-selector {
+    height: auto !important;
+    min-height: var(--field-h) !important;
+    padding-block: 5px !important;
+    padding-inline: 8px 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    overflow: hidden !important;
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-selection-wrap {
+    align-self: center;
+    width: 100%;
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-selection-overflow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    row-gap: 4px;
+    min-height: calc(var(--field-h) - 12px);
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-selection-overflow-item {
+    align-self: center;
+    max-width: 100%;
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-selection-item {
+    height: 22px !important;
+    margin: 0 !important;
+    padding-inline: 8px 4px !important;
+    line-height: 20px !important;
+    font-size: 12px !important;
+    border-radius: 6px !important;
+    background: var(--row-hover) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-primary) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    max-width: 100%;
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-selection-item-content {
+    margin-inline-end: 2px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-selection-item-remove {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-selection-item-remove:hover {
+    color: var(--text-primary);
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-selection-search {
+    margin-inline: 0 !important;
+    margin-block: 0 !important;
+    line-height: 22px !important;
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-selection-search-input {
+    height: 22px !important;
+    min-height: 22px !important;
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-selection-placeholder {
+    inset-inline-start: 8px !important;
+    line-height: calc(var(--field-h) - 2px) !important;
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-arrow,
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-clear {
+    top: 50%;
+    margin-top: 0;
+    transform: translateY(-50%);
+  }
+
+  .crm-ant-select.crm-field.ant-select-multiple .ant-select-clear {
+    margin-top: 0;
   }
 
   /* React Aria DatePicker group */
@@ -560,7 +669,7 @@
 
   /* React Aria DatePicker — global CRM theme */
   .crm-aria-popover {
-    z-index: 1100;
+    z-index: 1600;
   }
 
   /* Fixed compact calendar — prevents stretch to viewport width */
@@ -678,6 +787,27 @@
 
   .crm-ant-select-dropdown .rc-virtual-list {
     max-height: 320px;
+  }
+
+  /* Hide all dropdown scrollbars (native + rc-virtual-list) — wheel still works */
+  .crm-ant-select-dropdown .rc-virtual-list-holder,
+  .ant-select-dropdown .rc-virtual-list-holder {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .crm-ant-select-dropdown .rc-virtual-list-holder::-webkit-scrollbar,
+  .ant-select-dropdown .rc-virtual-list-holder::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  .crm-ant-select-dropdown .rc-virtual-list-scrollbar,
+  .ant-select-dropdown .rc-virtual-list-scrollbar {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   .crm-ant-select-dropdown .ant-select-item {

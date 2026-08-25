@@ -17,6 +17,9 @@ import {
 import { combineDateAndTime } from '../../utils/enquiryForm.utils';
 import { useAddFollowupMutation } from '../../redux/enquiryApiSlice';
 import toastService from '../../../../services/toast/toast.service';
+import { useCompanyRuntime } from '../../../organization/CompanyRuntime';
+import { followupSlotOptions } from '../../../../config/company-settings.config';
+import Select from '../../../../components/ui/Select';
 
 const CALENDAR_ACTIONS = new Set(['MEETING', 'REMINDER', 'VIDEO_CALL']);
 
@@ -33,6 +36,8 @@ export default function FollowUpActionsPanel({
   hideChannelTabs = false,
 }) {
   const [internalActionType, setInternalActionType] = useState('CALL');
+  const { settings } = useCompanyRuntime();
+  const slotOptions = followupSlotOptions(settings);
   const actionType = actionTypeProp ?? internalActionType;
   const setActionType = onActionTypeChange ?? setInternalActionType;
   const [scheduleDate, setScheduleDate] = useState('');
@@ -210,12 +215,28 @@ export default function FollowUpActionsPanel({
                 />
               )}
             />
-            <Input
-              label="Time"
-              type="time"
-              {...register('followUpTime')}
-              error={errors.followUpTime?.message}
-            />
+            {slotOptions.length ? (
+              <Controller
+                name="followUpTime"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    label="Time"
+                    value={field.value || ''}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    options={slotOptions}
+                    error={errors.followUpTime?.message}
+                  />
+                )}
+              />
+            ) : (
+              <Input
+                label="Time"
+                type="time"
+                {...register('followUpTime')}
+                error={errors.followUpTime?.message}
+              />
+            )}
             <div className="col-span-full">
               <Textarea
                 label="Remarks"

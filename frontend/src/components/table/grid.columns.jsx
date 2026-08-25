@@ -1,5 +1,5 @@
-import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import Avatar from '../ui/Avatar';
+import { GridActionButton, GridActionGroup } from './GridActionButtons';
 
 function fullName(row, nameGetter) {
   if (nameGetter) return nameGetter(row);
@@ -9,6 +9,7 @@ function fullName(row, nameGetter) {
 /** Compact profile avatar column — place before name column */
 export function createAvatarColumn({
   nameGetter,
+  srcGetter,
   width = 58,
   headerName = 'Photo',
   ...overrides
@@ -27,7 +28,11 @@ export function createAvatarColumn({
     headerClass: 'crm-grid-avatar-header crm-grid-header-cell--center',
     valueGetter: (p) => fullName(p.data, nameGetter),
     cellRenderer: (p) => (
-      <Avatar name={fullName(p.data, nameGetter)} size="sm" />
+      <Avatar
+        name={fullName(p.data, nameGetter)}
+        src={srcGetter ? srcGetter(p.data) : (p.data?.photoUrl || '')}
+        size="sm"
+      />
     ),
     ...overrides,
   };
@@ -81,36 +86,35 @@ export function createActionsColumn({
 }
 
 /** Standard edit + delete action buttons for grid rows */
-export function GridRowActions({ onEdit, onDelete, getRowId = (row) => row?.id }) {
+export function GridRowActions({ onEdit, onDelete, onOpenDetail, getRowId = (row) => row?.id }) {
   return function ActionsCell({ data }) {
     if (!data) return null;
     const id = getRowId(data);
 
     return (
-      <div className="crm-grid-actions" onClick={(e) => e.stopPropagation()}>
+      <GridActionGroup>
+        {onOpenDetail && (
+          <GridActionButton
+            action="view"
+            title="View Details"
+            onClick={() => onOpenDetail(id, data)}
+          />
+        )}
         {onEdit && (
-          <button
-            type="button"
-            className="crm-grid-action-btn crm-grid-action-btn--edit"
-            onClick={() => onEdit(id, data)}
-            aria-label="Edit"
+          <GridActionButton
+            action="edit"
             title="Edit"
-          >
-            <FiEdit2 className="w-3.5 h-3.5" />
-          </button>
+            onClick={() => onEdit(id, data)}
+          />
         )}
         {onDelete && (
-          <button
-            type="button"
-            className="crm-grid-action-btn crm-grid-action-btn--delete"
-            onClick={() => onDelete(id, data)}
-            aria-label="Delete"
+          <GridActionButton
+            action="delete"
             title="Delete"
-          >
-            <FiTrash2 className="w-3.5 h-3.5" />
-          </button>
+            onClick={() => onDelete(id, data)}
+          />
         )}
-      </div>
+      </GridActionGroup>
     );
   };
 }

@@ -9,28 +9,65 @@ const FALLBACK_OPTIONS = {
   tags: ENQUIRY_TAGS.map(({ value, label }) => ({ value, label })),
 };
 
+/** One fetch per master category for the whole page (avoids per-row storms). */
+const optionsCache = new Map();
+const inflightCache = new Map();
+
 /**
  * Master lookup options for dropdowns (visit-purpose, etc.)
  * Supports creatable values — call ensureOption to persist custom entries.
  */
 export function useMasterOptions(category, { enabled = true } = {}) {
-  const [options, setOptions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [options, setOptions] = useState(() => optionsCache.get(category) || []);
+  const [loading, setLoading] = useState(() => Boolean(enabled && category && !optionsCache.has(category)));
 
   const fallback = useMemo(
     () => FALLBACK_OPTIONS[category] || [],
     [category],
   );
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     if (!category || !enabled) return;
+
+    if (!force && optionsCache.has(category)) {
+      setOptions(optionsCache.get(category));
+      setLoading(false);
+      return optionsCache.get(category);
+    }
+
+    if (!force && inflightCache.has(category)) {
+      setLoading(true);
+      try {
+        const rows = await inflightCache.get(category);
+        setOptions(rows);
+        return rows;
+      } finally {
+        setLoading(false);
+      }
+    }
+
     setLoading(true);
+    const request = (async () => {
+      try {
+        const res = await apiGet(API.MASTER_OPTIONS(category));
+        const rows = res?.data ?? res ?? [];
+        const next = Array.isArray(rows) && rows.length ? rows : fallback;
+        optionsCache.set(category, next);
+        return next;
+      } catch {
+        const next = optionsCache.get(category) || fallback;
+        optionsCache.set(category, next);
+        return next;
+      } finally {
+        inflightCache.delete(category);
+      }
+    })();
+    inflightCache.set(category, request);
+
     try {
-      const res = await apiGet(API.MASTER_OPTIONS(category));
-      const rows = res?.data ?? res ?? [];
-      setOptions(Array.isArray(rows) && rows.length ? rows : fallback);
-    } catch {
-      setOptions(fallback);
+      const rows = await request;
+      setOptions(rows);
+      return rows;
     } finally {
       setLoading(false);
     }
@@ -53,7 +90,9 @@ export function useMasterOptions(category, { enabled = true } = {}) {
       if (row?.value) {
         setOptions((prev) => {
           if (prev.some((o) => o.value === row.value)) return prev;
-          return [...prev, { value: row.value, label: row.label || row.value }];
+          const next = [...prev, { value: row.value, label: row.label || row.value }];
+          optionsCache.set(category, next);
+          return next;
         });
       }
       return row?.value || trimmed;
@@ -62,5 +101,5 @@ export function useMasterOptions(category, { enabled = true } = {}) {
     }
   }, [category, options]);
 
-  return { options, loading, reload: load, ensureOption };
+  return { options, loading, reload: () => load(true), ensureOption };
 }

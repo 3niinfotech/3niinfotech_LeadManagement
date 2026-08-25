@@ -1,15 +1,21 @@
 import prisma from '../../config/database.js';
-import { softDeleteWhere } from '../../utils/response.util.js';
-import { mergeScope, assertBranchInTenant } from '../../utils/tenant.util.js';
+import { AppError, softDeleteWhere } from '../../utils/response.util.js';
+import {
+  mergeScope,
+  mergeStudentRelationScope,
+  assertBranchInTenant,
+  resolveOptionalBranchFilter,
+} from '../../utils/tenant.util.js';
 import { ENQUIRY_STATUSES } from '../enquiry/enquiryStatus.config.js';
 
 async function buildReportWhere(query, user) {
   const scopeWhere = mergeScope(user, { entity: 'enquiry' });
   const where = { ...softDeleteWhere, ...scopeWhere };
 
-  if (query.branchId && user.dataScope === 'COMPANY') {
-    await assertBranchInTenant(query.branchId, user);
-    where.branchId = query.branchId;
+  // Never trust client branchId — only apply after allowed-branch check
+  if (query.branchId) {
+    const branchId = await resolveOptionalBranchFilter(user, query.branchId);
+    if (branchId) where.branchId = branchId;
   }
   if (query.from || query.to) {
     where.createdAt = {};
@@ -251,6 +257,14 @@ export const reportsService = {
           result: row.result,
           count: row._count._all,
         })),
+        bySessionStatus: await prisma.enquiryDemo.groupBy({
+          by: ['sessionStatus'],
+          where: { enquiry: where },
+          _count: { _all: true },
+        }).then((rows) => rows.map((row) => ({
+          status: row.sessionStatus,
+          count: row._count._all,
+        }))).catch(() => []),
       },
       lostReason: lostRows
         .map((row) => ({
@@ -259,5 +273,168 @@ export const reportsService = {
         }))
         .sort((a, b) => b.count - a.count),
     };
+  },
+
+  exportDataset: async (kind, user) => {
+    const EXPORT_LIMIT = 5000;
+    const key = String(kind || '').toLowerCase();
+    const companyId = user?.companyId;
+    if (!companyId && user?.dataScope !== 'GLOBAL') {
+      throw new AppError('Company context required', 403);
+    }
+
+    if (key === 'enquiry' || key === 'drop') {
+      const where = await buildReportWhere({}, user);
+      if (key === 'drop') where.status = 'LOST';
+      const rows = await prisma.enquiry.findMany({
+        where,
+        take: EXPORT_LIMIT,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          enquiryCode: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          mobile: true,
+          status: true,
+          source: true,
+          interestedCountry: true,
+          interestedCourse: true,
+          intake: true,
+          applyLevel: true,
+          dropReason: true,
+          createdAt: true,
+          branch: { select: { name: true, code: true } },
+        },
+      });
+      return {
+        kind: key,
+        count: rows.length,
+        rows: rows.map((row) => ({
+          code: row.enquiryCode,
+          name: `${row.firstName || ''} ${row.lastName || ''}`.trim(),
+          email: row.email,
+          phone: row.mobile,
+          status: row.status,
+          source: row.source,
+          country: row.interestedCountry,
+          course: row.interestedCourse,
+          intake: row.intake,
+          applyLevel: row.applyLevel,
+          dropReason: row.dropReason,
+          branch: row.branch?.name,
+          createdAt: row.createdAt,
+        })),
+      };
+    }
+
+    if (key === 'student' || key === 'enrolled' || key === 'defer') {
+      const scopeWhere = mergeScope(user, { entity: 'student' });
+      const where = { ...softDeleteWhere, ...scopeWhere };
+      if (key === 'enrolled') where.status = 'ENROLLED';
+      if (key === 'defer') where.status = 'DEFERRED';
+      const rows = await prisma.student.findMany({
+        where,
+        take: EXPORT_LIMIT,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          studentCode: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          status: true,
+          nationality: true,
+          country: true,
+          university: true,
+          course: true,
+          intake: true,
+          createdAt: true,
+          branch: { select: { name: true } },
+        },
+      });
+      return {
+        kind: key,
+        count: rows.length,
+        rows: rows.map((row) => ({
+          code: row.studentCode,
+          name: `${row.firstName || ''} ${row.lastName || ''}`.trim(),
+          email: row.email,
+          phone: row.phone,
+          status: row.status,
+          nationality: row.nationality,
+          country: row.country,
+          university: row.university,
+          course: row.course,
+          intake: row.intake,
+          branch: row.branch?.name,
+          createdAt: row.createdAt,
+        })),
+      };
+    }
+
+    if (key === 'application') {
+      const rows = await prisma.application.findMany({
+        where: { ...softDeleteWhere, ...mergeStudentRelationScope(user) },
+        take: EXPORT_LIMIT,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          applicationNo: true,
+          university: true,
+          course: true,
+          intake: true,
+          country: true,
+          status: true,
+          createdAt: true,
+          student: { select: { studentCode: true, firstName: true, lastName: true } },
+        },
+      });
+      return {
+        kind: key,
+        count: rows.length,
+        rows: rows.map((row) => ({
+          applicationNo: row.applicationNo,
+          studentCode: row.student?.studentCode,
+          student: `${row.student?.firstName || ''} ${row.student?.lastName || ''}`.trim(),
+          university: row.university,
+          course: row.course,
+          intake: row.intake,
+          country: row.country,
+          status: row.status,
+          createdAt: row.createdAt,
+        })),
+      };
+    }
+
+    if (key === 'visa') {
+      const rows = await prisma.visa.findMany({
+        where: { ...softDeleteWhere, ...mergeStudentRelationScope(user) },
+        take: EXPORT_LIMIT,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          applicationNo: true,
+          country: true,
+          visaType: true,
+          status: true,
+          createdAt: true,
+          student: { select: { studentCode: true, firstName: true, lastName: true } },
+        },
+      });
+      return {
+        kind: key,
+        count: rows.length,
+        rows: rows.map((row) => ({
+          applicationNo: row.applicationNo,
+          studentCode: row.student?.studentCode,
+          student: `${row.student?.firstName || ''} ${row.student?.lastName || ''}`.trim(),
+          country: row.country,
+          visaType: row.visaType,
+          status: row.status,
+          createdAt: row.createdAt,
+        })),
+      };
+    }
+
+    throw new AppError('Unknown export kind', 400);
   },
 };

@@ -23,12 +23,3 @@ export const RECEPTION_LANGUAGES = [
   { value: 'Telugu', label: 'Telugu' },
   { value: 'Other', label: 'Other' },
 ];
-
-export const QUEUE_STATUS_COLORS = {
-  WAITING: 'waiting',
-  IN_COUNSELLING: 'counselling',
-  COMPLETED: 'completed',
-  CANCELLED: 'noshow',
-  APPOINTMENT: 'hold',
-  WALK_IN: 'waiting',
-};

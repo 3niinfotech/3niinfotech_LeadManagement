@@ -1,5 +1,5 @@
 import prisma from '../../config/database.js';
-import { COUNSELLOR_ROLE_SLUGS } from './assignment.config.js';
+import { RECEPTION_ASSIGN_ROLE_SLUGS } from './assignment.config.js';
 
 const userSelect = { id: true, firstName: true, lastName: true, email: true, branchId: true };
 const leadInclude = {
@@ -21,7 +21,7 @@ export const assignmentRepository = {
         deletedAt: null,
         ...(branchId ? { branchId } : { branch: { companyId } }),
       },
-      select: { id: true, studentCode: true, firstName: true, lastName: true, phone: true },
+      select: { id: true, studentCode: true, firstName: true, lastName: true, phone: true, createdAt: true },
     });
     return student;
   },
@@ -34,12 +34,20 @@ export const assignmentRepository = {
         status: { notIn: ['LOST', 'CONVERTED'] },
         ...(branchId ? { branchId } : { branch: { companyId } }),
       },
-      select: { id: true, enquiryCode: true, firstName: true, lastName: true, mobile: true, status: true },
+      select: {
+        id: true,
+        enquiryCode: true,
+        firstName: true,
+        lastName: true,
+        mobile: true,
+        status: true,
+        createdAt: true,
+      },
     });
     return enquiry;
   },
 
-  listEligibleCounsellors: async (branchId, excludeIds = [], companyId = null) => {
+  listEligibleCounsellors: async (branchId, excludeIds = [], companyId = null, roleSlugs = RECEPTION_ASSIGN_ROLE_SLUGS) => {
     const users = await prisma.user.findMany({
       where: {
         ...(companyId ? { companyId } : {}),
@@ -47,7 +55,7 @@ export const assignmentRepository = {
         status: 'ACTIVE',
         deletedAt: null,
         id: excludeIds.length ? { notIn: excludeIds } : undefined,
-        role: { slug: { in: COUNSELLOR_ROLE_SLUGS } },
+        role: { slug: { in: roleSlugs } },
       },
       include: {
         counsellorPresence: true,
@@ -134,47 +142,4 @@ export const assignmentRepository = {
     include: leadInclude,
   }),
 
-  getBranchQueue: (branchId, scopeWhere = {}) => prisma.lead.findMany({
-    where: {
-      branchId,
-      deletedAt: null,
-      status: { in: ['WAITING', 'IN_COUNSELLING', 'APPOINTMENT'] },
-      ...scopeWhere,
-    },
-    include: leadInclude,
-    orderBy: [{ priority: 'desc' }, { walkInAt: 'asc' }],
-    take: 100,
-  }),
-
-  getCounsellorQueue: async (counsellorId) => {
-    const [assigned, offers, activeSession, completedToday] = await Promise.all([
-      prisma.lead.findMany({
-        where: {
-          assignedToId: counsellorId,
-          deletedAt: null,
-          status: { in: ['WAITING', 'IN_COUNSELLING', 'APPOINTMENT'] },
-        },
-        include: leadInclude,
-        orderBy: { walkInAt: 'asc' },
-      }),
-      prisma.assignmentOffer.findMany({
-        where: { counsellorId, status: 'PENDING', expiresAt: { gt: new Date() } },
-        include: { lead: { include: leadInclude } },
-        orderBy: { offeredAt: 'asc' },
-      }),
-      prisma.counsellingSession.findFirst({
-        where: { counsellorId, status: 'ACTIVE' },
-        include: { lead: { include: leadInclude } },
-      }),
-      prisma.counsellingSession.count({
-        where: {
-          counsellorId,
-          status: 'COMPLETED',
-          endedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
-        },
-      }),
-    ]);
-
-    return { assigned, offers, activeSession, completedToday };
-  },
 };

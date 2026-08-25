@@ -147,6 +147,37 @@ enum DemoAttendance {
   LATE
   PARTIAL
   NOT_MARKED
+  ATTENDED
+  NO_SHOW
+}
+
+enum DemoSessionStatus {
+  SCHEDULED
+  RESCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+enum ClassSessionStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+enum ClassAttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+  LEAVE
+  HALF_DAY
+}
+
+enum AttendanceMarkSource {
+  MANUAL
+  BULK
+  SUGGESTED
+  CORRECTION
 }
 
 enum DemoResult {
@@ -272,6 +303,7 @@ model Company {
   registrationNumber String?
   logo               String?
   website            String?
+  settings           Json      @default("{}")
   isActive           Boolean   @default(true)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -302,7 +334,15 @@ model Company {
   followupTypes      FollowupType[]
   visitPurposes      VisitPurpose[]
   counsellorSkills   CounsellorSkill[]
+  faculties          Faculty[]
   communicationTemplates CommunicationTemplate[]
+  applicationChecklists ApplicationChecklist[]
+  applicationStatusMasters ApplicationStatusMaster[]
+  visaChecklists          VisaChecklist[]
+  visaStatusMasters       VisaStatusMaster[]
+  studentStatusMasters    StudentStatusMaster[]
+  learningResources       LearningResource[]
+  academicBatches         AcademicBatch[]
 
   @@index([code])
   @@index([countryId])
@@ -341,7 +381,11 @@ model Branch {
   counsellorPresences CounsellorPresence[]
   featureOverrides TenantFeatureOverride[]
   departments  Department[]
+  faculties    Faculty[]
   admissions   Admission[]
+  academicBatches AcademicBatch[]
+  classSessions   ClassSession[]
+  classAttendances ClassAttendance[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -507,7 +551,10 @@ model User {
   enquiryAppointments EnquiryAppointment[]
   appointmentCounselling EnquiryAppointment[] @relation("AppointmentCounsellor")
   enquiryDemos EnquiryDemo[]
-  demoFaculty EnquiryDemo[] @relation("DemoFaculty")
+  demoAttendanceMarks EnquiryDemo[] @relation("DemoAttendanceMarker")
+  instructedBatches AcademicBatch[] @relation("BatchInstructor")
+  instructedSessions ClassSession[] @relation("SessionInstructor")
+  classAttendanceMarks ClassAttendance[] @relation("ClassAttendanceMarker")
   enquiryCommunications EnquiryCommunication[]
   enquiryNotes EnquiryNote[]
   enquiryImports EnquiryImportBatch[]
@@ -670,6 +717,8 @@ model Student {
   appointments    Appointment[]
   feePlan         FeePlan?
   admissionPayments AdmissionPayment[]
+  batchEnrollments BatchEnrollment[]
+  classAttendances ClassAttendance[]
 
   @@index([branchId])
   @@index([userId])
@@ -1020,26 +1069,37 @@ model EnquiryAppointment {
 }
 
 model EnquiryDemo {
-  id          String          @id @default(uuid())
-  enquiryId   String
-  userId      String
-  facultyId   String?
-  demoDate    DateTime
-  className   String?         @map("class_name")
-  batch       String?
-  attendance  DemoAttendance  @default(NOT_MARKED)
-  feedback    String?         @db.Text
-  result      DemoResult      @default(PENDING)
-  remark      String?         @db.Text
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id                   String            @id @default(uuid())
+  enquiryId            String
+  userId               String
+  facultyId            String?
+  demoDate             DateTime
+  endAt                DateTime?
+  className            String?           @map("class_name")
+  batch                String?
+  sessionStatus        DemoSessionStatus @default(SCHEDULED)
+  attendance           DemoAttendance    @default(NOT_MARKED)
+  attendanceMarkedAt   DateTime?
+  attendanceMarkedById String?
+  cancelledReason      String?           @db.Text
+  rescheduledFromId    String?
+  feedback             String?           @db.Text
+  result               DemoResult        @default(PENDING)
+  remark               String?           @db.Text
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
-  enquiry     Enquiry         @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
-  user        User            @relation(fields: [userId], references: [id])
-  faculty     User?           @relation("DemoFaculty", fields: [facultyId], references: [id])
+  enquiry              Enquiry           @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  user                 User              @relation(fields: [userId], references: [id])
+  faculty              Faculty?          @relation(fields: [facultyId], references: [id], onDelete: SetNull)
+  attendanceMarkedBy   User?             @relation("DemoAttendanceMarker", fields: [attendanceMarkedById], references: [id])
+  rescheduledFrom      EnquiryDemo?      @relation("DemoReschedule", fields: [rescheduledFromId], references: [id])
+  rescheduledTo        EnquiryDemo[]     @relation("DemoReschedule")
 
   @@index([enquiryId])
   @@index([facultyId])
+  @@index([sessionStatus])
+  @@index([demoDate])
   @@map("enquiry_demos")
 }
 
@@ -1474,6 +1534,8 @@ model Country {
   phoneCode    String?
   currencyCode String?
   nationality  String?
+  flagImageUrl String?
+  showOnMain   Boolean   @default(false)
   description  String?   @db.Text
   isActive     Boolean   @default(true)
   sortOrder    Int       @default(0)
@@ -1491,6 +1553,11 @@ model Country {
   visaTypes            VisaType[]
   embassies            Embassy[]
   documentRequirements DocumentRequirement[]
+  applicationChecklists ApplicationChecklist[]
+  applicationStatuses   ApplicationStatusMaster[]
+  visaChecklists        VisaChecklist[]
+  visaStatusMasters     VisaStatusMaster[]
+  learningResources     LearningResource[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -1659,6 +1726,7 @@ model DocumentType {
 
   company      Company               @relation(fields: [companyId], references: [id])
   requirements DocumentRequirement[]
+  visaChecklists VisaChecklist[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -1823,18 +1891,20 @@ model LeadSource {
 }
 
 model CrmLeadStatus {
-  id          String    @id @default(uuid())
-  companyId   String
-  code        String
-  name        String
-  description String?   @db.Text
-  isActive    Boolean   @default(true)
-  sortOrder   Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
-  createdBy   String?
-  updatedBy   String?
+  id            String    @id @default(uuid())
+  companyId     String
+  code          String
+  name          String
+  description   String?   @db.Text
+  defaultStatus Boolean   @default(false)
+  colorCode     String?
+  isActive      Boolean   @default(true)
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  createdBy     String?
+  updatedBy     String?
 
   company Company @relation(fields: [companyId], references: [id])
 
@@ -1932,6 +2002,34 @@ model CounsellorSkill {
   @@map("counsellor_skills")
 }
 
+model Faculty {
+  id          String    @id @default(uuid())
+  companyId   String
+  branchId    String?
+  code        String
+  name        String
+  email       String?
+  phone       String?
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company      @relation(fields: [companyId], references: [id])
+  branch  Branch?      @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  demos   EnquiryDemo[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([branchId])
+  @@index([isActive])
+  @@map("faculties")
+}
+
 model CommunicationTemplate {
   id          String    @id @default(uuid())
   companyId   String
@@ -1997,4 +2095,313 @@ model TenantFeatureOverride {
   @@unique([companyId, featureKey])
   @@index([companyId])
   @@map("tenant_feature_overrides")
+}
+
+// ─── APPLICATION CHECKLIST ────────────────────────────────────────────────────
+
+model ApplicationChecklist {
+  id           String    @id @default(uuid())
+  companyId    String
+  countryId    String?
+  documentType String?
+  name         String
+  enquiryForm  Boolean   @default(false)
+  isMandatory  Boolean   @default(true)
+  isActive     Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  createdBy    String?
+  updatedBy    String?
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  country  Country? @relation(fields: [countryId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([countryId])
+  @@index([isActive])
+  @@map("application_checklists")
+}
+
+// ─── APPLICATION STATUS MASTER ───────────────────────────────────────────────
+
+model ApplicationStatusMaster {
+  id             String    @id @default(uuid())
+  companyId      String
+  countryId      String?
+  name           String
+  mailSend       Boolean   @default(false)
+  defaultStatus  Boolean   @default(false)
+  setOfferLetter Boolean   @default(false)
+  position       Int       @default(0)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  createdBy      String?
+  updatedBy      String?
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  country  Country? @relation(fields: [countryId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, countryId, name])
+  @@index([companyId])
+  @@index([countryId])
+  @@index([isActive])
+  @@map("application_status_masters")
+}
+
+// ─── VISA CHECKLIST ───────────────────────────────────────────────────────────
+
+model VisaChecklist {
+  id             String    @id @default(uuid())
+  companyId      String
+  countryId      String?
+  documentTypeId String?
+  documentType   String?
+  name           String
+  isMandatory    Boolean   @default(true)
+  isActive       Boolean   @default(true)
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  createdBy      String?
+  updatedBy      String?
+
+  company      Company       @relation(fields: [companyId], references: [id])
+  country      Country?      @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  documentTypeRel DocumentType? @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([countryId])
+  @@index([documentTypeId])
+  @@index([isActive])
+  @@map("visa_checklists")
+}
+
+// ─── VISA STATUS MASTER ─────────────────────────────────────────────────────
+
+model VisaStatusMaster {
+  id            String    @id @default(uuid())
+  companyId     String
+  countryId     String?
+  name          String
+  visaApproved  Boolean   @default(false)
+  visaWithdraw  Boolean   @default(false)
+  visaRejected  Boolean   @default(false)
+  mailSend      Boolean   @default(false)
+  defaultStatus Boolean   @default(false)
+  colorCode     String?
+  position      Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  createdBy     String?
+  updatedBy     String?
+
+  company Company  @relation(fields: [companyId], references: [id])
+  country Country? @relation(fields: [countryId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, countryId, name])
+  @@index([companyId])
+  @@index([countryId])
+  @@index([isActive])
+  @@map("visa_status_masters")
+}
+
+// ─── STUDENT STATUS MASTER ──────────────────────────────────────────────────
+
+model StudentStatusMaster {
+  id            String    @id @default(uuid())
+  companyId     String
+  code          String
+  name          String
+  description   String?   @db.Text
+  defaultStatus Boolean   @default(false)
+  colorCode     String?
+  isActive      Boolean   @default(true)
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  createdBy     String?
+  updatedBy     String?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("student_status_masters")
+}
+
+// ─── LEARNING RESOURCES ─────────────────────────────────────────────────────
+
+model LearningResource {
+  id          String    @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  countryId   String?
+  category    String?
+  url         String?
+  fileUrl     String?
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  company Company  @relation(fields: [companyId], references: [id])
+  country Country? @relation(fields: [countryId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([countryId])
+  @@index([isActive])
+  @@map("learning_resources")
+}
+
+// ─── ACADEMIC CLASS ATTENDANCE (coaching batches — not university Course) ───
+
+model AcademicBatch {
+  id           String    @id @default(uuid())
+  companyId    String
+  branchId     String
+  code         String
+  name         String
+  courseName   String
+  instructorId String?
+  room         String?
+  startDate    DateTime?
+  endDate      DateTime?
+  isActive     Boolean   @default(true)
+  metadata     Json      @default("{}")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  createdBy    String?
+  updatedBy    String?
+
+  company      Company   @relation(fields: [companyId], references: [id])
+  branch       Branch    @relation(fields: [branchId], references: [id])
+  instructor   User?     @relation("BatchInstructor", fields: [instructorId], references: [id])
+  enrollments  BatchEnrollment[]
+  timetableSlots ClassTimetableSlot[]
+  sessions     ClassSession[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([branchId])
+  @@index([instructorId])
+  @@index([isActive])
+  @@map("academic_batches")
+}
+
+model BatchEnrollment {
+  id         String    @id @default(uuid())
+  batchId    String
+  studentId  String
+  enrolledAt DateTime  @default(now())
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  createdBy  String?
+
+  batch      AcademicBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student    Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, studentId])
+  @@index([studentId])
+  @@index([isActive])
+  @@map("batch_enrollments")
+}
+
+model ClassTimetableSlot {
+  id           String    @id @default(uuid())
+  batchId      String
+  dayOfWeek    Int
+  startTime    String
+  endTime      String
+  room         String?
+  instructorId String?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  batch        AcademicBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  sessions     ClassSession[]
+
+  @@index([batchId])
+  @@index([dayOfWeek])
+  @@map("class_timetable_slots")
+}
+
+model ClassSession {
+  id                 String             @id @default(uuid())
+  batchId            String
+  branchId           String
+  timetableSlotId    String?
+  instructorId       String?
+  sessionDate        DateTime           @db.Date
+  startAt            DateTime
+  endAt              DateTime
+  room               String?
+  status             ClassSessionStatus @default(SCHEDULED)
+  attendanceLockedAt DateTime?
+  attendanceLockedBy String?
+  metadata           Json               @default("{}")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  deletedAt          DateTime?
+  createdBy          String?
+
+  batch              AcademicBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  branch             Branch             @relation(fields: [branchId], references: [id])
+  timetableSlot      ClassTimetableSlot? @relation(fields: [timetableSlotId], references: [id], onDelete: SetNull)
+  instructor         User?              @relation("SessionInstructor", fields: [instructorId], references: [id])
+  attendances        ClassAttendance[]
+
+  @@unique([batchId, startAt])
+  @@index([branchId])
+  @@index([sessionDate])
+  @@index([status])
+  @@index([instructorId])
+  @@map("class_sessions")
+}
+
+model ClassAttendance {
+  id               String                @id @default(uuid())
+  sessionId        String
+  studentId        String
+  branchId         String
+  status           ClassAttendanceStatus
+  markedAt         DateTime              @default(now())
+  markedById       String
+  remarks          String?               @db.Text
+  checkInAt        DateTime?
+  checkOutAt       DateTime?
+  source           AttendanceMarkSource  @default(MANUAL)
+  correctionReason String?               @db.Text
+  locked           Boolean               @default(false)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  session          ClassSession          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student          Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  branch           Branch                @relation(fields: [branchId], references: [id])
+  markedBy         User                  @relation("ClassAttendanceMarker", fields: [markedById], references: [id])
+
+  @@unique([sessionId, studentId])
+  @@index([studentId])
+  @@index([branchId])
+  @@index([status])
+  @@map("class_attendances")
 }

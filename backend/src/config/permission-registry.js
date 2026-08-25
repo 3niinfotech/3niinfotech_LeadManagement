@@ -100,6 +100,26 @@ export const PERMISSION_REGISTRY = [
   { key: 'masters.view', module: 'masters', action: 'view', name: 'View Masters', groupName: 'Settings' },
   { key: 'masters.manage', module: 'masters', action: 'manage', name: 'Manage Masters', groupName: 'Settings' },
   { key: 'audit.view', module: 'audit', action: 'view', name: 'View Audit Logs', groupName: 'Settings' },
+
+  // Branch access (Active Branch switcher — prepare now, UI later)
+  { key: 'branch.switch', module: 'branch', action: 'switch', name: 'Switch Active Branch', groupName: 'Branch' },
+  { key: 'branch.view_multiple', module: 'branch', action: 'view_multiple', name: 'View Multiple Branches', groupName: 'Branch' },
+
+  // Calendar
+  { key: 'calendar.view', module: 'calendar', action: 'view', name: 'View Calendar', groupName: 'Calendar' },
+  { key: 'calendar.create', module: 'calendar', action: 'create', name: 'Create Calendar Events', groupName: 'Calendar' },
+  { key: 'calendar.update', module: 'calendar', action: 'update', name: 'Edit Calendar Events', groupName: 'Calendar' },
+  { key: 'calendar.delete', module: 'calendar', action: 'delete', name: 'Delete Calendar Events', groupName: 'Calendar' },
+  { key: 'calendar.assign', module: 'calendar', action: 'assign', name: 'Assign Calendar Events', groupName: 'Calendar' },
+  { key: 'calendar.complete', module: 'calendar', action: 'complete', name: 'Complete Calendar Events', groupName: 'Calendar' },
+  { key: 'calendar.reschedule', module: 'calendar', action: 'reschedule', name: 'Reschedule Calendar Events', groupName: 'Calendar' },
+
+  // Student + Demo attendance (not teacher attendance)
+  { key: 'attendance.view', module: 'attendance', action: 'view', name: 'View Attendance', groupName: 'Attendance' },
+  { key: 'attendance.mark', module: 'attendance', action: 'mark', name: 'Mark Attendance', groupName: 'Attendance' },
+  { key: 'attendance.edit', module: 'attendance', action: 'edit', name: 'Edit Attendance', groupName: 'Attendance' },
+  { key: 'attendance.correct', module: 'attendance', action: 'correct', name: 'Correct Locked Attendance', groupName: 'Attendance' },
+  { key: 'attendance.report', module: 'attendance', action: 'report', name: 'Attendance Reports', groupName: 'Attendance' },
 ];
 
 /** Legacy colon keys → dot keys for backward compatibility */

@@ -88,37 +88,3 @@ export function computeReceptionMetrics(rows = [], summary = {}) {
     counsellorWorkload,
   };
 }
-
-export function buildQueueTimelineEvents(lead) {
-  if (!lead) return [];
-  const events = [];
-  if (lead.walkInAt) {
-    events.push({ time: lead.walkInAt, label: 'Visitor registered', tone: 'primary' });
-    events.push({ time: lead.walkInAt, label: 'Token generated', tone: 'brand' });
-  }
-  if (lead.assignedTo) {
-    events.push({
-      time: lead.updatedAt || lead.walkInAt,
-      label: `Counsellor assigned — ${lead.assignedTo.firstName}`,
-      tone: 'info',
-    });
-  }
-  if (lead.status === 'IN_COUNSELLING') {
-    events.push({
-      time: lead.updatedAt,
-      label: 'Counselling started',
-      tone: 'success',
-    });
-  }
-  if (lead.status === 'COMPLETED') {
-    events.push({ time: lead.updatedAt, label: 'Visit completed', tone: 'neutral' });
-  }
-  if (lead.enquiry?.enquiryCode) {
-    events.push({
-      time: lead.updatedAt,
-      label: `Converted to enquiry ${lead.enquiry.enquiryCode}`,
-      tone: 'success',
-    });
-  }
-  return events.sort((a, b) => new Date(a.time) - new Date(b.time));
-}

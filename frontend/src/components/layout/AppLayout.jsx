@@ -7,10 +7,23 @@ import CommandPalette from '../common/CommandPalette';
 import { useSelector } from 'react-redux';
 import { selectSidebarCollapsed } from '../../redux/slices/uiSlice';
 import { sidebar as sidebarTheme } from '../../theme';
+import { CompanyRuntimeProvider, useCompanyRuntime } from '../../features/organization/CompanyRuntime';
 
-export default function AppLayout() {
+function ScrollingBanner() {
+  const { settings } = useCompanyRuntime();
+  if (!settings?.scrollingText) return null;
+  return (
+    <div className="bg-primary-600 text-white text-xs py-1 px-3 overflow-hidden whitespace-nowrap shrink-0">
+      {settings.scrollingText}
+    </div>
+  );
+}
+
+function AppLayoutInner() {
   const collapsed = useSelector(selectSidebarCollapsed);
   const sidebarWidth = collapsed ? sidebarTheme.collapsedWidth : sidebarTheme.width;
+  const { settings } = useCompanyRuntime();
+  const compactNav = settings?.navbarType === 'compact';
 
   return (
     <div className="h-screen overflow-hidden bg-background">
@@ -19,8 +32,11 @@ export default function AppLayout() {
         className="flex flex-col h-screen min-h-0 transition-[margin-left] duration-300 ease-out"
         style={{ marginLeft: sidebarWidth }}
       >
-        <Navbar />
-        <main className="flex-1 min-h-0 overflow-hidden flex flex-col p-3">
+        <ScrollingBanner />
+        <div className={`relative z-[1100] shrink-0 overflow-visible ${compactNav ? '[&_header]:h-12' : ''}`}>
+          <Navbar />
+        </div>
+        <main className="relative z-0 flex-1 min-h-0 overflow-hidden flex flex-col p-3">
           <PageTransition />
         </main>
         <AppFooter />
@@ -28,5 +44,13 @@ export default function AppLayout() {
       <GlobalDrawer />
       <CommandPalette />
     </div>
+  );
+}
+
+export default function AppLayout() {
+  return (
+    <CompanyRuntimeProvider>
+      <AppLayoutInner />
+    </CompanyRuntimeProvider>
   );
 }

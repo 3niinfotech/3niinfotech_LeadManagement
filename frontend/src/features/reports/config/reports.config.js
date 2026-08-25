@@ -17,5 +17,7 @@ export const ENQUIRY_REPORT_TABS = [
   { id: 'performance', label: 'Performance', icon: 'award' },
   { id: 'followup', label: 'Follow-up', icon: 'phone' },
   { id: 'demo', label: 'Demo', icon: 'monitor' },
+  { id: 'attendance', label: 'Attendance', icon: 'check' },
   { id: 'lostReason', label: 'Lost Reason', icon: 'xCircle' },
+  { id: 'export', label: 'Backup / Export', icon: 'download' },
 ];

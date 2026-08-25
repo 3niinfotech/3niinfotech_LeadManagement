@@ -1,7 +1,7 @@
 /** Standard module toolbar shell — search, segments, actions row */
 export default function ModuleToolbar({ children, className = '' }) {
   return (
-    <div className={`shrink-0 px-4 py-3 border-b border-slate-200 bg-white ${className}`}>
+    <div className={`shrink-0 px-4 py-3 border-b border-border bg-card-bg ${className}`.trim()}>
       <div className="flex flex-wrap items-center gap-3">
         {children}
       </div>

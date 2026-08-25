@@ -42,6 +42,10 @@
   --grid-row-selected: rgba(37, 99, 235, 0.05);
   --grid-row-hover: #F0F5FF;
   --grid-odd-row: #FFFFFF;
+  --grid-row-mine: #FFF6EB;
+  --grid-row-mine-odd: #FFF3E4;
+  --grid-row-mine-hover: #FFECD6;
+  --grid-row-mine-selected: #FFE8CC;
   --grid-header-border: #D8E2F0;
   --grid-column-border: #E8EDF4;
   --grid-selected-accent: #3B82F6;

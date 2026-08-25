@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
+import { FiUserCheck, FiEye, FiTrash2 } from 'react-icons/fi';
 import DataGrid from '../../../components/table/DataGrid';
-import { createActionsColumn, createAvatarColumn, GridRowActions } from '../../../components/table/grid.columns';
+import { createActionsColumn, createAvatarColumn } from '../../../components/table/grid.columns';
 import WalkInStatusBadge from './WalkInStatusBadge';
 import WalkInPriorityBadge from './WalkInPriorityBadge';
 import { TABLE_DENSITY } from '../../../config/constants';
@@ -16,22 +17,28 @@ function formatWalkInTime(value) {
 }
 
 export default function WalkInGrid({
-  rows, loading, fetching = false, onRowClick, onStatusChange, onEdit, onDelete, onSelectionChanged, density,
+  rows,
+  loading,
+  fetching = false,
+  onRowClick,
+  onView,
+  onDelete,
+  onAssign,
+  onSelectionChanged,
+  density,
+  emptyTitle,
+  emptyDescription,
+  emptyActionLabel,
+  onEmptyAction,
 }) {
   const gridDensity = density === 'comfortable' ? TABLE_DENSITY.COMFORTABLE : TABLE_DENSITY.COMPACT;
 
   const columns = useMemo(() => [
     {
-      field: 'tokenNumber',
-      headerName: 'Token',
-      width: 88,
-      cellClass: `font-semibold text-brand tabular-nums ${centerCell}`,
-      headerClass: centerHeader,
-    },
-    {
       field: 'leadCode',
-      headerName: 'Lead ID',
-      width: 148,
+      headerName: 'ID',
+      width: 190,
+      minWidth: 180,
       cellClass: `font-medium text-text tabular-nums ${centerCell}`,
       headerClass: centerHeader,
     },
@@ -68,13 +75,6 @@ export default function WalkInGrid({
       headerClass: centerHeader,
     },
     {
-      field: 'source',
-      headerName: 'Source',
-      width: 100,
-      cellClass: `text-text-secondary ${centerCell}`,
-      headerClass: centerHeader,
-    },
-    {
       field: 'priority',
       headerName: 'Priority',
       width: 96,
@@ -85,16 +85,10 @@ export default function WalkInGrid({
     {
       field: 'status',
       headerName: 'Status',
-      width: 156,
+      width: 140,
       cellClass: centerCell,
       headerClass: centerHeader,
-      cellRenderer: (p) => (
-        <WalkInStatusBadge
-          status={p.value}
-          onChange={(status) => onStatusChange(p.data.id, status)}
-          compact
-        />
-      ),
+      cellRenderer: (p) => <WalkInStatusBadge status={p.value} compact />,
     },
     {
       field: 'assignedTo',
@@ -102,41 +96,83 @@ export default function WalkInGrid({
       width: 130,
       valueGetter: (p) => {
         const u = p.data.assignedTo;
-        return u ? `${u.firstName} ${u.lastName || ''}`.trim() : '—';
+        return u ? `${u.firstName} ${u.lastName || ''}`.trim() : 'Unassigned';
       },
       cellClass: `text-text-secondary crm-grid-cell--truncate ${centerCell}`,
       headerClass: centerHeader,
     },
     {
       field: 'walkInAt',
-      headerName: 'Walk-in Time',
-      width: 130,
+      headerName: 'Time',
+      width: 120,
       valueFormatter: (p) => formatWalkInTime(p.value),
       cellClass: `text-text-secondary tabular-nums ${centerCell}`,
       headerClass: centerHeader,
     },
     createActionsColumn({
-      width: 88,
-      cellRenderer: (p) => (
-        <GridRowActions
-          onEdit={() => onEdit(p.data.id)}
-          onDelete={() => onDelete(p.data.id)}
-        />
-      ),
+      width: onAssign ? 112 : 88,
+      cellRenderer: (p) => {
+        const row = p.data;
+        if (!row) return null;
+        const needsAssign = row.status === 'WAITING' || row.status === 'WALK_IN' || !row.assignedToId;
+        return (
+          <div className="crm-grid-actions" onClick={(e) => e.stopPropagation()}>
+            {onAssign && needsAssign && (
+              <button
+                type="button"
+                className="crm-grid-action-btn crm-grid-action-btn--edit"
+                title="Assign counsellor"
+                onClick={() => onAssign(row)}
+              >
+                <FiUserCheck className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onView && (
+              <button
+                type="button"
+                className="crm-grid-action-btn"
+                title="View profile"
+                onClick={() => onView(row.id)}
+              >
+                <FiEye className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                className="crm-grid-action-btn crm-grid-action-btn--delete"
+                title="Remove"
+                onClick={() => onDelete(row.id)}
+              >
+                <FiTrash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        );
+      },
     }),
-  ], [onDelete, onEdit, onStatusChange]);
+  ], [onAssign, onDelete, onView]);
 
   return (
     <DataGrid
-      rows={rows}
       columns={columns}
+      rowData={rows}
       loading={loading}
       fetching={fetching}
       density={gridDensity}
+      rowSelection="multiple"
       onRowClick={onRowClick}
       onSelectionChanged={onSelectionChanged}
-      rowIdField="id"
-      enableSelection
+      pagination
+      paginationPageSize={25}
+      fitContent
+      maxVisibleRows={10}
+      hideSinglePagePagination
+      emptyTitle={emptyTitle || 'No visitors'}
+      emptyDescription={emptyDescription || 'Register a visitor or switch tab.'}
+      emptyActionLabel={emptyActionLabel}
+      onEmptyAction={onEmptyAction}
+      getRowId={(p) => p.data.id}
     />
   );
 }

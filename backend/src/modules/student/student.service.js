@@ -13,6 +13,8 @@ import {
   resolveCompanyIdForBranch,
 } from '../../utils/tenant.util.js';
 
+import { masterRepository } from '../master/master.repository.js';
+
 export const createStudentSchema = z.object({
   branchId: z.string().uuid(),
   partnerId: z.string().uuid().optional().nullable(),
@@ -42,6 +44,47 @@ export const studentService = {
     return studentRepository.findMany({ ...query, sort, scopeWhere });
   },
 
+  getSummary: async (query, user) => {
+    const scopeWhere = mergeScope(user, { entity: 'student' });
+    if (query?.branchId) scopeWhere.branchId = query.branchId;
+    return studentRepository.getSummaryCounts(scopeWhere);
+  },
+
+  exportStudents: async (query, user, userId, req) => {
+    const { ids: requestedIds } = query;
+    const selected = Array.isArray(requestedIds) && requestedIds.length > 0;
+    const scopeWhere = mergeScope(user, { entity: 'student' });
+
+    const result = await studentRepository.findMany({
+      ...query,
+      ...(selected ? { ids: requestedIds } : {}),
+      scopeWhere,
+      page: 1,
+      limit: selected ? Math.max(requestedIds.length, 1) : 5000,
+    });
+
+    const { buildStudentExportWorkbook, buildStudentExportFilename } = await import('./student.export.service.js');
+    const buffer = await buildStudentExportWorkbook(result.data, { selected });
+    const filename = buildStudentExportFilename({ selected });
+
+    await auditLog({
+      userId,
+      action: 'EXPORT',
+      entityType: 'Student',
+      newData: { count: result.data.length, selected },
+      req,
+    });
+
+    return { buffer, filename, count: result.data.length, selected };
+  },
+
+  bulkUpdateStatus: async (ids, status, userId, req) => {
+    await assertStudentIdsInTenant(ids, req.user);
+    const scopeWhere = mergeScope(req.user, { entity: 'student' });
+    await studentRepository.bulkUpdateStatus(ids, status, userId, scopeWhere);
+    await auditLog({ userId, action: 'UPDATE', entityType: 'Student', entityId: ids.join(','), newData: { status }, req });
+  },
+
   getById: async (id, user) => {
     return assertStudentInTenant(id, user);
   },
@@ -52,8 +95,16 @@ export const studentService = {
 
     const companyId = await resolveCompanyIdForBranch(data.branchId, req.user);
     const studentCode = await studentRepository.generateCode(companyId);
+
+    let status = data.status;
+    if (!status) {
+      const defaultStatus = await masterRepository.findDefaultStudentStatus(companyId);
+      if (defaultStatus?.code) status = defaultStatus.code;
+    }
+
     const student = await studentRepository.create({
       ...data,
+      status,
       studentCode,
       createdBy: userId,
       dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,

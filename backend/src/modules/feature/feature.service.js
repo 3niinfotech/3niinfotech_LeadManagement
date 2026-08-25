@@ -29,8 +29,8 @@ function resolveEffective(catalog, overrides) {
   }
 
   const modes = {
-    receptionMode: raw['reception.live_queue'] ? 'ENTERPRISE' : 'SIMPLE',
-    assignmentMode: raw['reception.auto_counsellor_assignment'] ? 'AUTO' : 'MANUAL',
+    receptionMode: 'SIMPLE',
+    assignmentMode: 'MANUAL',
   };
 
   return { flags: raw, modes, catalog: catalog.map((f) => ({

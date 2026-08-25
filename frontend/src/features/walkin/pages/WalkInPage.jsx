@@ -9,18 +9,20 @@ import { buildReceptionKpiItems } from '../config/receptionKpi.config';
 import ReceptionPageHeader from '../components/reception/ReceptionPageHeader';
 import ReceptionKpiStrip from '../components/reception/ReceptionKpiStrip';
 import QuickRegistrationPanel from '../components/reception/QuickRegistrationPanel';
-import LiveQueuePanel from '../components/reception/LiveQueuePanel';
+import AssignCounsellorDrawer from '../components/reception/AssignCounsellorDrawer';
 import ReceptionChartsRow from '../components/reception/ReceptionChartsRow';
 import WalkInToolbar from '../components/WalkInToolbar';
 import WalkInFilters from '../components/WalkInFilters';
 import WalkInGrid from '../components/WalkInGrid';
 import { useWalkInFilters } from '../hooks/useWalkInFilters';
 import { useWalkInDrawer } from '../hooks/useWalkInDrawer';
+import { usePermissions } from '../../../hooks/usePermissions';
+import { PERMISSIONS } from '../../../config/permissions';
 import {
   useGetWalkInsQuery,
   useGetWalkInSummaryQuery,
   useCreateWalkInMutation,
-  usePatchWalkInStatusMutation,
+  useUpdateWalkInMutation,
   useDeleteWalkInMutation,
   useGetWalkInBranchesQuery,
   useGetWalkInCounsellorsQuery,
@@ -36,16 +38,28 @@ import {
 const WalkInDrawer = lazyImport(() => import('../components/WalkInDrawer'));
 const POLL_MS = 30000;
 
+const VIEW_EMPTY = {
+  today: { title: 'No visitors today', description: 'Register a walk-in to see them here.' },
+  waiting: { title: 'No one waiting', description: 'Waiting visitors who need a counsellor appear here.' },
+  in_counselling: { title: 'No one with counsellor', description: 'Visitors in counselling show in this tab.' },
+  completed: { title: 'None done yet', description: 'Completed visits today appear here.' },
+  all: { title: 'No visitors', description: 'Registered walk-ins appear in this list.' },
+};
+
 export default function WalkInPage() {
   const dispatch = useDispatch();
   const {
-    filtersOpen, activeView, activeSummaryFilter, columnDensity, drawerOpen,
+    filtersOpen, activeView, columnDensity, drawerOpen,
   } = useSelector(selectWalkInUi);
   const { queryParams, search, setSearch, applyFilters, resetFilters, selectSummaryCard } = useWalkInFilters();
   const { openDrawer } = useWalkInDrawer();
+  const { can } = usePermissions();
+  const canCreate = can(PERMISSIONS.WALKIN_CREATE);
+  const canUpdate = can(PERMISSIONS.WALKIN_UPDATE);
+  const canDelete = can(PERMISSIONS.WALKIN_DELETE);
   const [filterDraft, setFilterDraft] = useState({});
-  const [selectedQueueId, setSelectedQueueId] = useState(null);
   const [focusFormSignal, setFocusFormSignal] = useState(0);
+  const [assignLead, setAssignLead] = useState(null);
 
   const { data: listResult, isLoading, isFetching, refetch } = useGetWalkInsQuery(queryParams, {
     pollingInterval: POLL_MS,
@@ -56,7 +70,7 @@ export default function WalkInPage() {
   const { data: branches = [] } = useGetWalkInBranchesQuery();
   const { data: counsellors = [] } = useGetWalkInCounsellorsQuery(filterDraft.branchId, { skip: !filterDraft.branchId });
   const [createWalkIn, { isLoading: creating }] = useCreateWalkInMutation();
-  const [patchStatus] = usePatchWalkInStatusMutation();
+  const [updateWalkIn, { isLoading: assigning }] = useUpdateWalkInMutation();
   const [deleteWalkIn] = useDeleteWalkInMutation();
 
   const rows = listResult?.data || [];
@@ -65,13 +79,7 @@ export default function WalkInPage() {
 
   const metrics = useMemo(() => computeReceptionMetrics(rows, summary), [rows, summary]);
   const kpiItems = useMemo(() => buildReceptionKpiItems(metrics, summary), [metrics, summary]);
-
-  const queueRows = useMemo(
-    () => rows
-      .filter((r) => ['WAITING', 'IN_COUNSELLING', 'APPOINTMENT', 'WALK_IN'].includes(r.status))
-      .sort((a, b) => new Date(a.walkInAt) - new Date(b.walkInAt)),
-    [rows],
-  );
+  const emptyCopy = VIEW_EMPTY[activeView] || VIEW_EMPTY.all;
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -82,41 +90,19 @@ export default function WalkInPage() {
     try {
       const result = await createWalkIn(body).unwrap();
       const lead = result?.data ?? result;
-      toastService.success(`Registered — Token ${lead.tokenNumber} · ${lead.leadCode}`);
+      const assignee = lead?.assignedTo
+        ? `${lead.assignedTo.firstName || ''} ${lead.assignedTo.lastName || ''}`.trim()
+        : 'counsellor';
+      toastService.success(`Registered & assigned to ${assignee} · ${lead.leadCode}`);
       handleRefresh();
-      if (lead?.id) {
-        setSelectedQueueId(lead.id);
-        dispatch(openWalkInDrawer({ id: lead.id }));
-      }
+      dispatch(setWalkInActiveView('today'));
+      if (lead?.id) dispatch(openWalkInDrawer({ id: lead.id }));
+      setFocusFormSignal((n) => n + 1);
     } catch (e) {
       const msg = e?.data?.message || 'Registration failed';
-      if (e?.status === 409) {
-        toastService.warning(msg);
-      } else {
-        toastService.error(msg);
-      }
+      if (e?.status === 409) toastService.warning(msg);
+      else toastService.error(msg);
     }
-  };
-
-  const handleStatusChange = async (id, status) => {
-    try {
-      await patchStatus({ id, status }).unwrap();
-      toastService.success('Queue updated');
-      handleRefresh();
-    } catch (e) {
-      toastService.error(e?.data?.message || 'Status update failed');
-    }
-  };
-
-  const handleCallNext = () => {
-    const next = queueRows.find((r) => r.status === 'WAITING');
-    if (!next) {
-      toastService.info('No visitors waiting in queue');
-      return;
-    }
-    handleStatusChange(next.id, 'IN_COUNSELLING');
-    setSelectedQueueId(next.id);
-    openDrawer(next.id);
   };
 
   const handleDelete = async (id) => {
@@ -135,9 +121,26 @@ export default function WalkInPage() {
     }
   };
 
+  const handleAssign = async (counsellorId) => {
+    if (!assignLead?.id || !counsellorId) return;
+    try {
+      await updateWalkIn({ id: assignLead.id, assignedToId: counsellorId }).unwrap();
+      toastService.success('Counsellor assigned');
+      setAssignLead(null);
+      handleRefresh();
+    } catch (e) {
+      toastService.error(e?.data?.message || 'Assign failed');
+    }
+  };
+
   const scrollToRegister = () => {
     setFocusFormSignal((n) => n + 1);
     document.getElementById('reception-registration-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const onKpiSelect = (key) => {
+    selectSummaryCard(key);
+    document.getElementById('reception-visitor-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
@@ -147,51 +150,26 @@ export default function WalkInPage() {
           <ReceptionPageHeader
             onRegister={scrollToRegister}
             onRefresh={handleRefresh}
-            onExport={() => toastService.info('Export — use grid toolbar')}
             refreshing={isFetching}
           />
 
           <div className="crm-reception-page__scroll">
             <ReceptionKpiStrip
               items={kpiItems}
-              activeFilter={activeSummaryFilter}
-              onSelect={selectSummaryCard}
+              activeFilter={activeView}
+              onSelect={onKpiSelect}
               loading={summaryLoading}
             />
 
-            <div className="crm-reception-split">
-              <QuickRegistrationPanel
-                onSubmit={handleCreate}
-                loading={creating}
-                onOpenProfile={openDrawer}
-                focusSignal={focusFormSignal}
-              />
-              <LiveQueuePanel
-                queue={queueRows}
-                selectedId={selectedQueueId}
-                onSelect={setSelectedQueueId}
-                onStatusChange={handleStatusChange}
-                onCallNext={handleCallNext}
-                loading={gridLoading}
-              />
-            </div>
-
-            <ReceptionChartsRow metrics={metrics} />
-
-            <section className="crm-reception-grid-section">
-              <div className="crm-reception-grid-section__head">
-                <h3 className="crm-reception-grid-section__title">Today&apos;s Walk-ins</h3>
-                <p className="crm-reception-grid-section__sub">Enterprise grid · click row to open visitor drawer</p>
-              </div>
-
+            <section id="reception-visitor-list" className="crm-reception-grid-section">
               <WalkInToolbar
                 search={search}
                 onSearchChange={setSearch}
                 activeView={activeView}
                 onViewChange={(v) => dispatch(setWalkInActiveView(v))}
-                onAdd={scrollToRegister}
                 filtersOpen={filtersOpen}
                 onToggleFilters={() => dispatch(toggleWalkInFilters())}
+                countLabel={`${rows.length} visitor${rows.length === 1 ? '' : 's'}`}
               />
 
               <WalkInFilters
@@ -211,22 +189,42 @@ export default function WalkInPage() {
                   loading={gridLoading}
                   fetching={gridFetching}
                   density={columnDensity}
-                  onRowClick={(row) => {
-                    setSelectedQueueId(row.id);
-                    openDrawer(row.id);
-                  }}
-                  onEdit={openDrawer}
-                  onDelete={handleDelete}
-                  onStatusChange={handleStatusChange}
+                  onRowClick={(row) => openDrawer(row.id)}
+                  onView={openDrawer}
+                  onDelete={canDelete ? handleDelete : undefined}
+                  onAssign={canUpdate ? setAssignLead : undefined}
                   onSelectionChanged={(selected) => dispatch(
                     setWalkInSelectedRowIds((selected || []).map((r) => r.id)),
                   )}
+                  emptyTitle={emptyCopy.title}
+                  emptyDescription={emptyCopy.description}
+                  emptyActionLabel={canCreate ? 'Register visitor' : undefined}
+                  onEmptyAction={canCreate ? scrollToRegister : undefined}
                 />
               </div>
             </section>
+
+            {canCreate && (
+              <QuickRegistrationPanel
+                onSubmit={handleCreate}
+                loading={creating}
+                onOpenProfile={openDrawer}
+                focusSignal={focusFormSignal}
+              />
+            )}
+
+            <ReceptionChartsRow metrics={metrics} />
           </div>
         </div>
       </div>
+
+      <AssignCounsellorDrawer
+        open={Boolean(assignLead)}
+        lead={assignLead}
+        onClose={() => setAssignLead(null)}
+        onAssign={handleAssign}
+        saving={assigning}
+      />
 
       {drawerOpen && (
         <Suspense fallback={null}>

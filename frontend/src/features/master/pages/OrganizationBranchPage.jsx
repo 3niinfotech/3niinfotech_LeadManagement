@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FiMapPin, FiEye, FiEdit2, FiPlus, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
 import ModulePageCard from '../../../components/layout/ModulePageLayout';
-import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
@@ -9,8 +8,9 @@ import FormField from '../../../components/ui/FormField';
 import Drawer from '../../../components/ui/Drawer';
 import DataGrid from '../../../components/table/DataGrid';
 import { createActionsColumn } from '../../../components/table/grid.columns';
+import MasterListToolbar from '../components/MasterListToolbar';
 import { ROUTES } from '../../../config/routes';
-import { resolveMasterPage } from '../../../config/master-registry.config';
+import { resolveMasterPage, buildMasterBreadcrumbs } from '../../../config/master-registry.config';
 import { PERMISSIONS } from '../../../config/permissions';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { useRelationalMasterOptions } from '../hooks/useRelationalMasterOptions';
@@ -64,7 +64,7 @@ function branchToForm(row) {
 }
 
 export default function OrganizationBranchPage() {
-  const hubItem = resolveMasterPage('branch');
+  const hubItem = resolveMasterPage('branch')?.hubItem;
   const { can } = usePermissions();
   const canManage = can(PERMISSIONS.SETTINGS_UPDATE) || can(PERMISSIONS.MASTERS_MANAGE);
 
@@ -78,7 +78,7 @@ export default function OrganizationBranchPage() {
   const [saving, setSaving] = useState(false);
   const [actionId, setActionId] = useState(null);
 
-  const { options: countryOptions, loading: countriesLoading } = useRelationalMasterOptions('countries');
+  const { options: countryOptions, loading: countriesLoading } = useRelationalMasterOptions('country');
 
   const load = useCallback(async (silent = false) => {
     if (silent) setFetching(true);
@@ -241,11 +241,7 @@ export default function OrganizationBranchPage() {
         title={hubItem?.label || 'Branch'}
         subtitle={hubItem?.description}
         icon={FiMapPin}
-        breadcrumbs={[
-          { label: 'Dashboard', path: ROUTES.DASHBOARD },
-          { label: 'Master', path: ROUTES.MASTER },
-          { label: hubItem?.label || 'Branch' },
-        ]}
+        breadcrumbs={buildMasterBreadcrumbs(hubItem, hubItem?.label || 'Branch')}
         actions={
           canManage ? (
             <Button size="sm" icon={FiPlus} onClick={() => openDrawer('add')}>
@@ -255,29 +251,16 @@ export default function OrganizationBranchPage() {
         }
       >
         <div className="flex flex-col flex-1 min-h-0">
-          <Card className="!p-3 mx-4 mt-4 mb-0 shrink-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, code, city..."
-                className="max-w-xs"
-              />
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All statuses' },
-                  { value: 'active', label: 'Active only' },
-                  { value: 'inactive', label: 'Inactive only' },
-                ]}
-                className="w-40"
-              />
-              <Button variant="outline" size="sm" onClick={() => load(true)} disabled={fetching}>
-                Refresh
-              </Button>
-            </div>
-          </Card>
+          <MasterListToolbar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search by name, code, city…"
+            searchAriaLabel="Search branches"
+            status={statusFilter}
+            onStatusChange={setStatusFilter}
+            onRefresh={() => load(true)}
+            refreshing={fetching}
+          />
 
           <ModulePageCard.Table className="min-h-[320px]">
             <DataGrid

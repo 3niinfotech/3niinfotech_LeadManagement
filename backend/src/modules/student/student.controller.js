@@ -9,6 +9,26 @@ export const getStudents = asyncHandler(async (req, res) => {
   sendPaginated(res, result.data, result.pagination);
 });
 
+export const getStudentSummary = asyncHandler(async (req, res) => {
+  const summary = await studentService.getSummary(req.query, req.user);
+  sendSuccess(res, summary);
+});
+
+export const exportStudents = asyncHandler(async (req, res) => {
+  const result = await studentService.exportStudents(req.body, req.user, req.user.id, req);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+  res.setHeader('X-Export-Count', String(result.count));
+  res.setHeader('X-Export-Selected', result.selected ? '1' : '0');
+  res.send(result.buffer);
+});
+
+export const bulkUpdateStudentStatus = asyncHandler(async (req, res) => {
+  const { ids, status } = req.body;
+  await studentService.bulkUpdateStatus(ids, status, req.user.id, req);
+  sendSuccess(res, null, 'Student statuses updated');
+});
+
 export const getStudent = asyncHandler(async (req, res) => {
   const student = await studentService.getById(req.params.id, req.user);
   sendSuccess(res, student);

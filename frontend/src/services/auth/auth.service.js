@@ -1,5 +1,7 @@
 import { API } from '../../config/api';
-import { apiGet, apiPost, apiPatch } from '../../api/apiClient';
+import {
+  apiDelete, apiGet, apiPost, apiPatch,
+} from '../../api/apiClient';
 import { STORAGE_KEYS } from '../../config/storageKeys';
 
 export const authService = {
@@ -55,6 +57,25 @@ export const authService = {
   updateProfile: async (payload) => {
     const response = await apiPatch(API.PROFILE_UPDATE, payload);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
+    return response.data;
+  },
+
+  uploadAvatar: async (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await apiPost(API.PROFILE_AVATAR, form);
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
+    return response.data;
+  },
+
+  removeAvatar: async () => {
+    const response = await apiDelete(API.PROFILE_AVATAR);
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
+    return response.data;
+  },
+
+  changePassword: async (payload) => {
+    const response = await apiPost(API.CHANGE_PASSWORD, payload);
     return response.data;
   },
 };

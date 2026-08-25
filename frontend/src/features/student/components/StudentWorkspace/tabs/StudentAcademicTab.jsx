@@ -1,13 +1,12 @@
-import Input from '../../../../../components/ui/Input';
 import FormSection from '../../../../../components/ui/FormSection';
 import FormSelectField from '../../../../enquiry/components/EnquiryDrawer/FormSelectField';
-import { STUDENT_STATUSES } from '../../../../../config/constants';
+import AsyncMasterSelect from '../../../../master/components/AsyncMasterSelect';
 import { useEnquiryFormOptions } from '../../../../enquiry/hooks/useEnquiryFormOptions';
+import { useStudentStatusOptions } from '../../../hooks/useStudentStatusOptions';
 
-const STATUS_OPTIONS = STUDENT_STATUSES.map(({ value, label }) => ({ value, label }));
-
-export default function StudentAcademicTab({ register, control, errors }) {
+export default function StudentAcademicTab({ control, errors }) {
   const { getOptions } = useEnquiryFormOptions();
+  const { statusOptions } = useStudentStatusOptions();
 
   return (
     <div className="space-y-4">
@@ -21,19 +20,21 @@ export default function StudentAcademicTab({ register, control, errors }) {
             errors={errors}
             placeholder="Select country"
           />
-          <FormSelectField
+          <AsyncMasterSelect
             name="course"
             control={control}
             label="Course"
-            options={getOptions('course')}
+            entity="course"
             errors={errors}
-            placeholder="Select course"
+            placeholder="Search course"
           />
-          <Input
+          <AsyncMasterSelect
+            name="university"
+            control={control}
             label="University"
-            {...register('university')}
-            error={errors.university?.message}
-            placeholder="Target university"
+            entity="university"
+            errors={errors}
+            placeholder="Search university"
           />
           <FormSelectField
             name="intake"
@@ -47,7 +48,7 @@ export default function StudentAcademicTab({ register, control, errors }) {
             name="status"
             control={control}
             label="Student Status"
-            options={STATUS_OPTIONS}
+            options={statusOptions}
             errors={errors}
             allowClear={false}
             placeholder="Select status"

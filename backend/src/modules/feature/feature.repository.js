@@ -29,7 +29,10 @@ export const featureRepository = {
   },
 
   listCatalog: () => prisma.featureFlag.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      key: { in: FEATURE_REGISTRY.map((feature) => feature.key) },
+    },
     orderBy: [{ module: 'asc' }, { sortOrder: 'asc' }],
   }),
 

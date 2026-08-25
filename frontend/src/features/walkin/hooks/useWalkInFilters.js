@@ -16,12 +16,12 @@ export function useWalkInFilters() {
     page,
     limit: pageSize,
     view: activeView === 'all' ? undefined : activeView,
-    status: activeSummaryFilter || filters.status || undefined,
+    status: filters.status || undefined,
     priority: filters.priority || undefined,
     search: search || undefined,
     branchId: filters.branchId || undefined,
     assignedToId: filters.assignedToId || undefined,
-  }), [page, pageSize, activeView, activeSummaryFilter, search, filters]);
+  }), [page, pageSize, activeView, search, filters]);
 
   const applyFilters = useCallback((next) => {
     setFilters(next);
@@ -33,20 +33,12 @@ export function useWalkInFilters() {
     setSearch('');
     setPage(1);
     dispatch(setWalkInSummaryFilter(null));
-    dispatch(setWalkInActiveView('all'));
+    dispatch(setWalkInActiveView('today'));
   }, [dispatch]);
 
   const selectSummaryCard = useCallback((filterValue) => {
-    if (['today', 'waiting', 'in_counselling', 'completed', 'cancelled', 'appointment'].includes(filterValue)) {
-      dispatch(setWalkInActiveView(filterValue === 'today' ? 'today' : 'all'));
-      dispatch(setWalkInSummaryFilter(
-        ['WAITING', 'IN_COUNSELLING', 'COMPLETED', 'CANCELLED', 'APPOINTMENT'].includes(filterValue)
-          ? filterValue
-          : null,
-      ));
-    } else {
-      dispatch(setWalkInSummaryFilter(filterValue));
-    }
+    dispatch(setWalkInActiveView(filterValue || 'today'));
+    dispatch(setWalkInSummaryFilter(null));
     setPage(1);
   }, [dispatch]);
 

@@ -24,6 +24,11 @@ const processQueue = (error, token = null) => {
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  // Let the browser add the multipart boundary. Keeping the instance-level
+  // application/json header causes multer to receive req.file as undefined.
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
   return config;
 });
 

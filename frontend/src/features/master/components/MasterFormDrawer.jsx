@@ -8,19 +8,28 @@ import Select from '../../../components/ui/Select';
 import Textarea from '../../../components/ui/Textarea';
 import FormField from '../../../components/ui/FormField';
 import { useRelationalMasterOptions, useBranchOptions } from '../hooks/useRelationalMasterOptions';
+import { useAsyncMasterOptions } from '../hooks/useAsyncMasterOptions';
 
-function emptyDefaults(fields = []) {
+function emptyDefaults(fields = [], fieldDefaults = {}) {
   const out = {};
   fields.forEach((f) => {
-    if (f.type === 'switch') out[f.name] = true;
-    else if (f.type === 'number') out[f.name] = f.name === 'sortOrder' ? 0 : '';
-    else out[f.name] = '';
+    if (fieldDefaults[f.name] !== undefined) {
+      out[f.name] = fieldDefaults[f.name];
+      return;
+    }
+    if (f.type === 'switch') {
+      out[f.name] = f.defaultValue !== undefined ? f.defaultValue : (f.name === 'isActive' ? true : false);
+    } else if (f.type === 'number') {
+      out[f.name] = f.name === 'sortOrder' || f.name === 'position' ? 0 : '';
+    } else {
+      out[f.name] = '';
+    }
   });
   return out;
 }
 
-function normalizeIncoming(record, fields) {
-  const base = emptyDefaults(fields);
+function normalizeIncoming(record, fields, fieldDefaults = {}) {
+  const base = emptyDefaults(fields, fieldDefaults);
   if (!record) return base;
   fields.forEach((f) => {
     let value = record[f.name];
@@ -28,7 +37,10 @@ function normalizeIncoming(record, fields) {
       value = value.join(', ');
     }
     if (value === null || value === undefined) value = base[f.name];
-    if (f.type === 'switch') value = Boolean(record[f.name] ?? true);
+    if (f.type === 'switch') {
+      const switchDefault = f.defaultValue !== undefined ? f.defaultValue : (f.name === 'isActive' ? true : false);
+      value = Boolean(record[f.name] ?? switchDefault);
+    }
     base[f.name] = value;
   });
   return base;
@@ -50,9 +62,18 @@ function DependentOptionsSelect({
   }, [field.dependsOn, field.dependsParam, parentValue]);
 
   const enabled = !field.dependsOn || Boolean(parentValue);
-  const { options, loading } = useRelationalMasterOptions(field.optionsEntity, params, {
-    enabled: enabled && !disabled,
+  const isLarge = field.optionsEntity === 'course' || field.optionsEntity === 'university';
+  const asyncOpts = useAsyncMasterOptions(field.optionsEntity, params, {
+    enabled: enabled && !disabled && isLarge,
   });
+  const relOpts = useRelationalMasterOptions(field.optionsEntity, params, {
+    enabled: enabled && !disabled && !isLarge,
+  });
+  const options = (isLarge ? asyncOpts.options : relOpts.options).map((o) => ({
+    value: field.optionValueField === 'label' ? (o.label || o.name || o.value) : o.value,
+    label: o.label || o.name || o.value,
+  }));
+  const loading = isLarge ? asyncOpts.loading : relOpts.loading;
 
   useEffect(() => {
     if (field.dependsOn && !parentValue && value) {
@@ -66,9 +87,13 @@ function DependentOptionsSelect({
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         options={options}
-        placeholder={loading ? 'Loading...' : `Select ${field.label}`}
-        disabled={disabled || !enabled || loading}
+        placeholder={loading ? 'Loading...' : (isLarge ? `Search ${field.label}` : `Select ${field.label}`)}
+        disabled={disabled || !enabled || (loading && !isLarge)}
         allowClear={!field.required}
+        showSearch
+        filterOption={isLarge ? false : undefined}
+        onSearch={isLarge ? (term) => asyncOpts.setSearch(term) : undefined}
+        notFoundContent={isLarge ? (loading ? 'Searching…' : 'Type to search') : undefined}
       />
     </FormField>
   );
@@ -180,7 +205,7 @@ function FieldControl({
                 disabled={disabled}
                 className="rounded border-border"
               />
-              Active
+              {field.label || 'On'}
             </label>
           </FormField>
         )}
@@ -247,6 +272,7 @@ export default function MasterFormDrawer({
   entityConfig,
   record,
   submitting = false,
+  fieldDefaults = {},
   onClose,
   onSubmit,
 }) {
@@ -263,13 +289,13 @@ export default function MasterFormDrawer({
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: schema ? zodResolver(schema) : undefined,
-    defaultValues: emptyDefaults(fields),
+    defaultValues: emptyDefaults(fields, fieldDefaults),
   });
 
   useEffect(() => {
     if (!open) return;
-    reset(normalizeIncoming(mode === 'add' ? null : record, fields));
-  }, [open, mode, record, fields, reset]);
+    reset(normalizeIncoming(mode === 'add' ? null : record, fields, fieldDefaults));
+  }, [open, mode, record, fields, reset, fieldDefaults]);
 
   const title = mode === 'add'
     ? `Add ${entityConfig?.singular || 'Record'}`

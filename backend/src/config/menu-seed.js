@@ -24,6 +24,7 @@ const MASTER_SECTIONS_SEED = [
       { name: 'Course', icon: 'FiBookOpen', route: '/admin/master/course', permissionKey: 'settings.view', displayOrder: 3 },
       { name: 'Intake', icon: 'FiCalendar', route: '/admin/master/intake', permissionKey: 'settings.view', displayOrder: 4 },
       { name: 'Qualification', icon: 'FiAward', route: '/admin/master/qualification', permissionKey: 'settings.view', displayOrder: 5 },
+      { name: 'Faculty', icon: 'FiUsers', route: '/admin/master/faculty', permissionKey: 'masters.view', displayOrder: 6 },
     ],
   },
   {

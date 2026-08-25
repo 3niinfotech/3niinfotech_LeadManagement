@@ -3,6 +3,9 @@ import { FiSliders, FiToggleLeft, FiDatabase, FiChevronRight, FiUsers, FiShield 
 import ModulePageCard from '../../components/layout/ModulePageLayout';
 import Card from '../../components/ui/Card';
 import { ROUTES } from '../../config/routes';
+import { PERMISSIONS } from '../../config/permissions';
+import { usePermissions } from '../../hooks/usePermissions';
+import NotificationPreferencesCard from '../../features/settings/components/NotificationPreferencesCard';
 
 const LINKS = [
   {
@@ -10,28 +13,34 @@ const LINKS = [
     description: 'Add counsellors, assign roles, and manage team members',
     path: `${ROUTES.MASTER}/staff`,
     icon: FiUsers,
+    permissions: [PERMISSIONS.USERS_VIEW, PERMISSIONS.MASTERS_VIEW],
   },
   {
     title: 'Roles & Permissions',
     description: 'Configure role permissions and access matrix',
     path: ROUTES.ROLES,
     icon: FiShield,
+    permissions: [PERMISSIONS.ROLES_VIEW],
   },
   {
     title: 'Feature Toggle',
-    description: 'ON/OFF queue, live timing, manual register, enterprise modules',
+    description: 'Enterprise module toggles and reception walk-in settings',
     path: ROUTES.FEATURE_TOGGLE,
     icon: FiToggleLeft,
+    permissions: [PERMISSIONS.SETTINGS_UPDATE],
   },
   {
     title: 'Master Data',
     description: 'Company, academic, visa, finance, CRM and all reference masters',
     path: ROUTES.MASTER,
     icon: FiDatabase,
+    permissions: [PERMISSIONS.MASTERS_VIEW, PERMISSIONS.MASTERS_MANAGE],
   },
 ];
 
 export default function SettingsPage() {
+  const { canAny } = usePermissions();
+  const visibleLinks = LINKS.filter((item) => !item.permissions?.length || canAny(item.permissions));
   return (
     <ModulePageCard
       title="Settings"
@@ -43,9 +52,11 @@ export default function SettingsPage() {
         { label: 'Settings' },
       ]}
     >
-      <div className="flex-1 min-h-0 overflow-auto p-4">
+      <div className="flex-1 min-h-0 overflow-auto p-4 space-y-4">
+        <NotificationPreferencesCard />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
-          {LINKS.map((item) => {
+          {visibleLinks.map((item) => {
             const Icon = item.icon;
             return (
               <Link key={item.path} to={item.path} className="block group">

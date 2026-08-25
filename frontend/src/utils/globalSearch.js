@@ -21,25 +21,43 @@ export function highlightParts(text, query) {
 }
 
 export const QUICK_SEARCHES = [
-  { id: 'qs-enquiries', query: 'enquiry', label: 'Browse enquiries', icon: FiInbox },
-  { id: 'qs-students', query: 'student', label: 'Find students', icon: FiUsers },
-  { id: 'qs-leads', query: 'lead', label: 'Search leads', icon: FiUserPlus },
-  { id: 'qs-canada', query: 'Canada', label: 'Canada enquiries', icon: FiGlobe },
+  { id: 'qs-enquiries', query: 'enquiry', label: 'Browse enquiries', icon: FiInbox, entity: 'enquiries' },
+  { id: 'qs-students', query: 'student', label: 'Find students', icon: FiUsers, entity: 'students' },
+  { id: 'qs-leads', query: 'lead', label: 'Search leads', icon: FiUserPlus, entity: 'leads' },
+  { id: 'qs-canada', query: 'Canada', label: 'Canada enquiries', icon: FiGlobe, entity: 'enquiries' },
 ];
 
-export function filterNavPages(query) {
-  if (!query?.trim()) return navPages.slice(0, 8);
+function pageAllowed(page, access) {
+  return access?.canAccessPage ? access.canAccessPage(page) : true;
+}
+
+function entityAllowed(entity, access) {
+  return access?.canSearchEntity ? access.canSearchEntity(entity) : true;
+}
+
+function historyAllowed(entry, access) {
+  const path = entry?.action?.path;
+  if (!path || !access?.canAccessPath) return true;
+  return access.canAccessPath(path);
+}
+
+export function filterNavPages(query, access) {
+  const candidates = [...navPages, ...(access?.extraPages || [])];
+  const allowed = candidates.filter((page) => pageAllowed(page, access));
+  if (!query?.trim()) return allowed.slice(0, 8);
   const q = query.toLowerCase();
-  return navPages.filter(
-    (p) => p.label.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q),
+  return allowed.filter(
+    (p) => p.label.toLowerCase().includes(q)
+      || p.description?.toLowerCase().includes(q)
+      || p.keywords?.some((keyword) => String(keyword).toLowerCase().includes(q)),
   );
 }
 
 /** Build history + trending groups when search is empty */
-export function buildIdleGroups(history = [], trending = []) {
+export function buildIdleGroups(history = [], trending = [], access) {
   const groups = [];
 
-  const recent = history.slice(0, 8);
+  const recent = history.filter((entry) => historyAllowed(entry, access)).slice(0, 8);
   if (recent.length) {
     groups.push({
       id: 'recent',
@@ -76,10 +94,11 @@ export function buildIdleGroups(history = [], trending = []) {
     });
   }
 
-  groups.push({
+  const quickSearches = QUICK_SEARCHES.filter((item) => entityAllowed(item.entity, access));
+  if (quickSearches.length) groups.push({
     id: 'quick',
     label: 'Quick searches',
-    items: QUICK_SEARCHES.map((q) => ({
+    items: quickSearches.map((q) => ({
       id: q.id,
       type: 'suggestion',
       icon: q.icon,
@@ -91,7 +110,7 @@ export function buildIdleGroups(history = [], trending = []) {
     })),
   });
 
-  const pages = filterNavPages('');
+  const pages = filterNavPages('', access);
   if (pages.length) {
     groups.push({
       id: 'pages',
@@ -114,11 +133,12 @@ export function buildIdleGroups(history = [], trending = []) {
 }
 
 /** Build suggestion groups while typing (before full API results) */
-export function buildSuggestionGroups(query, history = [], apiSuggestions = null) {
+export function buildSuggestionGroups(query, history = [], apiSuggestions = null, access) {
   const groups = [];
   const q = query.trim();
 
   const historyMatches = history
+    .filter((entry) => historyAllowed(entry, access))
     .filter((h) =>
       h.query.toLowerCase().includes(q.toLowerCase())
       || h.label?.toLowerCase().includes(q.toLowerCase()),
@@ -144,7 +164,7 @@ export function buildSuggestionGroups(query, history = [], apiSuggestions = null
     });
   }
 
-  const pages = filterNavPages(q).slice(0, 5);
+  const pages = filterNavPages(q, access).slice(0, 5);
   if (pages.length) {
     groups.push({
       id: 'suggest-pages',
@@ -178,25 +198,25 @@ export function buildSuggestionGroups(query, history = [], apiSuggestions = null
       });
     };
 
-    pushList(apiSuggestions.enquiries, 'enquiry', FiInbox, 'Enquiry', 'info', (e) => {
+    if (entityAllowed('enquiries', access)) pushList(apiSuggestions.enquiries, 'enquiry', FiInbox, 'Enquiry', 'info', (e) => {
       const name = [e.firstName, e.lastName].filter(Boolean).join(' ');
       return {
         title: name,
-        subtitle: [e.enquiryCode, e.email].filter(Boolean).join(' · '),
+        subtitle: [e.enquiryCode, e.mobile, e.email].filter(Boolean).join(' · '),
         hint: e.interestedCountry,
         action: { kind: 'enquiry', id: e.id, path: ROUTES.ENQUIRY_DETAIL(e.id) },
       };
     });
 
-    pushList(apiSuggestions.students, 'student', FiUsers, 'Student', 'success', (s) => ({
+    if (entityAllowed('students', access)) pushList(apiSuggestions.students, 'student', FiUsers, 'Student', 'success', (s) => ({
       title: `${s.firstName} ${s.lastName}`,
-      subtitle: [s.studentCode, s.email].filter(Boolean).join(' · '),
+      subtitle: [s.studentCode, s.phone, s.email].filter(Boolean).join(' · '),
       action: { kind: 'navigate', path: ROUTES.STUDENT_DETAIL(s.id) },
     }));
 
-    pushList(apiSuggestions.leads, 'lead', FiUserPlus, 'Lead', 'primary', (l) => ({
+    if (entityAllowed('leads', access)) pushList(apiSuggestions.leads, 'lead', FiUserPlus, 'Lead', 'primary', (l) => ({
       title: `${l.firstName} ${l.lastName}`,
-      subtitle: [l.email, l.country].filter(Boolean).join(' · '),
+      subtitle: [l.leadCode, l.phone, l.email].filter(Boolean).join(' · '),
       action: { kind: 'navigate', path: ROUTES.LEAD_DETAIL(l.id) },
     }));
 
@@ -230,9 +250,9 @@ export function buildSuggestionGroups(query, history = [], apiSuggestions = null
 }
 
 /** Build grouped search results from API + navigation */
-export function buildSearchGroups(query, apiResults) {
+export function buildSearchGroups(query, apiResults, access) {
   const groups = [];
-  const pages = filterNavPages(query);
+  const pages = filterNavPages(query, access);
 
   if (pages.length) {
     groups.push({
@@ -252,7 +272,7 @@ export function buildSearchGroups(query, apiResults) {
     });
   }
 
-  if (apiResults?.enquiries?.length) {
+  if (entityAllowed('enquiries', access) && apiResults?.enquiries?.length) {
     groups.push({
       id: 'enquiries',
       label: 'Enquiries',
@@ -277,7 +297,7 @@ export function buildSearchGroups(query, apiResults) {
     });
   }
 
-  if (apiResults?.students?.length) {
+  if (entityAllowed('students', access) && apiResults?.students?.length) {
     groups.push({
       id: 'students',
       label: 'Students',
@@ -296,7 +316,7 @@ export function buildSearchGroups(query, apiResults) {
     });
   }
 
-  if (apiResults?.leads?.length) {
+  if (entityAllowed('leads', access) && apiResults?.leads?.length) {
     groups.push({
       id: 'leads',
       label: 'Leads',
@@ -305,7 +325,7 @@ export function buildSearchGroups(query, apiResults) {
         type: 'lead',
         icon: FiUserPlus,
         title: `${l.firstName} ${l.lastName}`,
-        subtitle: [l.email, l.phone, l.country].filter(Boolean).join(' · '),
+        subtitle: [l.leadCode, l.phone, l.email, l.country].filter(Boolean).join(' · '),
         hint: 'Lead record',
         meta: `Status: ${l.status}`,
         badge: 'Lead',
@@ -315,7 +335,7 @@ export function buildSearchGroups(query, apiResults) {
     });
   }
 
-  if (apiResults?.users?.length) {
+  if (entityAllowed('users', access) && apiResults?.users?.length) {
     groups.push({
       id: 'users',
       label: 'Team members',
@@ -349,6 +369,7 @@ export function buildSearchGroups(query, apiResults) {
   ];
 
   recordGroups.forEach(({ key, label, icon, path, badge, badgeColor, map }) => {
+    if (!entityAllowed(key, access)) return;
     const list = apiResults?.[key];
     if (!list?.length) return;
     groups.push({

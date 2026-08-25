@@ -1,0 +1,59 @@
+/**
+ * CRM FullCalendar theme — maps to VISAERP CSS variables
+ */
+.crm-calendar-board {
+  --fc-border-color: var(--grid-border);
+  --fc-page-bg-color: var(--bg-card);
+  --fc-neutral-bg-color: var(--bg-page);
+  --fc-list-event-hover-bg-color: var(--grid-row-hover);
+  --fc-today-bg-color: color-mix(in srgb, var(--brand) 8%, transparent);
+  --fc-now-indicator-color: var(--danger);
+  --fc-event-border-color: transparent;
+  --fc-button-bg-color: var(--brand);
+  --fc-button-border-color: var(--brand);
+  --fc-button-hover-bg-color: var(--brand-hover);
+  --fc-button-hover-border-color: var(--brand-hover);
+  font-family: inherit;
+  color: var(--text-primary);
+}
+
+.crm-calendar-board .fc {
+  height: 100%;
+}
+
+.crm-calendar-board .fc-theme-standard td,
+.crm-calendar-board .fc-theme-standard th {
+  border-color: var(--grid-border);
+}
+
+.crm-calendar-board .fc-col-header-cell {
+  background: var(--bg-grid-header);
+  color: var(--text-grid-header);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.crm-calendar-board .fc-daygrid-day-number,
+.crm-calendar-board .fc-timegrid-slot-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.crm-calendar-board .fc-event.crm-fc-event {
+  border-radius: 4px;
+  border-width: 0 0 0 3px;
+  font-size: 11px;
+  font-weight: 550;
+  padding: 1px 4px;
+}
+
+.crm-calendar-board .fc-list-event-title,
+.crm-calendar-board .fc-list-event-time {
+  color: var(--text-primary);
+}
+
+.crm-calendar-board .fc-popover {
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: var(--shadow-dropdown);
+}

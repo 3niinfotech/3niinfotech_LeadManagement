@@ -84,13 +84,14 @@ export const userService = {
 
   getCounsellors: async (query, requester) => {
     const companyId = requireTenantCompany(requester);
-    const branchId = query.branchId?.trim() || requester.branchId || undefined;
+    // Only filter by branch when client asks — otherwise company-wide (register can pick any counsellor)
+    const branchId = query.branchId?.trim() || undefined;
 
     if (branchId) {
       await assertBranchInTenant(branchId, requester);
     }
 
-    return userRepository.listCounsellors({ branchId: branchId || undefined, companyId });
+    return userRepository.listCounsellors({ branchId, companyId });
   },
 
   create: async (payload, requester, req) => {

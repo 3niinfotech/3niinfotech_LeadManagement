@@ -5,12 +5,14 @@ import Textarea from '../../../../components/ui/Textarea';
 import Button from '../../../../components/ui/Button';
 import FormSection from '../../../../components/ui/FormSection';
 import FormSelectField from './FormSelectField';
-import { ENQUIRY_STATUSES, ENQUIRY_PRIORITIES } from '../../../../config/constants';
+import AsyncMasterSelect from '../../../master/components/AsyncMasterSelect';
+import MasterManageLink from '../../../master/components/MasterManageLink';
+import { useEnquiryStatusOptions } from '../../hooks/useEnquiryStatusOptions';
+import { ENQUIRY_PRIORITIES } from '../../../../config/constants';
 import { useEnquiryFormOptions } from '../../hooks/useEnquiryFormOptions';
 import { useCounsellorOptions } from '../../hooks/useCounsellorOptions';
 import { useEnquiryTagOptions } from '../../hooks/useEnquiryTagOptions';
 
-const STATUS_OPTIONS = ENQUIRY_STATUSES.map(({ value, label }) => ({ value, label }));
 const PRIORITY_OPTIONS = ENQUIRY_PRIORITIES.map(({ value, label }) => ({ value, label }));
 const FIELD_GRID = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-4';
 
@@ -19,6 +21,7 @@ export default function OtherDetailsTab({
 }) {
   const branchId = useWatch({ control, name: 'branchId' });
   const { getOptions } = useEnquiryFormOptions();
+  const { statusOptions } = useEnquiryStatusOptions();
   const { options: counsellorOptions, loading: counsellorsLoading } = useCounsellorOptions({ branchId });
   const { options: tagOptions, loading: tagsLoading } = useEnquiryTagOptions();
   const isEnquiry = variant === 'enquiry';
@@ -42,16 +45,18 @@ export default function OtherDetailsTab({
                 options={getOptions('highestQual')}
                 errors={errors}
                 placeholder="Select qualification"
+                hint={<MasterManageLink to="/admin/master/qualification">Manage Qualification</MasterManageLink>}
               />
             )}
             {/* Row 1 */}
-            <FormSelectField
+            <AsyncMasterSelect
               name="interestedCourse"
               control={control}
               label="Interested Course"
-              options={getOptions('course')}
+              entity="course"
               errors={errors}
-              placeholder="Select course"
+              placeholder="Search course"
+              hint={<MasterManageLink to="/admin/master/course">Manage Courses</MasterManageLink>}
             />
             <FormSelectField
               name="interestedCountry"
@@ -60,6 +65,7 @@ export default function OtherDetailsTab({
               options={getOptions('country')}
               errors={errors}
               placeholder="Select country"
+              hint={<MasterManageLink to="/admin/master/country">Manage Country</MasterManageLink>}
             />
             <FormSelectField
               name="intake"
@@ -68,6 +74,7 @@ export default function OtherDetailsTab({
               options={getOptions('intake')}
               errors={errors}
               placeholder="Select intake"
+              hint={<MasterManageLink to="/admin/master/intake">Manage Intake</MasterManageLink>}
             />
             {/* Row 2 */}
             {!isEnquiry && (
@@ -78,6 +85,7 @@ export default function OtherDetailsTab({
                 options={getOptions('applyLevel')}
                 errors={errors}
                 placeholder="Select level"
+                hint={<MasterManageLink to="/admin/master/applyLevel">Manage Apply Level</MasterManageLink>}
               />
             )}
             <FormSelectField
@@ -87,6 +95,7 @@ export default function OtherDetailsTab({
               options={getOptions('source')}
               errors={errors}
               placeholder="Select source"
+              hint={<MasterManageLink to="/admin/master/lead-source">Manage Sources</MasterManageLink>}
             />
             {isEnquiry && (
               <FormSelectField
@@ -113,7 +122,7 @@ export default function OtherDetailsTab({
               name="status"
               control={control}
               label="Status"
-              options={STATUS_OPTIONS}
+              options={statusOptions.map(({ value, label }) => ({ value, label }))}
               errors={errors}
               allowClear={false}
               placeholder="Select status"

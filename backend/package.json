@@ -27,6 +27,14 @@
     "db:seed-enquiry-tags": "node scripts/seed-enquiry-tags.js",
     "db:seed-organization": "node scripts/seed-organization.js",
     "db:seed-counsellors": "node scripts/seed-counsellors.js",
+    "db:purge-operational": "node scripts/purge-operational-keep-masters.js",
+    "db:seed-qa": "node scripts/seed-qa-testing.js",
+    "db:seed-role-workspace": "node scripts/seed-role-workspace-rbac.js",
+    "db:reset-qa": "node scripts/purge-operational-keep-masters.js && node scripts/seed-qa-testing.js",
+    "test": "node --test --test-concurrency=1 src/utils/__tests__/branch-access.test.js src/modules/attendance/__tests__/attendance-rules.test.js src/modules/rbac/__tests__/role-workspace.test.js src/test/integration/branch-isolation.test.js src/test/integration/attendance.test.js",
+    "test:unit": "node --test src/utils/__tests__/branch-access.test.js src/modules/attendance/__tests__/attendance-rules.test.js src/modules/rbac/__tests__/role-workspace.test.js",
+    "test:integration": "node --test --test-concurrency=1 src/test/integration/branch-isolation.test.js src/test/integration/attendance.test.js",
+    "test:security": "npm run test:unit && npm run test:integration",
     "db:export": "node scripts/export-database.js",
     "db:verify-backup": "node scripts/verify-database-backup.js",
     "db:studio": "prisma studio"
@@ -38,6 +46,7 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
@@ -52,6 +61,7 @@
   "devDependencies": {
     "mysql2": "^3.22.5",
     "nodemon": "^3.1.9",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "supertest": "^7.2.2"
   }
 }

@@ -1,76 +1,114 @@
-import { FiExternalLink, FiPlus } from 'react-icons/fi';
-import { Link } from 'react-router-dom';
-import Button from '../../ui/Button';
+import { useMemo, useState } from 'react';
+import { FiCheckSquare } from 'react-icons/fi';
 import { TASK_PREVIEW } from '../../../config/headerMock.data';
-import { ROUTES } from '../../../config/routes';
 
-const STATUS_STYLES = {
-  Pending: 'bg-danger-soft text-danger border-danger/30',
-  Complete: 'bg-success-soft text-success border-success/30',
+const PRIORITY_DOT = {
+  High: 'bg-danger',
+  Medium: 'bg-warning',
+  Low: 'bg-text-muted',
 };
 
-const PRIORITY_STYLES = {
-  High: 'text-success border-success/40 bg-success-soft/50',
-  Medium: 'text-warning border-warning/40 bg-warning-soft/50',
-  Low: 'text-text-muted border-border bg-page',
-};
+const FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'Pending', label: 'Pending' },
+  { id: 'Complete', label: 'Done' },
+];
 
-export default function TaskPanel() {
+export default function TaskPanel({ onClose }) {
+  const [filter, setFilter] = useState('Pending');
+
   const pendingCount = TASK_PREVIEW.filter((t) => t.status === 'Pending').length;
+  const filtered = useMemo(
+    () => (filter === 'all' ? TASK_PREVIEW : TASK_PREVIEW.filter((t) => t.status === filter)),
+    [filter],
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-text-secondary">
-          <strong className="text-text">{pendingCount}</strong> pending tasks
-        </p>
-        <Link to={ROUTES.TASKS}>
-          <Button size="sm" icon={FiPlus}>
-            Create Task
-          </Button>
-        </Link>
+    <div>
+      <div className="px-4 pt-3 pb-2 border-b border-border bg-page/40 space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[12px] text-text-secondary">
+            <span className="font-semibold text-text">{pendingCount}</span> pending
+            {' · '}
+            {TASK_PREVIEW.length} total
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              className={`h-7 px-2.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                filter === f.id
+                  ? 'bg-brand-soft text-brand border-brand/25'
+                  : 'bg-page text-text-muted border-border hover:text-text hover:bg-row-hover'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <ul className="space-y-2">
-        {TASK_PREVIEW.map((task) => (
-          <li
-            key={task.id}
-            className={`p-3 rounded-lg border transition-colors ${
-              task.status === 'Pending'
-                ? 'border-danger/20 bg-danger-soft/30'
-                : 'border-border bg-page'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-medium text-text">{task.title}</p>
-              <span
-                className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                  STATUS_STYLES[task.status] || STATUS_STYLES.Pending
-                }`}
-              >
-                {task.status}
-              </span>
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-              <span
-                className={`px-2 py-0.5 rounded border font-medium ${
-                  PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.Low
-                }`}
-              >
-                {task.priority}
-              </span>
-              <span className="text-text-muted">Due: {task.dueDate}</span>
-              <span className="text-text-muted">→ {task.assignedTo}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <Link to={ROUTES.TASKS} className="block">
-        <Button variant="outline" className="w-full" icon={FiExternalLink}>
-          View all tasks
-        </Button>
-      </Link>
+      <div className="px-2 py-2">
+        {filtered.length === 0 ? (
+          <div className="py-10 text-center px-4">
+            <FiCheckSquare className="w-9 h-9 text-text-muted mx-auto mb-2 opacity-45" />
+            <p className="text-sm font-medium text-text">No tasks here</p>
+            <p className="text-[12px] text-text-muted mt-1">Create a task or switch filters.</p>
+          </div>
+        ) : (
+          <ul className="space-y-0.5 max-h-[340px] overflow-y-auto no-scrollbar">
+            {filtered.map((task) => {
+              const done = task.status === 'Complete';
+              return (
+                <li key={task.id}>
+                  <div
+                    className={`px-3 py-2.5 rounded-xl transition-colors ${
+                      done ? 'opacity-70 hover:bg-row-hover' : 'hover:bg-row-hover'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <span
+                        className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${
+                          done ? 'bg-success' : PRIORITY_DOT[task.priority] || PRIORITY_DOT.Low
+                        }`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p
+                            className={`text-[13px] font-semibold line-clamp-1 ${
+                              done ? 'text-text-muted line-through' : 'text-text'
+                            }`}
+                          >
+                            {task.title}
+                          </p>
+                          <span
+                            className={`text-[10px] font-semibold shrink-0 ${
+                              done ? 'text-success' : 'text-danger'
+                            }`}
+                          >
+                            {done ? 'Done' : 'Pending'}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-text-muted">
+                          {task.priority}
+                          {' · Due '}
+                          {task.dueDate}
+                          {' · '}
+                          {task.assignedTo}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

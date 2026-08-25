@@ -3,8 +3,11 @@ import { apiGet } from '../../../api/apiClient';
 import apiClient from '../../../api/axios';
 
 export const enquiryService = {
-  getSampleFormat: async () => {
-    const { data } = await apiClient.get(API.ENQUIRIES_IMPORT_SAMPLE, { responseType: 'blob' });
+  getSampleFormat: async (format = 'xlsx') => {
+    const { data } = await apiClient.get(API.ENQUIRIES_IMPORT_SAMPLE, {
+      responseType: 'blob',
+      params: { format },
+    });
     return data;
   },
   getImportDuplicates: (batchId) => apiGet(API.ENQUIRY_IMPORT_DUPLICATES(batchId)),

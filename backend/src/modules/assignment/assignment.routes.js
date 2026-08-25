@@ -3,10 +3,9 @@ import { authenticate, authorize } from '../../middleware/auth.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
 import {
   resolveIdentity,
-  getMyQueue,
-  getBranchOps,
   updatePresence,
   heartbeat,
+  goOffline,
   acceptOffer,
   rejectOffer,
   startSession,
@@ -23,11 +22,10 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/resolve-identity', resolveIdentity);
-router.get('/my-queue', getMyQueue);
-router.get('/branch-ops', getBranchOps);
 
 router.patch('/presence', validate(presenceUpdateSchema), updatePresence);
 router.post('/heartbeat', heartbeat);
+router.post('/go-offline', goOffline);
 
 router.post('/offers/:id/accept', acceptOffer);
 router.post('/offers/:id/reject', validate(offerResponseSchema), rejectOffer);

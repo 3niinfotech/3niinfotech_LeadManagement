@@ -13,6 +13,11 @@ import {
   parseMasterPagination,
   parseMasterSort,
   masterStatusSchema,
+  masterItemUpdateSchema,
+  bulkChecklistSchema,
+  bulkVisaChecklistSchema,
+  masterBulkStatusSchema,
+  masterBulkDeleteSchema,
 } from './master.validators.js';
 
 function requireCompany(user) {
@@ -30,9 +35,25 @@ function defaultsAsOptions(category) {
 
 function mapPrismaUniqueError(err, label = 'Record') {
   if (err?.code === 'P2002') {
+    const target = err.meta?.target;
+    const fields = Array.isArray(target) ? target.join(' ') : String(target || 'code');
+    if (/\bname\b/i.test(fields)) {
+      throw new AppError(`${label} with this name already exists`, 409);
+    }
     throw new AppError(`${label} with this code already exists`, 409);
   }
   throw err;
+}
+
+async function assertUniqueName(slug, config, companyId, data, excludeId = null) {
+  if (!config.uniqueName || !data.name) return;
+  const dup = await masterRepository.findDuplicateName(slug, companyId, data, excludeId);
+  if (dup) {
+    const scope = (config.uniqueNameScope || []).length
+      ? ` for the same ${(config.uniqueNameScope || []).join(' / ')}`
+      : '';
+    throw new AppError(`${config.label} "${data.name}" already exists${scope}.`, 409);
+  }
 }
 
 function pickAllowedFields(data, allowed) {
@@ -114,6 +135,103 @@ export const masterService = {
     }
   },
 
+  listMasterItems: async (category, query, user) => {
+    if (!isValidMasterCategory(category)) {
+      throw new AppError('Unknown master category', 404);
+    }
+    const companyId = requireCompany(user);
+    const { page, limit, skip } = parseMasterPagination(query);
+    const status = query.status || 'all';
+    return masterRepository.findManyMasterItems(companyId, category, {
+      search: query.search,
+      status,
+      page,
+      limit,
+      skip,
+    });
+  },
+
+  updateMasterItem: async (category, id, body, user, req) => {
+    if (!isValidMasterCategory(category)) {
+      throw new AppError('Unknown master category', 404);
+    }
+    const companyId = requireCompany(user);
+    const existing = await masterRepository.findMasterItemById(companyId, category, id);
+    if (!existing) throw new AppError('Master item not found', 404);
+
+    const parsed = masterItemUpdateSchema.parse(body);
+    const dup = await masterRepository.findByLabel(companyId, category, parsed.label);
+    if (dup && dup.id !== id) {
+      throw new AppError('An item with this label already exists', 409);
+    }
+
+    const record = await masterRepository.updateMasterItem(id, {
+      label: parsed.label,
+      ...(parsed.sortOrder !== undefined ? { sortOrder: parsed.sortOrder } : {}),
+      updatedBy: user.id,
+    });
+
+    await auditLog({
+      userId: user.id,
+      action: 'UPDATE',
+      entityType: `MasterItem:${category}`,
+      entityId: id,
+      oldData: existing,
+      newData: record,
+      req,
+    });
+
+    return record;
+  },
+
+  updateMasterItemStatus: async (category, id, body, user, req) => {
+    if (!isValidMasterCategory(category)) {
+      throw new AppError('Unknown master category', 404);
+    }
+    const companyId = requireCompany(user);
+    const { isActive } = masterStatusSchema.parse(body);
+    const existing = await masterRepository.findMasterItemById(companyId, category, id);
+    if (!existing) throw new AppError('Master item not found', 404);
+
+    const record = await masterRepository.updateMasterItem(id, {
+      isActive,
+      updatedBy: user.id,
+    });
+
+    await auditLog({
+      userId: user.id,
+      action: isActive ? 'ACTIVATE' : 'DEACTIVATE',
+      entityType: `MasterItem:${category}`,
+      entityId: id,
+      oldData: { isActive: existing.isActive },
+      newData: { isActive: record.isActive },
+      req,
+    });
+
+    return record;
+  },
+
+  removeMasterItem: async (category, id, user, req) => {
+    if (!isValidMasterCategory(category)) {
+      throw new AppError('Unknown master category', 404);
+    }
+    const companyId = requireCompany(user);
+    const existing = await masterRepository.findMasterItemById(companyId, category, id);
+    if (!existing) throw new AppError('Master item not found', 404);
+
+    await masterRepository.softDeleteMasterItem(id, user.id);
+    await auditLog({
+      userId: user.id,
+      action: 'DELETE',
+      entityType: `MasterItem:${category}`,
+      entityId: id,
+      oldData: existing,
+      req,
+    });
+
+    return { id, deleted: true };
+  },
+
   seedCompanyDefaults: async (companyId, userId) => {
     let total = 0;
     for (const [category, labels] of Object.entries(MASTER_DEFAULTS)) {
@@ -129,7 +247,7 @@ export const masterService = {
     const config = getMasterEntityConfig(slug);
     const companyId = requireCompany(user);
     const { page, limit, skip } = parseMasterPagination(query);
-    const orderBy = parseMasterSort(query, config.sortableFields);
+    const orderBy = parseMasterSort(query, config.sortableFields, config.defaultSort || 'sortOrder');
 
     return masterRepository.findManyRelational(slug, companyId, {
       search: query.search,
@@ -159,6 +277,22 @@ export const masterService = {
 
     await validateRelations(config, companyId, data);
 
+    if (slug === 'application-status-master' && data.defaultStatus) {
+      await masterRepository.clearDefaultApplicationStatus(companyId, data.countryId);
+    }
+
+    if (slug === 'lead-status' && data.defaultStatus) {
+      await masterRepository.clearDefaultLeadStatus(companyId);
+    }
+
+    if (slug === 'visa-status-master' && data.defaultStatus) {
+      await masterRepository.clearDefaultVisaStatus(companyId, data.countryId);
+    }
+
+    if (slug === 'student-status-master' && data.defaultStatus) {
+      await masterRepository.clearDefaultStudentStatus(companyId);
+    }
+
     // Inherit course.countryId from university when omitted
     if (slug === 'course' && data.universityId && !data.countryId) {
       const univ = await masterRepository.assertRelatedInCompany('university', data.universityId, companyId);
@@ -167,8 +301,9 @@ export const masterService = {
 
     if (data.code) {
       const dup = await masterRepository.findByCodeRelational(slug, companyId, data.code);
-      if (dup) throw new AppError(`${config.label} with this code already exists`, 409);
+      if (dup) throw new AppError(`${config.label} code ${data.code} already exists.`, 409);
     }
+    await assertUniqueName(slug, config, companyId, data);
 
     try {
       const record = await masterRepository.createRelational(slug, {
@@ -208,10 +343,35 @@ export const masterService = {
 
     await validateRelations(config, companyId, { ...existing, ...data });
 
+    if (slug === 'application-status-master' && data.defaultStatus) {
+      await masterRepository.clearDefaultApplicationStatus(
+        companyId,
+        data.countryId ?? existing.countryId,
+        id,
+      );
+    }
+
+    if (slug === 'lead-status' && data.defaultStatus) {
+      await masterRepository.clearDefaultLeadStatus(companyId, id);
+    }
+
+    if (slug === 'visa-status-master' && data.defaultStatus) {
+      await masterRepository.clearDefaultVisaStatus(
+        companyId,
+        data.countryId ?? existing.countryId,
+        id,
+      );
+    }
+
+    if (slug === 'student-status-master' && data.defaultStatus) {
+      await masterRepository.clearDefaultStudentStatus(companyId, id);
+    }
+
     if (data.code && data.code !== existing.code) {
       const dup = await masterRepository.findByCodeRelational(slug, companyId, data.code, id);
-      if (dup) throw new AppError(`${config.label} with this code already exists`, 409);
+      if (dup) throw new AppError(`${config.label} code ${data.code} already exists.`, 409);
     }
+    await assertUniqueName(slug, config, companyId, { ...existing, ...data }, id);
 
     try {
       const record = await masterRepository.updateRelational(slug, id, {
@@ -268,9 +428,9 @@ export const masterService = {
     const existing = await masterRepository.findByIdRelational(slug, companyId, id);
     if (!existing) throw new AppError('Master record not found', 404);
 
-    const deps = await masterRepository.countDependencies(config, id, companyId);
+    const deps = await masterRepository.countDependencies(config, existing, companyId);
     if (deps.length) {
-      throw new AppError(formatDependencyMessage(config.label, deps), 409);
+      throw new AppError(formatDependencyMessage(config.label, deps), 409, { dependencies: deps });
     }
 
     await masterRepository.softDeleteRelational(slug, id, user.id);
@@ -294,7 +454,7 @@ export const masterService = {
     // Validate parent filter IDs belong to same company
     const filters = {};
     for (const field of config.filterFields || []) {
-      if (field === 'isActive' || field === 'isMandatory' || field === 'level' || field === 'channel') {
+      if (field === 'isActive' || field === 'isMandatory' || field === 'level' || field === 'channel' || field === 'showOnMain' || field === 'applicableFor') {
         if (query[field] !== undefined && query[field] !== '') filters[field] = query[field];
         continue;
       }
@@ -308,7 +468,11 @@ export const masterService = {
       }
     }
 
-    const rows = await masterRepository.findOptionsRelational(slug, companyId, filters);
+    const rows = await masterRepository.findOptionsRelational(slug, companyId, {
+      ...filters,
+      search: query.search,
+      limit: query.limit,
+    });
     const valueField = config.optionValueField || 'id';
     const labelField = config.optionLabelField || 'name';
 
@@ -316,11 +480,273 @@ export const masterService = {
       value: row[valueField],
       label: row[labelField],
       code: row.code,
+      ...(row.phoneCode != null && row.phoneCode !== '' ? { phoneCode: row.phoneCode } : {}),
     }));
   },
 
   hubSummary: async (user) => {
     const companyId = requireCompany(user);
     return masterRepository.hubSummary(companyId);
+  },
+
+  applicationStatusCountrySummary: async (user) => {
+    const companyId = requireCompany(user);
+    return masterRepository.applicationStatusCountrySummary(companyId);
+  },
+
+  applicationStatusWorkflow: async (user, countryId) => {
+    if (!countryId) throw new AppError('countryId is required', 422);
+    const companyId = requireCompany(user);
+    const country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+    if (!country) throw new AppError('Country not found in your company', 422);
+    const rows = await masterRepository.findApplicationStatusWorkflow(companyId, countryId);
+    return rows.map((row) => ({
+      value: row.id,
+      label: row.name,
+      mailSend: row.mailSend,
+      defaultStatus: row.defaultStatus,
+      setOfferLetter: row.setOfferLetter,
+      position: row.position,
+    }));
+  },
+
+  bulkCreateApplicationChecklist: async (body, user, req) => {
+    const companyId = requireCompany(user);
+    const parsed = bulkChecklistSchema.parse(body);
+    const config = getMasterEntityConfig('application-checklist');
+
+    await validateRelations(config, companyId, { countryId: parsed.countryId });
+
+    const created = [];
+    for (let i = 0; i < parsed.items.length; i += 1) {
+      const item = parsed.items[i];
+      const rowData = parseMasterCreate('application-checklist', {
+        countryId: parsed.countryId,
+        documentType: item.documentType,
+        name: item.name,
+        enquiryForm: item.enquiryForm ?? false,
+        isMandatory: item.isMandatory ?? true,
+        sortOrder: item.sortOrder ?? i + 1,
+      });
+      const record = await masterRepository.createRelational('application-checklist', {
+        ...pickAllowedFields(rowData, config.createFields),
+        companyId,
+        createdBy: user.id,
+        updatedBy: user.id,
+      });
+      created.push(record);
+    }
+
+    await auditLog({
+      userId: user.id,
+      action: 'CREATE',
+      entityType: 'Master:Application Checklist (bulk)',
+      entityId: parsed.countryId,
+      newData: { count: created.length },
+      req,
+    });
+
+    return created;
+  },
+
+  getApplicationChecklistByCountry: async (user, countryId) => {
+    if (!countryId) throw new AppError('countryId is required', 422);
+    const companyId = requireCompany(user);
+    const country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+    if (!country) throw new AppError('Country not found in your company', 422);
+    return masterRepository.findApplicationChecklistByCountry(companyId, countryId);
+  },
+
+  leadStatusWorkflow: async (user) => {
+    const companyId = requireCompany(user);
+    const rows = await masterRepository.findLeadStatusWorkflow(companyId);
+    return rows.map((row) => ({
+      value: row.code,
+      label: row.name,
+      defaultStatus: row.defaultStatus,
+      colorCode: row.colorCode,
+      position: row.sortOrder,
+    }));
+  },
+
+  visaStatusCountrySummary: async (user) => {
+    const companyId = requireCompany(user);
+    return masterRepository.visaStatusCountrySummary(companyId);
+  },
+
+  visaStatusWorkflow: async (user, countryId) => {
+    if (!countryId) throw new AppError('countryId is required', 422);
+    const companyId = requireCompany(user);
+    const country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+    if (!country) throw new AppError('Country not found in your company', 422);
+    const rows = await masterRepository.findVisaStatusWorkflow(companyId, countryId);
+    return rows.map((row) => ({
+      value: row.id,
+      label: row.name,
+      visaApproved: row.visaApproved,
+      visaWithdraw: row.visaWithdraw,
+      visaRejected: row.visaRejected,
+      mailSend: row.mailSend,
+      defaultStatus: row.defaultStatus,
+      position: row.position,
+      colorCode: row.colorCode,
+    }));
+  },
+
+  getVisaChecklistByCountry: async (user, countryId) => {
+    if (!countryId) throw new AppError('countryId is required', 422);
+    const companyId = requireCompany(user);
+    const country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+    if (!country) throw new AppError('Country not found in your company', 422);
+    return masterRepository.findVisaChecklistByCountry(companyId, countryId);
+  },
+
+  bulkCreateVisaChecklist: async (body, user, req) => {
+    const companyId = requireCompany(user);
+    const parsed = bulkVisaChecklistSchema.parse(body);
+    const config = getMasterEntityConfig('visa-checklist');
+    await validateRelations(config, companyId, { countryId: parsed.countryId });
+
+    const created = [];
+    for (let i = 0; i < parsed.items.length; i += 1) {
+      const item = parsed.items[i];
+      const rowData = parseMasterCreate('visa-checklist', {
+        countryId: parsed.countryId,
+        documentTypeId: item.documentTypeId,
+        documentType: item.documentType,
+        name: item.name,
+        isMandatory: item.isMandatory ?? true,
+        sortOrder: item.sortOrder ?? i + 1,
+      });
+      const record = await masterRepository.createRelational('visa-checklist', {
+        ...pickAllowedFields(rowData, config.createFields),
+        companyId,
+        createdBy: user.id,
+        updatedBy: user.id,
+      });
+      created.push(record);
+    }
+
+    await auditLog({
+      userId: user.id,
+      action: 'CREATE',
+      entityType: 'Master:Visa Checklist (bulk)',
+      entityId: parsed.countryId,
+      newData: { count: created.length },
+      req,
+    });
+
+    return created;
+  },
+
+  bulkUpdateStatus: async (slug, body, user, req) => {
+    if (!isRelationalMasterEntity(slug)) throw new AppError('Unknown master entity', 404);
+    const config = getMasterEntityConfig(slug);
+    const companyId = requireCompany(user);
+    const { ids, isActive } = masterBulkStatusSchema.parse(body);
+    const records = await masterRepository.findManyByIdsRelational(slug, companyId, ids);
+    const foundIds = new Set(records.map((row) => row.id));
+    const missing = ids.filter((id) => !foundIds.has(id));
+    if (missing.length) {
+      throw new AppError('One or more records were not found in your company', 404);
+    }
+
+    const updated = [];
+    for (const row of records) {
+      const record = await masterRepository.updateRelational(slug, row.id, {
+        isActive,
+        updatedBy: user.id,
+      });
+      updated.push(record);
+    }
+
+    await auditLog({
+      userId: user.id,
+      action: isActive ? 'ACTIVATE' : 'DEACTIVATE',
+      entityType: `Master:${config.label} (bulk)`,
+      entityId: companyId,
+      newData: { count: updated.length, isActive },
+      req,
+    });
+
+    return { updated: updated.length, isActive };
+  },
+
+  bulkRemove: async (slug, body, user, req) => {
+    if (!isRelationalMasterEntity(slug)) throw new AppError('Unknown master entity', 404);
+    const config = getMasterEntityConfig(slug);
+    const companyId = requireCompany(user);
+    const { ids } = masterBulkDeleteSchema.parse(body);
+    const records = await masterRepository.findManyByIdsRelational(slug, companyId, ids);
+    const foundIds = new Set(records.map((row) => row.id));
+    const missing = ids.filter((id) => !foundIds.has(id));
+
+    const deleted = [];
+    const blocked = [];
+    for (const row of records) {
+      const deps = await masterRepository.countDependencies(config, row, companyId);
+      if (deps.length) {
+        blocked.push({
+          id: row.id,
+          name: row.name || row.code || row.id,
+          reason: formatDependencyMessage(config.label, deps),
+          dependencies: deps,
+        });
+        continue;
+      }
+      await masterRepository.softDeleteRelational(slug, row.id, user.id);
+      deleted.push({ id: row.id, name: row.name || row.code || row.id });
+    }
+
+    if (deleted.length) {
+      await auditLog({
+        userId: user.id,
+        action: 'DELETE',
+        entityType: `Master:${config.label} (bulk)`,
+        entityId: companyId,
+        newData: { deleted: deleted.length, blocked: blocked.length },
+        req,
+      });
+    }
+
+    return {
+      deleted: deleted.length,
+      blocked,
+      missing,
+    };
+  },
+
+  exportList: async (slug, query, user) => {
+    if (!isRelationalMasterEntity(slug)) throw new AppError('Unknown master entity', 404);
+    const config = getMasterEntityConfig(slug);
+    const companyId = requireCompany(user);
+    const orderBy = parseMasterSort(query, config.sortableFields, config.defaultSort || 'sortOrder');
+    const result = await masterRepository.findManyRelational(slug, companyId, {
+      search: query.search,
+      status: query.status,
+      page: 1,
+      limit: 5000,
+      skip: 0,
+      orderBy,
+      query,
+    });
+    return {
+      entity: slug,
+      label: config.label,
+      rows: result.data,
+      total: result.pagination?.total ?? result.data.length,
+    };
+  },
+
+  studentStatusWorkflow: async (user) => {
+    const companyId = requireCompany(user);
+    const rows = await masterRepository.findStudentStatusWorkflow(companyId);
+    return rows.map((row) => ({
+      value: row.code,
+      label: row.name,
+      defaultStatus: row.defaultStatus,
+      colorCode: row.colorCode,
+      position: row.sortOrder,
+    }));
   },
 };

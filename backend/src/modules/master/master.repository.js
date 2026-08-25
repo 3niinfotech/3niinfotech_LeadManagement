@@ -126,6 +126,239 @@ export const masterRepository = {
     return created;
   },
 
+  findManyMasterItems: async (companyId, category, { search, status, page, limit, skip }) => {
+    const where = {
+      companyId,
+      category,
+      ...softDeleteWhere,
+      ...(search?.trim() && { label: { contains: search.trim() } }),
+      ...(status === 'active' && { isActive: true }),
+      ...(status === 'inactive' && { isActive: false }),
+    };
+
+    const [data, total] = await Promise.all([
+      prisma.masterItem.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      }),
+      prisma.masterItem.count({ where }),
+    ]);
+
+    return { data, pagination: buildPagination(page, limit, total) };
+  },
+
+  findMasterItemById: (companyId, category, id) =>
+    prisma.masterItem.findFirst({
+      where: { id, companyId, category, ...softDeleteWhere },
+    }),
+
+  updateMasterItem: (id, data) =>
+    prisma.masterItem.update({ where: { id }, data }),
+
+  softDeleteMasterItem: (id, userId) =>
+    prisma.masterItem.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false, updatedBy: userId },
+    }),
+
+  clearDefaultApplicationStatus: (companyId, countryId, excludeId = null) =>
+    prisma.applicationStatusMaster.updateMany({
+      where: {
+        companyId,
+        countryId,
+        deletedAt: null,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      data: { defaultStatus: false },
+    }),
+
+  clearDefaultLeadStatus: (companyId, excludeId = null) =>
+    prisma.crmLeadStatus.updateMany({
+      where: {
+        companyId,
+        deletedAt: null,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      data: { defaultStatus: false },
+    }),
+
+  findDefaultLeadStatus: (companyId) =>
+    prisma.crmLeadStatus.findFirst({
+      where: {
+        companyId,
+        defaultStatus: true,
+        isActive: true,
+        deletedAt: null,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    }),
+
+  findLeadStatusWorkflow: (companyId) =>
+    prisma.crmLeadStatus.findMany({
+      where: {
+        companyId,
+        isActive: true,
+        deletedAt: null,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    }),
+
+  findDefaultApplicationStatus: (companyId, countryId) =>
+    prisma.applicationStatusMaster.findFirst({
+      where: {
+        companyId,
+        countryId,
+        defaultStatus: true,
+        isActive: true,
+        deletedAt: null,
+      },
+      orderBy: [{ position: 'asc' }, { name: 'asc' }],
+    }),
+
+  findApplicationStatusById: (companyId, id) =>
+    prisma.applicationStatusMaster.findFirst({
+      where: { id, companyId, deletedAt: null },
+      include: { country: { select: { id: true, code: true, name: true } } },
+    }),
+
+  findApplicationStatusWorkflow: (companyId, countryId) =>
+    prisma.applicationStatusMaster.findMany({
+      where: {
+        companyId,
+        countryId,
+        isActive: true,
+        deletedAt: null,
+      },
+      orderBy: [{ position: 'asc' }, { name: 'asc' }],
+    }),
+
+  findApplicationChecklistByCountry: (companyId, countryId) =>
+    prisma.applicationChecklist.findMany({
+      where: {
+        companyId,
+        countryId,
+        isActive: true,
+        deletedAt: null,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    }),
+
+  clearDefaultVisaStatus: (companyId, countryId, excludeId = null) =>
+    prisma.visaStatusMaster.updateMany({
+      where: {
+        companyId,
+        countryId,
+        deletedAt: null,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      data: { defaultStatus: false },
+    }),
+
+  findDefaultVisaStatus: (companyId, countryId) =>
+    prisma.visaStatusMaster.findFirst({
+      where: {
+        companyId,
+        countryId,
+        defaultStatus: true,
+        isActive: true,
+        deletedAt: null,
+      },
+      orderBy: [{ position: 'asc' }, { name: 'asc' }],
+    }),
+
+  findVisaStatusById: (companyId, id) =>
+    prisma.visaStatusMaster.findFirst({
+      where: { id, companyId, deletedAt: null },
+      include: { country: { select: { id: true, code: true, name: true } } },
+    }),
+
+  findVisaStatusWorkflow: (companyId, countryId) =>
+    prisma.visaStatusMaster.findMany({
+      where: {
+        companyId,
+        countryId,
+        isActive: true,
+        deletedAt: null,
+      },
+      orderBy: [{ position: 'asc' }, { name: 'asc' }],
+    }),
+
+  findVisaChecklistByCountry: (companyId, countryId) =>
+    prisma.visaChecklist.findMany({
+      where: {
+        companyId,
+        countryId,
+        isActive: true,
+        deletedAt: null,
+      },
+      include: {
+        documentTypeRel: { select: { id: true, code: true, name: true } },
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    }),
+
+  clearDefaultStudentStatus: (companyId, excludeId = null) =>
+    prisma.studentStatusMaster.updateMany({
+      where: {
+        companyId,
+        deletedAt: null,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      data: { defaultStatus: false },
+    }),
+
+  findDefaultStudentStatus: (companyId) =>
+    prisma.studentStatusMaster.findFirst({
+      where: {
+        companyId,
+        defaultStatus: true,
+        isActive: true,
+        deletedAt: null,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    }),
+
+  findStudentStatusWorkflow: (companyId) =>
+    prisma.studentStatusMaster.findMany({
+      where: {
+        companyId,
+        isActive: true,
+        deletedAt: null,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    }),
+
+  visaStatusCountrySummary: async (companyId) => {
+    const [countries, statuses] = await Promise.all([
+      prisma.country.findMany({
+        where: { companyId, deletedAt: null, isActive: true },
+        select: { id: true, code: true, name: true },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      }),
+      prisma.visaStatusMaster.findMany({
+        where: { companyId, deletedAt: null, countryId: { not: null } },
+        orderBy: [{ position: 'asc' }, { name: 'asc' }],
+      }),
+    ]);
+
+    const byCountry = new Map();
+    for (const s of statuses) {
+      if (!s.countryId) continue;
+      if (!byCountry.has(s.countryId)) byCountry.set(s.countryId, []);
+      byCountry.get(s.countryId).push(s);
+    }
+
+    return countries.map((c) => ({
+      countryId: c.id,
+      countryName: c.name,
+      countryCode: c.code,
+      statusCount: byCountry.get(c.id)?.length || 0,
+      statuses: byCountry.get(c.id) || [],
+    }));
+  },
+
   // ─── Relational masters ────────────────────────────────────────────────────
 
   getDelegate,
@@ -170,8 +403,22 @@ export const masterRepository = {
     });
   },
 
+  findManyByIdsRelational: async (slug, companyId, ids = []) => {
+    const config = resolveConfig(slug);
+    const delegate = getDelegate(config.prismaModel);
+    if (!ids.length) return [];
+    return delegate.findMany({
+      where: {
+        id: { in: ids },
+        companyId,
+        ...(config.softDelete ? softDeleteWhere : {}),
+      },
+    });
+  },
+
   findByCodeRelational: async (slug, companyId, code, excludeId = null) => {
     const config = resolveConfig(slug);
+    if (!(config.createFields || []).includes('code')) return null;
     const delegate = getDelegate(config.prismaModel);
     return delegate.findFirst({
       where: {
@@ -181,6 +428,23 @@ export const masterRepository = {
         ...(excludeId ? { id: { not: excludeId } } : {}),
       },
     });
+  },
+
+  findDuplicateName: async (slug, companyId, payload, excludeId = null) => {
+    const config = resolveConfig(slug);
+    if (!config.uniqueName || !payload?.name) return null;
+    const delegate = getDelegate(config.prismaModel);
+    const where = {
+      companyId,
+      name: payload.name,
+      ...(config.softDelete ? softDeleteWhere : {}),
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    };
+    for (const field of config.uniqueNameScope || []) {
+      if (payload[field] === undefined) continue;
+      where[field] = payload[field];
+    }
+    return delegate.findFirst({ where });
   },
 
   createRelational: async (slug, data) => {
@@ -227,20 +491,48 @@ export const masterRepository = {
       }
     }
 
+    const search = String(filters.search || '').trim();
+    const searchWhere = search && (config.searchableFields || []).length
+      ? {
+          OR: config.searchableFields.map((field) => ({
+            [field]: { contains: search },
+          })),
+        }
+      : {};
+
+    const parsedLimit = Number.parseInt(filters.limit, 10);
+    const take = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 100)
+      : (['course', 'university'].includes(slug) ? 40 : 80);
+
+    const hasCode = (config.createFields || []).includes('code');
+    const sortField = config.defaultSort
+      || ((config.createFields || []).includes('sortOrder') ? 'sortOrder' : 'name');
+    const orderBy = sortField === 'name'
+      ? [{ name: 'asc' }]
+      : [{ [sortField]: 'asc' }, { name: 'asc' }];
+
+    const select = {
+      id: true,
+      name: true,
+    };
+    if (hasCode) select.code = true;
+    if ((config.createFields || []).includes('sortOrder')) select.sortOrder = true;
+    if ((config.createFields || []).includes('position')) select.position = true;
+    if ((config.createFields || []).includes('colorCode')) select.colorCode = true;
+    if ((config.createFields || []).includes('phoneCode')) select.phoneCode = true;
+
     return delegate.findMany({
       where: {
         companyId,
         isActive: true,
         ...(config.softDelete ? softDeleteWhere : {}),
         ...whereExtra,
+        ...searchWhere,
       },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      select: {
-        id: true,
-        code: true,
-        name: true,
-        sortOrder: true,
-      },
+      orderBy,
+      take,
+      select,
     });
   },
 
@@ -271,7 +563,8 @@ export const masterRepository = {
     });
   },
 
-  countDependencies: async (config, recordId, companyId) => {
+  countDependencies: async (config, record, companyId) => {
+    const recordId = typeof record === 'string' ? record : record?.id;
     const results = [];
     for (const dep of config.dependencies || []) {
       const delegate = getDelegate(dep.prismaModel);
@@ -281,7 +574,6 @@ export const masterRepository = {
       };
 
       if (dep.prismaModel === 'company') {
-        // Only care if the current tenant company references this master
         where.id = companyId;
       } else {
         where.companyId = companyId;
@@ -292,7 +584,57 @@ export const masterRepository = {
         results.push({ label: dep.label, count });
       }
     }
+
+    const values = [record?.name, record?.code].filter(Boolean);
+    if (values.length && (config.usage || []).length) {
+      for (const usage of config.usage) {
+        const where = {
+          deletedAt: null,
+          [usage.field]: { in: values },
+        };
+        if (usage.via === 'branch') {
+          where.branch = { companyId };
+        } else if (usage.via === 'student.branch') {
+          where.student = { branch: { companyId }, deletedAt: null };
+        }
+        try {
+          const count = await prisma[usage.model].count({ where });
+          if (count > 0) results.push({ label: usage.label, count });
+        } catch {
+          // Skip usage counts if the operational model/field is unavailable.
+        }
+      }
+    }
     return results;
+  },
+
+  applicationStatusCountrySummary: async (companyId) => {
+    const [countries, statuses] = await Promise.all([
+      prisma.country.findMany({
+        where: { companyId, deletedAt: null, isActive: true },
+        select: { id: true, code: true, name: true },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      }),
+      prisma.applicationStatusMaster.findMany({
+        where: { companyId, deletedAt: null, countryId: { not: null } },
+        orderBy: [{ position: 'asc' }, { name: 'asc' }],
+      }),
+    ]);
+
+    const byCountry = new Map();
+    for (const s of statuses) {
+      if (!s.countryId) continue;
+      if (!byCountry.has(s.countryId)) byCountry.set(s.countryId, []);
+      byCountry.get(s.countryId).push(s);
+    }
+
+    return countries.map((c) => ({
+      countryId: c.id,
+      countryName: c.name,
+      countryCode: c.code,
+      statusCount: byCountry.get(c.id)?.length || 0,
+      statuses: byCountry.get(c.id) || [],
+    }));
   },
 
   hubSummary: async (companyId) => {
@@ -301,18 +643,23 @@ export const masterRepository = {
 
     await Promise.all(
       RELATIONAL_MASTER_SLUGS.map(async (slug) => {
-        const config = MASTER_ENTITY_REGISTRY[slug];
-        const delegate = getDelegate(config.prismaModel);
-        const baseWhere = { companyId, ...(config.softDelete ? softDeleteWhere : {}) };
-        const [total, active] = await Promise.all([
-          delegate.count({ where: baseWhere }),
-          delegate.count({ where: { ...baseWhere, isActive: true } }),
-        ]);
-        summary[slug] = {
-          total,
-          active,
-          inactive: total - active,
-        };
+        try {
+          const config = MASTER_ENTITY_REGISTRY[slug];
+          const delegate = getDelegate(config.prismaModel);
+          const baseWhere = { companyId, ...(config.softDelete ? softDeleteWhere : {}) };
+          const [total, active] = await Promise.all([
+            delegate.count({ where: baseWhere }),
+            delegate.count({ where: { ...baseWhere, isActive: true } }),
+          ]);
+          summary[slug] = {
+            total,
+            active,
+            inactive: total - active,
+          };
+        } catch {
+          // Table may not exist until db push (e.g. learning_resources)
+          summary[slug] = null;
+        }
       }),
     );
 

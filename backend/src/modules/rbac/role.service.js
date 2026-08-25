@@ -3,6 +3,7 @@ import { AppError } from '../../utils/response.util.js';
 import { buildPagination, parsePagination } from '../../utils/response.util.js';
 import { roleRepository } from './role.repository.js';
 import { slugify } from './rbac.util.js';
+import { sanitizePermissionKeysForRole } from '../../config/access-policy.js';
 
 const formatRole = (role) => {
   if (!role) return null;
@@ -87,7 +88,8 @@ export const roleService = {
     const existing = await roleRepository.findBySlug(slug);
     if (existing) throw new AppError('Role slug already exists', 409);
 
-    const permissionIds = await resolvePermissionIds(data.permissionKeys || []);
+    const safeKeys = sanitizePermissionKeysForRole(slug, data.permissionKeys || []);
+    const permissionIds = await resolvePermissionIds(safeKeys);
 
     const role = await roleRepository.create(
       {
@@ -101,7 +103,7 @@ export const roleService = {
         isCustom: true,
         isActive: data.isActive ?? true,
         companyId: req.user.companyId || null,
-        permissions: data.permissionKeys || [],
+        permissions: safeKeys,
         createdBy: req.user.id,
         updatedBy: req.user.id,
       },
@@ -124,8 +126,10 @@ export const roleService = {
     if (!existing) throw new AppError('Role not found', 404);
 
     let permissionIds = null;
+    let safeKeys;
     if (data.permissionKeys !== undefined) {
-      permissionIds = await resolvePermissionIds(data.permissionKeys);
+      safeKeys = sanitizePermissionKeysForRole(existing.slug, data.permissionKeys);
+      permissionIds = await resolvePermissionIds(safeKeys);
     }
 
     const role = await roleRepository.update(
@@ -137,7 +141,7 @@ export const roleService = {
         ...(data.parentRoleId !== undefined ? { parentRoleId: data.parentRoleId } : {}),
         ...(data.hierarchyLevel !== undefined ? { hierarchyLevel: data.hierarchyLevel } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
-        ...(data.permissionKeys !== undefined ? { permissions: data.permissionKeys } : {}),
+        ...(safeKeys !== undefined ? { permissions: safeKeys } : {}),
         updatedBy: req.user.id,
       },
       permissionIds,

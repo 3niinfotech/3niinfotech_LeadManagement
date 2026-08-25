@@ -7,8 +7,8 @@ export default function WalkInFilters({
   if (!open) return null;
 
   return (
-    <div className="px-4 py-3 border-b border-card-border bg-page/40">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="crm-reception-filters">
+      <div className="crm-reception-filters__grid">
         <Select
           label="Branch"
           value={values.branchId || ''}
@@ -36,11 +36,14 @@ export default function WalkInFilters({
           onChange={(e) => onChange({ ...values, priority: e.target.value })}
           options={[{ value: '', label: 'All priorities' }, ...WALKIN_PRIORITIES.map((p) => ({ value: p.value, label: p.label }))]}
         />
-      </div>
-      <div className="flex justify-end gap-2 mt-3">
-        <button type="button" className="text-sm text-text-secondary hover:text-text" onClick={onReset}>Reset</button>
-        <button type="button" className="text-sm text-brand font-medium" onClick={onSearch}>Apply</button>
-        <button type="button" className="text-sm text-text-secondary" onClick={onClose}>Close</button>
+
+        <div className="crm-reception-filters__actions">
+          <button type="button" className="crm-reception-filters__btn" onClick={onReset}>Reset</button>
+          <button type="button" className="crm-reception-filters__btn crm-reception-filters__btn--primary" onClick={onSearch}>
+            Apply
+          </button>
+          <button type="button" className="crm-reception-filters__btn" onClick={onClose}>Close</button>
+        </div>
       </div>
     </div>
   );

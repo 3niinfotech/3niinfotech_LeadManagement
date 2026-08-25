@@ -6,7 +6,7 @@ const DEFAULT_PAGE_SIZE = 25;
 /**
  * Server-driven list state for relational masters.
  */
-export function useMasterList(entity, { enabled = true } = {}) {
+export function useMasterList(entity, { enabled = true, defaultSort = 'sortOrder', defaultSortDirection = 'asc', initialFilters = {} } = {}) {
   const [rows, setRows] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -16,9 +16,10 @@ export function useMasterList(entity, { enabled = true } = {}) {
   });
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filters, setFilters] = useState({ status: 'all' });
-  const [sort, setSort] = useState('sortOrder');
-  const [sortDirection, setSortDirection] = useState('asc');
+  const initialKey = JSON.stringify(initialFilters || {});
+  const [filters, setFilters] = useState({ status: 'all', ...initialFilters });
+  const [sort, setSort] = useState(defaultSort);
+  const [sortDirection, setSortDirection] = useState(defaultSortDirection);
   const [loading, setLoading] = useState(Boolean(entity && enabled));
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState(null);
@@ -34,10 +35,10 @@ export function useMasterList(entity, { enabled = true } = {}) {
     setPagination((p) => ({ ...p, page: 1, total: 0, totalPages: 0 }));
     setSearch('');
     setDebouncedSearch('');
-    setFilters({ status: 'all' });
-    setSort('sortOrder');
-    setSortDirection('asc');
-  }, [entity, enabled]);
+    setFilters({ status: 'all', ...JSON.parse(initialKey) });
+    setSort(defaultSort);
+    setSortDirection(defaultSortDirection);
+  }, [entity, enabled, defaultSort, defaultSortDirection, initialKey]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);

@@ -1,75 +1,127 @@
 import { useMemo } from 'react';
-import { FiCheck } from 'react-icons/fi';
+import { FiCheck, FiLock, FiLoader } from 'react-icons/fi';
+import { getPermissionPlainHint, getPermissionPlainLabel } from '../config/permissionLabels';
 
 export const DATA_SCOPES = [
-  { value: 'OWN', label: 'Own Records', description: 'Only records assigned to the user' },
-  { value: 'TEAM', label: 'Team Records', description: 'Records for the user\'s team' },
-  { value: 'BRANCH', label: 'Branch Records', description: 'All records within the branch' },
-  { value: 'COMPANY', label: 'Company Records', description: 'All records within the company' },
-  { value: 'GLOBAL', label: 'Global Records', description: 'All records across companies' },
+  { value: 'OWN', label: 'Only own records', description: 'Only records assigned to the user' },
+  { value: 'TEAM', label: 'Team records', description: 'Records for the user\'s team' },
+  { value: 'BRANCH', label: 'Whole branch', description: 'All records within the branch' },
+  { value: 'COMPANY', label: 'Whole company', description: 'All records within the company' },
+  { value: 'GLOBAL', label: 'All companies', description: 'All records across companies' },
 ];
 
-export default function PermissionMatrix({ groups = {}, selected = [], onChange, readOnly = false }) {
+/**
+ * @param {boolean} [props.showKeys=false] — technical keys for IT only; default hidden for non-IT admins
+ */
+export default function PermissionMatrix({
+  groups = {},
+  selected = [],
+  onChange,
+  onToggle,
+  readOnly = false,
+  lockedKeys,
+  pendingKey = null,
+  className = '',
+  showKeys = false,
+}) {
   const selectedSet = useMemo(() => new Set(selected), [selected]);
+  const lockedSet = useMemo(
+    () => new Set(lockedKeys instanceof Set ? [...lockedKeys] : (lockedKeys || [])),
+    [lockedKeys],
+  );
 
-  const toggle = (key) => {
-    if (readOnly) return;
-    const next = selectedSet.has(key)
-      ? selected.filter((k) => k !== key)
-      : [...selected, key];
-    onChange(next);
+  const applyToggle = (key) => {
+    if (readOnly || lockedSet.has(key) || pendingKey) return;
+    const enabled = !selectedSet.has(key);
+    const next = enabled
+      ? [...selected, key]
+      : selected.filter((k) => k !== key);
+    if (onToggle) onToggle(key, enabled, next);
+    else onChange?.(next);
   };
 
   const toggleGroup = (keys, selectAll) => {
-    if (readOnly) return;
+    if (readOnly || pendingKey) return;
+    const actionable = keys.filter((k) => !lockedSet.has(k));
+    if (!actionable.length) return;
     const set = new Set(selected);
-    keys.forEach((k) => (selectAll ? set.add(k) : set.delete(k)));
-    onChange([...set]);
+    actionable.forEach((k) => (selectAll ? set.add(k) : set.delete(k)));
+    const next = [...set];
+    onChange?.(next);
   };
 
   return (
-    <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+    <div className={`space-y-4 overflow-y-auto pr-1 ${className || 'max-h-[420px]'}`}>
       {Object.entries(groups).map(([groupName, perms]) => {
         const keys = perms.map((p) => p.key);
-        const allSelected = keys.every((k) => selectedSet.has(k));
-        const someSelected = keys.some((k) => selectedSet.has(k));
+        const freeKeys = keys.filter((k) => !lockedSet.has(k));
+        const allSelected = freeKeys.length > 0 && freeKeys.every((k) => selectedSet.has(k));
+        const someSelected = freeKeys.some((k) => selectedSet.has(k));
 
         return (
           <div key={groupName} className="border border-border rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 bg-row-hover">
-              <span className="text-sm font-medium text-text-primary">{groupName}</span>
-              {!readOnly && (
+            <div className="flex items-center justify-between px-3 py-2.5 bg-row-hover">
+              <div>
+                <span className="text-sm font-semibold text-text-primary">{groupName}</span>
+                <span className="ml-2 text-[11px] text-text-muted">
+                  {freeKeys.filter((k) => selectedSet.has(k)).length}/{freeKeys.length || keys.length} allowed
+                </span>
+              </div>
+              {!readOnly && freeKeys.length > 0 && (
                 <button
                   type="button"
-                  className="text-xs text-brand hover:underline"
+                  className="text-xs font-medium text-brand hover:underline disabled:opacity-40"
+                  disabled={Boolean(pendingKey)}
                   onClick={() => toggleGroup(keys, !allSelected)}
                 >
-                  {allSelected ? 'Clear all' : someSelected ? 'Select all' : 'Select all'}
+                  {allSelected ? 'Remove all' : 'Allow all'}
                 </button>
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 p-2">
               {perms.map((perm) => {
-                const checked = selectedSet.has(perm.key);
+                const locked = lockedSet.has(perm.key);
+                const checked = locked ? false : selectedSet.has(perm.key);
+                const saving = pendingKey === perm.key;
+                const label = getPermissionPlainLabel(perm);
+                const hint = getPermissionPlainHint(perm);
+
                 return (
                   <label
                     key={perm.key}
-                    className={`flex items-start gap-2 p-2 rounded-md text-sm cursor-pointer transition-colors ${
+                    className={`flex items-start gap-2.5 p-2.5 rounded-md text-sm transition-colors ${
                       checked ? 'bg-brand-soft/60' : 'hover:bg-row-hover'
-                    } ${readOnly ? 'cursor-default' : ''}`}
+                    } ${locked || readOnly ? 'cursor-default opacity-80' : 'cursor-pointer'} ${
+                      saving ? 'ring-1 ring-brand/30' : ''
+                    }`}
+                    title={locked ? 'This role cannot have this access' : label}
                   >
-                    <input
-                      type="checkbox"
-                      className="mt-0.5"
-                      checked={checked}
-                      disabled={readOnly}
-                      onChange={() => toggle(perm.key)}
-                    />
-                    <span>
-                      <span className="font-medium text-text-primary block">{perm.name}</span>
-                      <span className="text-xs text-text-muted font-mono">{perm.key}</span>
+                    {saving ? (
+                      <FiLoader className="mt-0.5 animate-spin text-brand shrink-0" size={14} />
+                    ) : locked ? (
+                      <FiLock className="mt-0.5 text-text-muted shrink-0" size={14} />
+                    ) : (
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={checked}
+                        disabled={readOnly || locked || Boolean(pendingKey)}
+                        onChange={() => applyToggle(perm.key)}
+                      />
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="font-medium text-text-primary block leading-snug">{label}</span>
+                      <span className="text-[11px] text-text-muted block mt-0.5 leading-snug">{hint}</span>
+                      {showKeys && (
+                        <span className="text-[10px] text-text-muted/80 font-mono block mt-0.5">{perm.key}</span>
+                      )}
+                      {locked && (
+                        <span className="block text-[10px] text-warning mt-0.5 font-medium">
+                          Locked for this role
+                        </span>
+                      )}
                     </span>
-                    {checked && <FiCheck className="ml-auto text-brand shrink-0" size={14} />}
+                    {checked && !saving && <FiCheck className="ml-auto text-brand shrink-0 mt-0.5" size={14} />}
                   </label>
                 );
               })}

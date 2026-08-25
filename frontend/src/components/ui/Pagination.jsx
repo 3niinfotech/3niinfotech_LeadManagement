@@ -6,7 +6,7 @@ export default function Pagination({
   onPageChange, onPageSizeChange, showPageSize = true,
 }) {
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-white">
+    <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-card-bg">
       <div className="flex items-center gap-4 text-sm text-text-muted">
         <span>{total} records</span>
         {showPageSize && (
@@ -37,7 +37,7 @@ function PaginationButton({ children, disabled, onClick }) {
     <button
       onClick={onClick}
       disabled={disabled}
-      className="px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-secondary-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      className="px-3 py-1.5 text-sm rounded-lg border border-border bg-card-bg text-text hover:bg-row-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
     >
       {children}
     </button>

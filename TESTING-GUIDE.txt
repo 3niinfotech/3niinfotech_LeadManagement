@@ -1,0 +1,498 @@
+================================================================================
+  VISA ERP / LEAD CRM — FULL TESTING GUIDE (STEP BY STEP)
+  Company: MAIN (3ni Infotech) | Branch start: HQ (Ahmedabad)
+  Date prepared for QA after clean seed
+================================================================================
+
+RULE (yaad rakhna)
+------------------
+1. Master data MAT todna (Faculty, Country, Course, Lead Source, Roles…).
+2. Har role ka ALAG login / ALAG browser window use karo (ya Incognito).
+3. Koi page empty dikhe → pehle login role check karo (Teacher ko Enquiry nahi dikhega).
+4. Password yaad na rahe → DEV me password: 123 bhi chalega (non-production).
+5. Backend hamesha ON:  backend folder → npm run dev   (port 5000)
+6. Frontend ON:         frontend folder → npm run dev  (port 3000)
+7. Open: http://localhost:3000
+
+
+================================================================================
+PART 0 — PEHLE YE TAIYAR KARO (1 baar)
+================================================================================
+
+[ ] Backend running?   → browser: http://localhost:5000/api/health
+                        expect: { "success": true, "message": "API is running" }
+
+[ ] Frontend running?  → http://localhost:3000
+
+[ ] Agar login 500 aaye → backend band hai. Backend terminal me npm run dev.
+
+[ ] Data reset chahiye ho (sirf testing data wipe, masters safe):
+      cd backend
+      npm run db:reset-qa
+      (backend alag terminal me ON rakhna — isi terminal me mat chalao)
+
+
+================================================================================
+PART 1 — LOGIN CHEAT SHEET (QA SEED USERS)
+================================================================================
+
+Portal page: http://localhost:3000/login
+  → Staff/Admin card  = /login/admin
+  → Student card      = /login/student
+  → Agent card        = /login/agent  (abhi skip)
+
+------------------------------------------------
+ROLE            EMAIL                           PASSWORD      PORTAL
+------------------------------------------------
+Super Admin     admin@crm.com                   Admin@123     /login/admin
+Company Admin   ops.admin@3niinfotech.com       Staff@123     /login/admin
+Reception       reception.hq@3niinfotech.com    Staff@123     /login/admin
+Counsellor      priya.shah@3niinfotech.com      Staff@123     /login/admin
+Teacher         teacher.ielts@3niinfotech.com   Staff@123     /login/admin
+Student         aarav.patel@gmail.com           Student@123   /login/student
+------------------------------------------------
+
+Already seeded sample data (after npm run db:reset-qa):
+  - Walk-in WAITING : Neha Mehta  (phone 9825022222)
+  - Enquiry INTERESTED : Riya Desai (schedule demo test)
+  - Enquiry + Student + Demo : Aarav Patel
+  - Batch : IELTS Batch A — Morning (teacher assigned)
+  - Today class session 10:00–11:00 → Take Attendance
+
+
+================================================================================
+PART 2 — SYSTEM JOURNEY (ek line me samajh)
+================================================================================
+
+  Reception register visitor
+        ↓
+  Assign Counsellor
+        ↓
+  Counsellor Start counselling → Decision = Interested
+        ↓
+  Enquiry ban jati hai (Manage Enquiry)
+        ↓
+  Demo tab pe demo schedule (Faculty master se)
+        ↓
+  Status DEMO_SCHEDULED / DEMO_ATTENDED (sirf real demo se)
+        ↓
+  Convert to Student
+        ↓
+  Admin/Counsellor → Batch banao → Teacher assign → Student enroll
+        ↓
+  Timetable → Generate sessions → Teacher Take Attendance
+        ↓
+  Student portal → apni attendance dekhe
+
+IMPORTANT:
+  - Faculty = Masters me name (demo teacher list) — login user NAHI
+  - Teacher  = Staff user (login) — class attendance ke liye
+  - Counsellor ≠ Teacher ≠ Faculty
+
+
+================================================================================
+PART 3 — TESTING ORDER (ise follow karo — skip mat karo pehle din)
+================================================================================
+
+DAY / ROUND 1 — LOGIN + ROLE SCREEN (30 min)
+--------------------------------------------
+Goal: har role alag dikhe, galat menu na aaye.
+
+STEP A1 — Super Admin
+  1. Logout if any session
+  2. http://localhost:3000/login/admin
+  3. admin@crm.com / Admin@123
+  4. CHECK:
+     [ ] Dashboard open
+     [ ] Sidebar me Masters, Users/Staff, Roles, Enquiries, Batches dikhe
+     [ ] Masters → Academic → Faculty open (500 error NA aaye)
+     [ ] Faculty list me IELTS/PTE etc dikhe
+
+STEP A2 — Reception
+  1. Logout
+  2. reception.hq@3niinfotech.com / Staff@123
+  3. CHECK:
+     [ ] Landing = Reception Dashboard (/admin/reception) — NOT Masters / Admin analytics
+     [ ] Summary cards: visitors, appointments, follow-ups, counsellors, completed, unassigned
+     [ ] Live visitor queue / queue analytics / token controls kahin NA dikhe
+     [ ] Main dashboard: Today's schedule + counsellor availability + today's visitors + timeline
+     [ ] Header (Reception · Current branch) sticky rahe; sirf andar ka content scroll ho
+     [ ] Today's schedule me appointments + follow-ups + demos + classes sab dikhe
+     [ ] Operations timeline aaj ke demo/class events ke saath bhare (khaali NA rahe)
+     [ ] API down ho to banner "Cannot reach the server…" + Retry dikhe, page crash NA ho
+     [ ] Quick actions: Register Visitor, Book Appointment, Calendar, Walk-ins
+     [ ] Sidebar ONLY: Dashboard; Walk-ins; Calendar; Settings (own profile)
+     [ ] Enquiry / Students / Demos / Masters / Roles / company Settings hidden
+     [ ] Global Search only allowed pages; enquiry/student/lead records NA
+     [ ] Direct URLs / APIs for Enquiry, Student, Accounts, Visa deny (403)
+     [ ] Walk-ins page still works from sidebar / quick action
+     [ ] Calendar: search enquiry inside Add modal; create/reschedule/assign/complete works
+
+CALENDAR — ALL ROLE REGRESSION (15 min)
+---------------------------------------
+  [ ] Month / Week / Day / List views work; empty month grid remains visible
+  [ ] Date click → Follow-up form opens with selected date/time
+  [ ] Summary cards clickable: Today, Next 7 days, Overdue, Follow-ups, Appointments, Due dates
+  [ ] Filters include Enquiry, Lead, Student, Application, Visa, Invoice, Demo, Class
+  [ ] Priority, branch, assignee, status and search filters work together
+  [ ] Appointment: counsellor + start/end + online/offline + room/platform/link save
+  [ ] Event drawer: complete/reschedule/assign only when allowed
+  [ ] Event drawer: Call, WhatsApp, Google Calendar and .ics actions work
+  [ ] Finance: invoice + fee-installment due dates visible; other-company dues NA
+  [ ] Teacher: Week timetable shows assigned Class events
+  [ ] Student: /student/calendar shows only own classes/appointments/applications
+  [ ] Partner: /agent/calendar shows only own enquiries/students
+  [ ] Reception: enquiry calendar works but Enquiry workspace remains denied
+  [ ] Reception: today's demos and class sessions visible (branch-scoped, read-only)
+  [ ] Marketing/Telecaller: own follow-ups and appointments visible
+  [ ] Query me dusri branchId force karo → 403
+
+STEP A3 — Counsellor
+  1. Logout
+  2. priya.shah@3niinfotech.com / Staff@123
+  3. CHECK:
+     [ ] Landing = My Enquiries (/admin/enquiries)
+     [ ] Sidebar: Dashboard, My Enquiries, My Students, Follow-ups — Reception NA dikhe
+     [ ] Reception URL /admin/reception kholo → My Enquiries pe redirect
+     [ ] Assigned visitors (Rohan / Neha) My Enquiries list me dikhe
+     [ ] Masters create/edit ideally nahi
+
+STEP A4 — Teacher
+  1. Logout
+  2. teacher.ielts@3niinfotech.com / Staff@123
+  3. CHECK:
+     [ ] Batches / Timetable focus
+     [ ] Enquiry create / Finance NA dikhe
+     [ ] IELTS Batch A dikhe
+     [ ] Dusre random batch NA (sirf assigned)
+
+STEP A5 — Student
+  1. Logout
+  2. http://localhost:3000/login/student
+  3. aarav.patel@gmail.com / Student@123
+  4. CHECK:
+     [ ] Student shell (admin sidebar NA)
+     [ ] Dashboard / Attendance / Profile
+     [ ] Sirf apna data
+
+
+DAY / ROUND 2 — RECEPTION FLOW (45 min)
+--------------------------------------
+Goal: walk-in register → counsellor assign → status
+
+Login: reception.hq@3niinfotech.com
+
+STEP R1 — Existing waiting lead (profile = READ ONLY)
+  1. Open Reception / Walk-ins
+  2. Find Neha Mehta (WAITING)
+  3. Row ke eye icon se profile kholo
+  4. CHECK:
+     [ ] Header me "View only" chip dikhe
+     [ ] Journey strip: Registered → Assigned → Counselling → Enquiry
+     [ ] Fact cards: in-centre time, branch, counsellor, source
+     [ ] Quick actions: Call / WhatsApp / Email / Copy number chale
+     [ ] Tabs sirf 3: Overview, Timeline, Notes (khali placeholder tabs NA)
+     [ ] Koi edit / save / delete / status change button NA
+     [ ] Notes tab read-only (Add note box NA)
+     [ ] Enquiry ban chuki ho to "Open enquiry" button counsellor workspace kholta hai
+  5. Grid me status column bhi read-only badge hai — dropdown NA
+     (status counsellor ke enquiry se auto sync hota hai)
+  6. Assign sirf row ke assign action se hota hai
+  7. NOTE UI issues: slow load, confusing labels, missing phone format…
+
+STEP R2 — New walk-in register (REAL feel data)
+  Fill:
+    Full name : Rohan Sharma
+    Phone     : 9876543210
+    Email     : rohan.sharma.test@gmail.com
+    Course    : IELTS
+    Country   : Canada
+    Source    : Walk-in
+    Branch    : Head Office / HQ
+    Counsellor: Priya Shah  (REQUIRED)
+  Click Register / Save
+  CHECK:
+    [ ] Success toast + lead code
+    [ ] Grid me naya row
+    [ ] Counsellor assigned
+
+STEP R3 — Duplicate phone
+  Same phone dobara register
+  CHECK:
+    [ ] Duplicate warning (same company)
+    [ ] App crash NA
+
+UI improve notes (yahan likho):
+  - _______________________________________________
+  - _______________________________________________
+
+
+DAY / ROUND 3 — COUNSELLOR FLOW (60 min)
+---------------------------------------
+Goal: assigned visitor → My Enquiries → demo → status → convert
+
+Login: priya.shah@3niinfotech.com   (Staff login /login/admin)
+
+STEP C1 — Assigned visitor on My Enquiries
+  Reception pehle register + assign kare (Rohan / Ananya → Priya)
+  1. Counsellor login
+  2. CHECK: sidebar me Reception NA
+  3. Open My Enquiries
+  4. Assigned visitor (Rohan / Ananya) list me dikhe — status NEW
+  5. Bell notification "New student assigned" → Enquiry detail khule
+  6. Open row → Overview / Notes
+  7. Status: Contacted → Interested (counselling aage)
+
+  Reception page counsellor ke liye band hai. Kaam sirf My Enquiries pe.
+
+STEP C2 — Manage Enquiry basics
+  1. Open Enquiries
+  2. Open Riya Desai (INTERESTED)
+  3. Tabs ghumao: Overview, Notes, Demo, Convert…
+  CHECK:
+    [ ] Demo tab dikhe
+    [ ] Save / Edit mode clear ho
+
+STEP C3 — Schedule DEMO (IMPORTANT)
+  Demo tab pe:
+    Date   : aaj / kal
+    Time   : 11:00 – 12:00
+    Faculty: IELTS Faculty (Masters se — Staff NA)
+    Class  : IELTS Foundation
+    Batch  : Morning A
+  Click Record Demo
+  CHECK:
+    [ ] History me demo row
+    [ ] Enquiry status → DEMO_SCHEDULED
+    [ ] /admin/demo page pe bhi dikhe
+  Status pill se "Demo Scheduled" manually set mat karo —
+    system Demo tab se set karega. Agar force se set → error/redirect expected.
+
+STEP C4 — Mark demo attendance
+  Same Demo tab:
+    Attendance = Present / Attended
+  CHECK:
+    [ ] Status → DEMO_ATTENDED (jab mark ho)
+    [ ] Feedback/result save
+
+STEP C5 — Status management
+  Try statuses: Contacted → Follow-up → Counselling → Documents Pending
+  CHECK:
+    [ ] Grid status update
+    [ ] Timeline/audit update (agar tab hai)
+  Demo statuses sirf demo flow se.
+
+STEP C6 — Convert to Student
+  Open Aarav (already converted) — view Convert tab samajhne ke liye
+  Phir Riya / Rohan pe Convert to Student (jab ready)
+  CHECK:
+    [ ] Student code
+    [ ] Students list me dikhe
+    [ ] Enquiry CONVERTED
+
+UI improve notes:
+  - _______________________________________________
+  - _______________________________________________
+
+
+DAY / ROUND 4 — TEACHER ATTENDANCE (45 min) ★ PRIORITY
+-----------------------------------------------------
+Goal: teacher apne batch pe student attendance le sake
+
+Login as Super Admin pehle (setup check), phir Teacher.
+
+STEP T0 — Setup verify (Admin)
+  Login: admin@crm.com
+  1. Batches → IELTS Batch A — Morning
+  2. Instructor = Rakesh Iyer (teacher.ielts…)
+  3. Students enrolled: Aarav Patel
+  4. Timetable slot + session today
+  Agar instructor missing:
+     Batch detail → Assign teacher → Save instructor
+
+STEP T1 — Teacher login
+  Login: teacher.ielts@3niinfotech.com
+  1. Open Batches / My Batches
+  2. Open IELTS Batch A
+  CHECK:
+    [ ] Sirf apna batch
+    [ ] Student Aarav dikhe
+    [ ] Classes list me aaj ka session
+  3. Click "Take attendance"
+  4. Mark Aarav = PRESENT (save)
+  CHECK:
+    [ ] Save success
+    [ ] % attendance update
+    [ ] Dobara open → value same
+
+STEP T2 — Negative test
+  Teacher ko random enquiry create try
+  CHECK: permission deny / menu missing (PASS)
+
+UI improve notes (attendance screen):
+  - _______________________________________________
+  - _______________________________________________
+
+
+DAY / ROUND 5 — STUDENT PORTAL (20 min)
+--------------------------------------
+Login: aarav.patel@gmail.com / Student@123  on /login/student
+
+  [ ] Dashboard open
+  [ ] Attendance page — teacher ke mark dikhe
+  [ ] Profile apna
+  [ ] Dusre student ka data NA
+
+MY PROFILE — ALL ROLE REGRESSION (10 min)
+-----------------------------------------
+Admin, Receptionist, Counsellor, Student aur Agent me ek-ek baar CHECK:
+  [ ] My Profile open; "Access & permissions" / raw permission keys NA
+  [ ] JPG/PNG/WEBP choose → crop/zoom → Save photo
+  [ ] Photo profile page aur top navbar avatar dono me turant update
+  [ ] Change / remove photo works; dusri company ka avatar URL 403
+  [ ] First name / last name / phone save and refresh ke baad same
+  [ ] Preferences: light/dark + comfortable/compact table apply
+  [ ] Notification mute/sound/browser controls work
+  [ ] Security: wrong current password reject
+  [ ] Security: correct password change → all sessions revoke + login page
+  [ ] Admin ko role-based workspace shortcuts; permissions matrix nahi
+  [ ] Agent portal /agent/profile open and own profile only
+
+
+DAY / ROUND 6 — MASTERS (SAFE CHECK ONLY) (20 min)
+-------------------------------------------------
+Login: admin@crm.com
+
+  [ ] Masters → Faculty → list + Add one faculty (e.g. TOEFL Faculty)
+  [ ] Demo dropdown me naya faculty aaye (Counsellor Demo tab)
+  [ ] Country / Course / Lead Source open (delete mat karna testing me)
+  [ ] Staff page → Add User (optional extra counsellor)
+
+NEVER during QA wipe:
+  - prisma db push --force-reset  (ye masters bhi uda dega)
+  - random DELETE on master tables
+
+Safe reset of ONLY testing data:
+  npm run db:reset-qa
+
+
+DAY / ROUND 7 — FULL HAPPY PATH (1 new person end-to-end) (60 min)
+----------------------------------------------------------------
+Ek bilkul naya student se shuru se end tak:
+
+  Reception login
+    → Register "Ananya Joshi" + assign Priya
+  Counsellor login
+    → My Enquiries me Ananya dikhe (Reception NA)
+    → Status Interested / counselling
+    → Demo schedule (Faculty)
+    → Mark demo attended
+    → Convert to Student
+  Admin login
+    → Batch me Ananya enroll
+    → (optional) new session generate
+  Teacher login
+    → Take attendance for Ananya
+  Student register (optional)
+    → /register/student with company MAIN
+    OR admin link student user later
+  CHECK full chain linked (same person, no duplicate chaos)
+
+
+================================================================================
+PART 4 — KYA KAB IMPROVE KARNA HAI (UI + FUNCTION)
+================================================================================
+
+Pehle FUNCTION pass, phir UI polish.
+
+Priority order (best practice):
+  P0  Login / crash / 500 / blank broken
+  P1  Role wrong menu / wrong data leak (security)
+  P2  Reception register + assign
+  P3  Counsellor demo + status + convert
+  P4  Teacher attendance
+  P5  Student portal own data
+  P6  UI polish (spacing, labels, empty states, loaders)
+
+Har bug ke liye note format:
+  Role: ________
+  Page: ________
+  Steps: 1) 2) 3)
+  Expected: ________
+  Actual: ________
+  Screenshot: ________
+
+
+================================================================================
+PART 5 — COMMON PROBLEMS (QUICK FIX)
+================================================================================
+
+Problem: Login 500 / ECONNREFUSED 5000
+  → Backend band. backend → npm run dev
+
+Problem: Faculty API 500 "Prisma model not available"
+  → Backend restart. Agar phir bhi: stop backend → npx prisma generate → npm run dev
+
+Problem: Teacher ko koi batch nahi
+  → Admin se batch pe Instructor assign karo (teacher user)
+
+Problem: Demo Scheduled status set nahi hota grid se
+  → Expected. Demo tab se Record Demo karo
+
+Problem: Old user login after reset-qa fail
+  → Tokens/users wipe. Naye cheat-sheet emails use karo
+
+Problem: Masters empty after reset
+  → Galat reset use kiya. db:reset-qa masters rakhta hai.
+     Full wipe sirf db:reset (avoid)
+
+
+================================================================================
+PART 6 — DAILY CHECKLIST (copy-paste)
+================================================================================
+
+Date: ____ / ____ / ______
+
+[ ] Backend health OK
+[ ] Super Admin login OK
+[ ] Reception register OK
+[ ] Counsellor enquiry + demo OK
+[ ] Teacher attendance OK
+[ ] Student attendance view OK
+[ ] Masters Faculty OK
+[ ] Bugs noted: _______________________________
+[ ] UI fixes done today: ______________________
+
+
+================================================================================
+PART 7 — COMMANDS (sirf jab zarurat ho)
+================================================================================
+
+# Start
+cd backend   && npm run dev
+cd frontend  && npm run dev
+
+# Clean testing data, keep masters, re-seed QA users
+cd backend && npm run db:reset-qa
+
+# Only purge (no seed)
+npm run db:purge-operational
+
+# Only seed QA again
+npm run db:seed-qa
+
+# Apply latest role/calendar workspace permissions to an existing DB
+cd backend && npm run db:seed-role-workspace
+
+
+================================================================================
+END — is file ko open rakh ke testing karo, notes neeche add karte jao
+================================================================================
+
+MY NOTES / BUGS
+---------------
+1)
+2)
+3)
+4)
+5)

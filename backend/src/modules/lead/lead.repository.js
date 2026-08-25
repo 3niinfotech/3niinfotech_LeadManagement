@@ -2,10 +2,11 @@ import prisma from '../../config/database.js';
 import { softDeleteWhere, buildPagination, parsePagination, parseSort } from '../../utils/response.util.js';
 
 export const leadRepository = {
-  findMany: async ({ search, status, branchId, assignedToId, page, limit, sort }) => {
+  findMany: async ({ search, status, branchId, assignedToId, page, limit, sort, scopeWhere }) => {
     const { skip } = parsePagination({ page, limit });
     const where = {
       ...softDeleteWhere,
+      ...(scopeWhere || {}),
       ...(branchId && { branchId }),
       ...(status && { status }),
       ...(assignedToId && { assignedToId }),

@@ -3,29 +3,53 @@ import { auditLog } from '../../middleware/audit.middleware.js';
 import prisma from '../../config/database.js';
 import { buildDataScopeWhere } from '../../utils/scope.util.js';
 import {
-  mergeScope,
   assertLeadInTenant,
   assertBranchInTenant,
   assertUserInTenant,
-  requireTenantCompany,
 } from '../../utils/tenant.util.js';
-import { notificationService } from '../notification/notification.service.js';
-import { pushNotification } from '../notification/notification.push.js';
+import { notifyUser } from '../notification/notification.dispatcher.js';
+import { leadDetailLink } from '../notification/notification.links.js';
+import { pushAssignmentEvent } from '../notification/notification.push.js';
 import { assignmentRepository } from './assignment.repository.js';
 import { assignmentEngine } from './assignment.engine.js';
-import { DEFAULT_SLA } from './assignment.config.js';
+import {
+  PRESENCE_HOLD_MS,
+  PRESENCE_PERMANENT_HOLD,
+} from './assignment.config.js';
 
-async function notifyUser(userId, payload) {
-  const notification = await notificationService.create({
-    userId,
-    type: payload.type || 'INFO',
-    title: payload.title,
-    message: payload.message,
-    link: payload.link,
-    metadata: payload.metadata || {},
-  });
-  pushNotification(userId, notification);
-  return notification;
+function parsePresenceMeta(existing) {
+  const raw = existing?.metadata;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  return { ...raw };
+}
+
+function resolveAutoPresence(existing, activeSessions, openAssignedLeads = 0) {
+  if (activeSessions > 0) return { status: 'IN_COUNSELLING', metadata: parsePresenceMeta(existing) };
+
+  const meta = parsePresenceMeta(existing);
+  const current = existing?.status || 'OFFLINE';
+  const now = Date.now();
+
+  if (PRESENCE_PERMANENT_HOLD.includes(current)) {
+    return { status: current, metadata: meta };
+  }
+
+  const holdMs = PRESENCE_HOLD_MS[current];
+  if (holdMs && meta.manualUntil) {
+    const until = new Date(meta.manualUntil).getTime();
+    if (!Number.isNaN(until) && until > now) {
+      return { status: current, metadata: meta };
+    }
+  }
+
+  if (openAssignedLeads > 0) {
+    return { status: 'BUSY', metadata: { ...meta, autoMode: true } };
+  }
+
+  return {
+    status: 'AVAILABLE',
+    metadata: { ...meta, manualUntil: null, autoMode: true },
+  };
 }
 
 export const assignmentService = {
@@ -41,7 +65,16 @@ export const assignmentService = {
             deletedAt: null,
             status: { in: ['WAITING', 'IN_COUNSELLING', 'APPOINTMENT', 'WALK_IN'] },
           },
-          include: { enquiry: { select: { id: true, enquiryCode: true } } },
+          select: {
+            id: true,
+            leadCode: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            status: true,
+            createdAt: true,
+            enquiry: { select: { id: true, enquiryCode: true, createdAt: true } },
+          },
         })
         : null,
     ]);
@@ -52,87 +85,65 @@ export const assignmentService = {
     return { matchType: 'NEW', record: null };
   },
 
-  enqueueAfterRegistration: async (leadId, actorId) => {
-    await assignmentRepository.logAudit({
-      leadId,
-      branchId: (await assignmentRepository.findLeadById(leadId))?.branchId,
-      actorId,
-      action: 'QUEUED',
-      description: 'Visitor added to routing queue',
-    });
-    return assignmentEngine.autoAssign(leadId, actorId);
-  },
-
-  getMyQueue: async (userId) => {
-    const queue = await assignmentRepository.getCounsellorQueue(userId);
-    const presence = await assignmentRepository.getPresence(userId);
-
-    let avgDuration = null;
-    const sessions = await prisma.counsellingSession.findMany({
-      where: {
-        counsellorId: userId,
-        status: 'COMPLETED',
-        endedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
-        durationMinutes: { not: null },
-      },
-      select: { durationMinutes: true },
-    });
-    if (sessions.length) {
-      avgDuration = Math.round(
-        sessions.reduce((s, x) => s + (x.durationMinutes || 0), 0) / sessions.length,
-      );
-    }
-
-    return {
-      ...queue,
-      presence,
-      stats: {
-        completedToday: queue.completedToday,
-        avgCounsellingMinutes: avgDuration,
-        pendingOffers: queue.offers.length,
-        waitingCount: queue.assigned.filter((l) => l.status === 'WAITING').length,
-      },
-    };
-  },
-
-  getBranchOps: async (user) => {
-    const companyId = requireTenantCompany(user);
-    const scopeWhere = mergeScope(user);
-    const branchId = user.branchId;
-    if (!branchId && !companyId) throw new AppError('Branch context required', 400);
-
-    const queue = await assignmentRepository.getBranchQueue(
-      branchId || (await prisma.branch.findFirst({ where: { companyId }, select: { id: true } }))?.id,
-      scopeWhere,
-    );
-    const waiting = queue.filter((l) => l.status === 'WAITING');
-    const sla = assignmentEngine.evaluateSla(waiting, DEFAULT_SLA);
-
-    const counsellors = await assignmentRepository.listEligibleCounsellors(branchId);
-    const presenceSummary = counsellors.map((c) => ({
-      id: c.id,
-      name: `${c.firstName} ${c.lastName || ''}`.trim(),
-      status: c.counsellorPresence?.status || 'OFFLINE',
-      todayAssigned: c.counsellorPresence?.todayAssigned || 0,
-    }));
-
-    return { queue, sla, presenceSummary };
-  },
-
   updatePresence: async (userId, branchId, status) => {
-    const presence = await assignmentRepository.upsertPresence(userId, branchId, {
-      status,
-      lastHeartbeatAt: new Date(),
-    });
-    return presence;
-  },
-
-  heartbeat: async (userId, branchId) => {
     const existing = await assignmentRepository.getPresence(userId);
-    const status = existing?.status === 'OFFLINE' ? 'AVAILABLE' : (existing?.status || 'AVAILABLE');
+    const meta = parsePresenceMeta(existing);
+    const holdMs = PRESENCE_HOLD_MS[status];
+    const isPermanent = PRESENCE_PERMANENT_HOLD.includes(status);
+    const nextMeta = {
+      ...meta,
+      autoMode: status === 'AVAILABLE' || status === 'OFFLINE',
+      manualStatus: ['AVAILABLE', 'OFFLINE', 'IN_COUNSELLING'].includes(status) ? null : status,
+      manualUntil: holdMs
+        ? new Date(Date.now() + holdMs).toISOString()
+        : (isPermanent ? null : null),
+      setAt: new Date().toISOString(),
+    };
+    if (status === 'AVAILABLE' || status === 'OFFLINE') {
+      nextMeta.manualUntil = null;
+      nextMeta.manualStatus = null;
+    }
     return assignmentRepository.upsertPresence(userId, branchId, {
       status,
       lastHeartbeatAt: new Date(),
+      metadata: nextMeta,
+    });
+  },
+
+  /** Auto: Free while app open, Busy with student, Offline on logout / stale heartbeat. */
+  heartbeat: async (userId, branchId) => {
+    const [existing, activeSessions, openAssignedLeads] = await Promise.all([
+      assignmentRepository.getPresence(userId),
+      assignmentRepository.countActiveSessions(userId),
+      prisma.lead.count({
+        where: {
+          assignedToId: userId,
+          deletedAt: null,
+          status: { in: ['WALK_IN', 'WAITING', 'IN_COUNSELLING', 'APPOINTMENT'] },
+        },
+      }),
+    ]);
+    const { status, metadata } = resolveAutoPresence(existing, activeSessions, openAssignedLeads);
+    return assignmentRepository.upsertPresence(userId, branchId, {
+      status,
+      lastHeartbeatAt: new Date(),
+      metadata,
+    });
+  },
+
+  goOffline: async (userId, branchId) => {
+    if (!userId) return null;
+    const existing = await assignmentRepository.getPresence(userId);
+    const meta = parsePresenceMeta(existing);
+    if (PRESENCE_PERMANENT_HOLD.includes(existing?.status)) {
+      return existing;
+    }
+    const effectiveBranch = branchId || existing?.branchId;
+    if (!effectiveBranch) return null;
+    return assignmentRepository.upsertPresence(userId, effectiveBranch, {
+      status: 'OFFLINE',
+      lastHeartbeatAt: new Date(),
+      metadata: { ...meta, autoMode: true, manualUntil: null, manualStatus: null },
     });
   },
 
@@ -203,8 +214,8 @@ export const assignmentService = {
       await notifyUser(lead.receptionUserId, {
         type: 'SUCCESS',
         title: 'Counsellor assigned',
-        message: `${lead.firstName} accepted — Token ${lead.tokenNumber}`,
-        link: `/enquiries`,
+        message: `${lead.firstName} accepted assignment (${lead.leadCode || 'lead'}).`,
+        link: leadDetailLink(lead),
         metadata: { leadId: lead.id },
       });
     }
@@ -354,8 +365,9 @@ export const assignmentService = {
     await notifyUser(counsellorId, {
       type: 'INFO',
       title: 'Visitor assigned to you',
-      message: `${lead.firstName} — Token ${lead.tokenNumber}. Please accept.`,
-      link: `/counsellor/queue`,
+      message: `${lead.firstName} ${lead.lastName || ''}`.trim()
+        + ` (${lead.leadCode || 'lead'}) assigned to you.`,
+      link: leadDetailLink(lead),
       metadata: { leadId, offerId: offer.id },
     });
 
@@ -367,8 +379,8 @@ export const assignmentService = {
       type: 'INFO',
       title: 'New visitor assignment',
       message: `${lead.firstName} ${lead.lastName || ''}`.trim()
-        + ` — Token ${lead.tokenNumber}. Accept within 2 minutes.`,
-      link: `/counsellor/queue`,
+        + ` (${lead.leadCode || 'lead'}) — please review assignment.`,
+      link: leadDetailLink(lead),
       metadata: { leadId: lead.id, offerId: offer.id },
     });
     const { pushAssignmentEvent } = await import('../notification/notification.push.js');

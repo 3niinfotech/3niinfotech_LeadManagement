@@ -121,7 +121,7 @@ export default function WalkInScanPage() {
       <div className="space-y-6 max-w-4xl mx-auto">
         <div className="rounded-xl border border-border p-6 bg-surface">
           <div className="mb-4 text-sm text-text-secondary">
-            You can scan the QR directly from a printed/PDF token or paste the raw QR JSON if the camera is unavailable.
+            You can scan the walk-in QR from a printed reference or paste the raw QR JSON if the camera is unavailable.
           </div>
           <div className="grid gap-5 lg:grid-cols-[1.3fr_0.9fr]">
             <div className="space-y-4">
@@ -155,7 +155,7 @@ export default function WalkInScanPage() {
                 value={captureText}
                 onChange={(e) => setCaptureText(e.target.value)}
                 className="w-full min-h-[320px] rounded-lg border border-border bg-background p-3 text-sm text-text focus:border-brand focus:outline-none"
-                placeholder='Paste QR content like {"type":"LEAD","leadCode":"CO-LEAD-2026-000001","tokenNumber":"A-101","id":"uuid"}'
+                placeholder='Paste QR content like {"type":"LEAD","leadCode":"MAIN-LEAD-2026-000001","id":"uuid"}'
               />
               <div className="flex gap-3">
                 <Button type="button" variant="outline" onClick={() => setCaptureText('')} icon={FiXCircle}>
@@ -173,8 +173,7 @@ export default function WalkInScanPage() {
                 <FiCheckCircle /> Scan processed successfully
               </div>
               <div className="space-y-1">
-                <p><strong>Lead:</strong> {scanResult?.leadCode || '—'}</p>
-                <p><strong>Token:</strong> {scanResult?.tokenNumber || '—'}</p>
+                <p><strong>Lead reference:</strong> {scanResult?.leadCode || '—'}</p>
                 <p><strong>Attendance:</strong> {scanResult?.demo?.attendance || '—'}</p>
                 <p><strong>Result:</strong> {scanResult?.demo?.result || '—'}</p>
                 <p><strong>Enquiry:</strong> {scanResult?.enquiry?.enquiryCode || '—'}</p>

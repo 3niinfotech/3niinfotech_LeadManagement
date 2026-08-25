@@ -1,3 +1,5 @@
+import { getRoleDefaultRoute } from './role-workspace.config';
+
 export const PORTALS = {
   ADMIN: 'admin',
   STUDENT: 'student',
@@ -13,27 +15,28 @@ export function resolvePortalFromRole(roleSlug) {
   return PORTALS.ADMIN;
 }
 
-export function getDefaultRoute(portal) {
+export function getDefaultRoute(portal, user = null) {
+  const slug = user?.role?.slug;
   switch (portal) {
     case PORTALS.STUDENT:
-      return '/student/dashboard';
+      return getRoleDefaultRoute(slug, '/student/dashboard');
     case PORTALS.AGENT:
-      return '/agent/dashboard';
+      return getRoleDefaultRoute(slug, '/agent/dashboard');
     default:
-      return '/admin/dashboard';
+      return getRoleDefaultRoute(slug, '/admin/dashboard');
   }
 }
 
 export const PORTAL_META = {
   [PORTALS.ADMIN]: {
     label: 'Staff / Admin',
-    description: 'Counsellors, managers, and internal staff',
+    description: 'Counsellor, Reception, Teacher, Admin — Priya logs in here',
     loginPath: '/login/admin',
     registerPath: null,
   },
   [PORTALS.STUDENT]: {
     label: 'Student Portal',
-    description: 'Track applications, documents, and visa status',
+    description: 'Students only (e.g. Aarav). Not for staff.',
     loginPath: '/login/student',
     registerPath: '/register/student',
   },

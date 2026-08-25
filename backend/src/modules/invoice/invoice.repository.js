@@ -1,5 +1,5 @@
 import prisma from '../../config/database.js';
-import { softDeleteWhere, buildPagination, parsePagination, parseSort } from '../../utils/response.util.js';
+import { softDeleteWhere, buildPagination, parsePagination } from '../../utils/response.util.js';
 
 const buildSearchWhere = (search) => {
   if (!search) return {};
@@ -11,22 +11,38 @@ const buildSearchWhere = (search) => {
   };
 };
 
+async function companyScopeWhere(companyId, extra = {}) {
+  const staff = await prisma.user.findMany({
+    where: { companyId, deletedAt: null },
+    select: { id: true },
+  });
+  const staffIds = staff.map((u) => u.id);
+  return {
+    ...softDeleteWhere,
+    ...extra,
+    OR: [
+      { student: { branch: { companyId, deletedAt: null } } },
+      ...(staffIds.length ? [{ createdBy: { in: staffIds } }] : []),
+    ],
+  };
+}
+
 export const invoiceRepository = {
-  findMany: async ({ search, studentId, status, page, limit, sort }) => {
+  findMany: async ({ search, studentId, status, page, limit, sort, companyId }) => {
     const { skip } = parsePagination({ page, limit });
-    const where = {
-      ...softDeleteWhere,
+    const scope = await companyScopeWhere(companyId, {
       ...(studentId && { studentId }),
       ...(status && { status }),
-      ...buildSearchWhere(search),
-    };
+    });
+    const searchWhere = buildSearchWhere(search);
+    const where = searchWhere.OR ? { AND: [scope, searchWhere] } : scope;
 
     const [data, total] = await Promise.all([
       prisma.invoice.findMany({
         where,
         skip,
         take: limit,
-        orderBy: sort,
+        orderBy: sort || { createdAt: 'desc' },
         include: { student: { select: { id: true, studentCode: true, firstName: true, lastName: true } } },
       }),
       prisma.invoice.count({ where }),
@@ -35,10 +51,13 @@ export const invoiceRepository = {
     return { data, pagination: buildPagination(page, limit, total) };
   },
 
-  findById: (id) => prisma.invoice.findFirst({
-    where: { id, ...softDeleteWhere },
-    include: { student: { select: { id: true, studentCode: true, firstName: true, lastName: true } } },
-  }),
+  findById: async (id, companyId) => {
+    const scope = await companyScopeWhere(companyId, { id });
+    return prisma.invoice.findFirst({
+      where: scope,
+      include: { student: { select: { id: true, studentCode: true, firstName: true, lastName: true } } },
+    });
+  },
 
   create: (data) => prisma.invoice.create({ data }),
   update: (id, data) => prisma.invoice.update({ where: { id }, data }),

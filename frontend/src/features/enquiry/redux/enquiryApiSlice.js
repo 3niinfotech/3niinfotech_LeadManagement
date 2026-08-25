@@ -28,7 +28,7 @@ const axiosBaseQuery = () => async ({ url, method = 'GET', body, params }) => {
 export const enquiryApi = createApi({
   reducerPath: 'enquiryApi',
   baseQuery: axiosBaseQuery(),
-  tagTypes: ['EnquiryList', 'EnquirySummary', 'EnquiryDetail', 'ImportHistory'],
+  tagTypes: ['EnquiryList', 'EnquirySummary', 'EnquiryDetail', 'ImportHistory', 'EnquiryDemos', 'EnquiryDemoSummary'],
   endpoints: (builder) => ({
     getEnquiries: builder.query({
       query: (params) => ({ url: API.ENQUIRIES, params }),
@@ -150,7 +150,67 @@ export const enquiryApi = createApi({
     }),
     addDemo: builder.mutation({
       query: ({ id, ...body }) => ({ url: API.ENQUIRY_DEMOS(id), method: 'POST', body }),
-      invalidatesTags: (_r, _e, { id }) => [{ type: 'EnquiryDetail', id }, 'EnquiryList', 'EnquirySummary'],
+      invalidatesTags: (_r, _e, { id }) => [{ type: 'EnquiryDetail', id }, 'EnquiryList', 'EnquirySummary', 'EnquiryDemos', 'EnquiryDemoSummary'],
+    }),
+    listDemos: builder.query({
+      query: (params) => ({ url: API.ENQUIRY_DEMO_LIST, params }),
+      providesTags: ['EnquiryDemos'],
+      transformResponse: (res) => ({ data: res.data, pagination: res.pagination }),
+    }),
+    getDemoSummary: builder.query({
+      query: (params) => ({ url: API.ENQUIRY_DEMO_SUMMARY, params }),
+      providesTags: ['EnquiryDemoSummary'],
+      transformResponse: (res) => res.data,
+    }),
+    markDemoAttendance: builder.mutation({
+      query: ({ id, demoId, ...body }) => ({ url: API.ENQUIRY_DEMO_ATTENDANCE(id, demoId), method: 'PATCH', body }),
+      invalidatesTags: (_r, _e, { id }) => [{ type: 'EnquiryDetail', id }, 'EnquiryDemos', 'EnquiryDemoSummary', 'EnquiryList', 'EnquirySummary'],
+    }),
+    rescheduleDemo: builder.mutation({
+      query: ({ id, demoId, ...body }) => ({ url: API.ENQUIRY_DEMO_RESCHEDULE(id, demoId), method: 'POST', body }),
+      invalidatesTags: (_r, _e, { id }) => [{ type: 'EnquiryDetail', id }, 'EnquiryDemos', 'EnquiryDemoSummary', 'EnquiryList', 'EnquirySummary'],
+    }),
+    cancelDemo: builder.mutation({
+      query: ({ id, demoId, ...body }) => ({ url: API.ENQUIRY_DEMO_CANCEL(id, demoId), method: 'POST', body }),
+      invalidatesTags: (_r, _e, { id }) => [{ type: 'EnquiryDetail', id }, 'EnquiryDemos', 'EnquiryDemoSummary', 'EnquiryList', 'EnquirySummary'],
+    }),
+    bulkMarkDemoAttendance: builder.mutation({
+      query: (body) => ({ url: API.ENQUIRY_DEMO_BULK_ATTENDANCE, method: 'POST', body }),
+      invalidatesTags: ['EnquiryDemos', 'EnquiryDemoSummary', 'EnquiryList', 'EnquirySummary'],
+    }),
+    bulkCancelDemos: builder.mutation({
+      query: (body) => ({ url: API.ENQUIRY_DEMO_BULK_CANCEL, method: 'POST', body }),
+      invalidatesTags: ['EnquiryDemos', 'EnquiryDemoSummary', 'EnquiryList', 'EnquirySummary'],
+    }),
+    exportDemos: builder.mutation({
+      queryFn: async (body) => {
+        try {
+          const res = await apiClient.post(API.ENQUIRY_DEMO_EXPORT, body, {
+            responseType: 'blob',
+          });
+          const disposition = res.headers?.['content-disposition'] || '';
+          const match = /filename="?([^"]+)"?/i.exec(disposition);
+          const filename = match?.[1] || `CRM-Demo-Sessions-Export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+          const count = Number(res.headers?.['x-export-count'] || 0);
+          const selected = res.headers?.['x-export-selected'] === '1';
+          return { data: { blob: res.data, filename, count, selected } };
+        } catch (error) {
+          let message = 'Export failed';
+          const data = error.response?.data;
+          if (data instanceof Blob) {
+            try {
+              const text = await data.text();
+              const json = JSON.parse(text);
+              message = json?.message || message;
+            } catch {
+              /* ignore */
+            }
+          } else if (data?.message) {
+            message = data.message;
+          }
+          return { error: { status: error.response?.status || 500, data: { message } } };
+        }
+      },
     }),
     addNote: builder.mutation({
       queryFn: async ({ id, attachments = [], ...payload }) => {
@@ -215,8 +275,34 @@ export const enquiryApi = createApi({
       transformResponse: (res) => res.data,
     }),
     exportEnquiries: builder.mutation({
-      query: (body) => ({ url: API.ENQUIRIES_EXPORT, method: 'POST', body }),
-      transformResponse: (res) => res.data,
+      queryFn: async (body) => {
+        try {
+          const res = await apiClient.post(API.ENQUIRIES_EXPORT, body, {
+            responseType: 'blob',
+          });
+          const disposition = res.headers?.['content-disposition'] || '';
+          const match = /filename="?([^"]+)"?/i.exec(disposition);
+          const filename = match?.[1] || `CRM-Enquiry-Export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+          const count = Number(res.headers?.['x-export-count'] || 0);
+          const selected = res.headers?.['x-export-selected'] === '1';
+          return { data: { blob: res.data, filename, count, selected } };
+        } catch (error) {
+          let message = 'Export failed';
+          const data = error.response?.data;
+          if (data instanceof Blob) {
+            try {
+              const text = await data.text();
+              const json = JSON.parse(text);
+              message = json?.message || message;
+            } catch {
+              /* ignore */
+            }
+          } else if (data?.message) {
+            message = data.message;
+          }
+          return { error: { status: error.response?.status || 500, data: { message } } };
+        }
+      },
     }),
     bulkCommunication: builder.mutation({
       query: (body) => ({ url: API.ENQUIRIES_BULK_COMM, method: 'POST', body }),
@@ -249,6 +335,8 @@ export const {
   useBulkUpdateStatusMutation, useBulkAddTagsMutation, useBulkMoveBranchMutation, useBulkMergeEnquiriesMutation,
   useGetEnquiryBranchesQuery,
   useDropEnquiryMutation, useConvertEnquiryMutation, useAddFollowupMutation, useAddAppointmentMutation, useAddDemoMutation,
+  useListDemosQuery, useGetDemoSummaryQuery, useMarkDemoAttendanceMutation, useRescheduleDemoMutation, useCancelDemoMutation,
+  useBulkMarkDemoAttendanceMutation, useBulkCancelDemosMutation, useExportDemosMutation,
   useAddNoteMutation, usePinNoteMutation, useUpdateNoteChecklistMutation, useAddCommunicationMutation, useAddVoiceNoteMutation,
   useGetTimelineQuery, useGetImportHistoryQuery, useExportEnquiriesMutation,
   useBulkCommunicationMutation, useParseImportFileMutation, useConfirmImportMutation,
