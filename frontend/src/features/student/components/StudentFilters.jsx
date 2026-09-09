@@ -13,6 +13,8 @@ export default function StudentFilters({
   onSearch,
   onReset,
   onClose,
+  branchLocked = false,
+  canViewAllBranches = true,
 }) {
   const { statusOptions } = useStudentStatusOptions();
   const { options: branchOptions } = useBranchOptions();
@@ -97,15 +99,20 @@ export default function StudentFilters({
 
       {branchOptions?.length > 1 && (
         <Select
-          label="Branch"
+          label={branchLocked ? 'Branch (Active)' : 'Branch'}
           value={values.branchId || ''}
+          disabled={branchLocked}
+          hint={branchLocked ? 'Locked to navbar Active Branch' : undefined}
           onChange={(e) => {
+            if (branchLocked) return;
             onChange({ ...values, branchId: e.target.value, assignedToId: undefined });
           }}
-          placeholder="All Branches"
+          placeholder={branchLocked ? 'Active branch' : 'All Branches'}
           size="sm"
         >
-          <option value="">All Branches</option>
+          {canViewAllBranches && !branchLocked ? (
+            <option value="">All Branches</option>
+          ) : null}
           {branchOptions.map((b) => (
             <option key={b.value} value={b.value}>
               {b.label}

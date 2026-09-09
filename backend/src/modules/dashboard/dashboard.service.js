@@ -4,10 +4,13 @@ import { mergeScope } from '../../utils/tenant.util.js';
 import { attendanceService } from '../attendance/attendance.service.js';
 import { ROLE_WORKSPACE_META } from '../../config/role-workspace.js';
 import { dashboardVisibleFlags, pickDashboardCards } from './dashboard.visibility.js';
+import { getDashboardAnalytics, getCounsellorMonthlyTarget } from './dashboard.analytics.js';
 
 export { dashboardVisibleFlags, pickDashboardCards, isOwnListScope } from './dashboard.visibility.js';
 
 export const dashboardService = {
+  getAnalytics: getDashboardAnalytics,
+  getMyTarget: getCounsellorMonthlyTarget,
   getStats: async (user) => {
     const scopeWhere = mergeScope(user, { entity: 'student' });
     const leadScope = mergeScope(user);

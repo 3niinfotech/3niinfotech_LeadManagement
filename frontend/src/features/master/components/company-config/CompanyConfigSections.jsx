@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import {
   FiImage, FiUpload, FiMail, FiPhone, FiGlobe, FiMapPin, FiHome, FiFileText,
-  FiPlus, FiX, FiCheck,
+  FiPlus, FiX, FiCheck, FiCheckSquare, FiActivity, FiLayers, FiClock, FiArrowRight,
 } from 'react-icons/fi';
 import FormSection from '../../../../components/ui/FormSection';
 import FormField from '../../../../components/ui/FormField';
@@ -9,7 +9,6 @@ import Input from '../../../../components/ui/Input';
 import Textarea from '../../../../components/ui/Textarea';
 import Select from '../../../../components/ui/Select';
 import Button from '../../../../components/ui/Button';
-import Card from '../../../../components/ui/Card';
 import {
   ENQUIRY_MANDATORY_FIELDS,
   FOLLOWUP_DURATION_OPTIONS,
@@ -163,7 +162,7 @@ function ImageAssetField({
   );
 }
 
-export function OverviewSection({ company, form }) {
+export function OverviewSection({ company, form, onNavigateTab }) {
   const address = [
     form.addressLine1,
     form.addressLine2,
@@ -171,83 +170,195 @@ export function OverviewSection({ company, form }) {
   ].filter(Boolean).join('\n');
   const logo = resolvePublicAssetUrl(form.logo);
   const enabledCount = ENQUIRY_MANDATORY_FIELDS.filter((field) => form.mandatoryFields?.[field.key]).length;
+  const mandatoryPct = ENQUIRY_MANDATORY_FIELDS.length
+    ? Math.round((enabledCount / ENQUIRY_MANDATORY_FIELDS.length) * 100)
+    : 0;
+
+  const kpis = [
+    {
+      label: 'Mandatory enquiry fields',
+      value: `${enabledCount} / ${ENQUIRY_MANDATORY_FIELDS.length}`,
+      hint: `${mandatoryPct}% required on enquiry form`,
+      icon: FiCheckSquare,
+      tone: 'primary',
+      tab: 'mandatory',
+    },
+    {
+      label: 'Follow-up slot',
+      value: `${form.followupSlotDuration || 10} min`,
+      hint: 'Default next follow-up interval',
+      icon: FiClock,
+      tone: 'info',
+      tab: 'defaults',
+    },
+    {
+      label: 'Navbar layout',
+      value: form.navbarType === 'compact' ? 'Compact' : 'Vertical',
+      hint: 'Sidebar navigation style',
+      icon: FiLayers,
+      tone: 'warning',
+      tab: 'defaults',
+    },
+    {
+      label: 'Branch offices',
+      value: String(company?.branchCount ?? 0),
+      hint: company?.branchCount === 1 ? 'Active location' : 'Active locations',
+      icon: FiHome,
+      tone: 'success',
+      tab: null,
+    },
+  ];
+
+  const quickLinks = [
+    { id: 'company', label: 'Edit logo & details' },
+    { id: 'defaults', label: 'Defaults & attendance' },
+    { id: 'branding', label: 'Portal branding' },
+    { id: 'invoice', label: 'Invoice settings' },
+  ];
 
   return (
-    <div className="space-y-4">
-      <Card className="!p-6">
-        <div className="flex flex-wrap items-start gap-5">
-          <div className="w-20 h-20 rounded-2xl border border-card-border bg-slate-50 overflow-hidden flex items-center justify-center shrink-0">
+    <div className="space-y-3">
+      <div className="crm-company-hero">
+        <div className="crm-company-hero__glow" aria-hidden />
+        <div className="crm-company-hero__row">
+          <div className="crm-company-hero__logo">
             {logo ? (
               <img src={logo} alt="" className="w-full h-full object-contain bg-white" />
             ) : (
               <FiHome className="w-8 h-8 text-text-muted" />
             )}
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-1">
-              {company?.code || 'Company'}
-            </p>
-            <h2 className="text-xl font-bold text-text">{form.name || 'Untitled company'}</h2>
-            {form.legalName && <p className="text-sm text-text-muted mt-1">{form.legalName}</p>}
+          <div className="crm-company-hero__main">
+            <p className="crm-company-hero__code">{company?.code || 'Company'}</p>
+            <h2 className="crm-company-hero__name">{form.name || 'Untitled company'}</h2>
+            {form.legalName && <p className="crm-company-hero__legal">{form.legalName}</p>}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold">
+          <div className="crm-company-hero__badges">
+            <span className="crm-company-hero__badge crm-company-hero__badge--brand">
               {company?.branchCount ?? 0} branch{(company?.branchCount ?? 0) === 1 ? '' : 'es'}
             </span>
-            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-              company?.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
+            <span className={`crm-company-hero__badge ${
+              company?.isActive
+                ? 'crm-company-hero__badge--success'
+                : 'crm-company-hero__badge--muted'
             }`}>
               {company?.isActive ? 'Active' : 'Inactive'}
             </span>
           </div>
         </div>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {[
-          { label: 'Mandatory enquiry fields', value: `${enabledCount} / ${ENQUIRY_MANDATORY_FIELDS.length}` },
-          { label: 'Follow-up slot', value: `${form.followupSlotDuration || 10} min` },
-          { label: 'Navbar', value: form.navbarType === 'compact' ? 'Compact' : 'Vertical' },
-        ].map((item) => (
-          <Card key={item.label} className="!p-4">
-            <p className="text-[11px] uppercase tracking-wide text-text-muted font-semibold">{item.label}</p>
-            <p className="text-lg font-semibold text-text mt-1">{item.value}</p>
-          </Card>
-        ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="!p-5">
-          <h3 className="text-sm font-semibold text-text mb-3">Contact</h3>
-          <InfoLine icon={FiMail} label="Email" value={form.email} />
-          <InfoLine icon={FiPhone} label="Mobile" value={form.phone} />
-          <InfoLine icon={FiPhone} label="WhatsApp" value={form.whatsapp} />
-          <InfoLine icon={FiGlobe} label="Website" value={form.website} />
-        </Card>
-        <Card className="!p-5">
-          <h3 className="text-sm font-semibold text-text mb-3">Address</h3>
-          <InfoLine icon={FiMapPin} label="Location" value={address || '—'} />
-        </Card>
-        <Card className="!p-5 md:col-span-2">
-          <h3 className="text-sm font-semibold text-text mb-3">Registration</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <InfoLine icon={FiHome} label="GST / Tax number" value={form.taxNumber} />
-            <InfoLine icon={FiFileText} label="Registration number" value={form.registrationNumber} />
+      <div className="crm-company-kpi-grid">
+        {kpis.map((item) => {
+          const KpiIcon = item.icon;
+          const inner = (
+            <>
+              <span className={`crm-company-kpi__icon crm-company-kpi__icon--${item.tone}`}>
+                <KpiIcon className="w-4 h-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="crm-company-kpi__label">{item.label}</p>
+                <p className="crm-company-kpi__value">{item.value}</p>
+                <p className="crm-company-kpi__hint">{item.hint}</p>
+              </div>
+            </>
+          );
+          if (item.tab && onNavigateTab) {
+            return (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => onNavigateTab(item.tab)}
+                className="crm-company-kpi text-left w-full"
+              >
+                {inner}
+              </button>
+            );
+          }
+          return (
+            <div key={item.label} className="crm-company-kpi">
+              {inner}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="crm-company-panels">
+        <section className="crm-company-panel">
+          <div className="crm-company-panel__head">
+            <span className="crm-company-panel__head-icon"><FiMail className="w-3.5 h-3.5" /></span>
+            <h3 className="crm-company-panel__title">Contact</h3>
           </div>
-        </Card>
+          <div className="crm-company-panel__body">
+            <InfoLine icon={FiMail} label="Email" value={form.email} />
+            <InfoLine icon={FiPhone} label="Mobile" value={form.phone} />
+            <InfoLine icon={FiPhone} label="WhatsApp" value={form.whatsapp} />
+            <InfoLine icon={FiGlobe} label="Website" value={form.website} />
+          </div>
+        </section>
+
+        <section className="crm-company-panel">
+          <div className="crm-company-panel__head">
+            <span className="crm-company-panel__head-icon"><FiMapPin className="w-3.5 h-3.5" /></span>
+            <h3 className="crm-company-panel__title">Address</h3>
+          </div>
+          <div className="crm-company-panel__body">
+            <InfoLine icon={FiMapPin} label="Location" value={address} emptyLabel="No address added yet" />
+          </div>
+        </section>
+
+        <section className="crm-company-panel crm-company-panels__wide">
+          <div className="crm-company-panel__head">
+            <span className="crm-company-panel__head-icon"><FiFileText className="w-3.5 h-3.5" /></span>
+            <h3 className="crm-company-panel__title">Registration</h3>
+          </div>
+          <div className="crm-company-panel__body">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+              <InfoLine icon={FiHome} label="GST / Tax number" value={form.taxNumber} emptyLabel="Not set" />
+              <InfoLine icon={FiFileText} label="Registration number" value={form.registrationNumber} emptyLabel="Not set" />
+            </div>
+          </div>
+        </section>
       </div>
+
+      {onNavigateTab && (
+        <div className="crm-company-panel">
+          <div className="crm-company-panel__head">
+            <span className="crm-company-panel__head-icon"><FiActivity className="w-3.5 h-3.5" /></span>
+            <h3 className="crm-company-panel__title">Quick configure</h3>
+          </div>
+          <div className="crm-company-panel__body">
+            <p className="text-xs text-text-muted mb-2">Jump to common configuration areas</p>
+            <div className="crm-company-quick-nav">
+              {quickLinks.map((link) => (
+                <button
+                  key={link.id}
+                  type="button"
+                  className="crm-company-quick-nav__btn"
+                  onClick={() => onNavigateTab(link.id)}
+                >
+                  {link.label}
+                  <FiArrowRight className="w-3 h-3" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function InfoLine({ icon: Icon, label, value }) {
-  if (!value) return null;
+function InfoLine({ icon: Icon, label, value, emptyLabel = '—' }) {
+  const hasValue = Boolean(value);
   return (
-    <div className="flex items-start gap-3 py-1.5">
-      <Icon className="w-4 h-4 mt-0.5 text-text-muted shrink-0" />
-      <div className="min-w-0">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">{label}</p>
-        <p className="text-sm text-text break-words whitespace-pre-line">{value}</p>
+    <div className="crm-company-info-row">
+      <Icon className="crm-company-info-row__icon" />
+      <div className="min-w-0 flex-1">
+        <p className="crm-company-info-row__label">{label}</p>
+        <p className={`crm-company-info-row__value ${!hasValue ? 'crm-company-info-row__empty' : ''}`}>
+          {hasValue ? value : emptyLabel}
+        </p>
       </div>
     </div>
   );
@@ -476,7 +587,7 @@ export function MandatorySection({ form, setField }) {
       title="Mandatory permissions"
       description="Enable or disable fields to set mandatory requirements on the enquiry form."
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+      <div className="crm-company-mandatory-grid">
         {ENQUIRY_MANDATORY_FIELDS.map((field) => {
           const on = Boolean(form.mandatoryFields?.[field.key]);
           return (
@@ -484,14 +595,10 @@ export function MandatorySection({ form, setField }) {
               key={field.key}
               type="button"
               onClick={() => toggle(field.key)}
-              className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                on
-                  ? 'border-primary-200 bg-primary-50 text-primary-800'
-                  : 'border-card-border bg-card-bg text-text hover:bg-slate-50'
-              }`}
+              className={`crm-company-mandatory-item ${on ? 'is-on' : ''}`}
             >
-              <span className="text-sm font-medium">{field.label}</span>
-              <span className={`inline-flex h-5 w-9 items-center rounded-full px-0.5 ${on ? 'bg-primary-600' : 'bg-slate-300'}`}>
+              <span className="crm-company-mandatory-item__label">{field.label}</span>
+              <span className={`inline-flex h-5 w-9 items-center rounded-full px-0.5 shrink-0 ${on ? 'bg-primary-600' : 'bg-slate-300'}`}>
                 <span className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${on ? 'translate-x-4' : 'translate-x-0'}`} />
               </span>
             </button>
@@ -538,38 +645,43 @@ export function BrandingSection({ form, setField }) {
         </div>
       </FormSection>
 
-      <Card className="!p-5">
-        <p className="text-[11px] uppercase tracking-wide text-text-muted font-semibold mb-3">Live preview</p>
-        <div
-          className="rounded-xl overflow-hidden border border-card-border"
-          style={{ background: form.headerColour || '#1e293b' }}
-        >
-          <div className="px-4 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold" style={{ color: form.fontColour || '#fff' }}>
-                {form.portalTitle || form.name || 'Portal title'}
-              </p>
-              <p className="text-xs opacity-80" style={{ color: form.fontColour || '#fff' }}>
-                {form.portalSubtitle || 'Subtitle appears here'}
-              </p>
-            </div>
-            <span
-              className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
-              style={{ background: form.primaryColour || '#2563EB', color: '#fff' }}
-            >
-              Primary
-            </span>
-          </div>
-          {form.scrollingText && (
-            <div
-              className="text-[11px] px-4 py-1.5 truncate"
-              style={{ background: form.secondaryColour || form.primaryColour || '#1d4ed8', color: '#fff' }}
-            >
-              {form.scrollingText}
-            </div>
-          )}
+      <section className="crm-company-panel">
+        <div className="crm-company-panel__head">
+          <span className="crm-company-panel__head-icon"><FiGlobe className="w-3.5 h-3.5" /></span>
+          <h3 className="crm-company-panel__title">Live preview</h3>
         </div>
-      </Card>
+        <div className="crm-company-panel__body">
+          <div
+            className="rounded-lg overflow-hidden border border-border"
+            style={{ background: form.headerColour || '#1e293b' }}
+          >
+            <div className="px-4 py-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: form.fontColour || '#fff' }}>
+                  {form.portalTitle || form.name || 'Portal title'}
+                </p>
+                <p className="text-xs opacity-80 truncate" style={{ color: form.fontColour || '#fff' }}>
+                  {form.portalSubtitle || 'Subtitle appears here'}
+                </p>
+              </div>
+              <span
+                className="text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0"
+                style={{ background: form.primaryColour || '#2563EB', color: '#fff' }}
+              >
+                Primary
+              </span>
+            </div>
+            {form.scrollingText && (
+              <div
+                className="text-[11px] px-4 py-1.5 truncate"
+                style={{ background: form.secondaryColour || form.primaryColour || '#1d4ed8', color: '#fff' }}
+              >
+                {form.scrollingText}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -684,11 +796,14 @@ export function InvoiceSection({ form, setField, currencyOptions = [] }) {
 export function SaveBar({ dirty, saving, onSave, onReset, canManage }) {
   if (!canManage) return null;
   return (
-    <div className="shrink-0 border-t border-card-border bg-card-bg px-4 py-3 flex items-center justify-between gap-3">
-      <p className="text-xs text-text-muted">
-        {dirty ? 'Unsaved changes on this company.' : 'All changes saved.'}
-      </p>
-      <div className="flex gap-2">
+    <div className="crm-company-savebar shrink-0">
+      <div className="crm-company-savebar__status">
+        <span className={`crm-company-savebar__dot ${dirty ? 'crm-company-savebar__dot--dirty' : 'crm-company-savebar__dot--saved'}`} />
+        <p className="crm-company-savebar__text">
+          {dirty ? 'Unsaved changes on this company configuration.' : 'All changes saved.'}
+        </p>
+      </div>
+      <div className="crm-company-savebar__actions">
         <Button variant="ghost" icon={FiX} onClick={onReset} disabled={saving || !dirty}>
           Reset
         </Button>

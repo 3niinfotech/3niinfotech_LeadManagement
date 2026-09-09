@@ -3,8 +3,6 @@ import {
   FiCheckCircle,
   FiXCircle,
   FiClock,
-  FiMinusCircle,
-  FiAlertCircle,
   FiThumbsUp,
   FiThumbsDown,
   FiAward,
@@ -28,39 +26,18 @@ import toastService from '../../../services/toast/toast.service';
 
 const ATTENDANCE_PRESETS = [
   {
-    value: 'ATTENDED',
-    label: 'Attended',
+    value: 'PRESENT',
+    label: 'PRESENT',
     icon: FiCheckCircle,
     activeClass: 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/30',
     iconClass: 'text-emerald-600 dark:text-emerald-400',
   },
   {
     value: 'ABSENT',
-    label: 'Absent',
+    label: 'ABSENT',
     icon: FiXCircle,
     activeClass: 'border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-300 ring-2 ring-rose-500/30',
     iconClass: 'text-rose-600 dark:text-rose-400',
-  },
-  {
-    value: 'LATE',
-    label: 'Late',
-    icon: FiClock,
-    activeClass: 'border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/30',
-    iconClass: 'text-amber-600 dark:text-amber-400',
-  },
-  {
-    value: 'PARTIAL',
-    label: 'Partial',
-    icon: FiMinusCircle,
-    activeClass: 'border-sky-500 bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-2 ring-sky-500/30',
-    iconClass: 'text-sky-600 dark:text-sky-400',
-  },
-  {
-    value: 'NO_SHOW',
-    label: 'No-Show',
-    icon: FiAlertCircle,
-    activeClass: 'border-red-500 bg-red-500/10 text-red-700 dark:text-red-300 ring-2 ring-red-500/30',
-    iconClass: 'text-red-600 dark:text-red-400',
   },
 ];
 
@@ -111,7 +88,7 @@ export default function MarkAttendanceModal({
   const [markAttendance, { isLoading: submitting }] = useMarkDemoAttendanceMutation();
 
   const [activeSessionId, setActiveSessionId] = useState(null);
-  const [attendance, setAttendance] = useState('ATTENDED');
+  const [attendance, setAttendance] = useState('PRESENT');
   const [result, setResult] = useState('POSITIVE');
   const [feedback, setFeedback] = useState('');
   const [remark, setRemark] = useState('');
@@ -123,7 +100,10 @@ export default function MarkAttendanceModal({
   useEffect(() => {
     if (open && demo) {
       setActiveSessionId(demo.id);
-      setAttendance(demo.attendance === 'NOT_MARKED' ? 'ATTENDED' : (demo.attendance || 'ATTENDED'));
+      const att = demo.attendance === 'ATTENDED' ? 'PRESENT'
+        : demo.attendance === 'NO_SHOW' ? 'ABSENT'
+          : (demo.attendance === 'NOT_MARKED' ? 'PRESENT' : (demo.attendance || 'PRESENT'));
+      setAttendance(att === 'LATE' || att === 'PARTIAL' ? 'PRESENT' : att);
       setResult(demo.result || 'POSITIVE');
       setFeedback(demo.feedback || '');
       setRemark(demo.remark || '');
@@ -134,7 +114,10 @@ export default function MarkAttendanceModal({
 
   const handleSelectSession = (session) => {
     setActiveSessionId(session.id);
-    setAttendance(session.attendance === 'NOT_MARKED' ? 'ATTENDED' : (session.attendance || 'ATTENDED'));
+    const att = session.attendance === 'ATTENDED' ? 'PRESENT'
+      : session.attendance === 'NO_SHOW' ? 'ABSENT'
+        : (session.attendance === 'NOT_MARKED' ? 'PRESENT' : (session.attendance || 'PRESENT'));
+    setAttendance(att === 'LATE' || att === 'PARTIAL' ? 'PRESENT' : att);
     setResult(session.result || 'POSITIVE');
     setFeedback(session.feedback || '');
     setRemark(session.remark || '');
@@ -214,10 +197,11 @@ export default function MarkAttendanceModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {allSessions.map((session, index) => {
                 const isSelected = (currentSession?.id === session.id);
-                const isAttended = session.attendance === 'ATTENDED';
+                const isAttended = session.attendance === 'ATTENDED' || session.attendance === 'PRESENT';
                 const isAbsent = session.attendance === 'ABSENT' || session.attendance === 'NO_SHOW';
-                const isLateOrPartial = session.attendance === 'LATE' || session.attendance === 'PARTIAL';
-                const isNotMarked = !session.attendance || session.attendance === 'NOT_MARKED';
+                const isLateOrPartial = false;
+                const isNotMarked = !session.attendance || session.attendance === 'NOT_MARKED'
+                  || session.attendance === 'LATE' || session.attendance === 'PARTIAL';
 
                 const sDate = session.demoDate
                   ? new Date(session.demoDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })

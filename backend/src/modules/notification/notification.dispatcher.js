@@ -36,6 +36,38 @@ export async function notifyUser(userId, payload) {
 }
 
 /**
+ * Notify only the student portal user linked to a student record.
+ */
+export async function notifyStudentLinkedUser({
+  studentId,
+  userId,
+  title,
+  message,
+  link = '/student/notifications',
+  type = 'INFO',
+  metadata = {},
+} = {}) {
+  let targetUserId = userId || null;
+  if (!targetUserId && studentId) {
+    const student = await prisma.student.findFirst({
+      where: { id: studentId, deletedAt: null },
+      select: { userId: true },
+    });
+    targetUserId = student?.userId || null;
+  }
+  if (!targetUserId) return null;
+
+  const safeLink = link?.startsWith('/student') ? link : '/student/notifications';
+  return notifyUser(targetUserId, {
+    type,
+    title,
+    message,
+    link: safeLink,
+    metadata: { audience: 'STUDENT_PORTAL', ...metadata },
+  });
+}
+
+/**
  * Assigned counsellor MUST get inbox + live push + assignment ping.
  */
 export async function notifyCounsellorAssigned({ counsellorId, lead, enquiry = null, actorId = null } = {}) {
@@ -44,27 +76,55 @@ export async function notifyCounsellorAssigned({ counsellorId, lead, enquiry = n
   const visitorName = `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Visitor';
   const code = enquiry?.enquiryCode || lead.leadCode || '';
   const enquiryId = enquiry?.id || lead.enquiry?.id;
+  const meta = lead.metadata && typeof lead.metadata === 'object' ? lead.metadata : {};
+  const isWalkIn = lead.status === 'WALK_IN' || meta.entryType === 'WALK_IN';
+  const courseLabel = lead.interestedCourse || meta.interestedCourse || null;
+  const assignmentSource = meta.assignmentSource || null;
+
+  const title = isWalkIn
+    ? 'Walk-in visitor assigned to you'
+    : 'New student assigned to you';
+
+  let message = isWalkIn
+    ? `${visitorName}${code ? ` (${code})` : ''} is at reception`
+    : `${visitorName}${code ? ` (${code})` : ''} has been assigned to you`;
+
+  if (courseLabel) {
+    message += isWalkIn ? ` for ${courseLabel}` : ` — ${courseLabel}`;
+  }
+  if (assignmentSource === 'COURSE_MAPPING') {
+    message += ' (course default)';
+  }
+  message += isWalkIn
+    ? '. Open My Enquiries to start counselling.'
+    : '. Open My Enquiries to start counselling.';
+
   const notification = await notifyUser(counsellorId, {
     type: 'INFO',
-    title: 'New student assigned to you',
-    message: `${visitorName}${code ? ` (${code})` : ''} has been assigned to you. Open My Enquiries to start counselling.`,
+    title,
+    message,
     link: enquiryId ? `/admin/enquiries/${enquiryId}` : '/admin/enquiries',
     metadata: {
-      event: 'COUNSELLOR_ASSIGNED',
+      event: isWalkIn ? 'WALKIN_COUNSELLOR_ASSIGNED' : 'COUNSELLOR_ASSIGNED',
       audience: 'ASSIGNEE',
       leadId: lead.id,
       leadCode: lead.leadCode || null,
       enquiryId: enquiryId || null,
       branchId: lead.branchId || null,
       actorId: actorId || null,
+      courseLabel,
+      assignmentSource,
+      priority: 'HIGH',
     },
   });
 
   try {
-    pushAssignmentEvent(counsellorId, 'ASSIGNED', {
+    pushAssignmentEvent(counsellorId, isWalkIn ? 'WALKIN_ASSIGNED' : 'ASSIGNED', {
       leadId: lead.id,
       leadCode: lead.leadCode || null,
       visitorName,
+      courseLabel,
+      enquiryId: enquiryId || null,
     });
   } catch {
     /* socket optional */

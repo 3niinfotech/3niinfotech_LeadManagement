@@ -2,7 +2,16 @@ import Select from '../../../components/ui/Select';
 import { WALKIN_PRIORITIES, WALKIN_STATUSES } from '../config/walkin.constants';
 
 export default function WalkInFilters({
-  open, values, onChange, onSearch, onReset, onClose, branches = [], counsellors = [],
+  open,
+  values,
+  onChange,
+  onSearch,
+  onReset,
+  onClose,
+  branches = [],
+  counsellors = [],
+  branchLocked = false,
+  canViewAllBranches = true,
 }) {
   if (!open) return null;
 
@@ -10,10 +19,20 @@ export default function WalkInFilters({
     <div className="crm-reception-filters">
       <div className="crm-reception-filters__grid">
         <Select
-          label="Branch"
+          label={branchLocked ? 'Branch (Active)' : 'Branch'}
           value={values.branchId || ''}
-          onChange={(e) => onChange({ ...values, branchId: e.target.value })}
-          options={[{ value: '', label: 'All branches' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+          disabled={branchLocked}
+          hint={branchLocked ? 'Locked to navbar Active Branch' : undefined}
+          onChange={(e) => {
+            if (branchLocked) return;
+            onChange({ ...values, branchId: e.target.value });
+          }}
+          options={[
+            ...(canViewAllBranches && !branchLocked
+              ? [{ value: '', label: 'All branches' }]
+              : []),
+            ...branches.map((b) => ({ value: b.id, label: b.name })),
+          ]}
         />
         <Select
           label="Counsellor"

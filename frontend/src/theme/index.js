@@ -85,6 +85,7 @@ export const typography = {
 
 export { loaderTheme, toastTheme } from './feedback';
 export { getAntdTheme } from './antdTheme';
+export { getMuiTheme } from './muiTheme';
 export { iconSize, iconBoxSize } from './icons';
 export { chartColors, chartTheme, getChartPalette, getChartTheme } from './charts';
 export { lightTokens, darkTokens, themeModes, getTokens, getPalette, getLoaderTheme, getToastTheme } from './tokens';

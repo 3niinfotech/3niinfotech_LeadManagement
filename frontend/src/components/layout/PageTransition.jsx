@@ -16,9 +16,11 @@ export default function PageTransition() {
   }, [location.pathname]);
 
   return (
-    <div className="relative w-full h-full min-h-0 flex flex-col">
+    <div className="app-page-root relative flex h-full min-h-0 w-full flex-col">
       <Suspense fallback={<RouteProgress />}>
-        <Outlet />
+        <div className="flex h-full min-h-0 w-full flex-col">
+          <Outlet />
+        </div>
       </Suspense>
     </div>
   );

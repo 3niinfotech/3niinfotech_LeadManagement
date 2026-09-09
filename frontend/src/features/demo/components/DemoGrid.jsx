@@ -1,11 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  FiCheckCircle,
-  FiCalendar,
-  FiEye,
-  FiPhone,
-} from 'react-icons/fi';
+import { FiPhone, FiCheck, FiX } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import DataGrid from '../../../components/table/DataGrid';
 import { createAvatarColumn } from '../../../components/table/grid.columns';
@@ -14,13 +9,16 @@ import { TABLE_DENSITY } from '../../../config/constants';
 import { ROUTES } from '../../../config/routes';
 import {
   getDemoAttendanceBadgeTone,
+  getDemoAttendanceLabel,
   getDemoSessionStatusTone,
   getDemoResultBadgeTone,
-  DEMO_ATTENDANCE_OPTIONS,
+  normalizeDemoAttendance,
+  formatDemoDay,
   DEMO_SESSION_STATUS_OPTIONS,
   DEMO_RESULT_OPTIONS,
 } from '../config/demoConstants';
 import { getDocumentUrl } from '../../enquiry/config/enquiryDocument.config';
+import { GridActionButton, GridActionGroup } from '../../../components/table/GridActionButtons';
 
 const centerCell = 'crm-grid-cell--center';
 const centerHeader = 'crm-grid-header-cell--center';
@@ -29,9 +27,6 @@ function formatDemoDateTime(dateStr) {
   if (!dateStr) return { text: '—', timeString: '', isPast: false };
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return { text: '—', timeString: '', isPast: false };
-
-  const now = new Date();
-  const isPast = d.getTime() < now.getTime();
 
   const timeString = d.toLocaleTimeString('en-IN', {
     hour: '2-digit',
@@ -48,12 +43,79 @@ function formatDemoDateTime(dateStr) {
   return {
     dateString,
     timeString,
-    isPast,
+    isPast: d.getTime() < Date.now(),
     rawDate: d,
   };
 }
 
-import { GridActionButton, GridActionGroup } from '../../../components/table/GridActionButtons';
+function AttendanceCell({ data, canMark, markingId, onQuickMark, onMarkAttendance }) {
+  if (!data) return null;
+
+  const att = normalizeDemoAttendance(data.attendance);
+  const tone = getDemoAttendanceBadgeTone(att);
+  const label = getDemoAttendanceLabel(att);
+  const inactive = data.sessionStatus === 'CANCELLED' || data.sessionStatus === 'RESCHEDULED';
+  const busy = markingId === data.id;
+  const showInline = canMark && !inactive && att === 'NOT_MARKED' && data.canMarkAttendance !== false;
+
+  const titleParts = [
+    label,
+    data.className || data.batch,
+    data.attendanceMarkedBy
+      ? `Marked by ${data.attendanceMarkedBy.firstName || ''}`.trim()
+      : null,
+    data.attendanceMarkedAt
+      ? new Date(data.attendanceMarkedAt).toLocaleString('en-IN')
+      : null,
+  ].filter(Boolean);
+
+  return (
+    <div
+      className="inline-flex items-center justify-center gap-1 whitespace-nowrap"
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      role="presentation"
+      title={titleParts.join(' · ')}
+    >
+      <Badge color={tone} size="sm">
+        {label}
+      </Badge>
+      {showInline && (
+        <>
+          <button
+            type="button"
+            disabled={busy}
+            title="Mark Present"
+            aria-label="Mark Present"
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md border border-emerald-500/35 text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-50"
+            onClick={() => onQuickMark?.(data, 'PRESENT')}
+          >
+            <FiCheck className="w-3.5 h-3.5" strokeWidth={2.5} />
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            title="Mark Absent"
+            aria-label="Mark Absent"
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md border border-rose-500/35 text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50"
+            onClick={() => onQuickMark?.(data, 'ABSENT')}
+          >
+            <FiX className="w-3.5 h-3.5" strokeWidth={2.5} />
+          </button>
+        </>
+      )}
+      {canMark && !inactive && att === 'NOT_MARKED' && data.canMarkAttendance === false && (
+        <button
+          type="button"
+          className="text-[10px] font-semibold text-primary hover:underline px-0.5"
+          onClick={() => onMarkAttendance?.(data)}
+        >
+          Mark
+        </button>
+      )}
+    </div>
+  );
+}
 
 function DirectDemoActions({
   data,
@@ -99,9 +161,12 @@ export default function DemoGrid({
   loading = false,
   fetching = false,
   density = 'comfortable',
+  canMark = false,
+  markingId = null,
   onRowClick,
   onOpenDetail,
   onMarkAttendance,
+  onQuickMark,
   onReschedule,
   onCancel,
   onSelectionChanged,
@@ -124,21 +189,32 @@ export default function DemoGrid({
       {
         field: 'studentName',
         headerName: 'Student Name',
-        minWidth: 150,
-        flex: 1.2,
+        minWidth: 140,
+        flex: 1.1,
         cellClass: `text-xs font-medium text-text ${centerCell}`,
         headerClass: centerHeader,
         valueGetter: (p) => `${p.data?.enquiry?.firstName || ''} ${p.data?.enquiry?.lastName || ''}`.trim() || '—',
-        cellRenderer: (p) => {
-          const name = p.value;
-          return <span className="font-semibold text-text truncate" title={name}>{name}</span>;
-        },
+        cellRenderer: (p) => (
+          <span className="font-semibold text-text truncate" title={p.value}>{p.value}</span>
+        ),
+      },
+      {
+        field: 'demoDay',
+        headerName: 'Demo Day',
+        minWidth: 88,
+        flex: 0.6,
+        cellClass: `text-xs ${centerCell}`,
+        headerClass: centerHeader,
+        valueGetter: (p) => p.data?.demoDay,
+        cellRenderer: (p) => (
+          <Badge color="primary" size="sm">{formatDemoDay(p.value)}</Badge>
+        ),
       },
       {
         field: 'contact',
         headerName: 'Contact',
-        minWidth: 150,
-        flex: 1.2,
+        minWidth: 140,
+        flex: 1.1,
         cellClass: `text-xs ${centerCell}`,
         headerClass: centerHeader,
         valueGetter: (p) => p.data?.enquiry?.mobile || p.data?.enquiry?.email || '—',
@@ -180,8 +256,8 @@ export default function DemoGrid({
       {
         field: 'enquiryCode',
         headerName: 'Enquiry ID',
-        minWidth: 120,
-        flex: 1,
+        minWidth: 110,
+        flex: 0.9,
         cellClass: `text-xs font-mono font-medium text-primary ${centerCell}`,
         headerClass: centerHeader,
         valueGetter: (p) => p.data?.enquiry?.enquiryCode || '—',
@@ -207,21 +283,20 @@ export default function DemoGrid({
       {
         field: 'course',
         headerName: 'Course',
-        minWidth: 130,
-        flex: 1.1,
+        minWidth: 120,
+        flex: 1,
         cellClass: `text-xs ${centerCell}`,
         headerClass: centerHeader,
         valueGetter: (p) => p.data?.className || p.data?.enquiry?.interestedCourse || '—',
-        cellRenderer: (p) => {
-          const c = p.value;
-          return <span className="font-medium text-text truncate" title={c}>{c}</span>;
-        },
+        cellRenderer: (p) => (
+          <span className="font-medium text-text truncate" title={p.value}>{p.value}</span>
+        ),
       },
       {
         field: 'batch',
         headerName: 'Batch',
-        minWidth: 110,
-        flex: 0.9,
+        minWidth: 100,
+        flex: 0.8,
         cellClass: `text-xs text-text-secondary ${centerCell}`,
         headerClass: centerHeader,
         valueGetter: (p) => p.data?.batch || 'Standard',
@@ -229,15 +304,14 @@ export default function DemoGrid({
       {
         field: 'demoDate',
         headerName: 'Date & Time',
-        minWidth: 150,
-        flex: 1.2,
+        minWidth: 130,
+        flex: 1.1,
         cellClass: `text-xs ${centerCell}`,
         headerClass: centerHeader,
         comparator: (d1, d2) => new Date(d1).getTime() - new Date(d2).getTime(),
         cellRenderer: (p) => {
           const info = formatDemoDateTime(p.value);
-          if (info.text === '—') return <span className="text-text-muted">—</span>;
-
+          if (!info.dateString) return <span className="text-text-muted">—</span>;
           return (
             <div className="flex flex-col items-center justify-center text-center">
               <span className="font-semibold text-text tabular-nums">{info.dateString}</span>
@@ -249,8 +323,8 @@ export default function DemoGrid({
       {
         field: 'faculty',
         headerName: 'Faculty',
-        minWidth: 120,
-        flex: 1,
+        minWidth: 110,
+        flex: 0.9,
         cellClass: `text-xs text-text-secondary ${centerCell}`,
         headerClass: centerHeader,
         valueGetter: (p) =>
@@ -261,8 +335,8 @@ export default function DemoGrid({
       {
         field: 'branch',
         headerName: 'Branch',
-        minWidth: 120,
-        flex: 1,
+        minWidth: 100,
+        flex: 0.8,
         cellClass: `text-xs text-text-secondary ${centerCell}`,
         headerClass: centerHeader,
         valueGetter: (p) => p.data?.enquiry?.branch?.name || p.data?.enquiry?.branch?.code || '—',
@@ -270,8 +344,8 @@ export default function DemoGrid({
       {
         field: 'sessionStatus',
         headerName: 'Session',
-        minWidth: 110,
-        flex: 0.9,
+        minWidth: 100,
+        flex: 0.8,
         cellClass: `text-xs ${centerCell}`,
         headerClass: centerHeader,
         cellRenderer: (p) => {
@@ -288,37 +362,27 @@ export default function DemoGrid({
       {
         field: 'attendance',
         headerName: 'Attendance',
-        minWidth: 120,
-        flex: 1,
+        minWidth: 128,
+        width: 140,
+        flex: 0,
         cellClass: `text-xs ${centerCell}`,
         headerClass: centerHeader,
-        cellRenderer: (p) => {
-          const att = p.value || 'NOT_MARKED';
-          const isPast = p.data?.demoDate && new Date(p.data.demoDate).getTime() < Date.now();
-          const needsMarking = att === 'NOT_MARKED' && p.data?.sessionStatus === 'SCHEDULED' && isPast;
-
-          if (needsMarking) {
-            return (
-              <Badge color="warning" size="sm">
-                Pending Mark
-              </Badge>
-            );
-          }
-
-          const option = DEMO_ATTENDANCE_OPTIONS.find((a) => a.value === att);
-          const tone = getDemoAttendanceBadgeTone(att);
-          return (
-            <Badge color={tone} size="sm">
-              {option?.label || att}
-            </Badge>
-          );
-        },
+        valueGetter: (p) => normalizeDemoAttendance(p.data?.attendance),
+        cellRenderer: (p) => (
+          <AttendanceCell
+            data={p.data}
+            canMark={canMark}
+            markingId={markingId}
+            onQuickMark={onQuickMark}
+            onMarkAttendance={onMarkAttendance}
+          />
+        ),
       },
       {
         field: 'result',
         headerName: 'Outcome',
-        minWidth: 110,
-        flex: 0.9,
+        minWidth: 100,
+        flex: 0.8,
         cellClass: `text-xs ${centerCell}`,
         headerClass: centerHeader,
         cellRenderer: (p) => {
@@ -349,7 +413,7 @@ export default function DemoGrid({
         ),
       },
     ],
-    [onOpenDetail, onMarkAttendance, onReschedule],
+    [canMark, markingId, onOpenDetail, onMarkAttendance, onQuickMark, onReschedule],
   );
 
   return (

@@ -6,6 +6,8 @@ import * as invoiceController from './invoice.controller.js';
 const router = Router();
 router.use(authenticate);
 
+router.get('/summary', authorize(PERMISSIONS.INVOICES_VIEW), invoiceController.getInvoiceSummary);
+router.post('/export', authorize(PERMISSIONS.INVOICES_VIEW), invoiceController.exportInvoices);
 router.get('/', authorize(PERMISSIONS.INVOICES_VIEW), invoiceController.getInvoices);
 router.get('/:id', authorize(PERMISSIONS.INVOICES_VIEW), invoiceController.getInvoice);
 router.post('/', authorize(PERMISSIONS.INVOICES_CREATE), invoiceController.createInvoice);

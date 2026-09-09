@@ -7,6 +7,20 @@ export const getVisas = asyncHandler(async (req, res) => {
   sendPaginated(res, result.data, result.pagination);
 });
 
+export const getVisaSummary = asyncHandler(async (req, res) => {
+  const data = await visaService.getSummary(req.query, req.user);
+  sendSuccess(res, data);
+});
+
+export const exportVisas = asyncHandler(async (req, res) => {
+  const result = await visaService.exportVisas(req.body, req.user, req.user.id, req);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+  res.setHeader('X-Export-Count', String(result.count));
+  res.setHeader('X-Export-Selected', result.selected ? '1' : '0');
+  res.send(result.buffer);
+});
+
 export const getVisa = asyncHandler(async (req, res) => {
   const record = await visaService.getById(req.params.id, req.user);
   sendSuccess(res, record);

@@ -31,4 +31,7 @@ router.get('/students/:studentId', view, attendanceController.studentSummary);
 router.get('/dashboard', view, attendanceController.dashboardWidgets);
 router.get('/report', report, attendanceController.classReport);
 
+router.get('/teacher/dashboard', authorize(PERMISSIONS.ATTENDANCE_VIEW), attendanceController.teacherDashboard);
+router.get('/teacher/students', authorize(PERMISSIONS.ATTENDANCE_VIEW), attendanceController.teacherStudents);
+
 export default router;

@@ -143,16 +143,21 @@ export const RELATIONAL_LEAD_SOURCES = [
 ];
 
 export const RELATIONAL_LEAD_STATUSES = [
-  { code: 'NEW', name: 'New' },
+  { code: 'NEW', name: 'New', defaultStatus: true },
   { code: 'CONTACTED', name: 'Contacted' },
-  { code: 'FOLLOW_UP', name: 'Follow-up' },
-  { code: 'COUNSELLING', name: 'Counselling' },
   { code: 'INTERESTED', name: 'Interested' },
+  { code: 'HIGHLY_INTERESTED', name: 'Highly Interested' },
+  { code: 'FOLLOW_UP', name: 'Follow-up' },
+  { code: 'APPOINTMENT', name: 'Appointment' },
   { code: 'DEMO_SCHEDULED', name: 'Demo Scheduled' },
+  { code: 'DEMO_ATTENDED', name: 'Demo Attended' },
+  { code: 'COUNSELLING', name: 'Counselling' },
+  { code: 'DOCUMENTS_PENDING', name: 'Documents Pending' },
   { code: 'APPLICATION_STARTED', name: 'Application Started' },
   { code: 'CONVERTED', name: 'Converted' },
+  { code: 'HOLD', name: 'On Hold' },
   { code: 'LOST', name: 'Lost' },
-  { code: 'CLOSED', name: 'Closed' },
+  { code: 'NOT_INTERESTED', name: 'Not Interested' },
 ];
 
 export const RELATIONAL_LOST_REASONS = [

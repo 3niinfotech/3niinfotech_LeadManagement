@@ -129,7 +129,7 @@ export default function EnquiryWorkspace({
   const [addAppointment] = useAddAppointmentMutation();
   const [convertEnquiry, { isLoading: converting }] = useConvertEnquiryMutation();
 
-  const isConverted = enquiry?.status === 'CONVERTED';
+  const isConverted = enquiry?.status === 'CONVERTED' || Boolean(enquiry?.studentId);
   const readOnly = isEditMode && isConverted;
 
   const {
@@ -137,6 +137,7 @@ export default function EnquiryWorkspace({
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(enquirySchema),
@@ -153,6 +154,7 @@ export default function EnquiryWorkspace({
     matches: duplicateMatches,
     modalOpen: duplicateModalOpen,
     dismissModal: dismissDuplicateModal,
+    duplicateAcknowledged,
   } = useDuplicateDetection({
     email: watchedEmail,
     mobile: watchedMobile,
@@ -172,11 +174,23 @@ export default function EnquiryWorkspace({
   }, [enquiry, isEditMode, reset, user?.branchId, formDefaults, settings?.followupPopup, onTabChange]);
 
   const visibleTabs = useMemo(
-    () => (isEditMode
-      ? ENQUIRY_PROFILE_TABS.filter((t) => !t.editOnly || isEditMode)
-      : ENQUIRY_CREATE_FORM_TABS),
-    [isEditMode],
+    () => {
+      const tabs = isEditMode
+        ? ENQUIRY_PROFILE_TABS.filter((t) => !t.editOnly || isEditMode)
+        : ENQUIRY_CREATE_FORM_TABS;
+      if (isConverted) {
+        return tabs.filter((t) => t.id !== 'conversion');
+      }
+      return tabs;
+    },
+    [isEditMode, isConverted],
   );
+
+  useEffect(() => {
+    if (isConverted && activeTab === 'conversion') {
+      onTabChange?.('overview');
+    }
+  }, [isConverted, activeTab, onTabChange]);
 
   const tabErrors = useMemo(() => buildTabErrorMap(errors), [errors]);
 
@@ -211,8 +225,13 @@ export default function EnquiryWorkspace({
       const body = payload?.data ?? payload;
       const studentId = body?.student?.id ?? body?.enquiry?.studentId;
       const linked = body?.linkedExisting;
-      toastService.action.saved(
-        linked ? 'Linked to existing student record' : 'Converted to student — opening profile',
+      const already = body?.alreadyConverted;
+      toastService.success(
+        already
+          ? `Already converted · ${body?.student?.studentCode || ''}`
+          : linked
+            ? 'Linked to existing student — history preserved'
+            : `Student created · ${body?.student?.studentCode || ''}. Enquiry, demo & documents linked.`,
       );
       refetch();
       if (studentId) openStudent(studentId);
@@ -233,6 +252,7 @@ export default function EnquiryWorkspace({
         ...payload,
         branchId: payload.branchId || user?.branchId,
         testsGiven: (payload.testsGiven || []).filter((t) => t?.name?.trim()),
+        allowDuplicate: duplicateAcknowledged,
       };
       const hasFollowUp = Boolean(followUp.followUpRemarks?.trim());
       const hasAppointment = Boolean(appointment.appointmentDate);
@@ -315,11 +335,6 @@ export default function EnquiryWorkspace({
           </>
         ) : null}
       >
-        {readOnly && (
-          <div className="crm-enquiry-readonly-banner">
-            This enquiry has been converted. Edit the linked student profile for admission details.
-          </div>
-        )}
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="min-h-[200px]">
           {isEditMode && activeTab === 'overview' && (
             <OverviewTab
@@ -333,7 +348,14 @@ export default function EnquiryWorkspace({
             <PersonalDetailsTab register={register} control={control} errors={errors} />
           )}
           {!isEditMode && activeTab === 'other' && (
-            <OtherDetailsTab register={register} control={control} errors={errors} variant="enquiry" />
+            <OtherDetailsTab
+              register={register}
+              control={control}
+              errors={errors}
+              setValue={setValue}
+              variant="enquiry"
+              assignmentMeta={enquiry?.metadata?.counsellorAssignment}
+            />
           )}
           {!isEditMode && activeTab === 'followup' && (
             <FollowUpActionsPanel
@@ -373,9 +395,11 @@ export default function EnquiryWorkspace({
               enquiry={enquiry}
               isEditMode={!readOnly}
               onRecorded={refetch}
+              onConvertToStudent={handleConvert}
+              converting={converting}
             />
           )}
-          {activeTab === 'conversion' && isEditMode && (
+          {activeTab === 'conversion' && isEditMode && !isConverted && (
             <ConversionTab enquiry={enquiry} onConvert={handleConvert} converting={converting} />
           )}
           {activeTab === 'timeline' && isEditMode && (

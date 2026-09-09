@@ -4,6 +4,8 @@ const sizes = {
   sm: 'w-8 h-8 text-xs',
   md: 'w-10 h-10 text-sm',
   lg: 'w-12 h-12 text-base',
+  xl: 'w-16 h-16 text-lg',
+  '2xl': 'w-20 h-20 text-xl',
 };
 
 function getInitials(name = '') {
@@ -31,13 +33,14 @@ export default function Avatar({ name = '', src = '', size = 'sm', className = '
     >
       {showImage ? (
         <img
+          key={src}
           src={src}
           alt={name || 'Profile'}
           className="w-full h-full object-cover"
           onError={() => setImgFailed(true)}
         />
       ) : (
-        initials
+        <span aria-hidden>{initials}</span>
       )}
     </div>
   );

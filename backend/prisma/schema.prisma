@@ -15,6 +15,12 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum RoleApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum LeadStatus {
   WALK_IN
   WAITING
@@ -56,6 +62,37 @@ enum CounsellingSessionStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+enum StaffLeaveType {
+  FULL_DAY
+  HALF_DAY_AM
+  HALF_DAY_PM
+}
+
+enum StaffLeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum CounsellorSkillCategory {
+  COUNTRY
+  COURSE
+  LANGUAGE
+  SERVICE
+  DOMAIN
+  GENERAL
+}
+
+enum AssignmentRecordType {
+  AUTO
+  MANUAL
+  REASSIGN
+  BULK
+  FALLBACK
+  COURSE_DEFAULT
 }
 
 enum StudentStatus {
@@ -180,6 +217,51 @@ enum AttendanceMarkSource {
   CORRECTION
 }
 
+enum ClassAssignmentStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum ClassSubmissionStatus {
+  PENDING
+  SUBMITTED
+  LATE
+  REVIEWED
+}
+
+enum ClassTestType {
+  QUIZ
+  TEST
+  MOCK_TEST
+  EXAM
+  PRACTICE
+}
+
+enum ClassTestStatus {
+  DRAFT
+  PUBLISHED
+  COMPLETED
+  CANCELLED
+}
+
+enum StudyMaterialType {
+  PDF
+  DOCUMENT
+  PPT
+  IMAGE
+  VIDEO
+  AUDIO
+  LINK
+  OTHER
+}
+
+enum StudyMaterialStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 enum DemoResult {
   PENDING
   POSITIVE
@@ -219,7 +301,9 @@ enum AuditAction {
   DELETE
   RESTORE
   LOGIN
+  LOGIN_FAILED
   LOGOUT
+  PASSWORD_CHANGE
   EXPORT
   IMPORT
   ASSIGN
@@ -334,8 +418,11 @@ model Company {
   followupTypes      FollowupType[]
   visitPurposes      VisitPurpose[]
   counsellorSkills   CounsellorSkill[]
+  staffWorkingHours  StaffWorkingHours[]
+  staffLeaveRecords  StaffLeaveRecord[]
   faculties          Faculty[]
   communicationTemplates CommunicationTemplate[]
+  announcementViews    AnnouncementView[]
   applicationChecklists ApplicationChecklist[]
   applicationStatusMasters ApplicationStatusMaster[]
   visaChecklists          VisaChecklist[]
@@ -343,6 +430,12 @@ model Company {
   studentStatusMasters    StudentStatusMaster[]
   learningResources       LearningResource[]
   academicBatches         AcademicBatch[]
+  classAssignments        ClassAssignment[]
+  classTests              ClassTest[]
+  studyMaterials          StudyMaterial[]
+  partners                Partner[]
+  roleApplications        RoleApplication[]
+  courseCounsellorMappings CourseCounsellorMapping[]
 
   @@index([code])
   @@index([countryId])
@@ -386,6 +479,11 @@ model Branch {
   academicBatches AcademicBatch[]
   classSessions   ClassSession[]
   classAttendances ClassAttendance[]
+  classAssignments ClassAssignment[]
+  classTests       ClassTest[]
+  studyMaterials   StudyMaterial[]
+  roleApplications RoleApplication[]
+  courseCounsellorMappings CourseCounsellorMapping[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -517,29 +615,33 @@ model UserPermissionOverride {
 }
 
 model User {
-  id            String     @id @default(uuid())
-  companyId     String?
-  branchId      String?
-  roleId        String
-  firstName     String
-  lastName      String
-  email         String     @unique
-  password      String
-  phone         String?
-  avatar        String?
-  status        UserStatus @default(ACTIVE)
-  lastLoginAt   DateTime?
-  preferences   Json       @default("{}")
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  deletedAt     DateTime?
-  createdBy     String?
-  updatedBy     String?
+  id                String     @id @default(uuid())
+  companyId         String?
+  branchId          String?
+  roleId            String
+  firstName         String
+  lastName          String
+  email             String     @unique
+  password          String
+  phone             String?
+  avatar            String?
+  employeeCode      String?
+  department        String?
+  status            UserStatus @default(ACTIVE)
+  lastLoginAt       DateTime?
+  passwordChangedAt DateTime?
+  preferences       Json       @default("{}")
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  deletedAt         DateTime?
+  createdBy         String?
+  updatedBy         String?
 
   company       Company?   @relation(fields: [companyId], references: [id])
   branch        Branch?    @relation(fields: [branchId], references: [id])
   role          Role       @relation(fields: [roleId], references: [id])
   refreshTokens RefreshToken[]
+  apiTokens     UserApiToken[]
   notifications Notification[]
   auditLogs     AuditLog[]
   assignedLeads Lead[]     @relation("LeadAssignee")
@@ -555,6 +657,11 @@ model User {
   instructedBatches AcademicBatch[] @relation("BatchInstructor")
   instructedSessions ClassSession[] @relation("SessionInstructor")
   classAttendanceMarks ClassAttendance[] @relation("ClassAttendanceMarker")
+  classAssignmentsCreated ClassAssignment[] @relation("ClassAssignmentAuthor")
+  classSubmissionsReviewed ClassAssignmentSubmission[] @relation("ClassSubmissionReviewer")
+  classTestsCreated ClassTest[] @relation("ClassTestAuthor")
+  studyMaterialsCreated StudyMaterial[] @relation("StudyMaterialAuthor")
+  academicRemarksWritten AcademicRemark[] @relation("AcademicRemarkAuthor")
   enquiryCommunications EnquiryCommunication[]
   enquiryNotes EnquiryNote[]
   enquiryImports EnquiryImportBatch[]
@@ -569,27 +676,59 @@ model User {
   managedBranches Branch[] @relation("BranchManager")
   studentProfile  Student? @relation("StudentPortalUser")
   partnerProfile  Partner? @relation("PartnerPortalUser")
+  staffWorkingHours StaffWorkingHours[]
+  staffLeaveRecords StaffLeaveRecord[]
+  userCounsellorSkills UserCounsellorSkill[]
+  roleApplicationsReviewed RoleApplication[] @relation("RoleApplicationReviewer")
+  roleApplicationsApproved RoleApplication[] @relation("RoleApplicationApprovedUser")
+  announcementViews        AnnouncementView[]
+  courseCounsellorMappings CourseCounsellorMapping[] @relation("CourseCounsellorMappingAssignee")
 
   @@index([email])
   @@index([companyId])
   @@index([branchId])
   @@index([roleId])
+  @@index([companyId, employeeCode])
   @@map("users")
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  userId    String
-  token     String   @unique @db.VarChar(500)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  revokedAt DateTime?
+  id          String    @id @default(uuid())
+  userId      String
+  token       String    @unique @db.VarChar(500)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+  ipAddress   String?
+  userAgent   String?   @db.Text
+  deviceLabel String?
+  lastUsedAt  DateTime?
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([token])
   @@map("refresh_tokens")
+}
+
+model UserApiToken {
+  id          String    @id @default(uuid())
+  userId      String
+  companyId   String?
+  name        String
+  tokenPrefix String
+  tokenHash   String
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  createdBy   String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("user_api_tokens")
 }
 
 // ─── CRM MODULE ──────────────────────────────────────────────────────────────
@@ -647,9 +786,10 @@ model Lead {
 
 model Partner {
   id          String    @id @default(uuid())
+  companyId   String?
   userId      String?   @unique
   name        String
-  code        String    @unique
+  code        String
   type        String?
   email       String?
   phone       String?
@@ -664,11 +804,15 @@ model Partner {
   createdBy   String?
   updatedBy   String?
 
+  company     Company?  @relation(fields: [companyId], references: [id])
   user        User?     @relation("PartnerPortalUser", fields: [userId], references: [id])
   students    Student[]
 
+  @@unique([companyId, code])
   @@index([code])
+  @@index([companyId])
   @@index([userId])
+  @@index([type])
   @@map("partners")
 }
 
@@ -719,6 +863,9 @@ model Student {
   admissionPayments AdmissionPayment[]
   batchEnrollments BatchEnrollment[]
   classAttendances ClassAttendance[]
+  classSubmissions ClassAssignmentSubmission[]
+  classTestResults ClassTestResult[]
+  academicRemarks  AcademicRemark[]
 
   @@index([branchId])
   @@index([userId])
@@ -1009,6 +1156,7 @@ model Enquiry {
   documents         EnquiryDocument[]
   communications    EnquiryCommunication[]
   auditLogs         EnquiryAuditLog[]
+  assignmentLogs    EnquiryAssignmentLog[]
   admission         Admission?
 
   @@index([branchId])
@@ -1243,6 +1391,8 @@ model CounsellorPresence {
   branchId         String
   status           CounsellorPresenceStatus @default(OFFLINE)
   maxDailyCapacity Int                      @default(20)
+  maxActiveLeads   Int                      @default(50)
+  hotLeadCapacity  Int                      @default(10)
   todayAssigned    Int                      @default(0)
   lastHeartbeatAt  DateTime?
   lastAssignedAt   DateTime?
@@ -1322,6 +1472,118 @@ model AssignmentAuditLog {
   @@index([branchId])
   @@index([createdAt])
   @@map("assignment_audit_logs")
+}
+
+model StaffWorkingHours {
+  id           String   @id @default(uuid())
+  userId       String
+  companyId    String
+  dayOfWeek    Int
+  startTime    String
+  endTime      String
+  isWorkingDay Boolean  @default(true)
+  timezone     String?  @default("Asia/Kolkata")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayOfWeek])
+  @@index([userId])
+  @@index([companyId])
+  @@map("staff_working_hours")
+}
+
+model StaffLeaveRecord {
+  id        String           @id @default(uuid())
+  userId    String
+  companyId String
+  startDate DateTime         @db.Date
+  endDate   DateTime         @db.Date
+  leaveType StaffLeaveType   @default(FULL_DAY)
+  status    StaffLeaveStatus @default(APPROVED)
+  reason    String?          @db.Text
+  createdBy String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startDate, endDate])
+  @@index([companyId])
+  @@map("staff_leave_records")
+}
+
+model UserCounsellorSkill {
+  id         String                  @id @default(uuid())
+  userId     String
+  skillId    String
+  category   CounsellorSkillCategory @default(GENERAL)
+  skillValue String?
+  createdAt  DateTime                @default(now())
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill CounsellorSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId, category])
+  @@index([userId])
+  @@index([skillId])
+  @@map("user_counsellor_skills")
+}
+
+model EnquiryAssignmentLog {
+  id             String               @id @default(uuid())
+  enquiryId      String
+  companyId      String
+  branchId       String
+  fromUserId     String?
+  toUserId       String
+  assignmentType AssignmentRecordType
+  score          Float?
+  scoreBreakdown Json                 @default("{}")
+  reasons        Json                 @default("[]")
+  exclusions     Json                 @default("[]")
+  actorId        String?
+  reason         String?              @db.Text
+  createdAt      DateTime             @default(now())
+
+  enquiry Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@index([enquiryId])
+  @@index([toUserId])
+  @@index([branchId])
+  @@index([companyId])
+  @@index([createdAt])
+  @@map("enquiry_assignment_logs")
+}
+
+/// Course/Service label → default counsellor (e.g. IELTS → Rahul). Matches enquiry.interestedCourse.
+model CourseCounsellorMapping {
+  id           String    @id @default(uuid())
+  companyId    String
+  branchId     String?
+  courseLabel  String
+  counsellorId String
+  isActive     Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  createdBy    String?
+  updatedBy    String?
+
+  company    Company @relation(fields: [companyId], references: [id])
+  branch     Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  counsellor User    @relation("CourseCounsellorMappingAssignee", fields: [counsellorId], references: [id])
+
+  @@unique([companyId, branchId, courseLabel])
+  @@index([companyId])
+  @@index([branchId])
+  @@index([counsellorId])
+  @@index([isActive])
+  @@map("course_counsellor_mappings")
 }
 
 // ─── PRESERVED ORPHAN TABLES (Admission / Fee) — DB source of truth ───────────
@@ -1994,7 +2256,8 @@ model CounsellorSkill {
   createdBy   String?
   updatedBy   String?
 
-  company Company @relation(fields: [companyId], references: [id])
+  company   Company @relation(fields: [companyId], references: [id])
+  userLinks UserCounsellorSkill[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -2050,12 +2313,33 @@ model CommunicationTemplate {
   updatedBy   String?
 
   company Company @relation(fields: [companyId], references: [id])
+  views   AnnouncementView[]
 
   @@unique([companyId, code])
   @@index([companyId])
   @@index([channel])
   @@index([isActive])
   @@map("communication_templates")
+}
+
+model AnnouncementView {
+  id             String   @id @default(uuid())
+  announcementId String
+  userId         String
+  companyId      String
+  viewedAt       DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  announcement CommunicationTemplate @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company      Company               @relation(fields: [companyId], references: [id])
+
+  @@unique([announcementId, userId])
+  @@index([announcementId])
+  @@index([userId])
+  @@index([companyId])
+  @@index([viewedAt])
+  @@map("announcement_views")
 }
 
 // ─── FEATURE TOGGLE (Master) ─────────────────────────────────────────────────
@@ -2295,6 +2579,10 @@ model AcademicBatch {
   enrollments  BatchEnrollment[]
   timetableSlots ClassTimetableSlot[]
   sessions     ClassSession[]
+  assignments  ClassAssignment[]
+  tests        ClassTest[]
+  materials    StudyMaterial[]
+  remarks      AcademicRemark[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -2404,4 +2692,209 @@ model ClassAttendance {
   @@index([branchId])
   @@index([status])
   @@map("class_attendances")
+}
+
+// ─── CLASSROOM LMS (homework / tests / materials — distinct from CRM Assignment) ─
+
+model ClassAssignment {
+  id            String               @id @default(uuid())
+  companyId     String
+  branchId      String
+  batchId       String
+  createdById   String
+  title         String
+  description   String?              @db.Text
+  startDate     DateTime?
+  dueDate       DateTime?
+  maxMarks      Float                @default(100)
+  attachmentUrl String?
+  status        ClassAssignmentStatus @default(DRAFT)
+  publishedAt   DateTime?
+  metadata      Json                 @default("{}")
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  deletedAt     DateTime?
+
+  company       Company              @relation(fields: [companyId], references: [id])
+  branch        Branch               @relation(fields: [branchId], references: [id])
+  batch         AcademicBatch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  createdBy     User                 @relation("ClassAssignmentAuthor", fields: [createdById], references: [id])
+  submissions   ClassAssignmentSubmission[]
+
+  @@index([companyId])
+  @@index([branchId])
+  @@index([batchId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("class_assignments")
+}
+
+model ClassAssignmentSubmission {
+  id           String                @id @default(uuid())
+  assignmentId String
+  studentId    String
+  status       ClassSubmissionStatus @default(PENDING)
+  content      String?               @db.Text
+  fileUrl      String?
+  submittedAt  DateTime?
+  marks        Float?
+  feedback     String?               @db.Text
+  reviewedAt   DateTime?
+  reviewedById String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  assignment   ClassAssignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reviewedBy   User?                 @relation("ClassSubmissionReviewer", fields: [reviewedById], references: [id])
+
+  @@unique([assignmentId, studentId])
+  @@index([studentId])
+  @@index([status])
+  @@map("class_assignment_submissions")
+}
+
+model ClassTest {
+  id              String          @id @default(uuid())
+  companyId       String
+  branchId        String
+  batchId         String
+  createdById     String
+  name            String
+  type            ClassTestType   @default(TEST)
+  testDate        DateTime?       @db.Date
+  startAt         DateTime?
+  endAt           DateTime?
+  durationMinutes Int?
+  totalMarks      Float           @default(100)
+  passingMarks    Float?
+  instructions    String?         @db.Text
+  status          ClassTestStatus @default(DRAFT)
+  resultsPublished Boolean        @default(false)
+  metadata        Json            @default("{}")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  company         Company         @relation(fields: [companyId], references: [id])
+  branch          Branch          @relation(fields: [branchId], references: [id])
+  batch           AcademicBatch   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  createdBy       User            @relation("ClassTestAuthor", fields: [createdById], references: [id])
+  results         ClassTestResult[]
+
+  @@index([companyId])
+  @@index([branchId])
+  @@index([batchId])
+  @@index([status])
+  @@index([testDate])
+  @@map("class_tests")
+}
+
+model ClassTestResult {
+  id         String    @id @default(uuid())
+  testId     String
+  studentId  String
+  marks      Float?
+  percentage Float?
+  grade      String?
+  remarks    String?   @db.Text
+  published  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  test       ClassTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  student    Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([testId, studentId])
+  @@index([studentId])
+  @@map("class_test_results")
+}
+
+model StudyMaterial {
+  id          String              @id @default(uuid())
+  companyId   String
+  branchId    String
+  batchId     String
+  createdById String
+  title       String
+  description String?             @db.Text
+  category    String?
+  materialType StudyMaterialType  @default(DOCUMENT)
+  fileUrl     String?
+  externalUrl String?
+  status      StudyMaterialStatus @default(DRAFT)
+  publishedAt DateTime?
+  metadata    Json                @default("{}")
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  deletedAt   DateTime?
+
+  company     Company             @relation(fields: [companyId], references: [id])
+  branch      Branch              @relation(fields: [branchId], references: [id])
+  batch       AcademicBatch       @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  createdBy   User                @relation("StudyMaterialAuthor", fields: [createdById], references: [id])
+
+  @@index([companyId])
+  @@index([branchId])
+  @@index([batchId])
+  @@index([status])
+  @@map("study_materials")
+}
+
+model AcademicRemark {
+  id         String    @id @default(uuid())
+  studentId  String
+  batchId    String?
+  teacherId  String
+  remark     String    @db.Text
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  student    Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  batch      AcademicBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  teacher    User      @relation("AcademicRemarkAuthor", fields: [teacherId], references: [id])
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([batchId])
+  @@map("academic_remarks")
+}
+
+// ─── STAFF ROLE APPLICATIONS (public apply → admin review) ────────────────
+
+model RoleApplication {
+  id              String                @id @default(uuid())
+  applicationCode String                @unique
+  companyId       String
+  branchId        String
+  roleSlug        String
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+  qualification   String?
+  experience      String?               @db.Text
+  message         String?               @db.Text
+  metadata        Json                  @default("{}")
+  status          RoleApplicationStatus @default(PENDING)
+  reviewNotes     String?               @db.Text
+  reviewedById    String?
+  reviewedAt      DateTime?
+  approvedUserId  String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  deletedAt       DateTime?
+
+  company      Company @relation(fields: [companyId], references: [id])
+  branch       Branch  @relation(fields: [branchId], references: [id])
+  reviewedBy   User?   @relation("RoleApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  approvedUser User?   @relation("RoleApplicationApprovedUser", fields: [approvedUserId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([branchId])
+  @@index([status])
+  @@index([email])
+  @@index([roleSlug])
+  @@map("role_applications")
 }

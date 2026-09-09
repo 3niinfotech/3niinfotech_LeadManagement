@@ -174,6 +174,7 @@ export const enquiryRepository = {
           email: true,
           phone: true,
           status: true,
+          deletedAt: true,
         },
       },
       auditLogs: {

@@ -188,6 +188,33 @@ export const organizationService = {
     return updated;
   },
 
+  removeBranch: async (id, user, req) => {
+    const companyId = requireCompanyId(user);
+    const existing = await organizationRepository.findBranchById(id, companyId);
+    if (!existing) throw new AppError('Branch not found', 404);
+
+    const deps = await organizationRepository.countBranchDependencies(id, companyId);
+    if (deps.length) {
+      const parts = deps.map((d) => `${d.count} ${d.label}`);
+      throw new AppError(
+        `Branch cannot be deleted because it is referenced by ${parts.join(' and ')}. Deactivate instead.`,
+        409,
+        { dependencies: deps },
+      );
+    }
+
+    await organizationRepository.softDeleteBranch(id, user.id);
+    await auditLog({
+      userId: user.id,
+      action: 'DELETE',
+      entityType: 'branch',
+      entityId: id,
+      oldData: existing,
+      req,
+    });
+    return { id, deleted: true };
+  },
+
   getViewingBranchContext: async (user) => {
     const companyId = requireCompanyId(user);
     const canSwitch = canSwitchViewingBranch(user);

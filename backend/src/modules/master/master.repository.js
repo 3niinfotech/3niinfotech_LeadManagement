@@ -517,10 +517,15 @@ export const masterRepository = {
       name: true,
     };
     if (hasCode) select.code = true;
+    if (slug === 'course') {
+      select.university = { select: { name: true } };
+    }
     if ((config.createFields || []).includes('sortOrder')) select.sortOrder = true;
     if ((config.createFields || []).includes('position')) select.position = true;
     if ((config.createFields || []).includes('colorCode')) select.colorCode = true;
     if ((config.createFields || []).includes('phoneCode')) select.phoneCode = true;
+    if ((config.createFields || []).includes('isoCode')) select.isoCode = true;
+    if ((config.createFields || []).includes('taxPercentage')) select.taxPercentage = true;
 
     return delegate.findMany({
       where: {
@@ -605,7 +610,41 @@ export const masterRepository = {
         }
       }
     }
+
+    if (recordId && (config.jsonUsage || []).length) {
+      for (const usage of config.jsonUsage) {
+        const where = {
+          deletedAt: null,
+          metadata: {
+            path: usage.jsonPath,
+            equals: recordId,
+          },
+        };
+        if (usage.via === 'student.branch') {
+          where.student = { branch: { companyId }, deletedAt: null };
+        }
+        try {
+          const count = await prisma[usage.model].count({ where });
+          if (count > 0) results.push({ label: usage.label, count });
+        } catch {
+          // Skip JSON usage counts if unavailable for this database/provider.
+        }
+      }
+    }
     return results;
+  },
+
+  /** Attach per-record usage totals for list grids (admin masters). */
+  attachUsageCounts: async (config, companyId, rows = []) => {
+    if (!rows.length) return rows;
+    if (!(config.dependencies?.length || config.usage?.length || config.jsonUsage?.length)) {
+      return rows;
+    }
+    return Promise.all(rows.map(async (row) => {
+      const dependencies = await masterRepository.countDependencies(config, row, companyId);
+      const usageCount = dependencies.reduce((sum, dep) => sum + dep.count, 0);
+      return { ...row, usageCount, usageDetails: dependencies };
+    }));
   },
 
   applicationStatusCountrySummary: async (companyId) => {

@@ -98,4 +98,26 @@ export const organizationRepository = {
   countBranches: (companyId) => prisma.branch.count({
     where: { companyId, ...softDeleteWhere },
   }),
+
+  countBranchDependencies: async (branchId, companyId) => {
+    const checks = [
+      { label: 'users', count: () => prisma.user.count({ where: { branchId, companyId, deletedAt: null } }) },
+      { label: 'enquiries', count: () => prisma.enquiry.count({ where: { branchId, deletedAt: null, branch: { companyId } } }) },
+      { label: 'students', count: () => prisma.student.count({ where: { branchId, deletedAt: null, branch: { companyId } } }) },
+      { label: 'leads', count: () => prisma.lead.count({ where: { branchId, deletedAt: null, branch: { companyId } } }) },
+      { label: 'departments', count: () => prisma.department.count({ where: { branchId, companyId, deletedAt: null } }) },
+      { label: 'faculty', count: () => prisma.faculty.count({ where: { branchId, companyId, deletedAt: null } }) },
+    ];
+    const results = [];
+    for (const check of checks) {
+      const count = await check.count();
+      if (count > 0) results.push({ label: check.label, count });
+    }
+    return results;
+  },
+
+  softDeleteBranch: (id, userId) => prisma.branch.update({
+    where: { id },
+    data: { deletedAt: new Date(), isActive: false, updatedBy: userId },
+  }),
 };

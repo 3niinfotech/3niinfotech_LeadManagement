@@ -2,18 +2,20 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiBookOpen, FiExternalLink, FiSearch } from 'react-icons/fi';
 import { ROUTES } from '../../../config/routes';
-import { COURSE_FINDER_RECENTS } from '../../../config/headerMock.data';
+import { readCourseFinderRecents } from '../../../utils/courseFinderRecents';
+import CountryFlagLabel from '../../ui/CountryFlagLabel';
 
 export default function CourseFinderPanel({ onClose }) {
   const [query, setQuery] = useState('');
+  const recents = useMemo(() => readCourseFinderRecents(), []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return COURSE_FINDER_RECENTS;
-    return COURSE_FINDER_RECENTS.filter(
+    if (!q) return recents;
+    return recents.filter(
       (c) => c.name.toLowerCase().includes(q) || c.country.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [query, recents]);
 
   const finderHref = query.trim()
     ? `${ROUTES.COURSE_FINDER}?q=${encodeURIComponent(query.trim())}`
@@ -39,12 +41,16 @@ export default function CourseFinderPanel({ onClose }) {
 
       <div className="px-2 py-2">
         <h3 className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-          {query.trim() ? 'Matches' : 'Recent'}
+          {query.trim() ? 'Matches' : 'Recent searches'}
         </h3>
         {filtered.length === 0 ? (
           <div className="py-8 text-center px-4">
             <FiBookOpen className="w-8 h-8 text-text-muted mx-auto mb-2 opacity-45" />
-            <p className="text-[12px] text-text-muted">No matches — open full finder.</p>
+            <p className="text-[12px] text-text-muted">
+              {recents.length === 0
+                ? 'No recent searches — open Course Finder to start.'
+                : 'No matches — open full finder.'}
+            </p>
           </div>
         ) : (
           <ul className="space-y-0.5 max-h-[280px] overflow-y-auto no-scrollbar">
@@ -60,7 +66,11 @@ export default function CourseFinderPanel({ onClose }) {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-[13px] font-semibold text-text truncate">{course.name}</span>
-                    <span className="block text-[11px] text-text-muted">{course.country}</span>
+                    {course.country ? (
+                      <span className="block text-[11px] text-text-muted">
+                        <CountryFlagLabel country={course.country} size="xs" />
+                      </span>
+                    ) : null}
                   </span>
                 </Link>
               </li>

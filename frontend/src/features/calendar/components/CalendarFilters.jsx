@@ -1,112 +1,198 @@
+import { FiCheck, FiRotateCcw, FiSliders } from 'react-icons/fi';
 import Button from '../../../components/ui/Button';
 import Select from '../../../components/ui/Select';
 import {
   CALENDAR_CATEGORIES,
   CALENDAR_EVENT_TYPES,
+  CALENDAR_FILTER_PRESETS,
 } from '../constants/calendar.constants';
 
-function CheckRow({ checked, label, onChange }) {
+function FilterCheck({ checked, label, icon: Icon, tone = 'brand', count, onChange }) {
   return (
-    <label className="flex items-center gap-2 py-1 text-sm text-text-primary cursor-pointer">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className="h-4 w-4 rounded border border-field-border bg-bg-input text-brand focus:ring-brand/30 focus:ring-2"
-      />
-      <span>{label}</span>
-    </label>
+    <button
+      type="button"
+      className={`crm-calendar-check ${checked ? 'crm-calendar-check--on' : ''}`}
+      onClick={onChange}
+      aria-pressed={checked}
+    >
+      <span className="crm-calendar-check__box" aria-hidden>
+        <FiCheck className="w-2.5 h-2.5" strokeWidth={3} />
+      </span>
+      {Icon && (
+        <span className={`crm-calendar-check__icon crm-calendar-check__icon--${tone}`} aria-hidden>
+          <Icon className="w-3 h-3" />
+        </span>
+      )}
+      <span className="crm-calendar-check__label truncate">{label}</span>
+      {count != null && (
+        <span className="crm-calendar-check__count">{count}</span>
+      )}
+    </button>
   );
 }
 
+function FilterSection({ title, onAll, onNone, children }) {
+  return (
+    <section className="crm-calendar-filter-section">
+      <div className="crm-calendar-filter-section__head">
+        <h4 className="crm-calendar-filter-section__title">{title}</h4>
+        <div className="crm-calendar-filter-section__actions">
+          {onAll && (
+            <button type="button" className="crm-calendar-filter-section__link" onClick={onAll}>
+              All
+            </button>
+          )}
+          {onNone && (
+            <button type="button" className="crm-calendar-filter-section__link" onClick={onNone}>
+              None
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="crm-calendar-filter-section__body">{children}</div>
+    </section>
+  );
+}
+
+/**
+ * Advanced calendar filter rail — smart presets + themed check rows with live counts.
+ */
 export default function CalendarFilters({
   filters,
   toggleCategory,
   toggleEventType,
+  setCategories,
+  setEventTypes,
   setField,
   onReset,
+  applySmartPreset,
+  activePreset,
+  categoryCounts = {},
+  eventTypeCounts = {},
   branchOptions = [],
   counsellorOptions = [],
+  branchLocked = false,
+  canViewAllBranches = true,
 }) {
   return (
-    <aside className="no-scrollbar w-full lg:w-[260px] shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-card-bg overflow-y-auto max-h-[46vh] lg:max-h-none">
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2">Category</p>
+    <aside className="crm-calendar-filters no-scrollbar">
+      <div className="crm-calendar-filters__inner">
+        <div className="crm-calendar-filters__head">
+          <div>
+            <p className="crm-calendar-filters__title inline-flex items-center gap-1.5">
+              <FiSliders className="w-3.5 h-3.5 text-brand" />
+              Smart filters
+            </p>
+            <p className="crm-calendar-filters__sub">
+              Presets auto-tune category &amp; type · counts from this view
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" icon={FiRotateCcw} onClick={onReset} title="Reset filters">
+            Reset
+          </Button>
+        </div>
+
+        <div className="crm-calendar-preset-grid" role="group" aria-label="Filter presets">
+          {CALENDAR_FILTER_PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`crm-calendar-preset ${activePreset === p.id ? 'crm-calendar-preset--active' : ''}`}
+              onClick={() => applySmartPreset?.(p.id)}
+            >
+              <span className="crm-calendar-preset__label">{p.label}</span>
+              <span className="crm-calendar-preset__desc">{p.description}</span>
+            </button>
+          ))}
+        </div>
+
+        <FilterSection
+          title="Category"
+          onAll={() => setCategories(CALENDAR_CATEGORIES.map((c) => c.id))}
+          onNone={() => setCategories([])}
+        >
           {CALENDAR_CATEGORIES.map((c) => (
-            <CheckRow
+            <FilterCheck
               key={c.id}
               label={c.label}
+              icon={c.icon}
+              tone={c.tone}
+              count={categoryCounts[c.id] ?? 0}
               checked={filters.categories.includes(c.id)}
               onChange={() => toggleCategory(c.id)}
             />
           ))}
-        </div>
+        </FilterSection>
 
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2">Event type</p>
+        <FilterSection
+          title="Event type"
+          onAll={() => setEventTypes(CALENDAR_EVENT_TYPES.map((t) => t.id))}
+          onNone={() => setEventTypes([])}
+        >
           {CALENDAR_EVENT_TYPES.map((t) => (
-            <CheckRow
+            <FilterCheck
               key={t.id}
               label={t.label}
+              icon={t.icon}
+              tone={t.tone}
+              count={eventTypeCounts[t.id] ?? 0}
               checked={filters.eventTypes.includes(t.id)}
               onChange={() => toggleEventType(t.id)}
             />
           ))}
-        </div>
+        </FilterSection>
 
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Assigned to</p>
-          <Select
-            value={filters.assignedTo}
-            onChange={(e) => setField('assignedTo', e.target.value)}
-            options={[{ value: '', label: 'Anyone' }, ...counsellorOptions]}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Branch</p>
-          <Select
-            value={filters.branchId}
-            onChange={(e) => setField('branchId', e.target.value)}
-            options={[{ value: '', label: 'All branches' }, ...branchOptions]}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Status</p>
-          <Select
-            value={filters.status}
-            onChange={(e) => setField('status', e.target.value)}
-            options={[
-              { value: '', label: 'All statuses' },
-              { value: 'OVERDUE', label: 'Overdue' },
-              { value: 'PENDING', label: 'Pending' },
-              { value: 'SCHEDULED', label: 'Scheduled' },
-              { value: 'COMPLETED', label: 'Completed' },
-            ]}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Priority</p>
-          <Select
-            value={filters.priority}
-            onChange={(e) => setField('priority', e.target.value)}
-            options={[
-              { value: '', label: 'All priorities' },
-              { value: 'HIGH', label: 'High' },
-              { value: 'VIP', label: 'VIP' },
-              { value: 'MEDIUM', label: 'Medium' },
-              { value: 'NORMAL', label: 'Normal' },
-              { value: 'LOW', label: 'Low' },
-            ]}
-          />
-        </div>
-
-        <Button variant="outline" size="sm" className="w-full sm:self-end" onClick={onReset}>
-          Reset filters
-        </Button>
+        <section className="crm-calendar-filter-section">
+          <div className="crm-calendar-filter-section__head">
+            <h4 className="crm-calendar-filter-section__title">Scope</h4>
+          </div>
+          <div className="crm-calendar-filter-fields">
+            <Select
+              label="Assigned to"
+              value={filters.assignedTo}
+              onChange={(e) => setField('assignedTo', e.target.value)}
+              options={[{ value: '', label: 'Anyone' }, ...counsellorOptions]}
+            />
+            <Select
+              label={branchLocked ? 'Branch (Active)' : 'Branch'}
+              value={filters.branchId}
+              disabled={branchLocked}
+              hint={branchLocked ? 'Locked to navbar Active Branch' : undefined}
+              onChange={(e) => setField('branchId', e.target.value)}
+              options={[
+                ...(canViewAllBranches && !branchLocked
+                  ? [{ value: '', label: 'All branches' }]
+                  : []),
+                ...branchOptions,
+              ]}
+            />
+            <Select
+              label="Status"
+              value={filters.status}
+              onChange={(e) => setField('status', e.target.value)}
+              options={[
+                { value: '', label: 'All statuses' },
+                { value: 'OVERDUE', label: 'Overdue' },
+                { value: 'PENDING', label: 'Pending' },
+                { value: 'SCHEDULED', label: 'Scheduled' },
+                { value: 'COMPLETED', label: 'Completed' },
+              ]}
+            />
+            <Select
+              label="Priority"
+              value={filters.priority}
+              onChange={(e) => setField('priority', e.target.value)}
+              options={[
+                { value: '', label: 'All priorities' },
+                { value: 'HIGH', label: 'High' },
+                { value: 'VIP', label: 'VIP' },
+                { value: 'MEDIUM', label: 'Medium' },
+                { value: 'NORMAL', label: 'Normal' },
+                { value: 'LOW', label: 'Low' },
+              ]}
+            />
+          </div>
+        </section>
       </div>
     </aside>
   );

@@ -218,8 +218,9 @@ export const ENQUIRY_PROFILE_TABS = [
 /** Post-conversion student profile tabs — full admission journey */
 export const STUDENT_PROFILE_TABS = [
   { id: 'overview', label: 'Overview', icon: 'layout', group: 'profile' },
-  { id: 'personal', label: 'Personal', icon: 'edit', group: 'profile' },
-  { id: 'academic', label: 'Academic', icon: 'book', group: 'profile' },
+  { id: 'profile', label: 'Profile', icon: 'edit', group: 'profile' },
+  { id: 'enquiry-history', label: 'Enquiry History', icon: 'file', group: 'history' },
+  { id: 'demo-history', label: 'Demo / Assessment', icon: 'clock', group: 'history' },
   { id: 'documents', label: 'Documents', icon: 'file', group: 'journey' },
   { id: 'applications', label: 'Applications', icon: 'briefcase', group: 'journey' },
   { id: 'visa', label: 'Visa', icon: 'globe', group: 'journey' },

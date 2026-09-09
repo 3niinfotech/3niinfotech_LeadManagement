@@ -15,6 +15,7 @@ import { useRelationalMasterOptions } from '../../master/hooks/useRelationalMast
 import { useAsyncMasterOptions } from '../../master/hooks/useAsyncMasterOptions';
 import Select from '../../../components/ui/Select';
 import MasterManageLink from '../../master/components/MasterManageLink';
+import CountryFlagLabel from '../../../components/ui/CountryFlagLabel';
 
 const EMPTY_FORM = {
   studentId: '',
@@ -212,9 +213,14 @@ export default function AdmissionsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <div className="font-semibold text-text">{record.university} · {record.course}</div>
-                      <div className="text-sm text-text-muted">
-                        {record.student?.firstName} {record.student?.lastName} · {record.applicationNo}
-                        {record.country ? ` · ${record.country}` : ''}
+                      <div className="text-sm text-text-muted inline-flex flex-wrap items-center gap-1">
+                        <span>{record.student?.firstName} {record.student?.lastName} · {record.applicationNo}</span>
+                        {record.country ? (
+                          <>
+                            <span>·</span>
+                            <CountryFlagLabel country={record.country} size="xs" />
+                          </>
+                        ) : null}
                       </div>
                     </div>
                     <Badge color={record.metadata?.setOfferLetter ? 'success' : 'warning'}>{displayStatus(record)}</Badge>

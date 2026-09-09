@@ -35,11 +35,27 @@ export const DEMO_SUMMARY_CARDS = [
   },
   {
     key: 'attended',
-    label: 'Attended',
+    label: 'Present',
     icon: FiCheckCircle,
     tone: 'success',
     filterValue: '__attended',
-    value: (s) => s?.attended ?? 0,
+    value: (s) => s?.present ?? s?.attended ?? 0,
+  },
+  {
+    key: 'missed',
+    label: 'Absent',
+    icon: FiUserX,
+    tone: 'danger',
+    filterValue: '__missed',
+    value: (s) => s?.absent ?? s?.missed ?? 0,
+  },
+  {
+    key: 'notMarked',
+    label: 'Not Marked',
+    icon: FiAlertCircle,
+    tone: 'warning',
+    filterValue: '__notMarked',
+    value: (s) => s?.notMarked ?? 0,
   },
   {
     key: 'converted',
@@ -48,22 +64,6 @@ export const DEMO_SUMMARY_CARDS = [
     tone: 'primary',
     filterValue: '__converted',
     value: (s) => s?.converted ?? 0,
-  },
-  {
-    key: 'missed',
-    label: 'Missed / Absent',
-    icon: FiUserX,
-    tone: 'danger',
-    filterValue: '__missed',
-    value: (s) => s?.missed ?? 0,
-  },
-  {
-    key: 'pendingOutcome',
-    label: 'Pending Outcome',
-    icon: FiAlertCircle,
-    tone: 'warning',
-    filterValue: '__pendingOutcome',
-    value: (s) => s?.pendingOutcome ?? 0,
   },
 ];
 
@@ -76,4 +76,17 @@ export function buildDemoSummaryItems(summary = {}) {
     filterValue: card.filterValue,
     value: card.value(summary),
   }));
+}
+
+/** Compact strip for today's demo attendance on Demo page */
+export function buildTodayAttendanceSummary(summary = {}) {
+  const total = summary.todayTotal
+    ?? ((summary.todayPresent || 0) + (summary.todayAbsent || 0) + (summary.todayNotMarked || 0));
+  return {
+    total,
+    present: summary.todayPresent ?? 0,
+    absent: summary.todayAbsent ?? 0,
+    notMarked: summary.todayNotMarked ?? 0,
+    rate: summary.todayAttendanceRate,
+  };  
 }

@@ -47,11 +47,29 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   mountSecureUploads(app);
-  app.use('/api', apiLimiter, routes);
 
-  app.get('/api/health', (_req, res) => {
-    res.json({ success: true, message: 'API is running', timestamp: new Date().toISOString() });
+  app.get('/api/health', async (_req, res) => {
+    try {
+      const prisma = (await import('./config/database.js')).default;
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({
+        success: true,
+        message: 'API is running',
+        database: 'connected',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      res.status(503).json({
+        success: false,
+        message: 'API up but database unreachable',
+        database: 'disconnected',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+        timestamp: new Date().toISOString(),
+      });
+    }
   });
+
+  app.use('/api', apiLimiter, routes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

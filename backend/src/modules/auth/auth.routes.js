@@ -44,6 +44,7 @@ const avatarUpload = multer({
 });
 
 router.post('/login', authLimiter, authController.login);
+router.post('/forgot-password', authLimiter, authController.forgotPassword);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authenticate, authController.logout);
 router.get('/profile', authenticate, authController.getProfile);
@@ -52,6 +53,15 @@ router.post('/profile/avatar', authenticate, avatarUpload.single('file'), authCo
 router.delete('/profile/avatar', authenticate, authController.removeAvatar);
 router.post('/change-password', authenticate, authLimiter, authController.changePassword);
 router.patch('/preferences', authenticate, authController.updatePreferences);
+router.get('/security/overview', authenticate, authController.getSecurityOverview);
+router.get('/sessions', authenticate, authController.listSessions);
+router.delete('/sessions/:id', authenticate, authController.revokeSession);
+router.post('/sessions/revoke-others', authenticate, authController.revokeOtherSessions);
+router.get('/activity', authenticate, authController.listActivity);
+router.get('/login-history', authenticate, authController.listLoginHistory);
+router.get('/api-tokens', authenticate, authController.listApiTokens);
+router.post('/api-tokens', authenticate, authController.createApiToken);
+router.delete('/api-tokens/:id', authenticate, authController.revokeApiToken);
 
 router.get('/register/branches', authLimiter, authController.getRegistrationBranches);
 router.post('/register/student', authLimiter, authController.registerStudent);

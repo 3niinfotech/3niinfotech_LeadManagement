@@ -7,11 +7,20 @@ import { useStudentNav } from '../hooks/useStudentNav';
 import { ROUTES } from '../../../config/routes';
 
 const VALID_TABS = new Set(STUDENT_PROFILE_TABS.map((t) => t.id));
+const LEGACY_TAB_REDIRECTS = {
+  personal: 'profile',
+  academic: 'profile',
+};
 
 export default function StudentDetailPage() {
   const { id, tab } = useParams();
   const { setTab } = useStudentNav();
+  const redirectTab = tab && LEGACY_TAB_REDIRECTS[tab];
   const activeTab = tab && VALID_TABS.has(tab) ? tab : 'overview';
+
+  if (redirectTab) {
+    return <Navigate to={ROUTES.STUDENT_TAB(id, redirectTab)} replace />;
+  }
 
   if (tab && !VALID_TABS.has(tab)) {
     return <Navigate to={ROUTES.STUDENT_DETAIL(id)} replace />;

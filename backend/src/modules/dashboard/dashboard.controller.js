@@ -6,7 +6,17 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
   sendSuccess(res, stats);
 });
 
+export const getDashboardAnalytics = asyncHandler(async (req, res) => {
+  const data = await dashboardService.getAnalytics(req.query, req.user);
+  sendSuccess(res, data);
+});
+
 export const getRecentActivity = asyncHandler(async (req, res) => {
   const activity = await dashboardService.getRecentActivity(req.user);
   sendSuccess(res, activity);
+});
+
+export const getMyTarget = asyncHandler(async (req, res) => {
+  const data = await dashboardService.getMyTarget(req.user);
+  sendSuccess(res, data);
 });

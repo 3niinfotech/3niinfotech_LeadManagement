@@ -1,5 +1,5 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { apiGet, apiPost, apiPut } from '../../../api/apiClient';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../../api/apiClient';
 import { API } from '../../../config/api';
 
 const axiosBaseQuery = () => async ({ url, method = 'GET', body, params }) => {
@@ -8,6 +8,7 @@ const axiosBaseQuery = () => async ({ url, method = 'GET', body, params }) => {
       GET: () => apiGet(url, params),
       POST: () => apiPost(url, body),
       PUT: () => apiPut(url, body),
+      DELETE: () => apiDelete(url),
     };
     const data = await (handlers[method] || handlers.GET)();
     return { data };
@@ -53,6 +54,13 @@ export const attendanceApi = createApi({
       }),
       invalidatesTags: (_r, _e, { id }) => [{ type: 'BatchDetail', id }],
     }),
+    unenrollStudent: builder.mutation({
+      query: ({ id, studentId }) => ({
+        url: API.ACADEMIC_BATCH_UNENROLL(id, studentId),
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_r, _e, { id }) => [{ type: 'BatchDetail', id }, 'Batches'],
+    }),
     addTimetableSlot: builder.mutation({
       query: ({ id, ...body }) => ({ url: API.ACADEMIC_BATCH_TIMETABLE(id), method: 'POST', body }),
       invalidatesTags: (_r, _e, { id }) => [{ type: 'BatchDetail', id }],
@@ -97,6 +105,7 @@ export const {
   useCreateBatchMutation,
   useUpdateBatchMutation,
   useEnrollStudentsMutation,
+  useUnenrollStudentMutation,
   useAddTimetableSlotMutation,
   useGenerateSessionsMutation,
   useGetSessionsQuery,

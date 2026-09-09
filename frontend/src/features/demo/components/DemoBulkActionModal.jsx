@@ -23,7 +23,7 @@ export default function DemoBulkActionModal({
   const [bulkMarkAttendance, { isLoading: attendanceLoading }] = useBulkMarkDemoAttendanceMutation();
   const [bulkCancel, { isLoading: cancelLoading }] = useBulkCancelDemosMutation();
 
-  const [attendance, setAttendance] = useState('ATTENDED');
+  const [attendance, setAttendance] = useState('PRESENT');
   const [result, setResult] = useState('POSITIVE');
   const [reason, setReason] = useState('Bulk cancelled by administrator');
   const [remark, setRemark] = useState('');

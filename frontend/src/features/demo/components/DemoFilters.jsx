@@ -18,6 +18,8 @@ export default function DemoFilters({
   onSearch,
   onReset,
   onClose,
+  branchLocked = false,
+  canViewAllBranches = true,
 }) {
   const { options: facultyOptions } = useRelationalMasterOptions('faculty', {}, { enabled: Boolean(open) });
   const { options: branchOptions } = useBranchOptions();
@@ -130,13 +132,20 @@ export default function DemoFilters({
 
       {branchOptions?.length > 1 && (
         <Select
-          label="Branch"
+          label={branchLocked ? 'Branch (Active)' : 'Branch'}
           value={values.branchId || ''}
-          onChange={(e) => handleChange('branchId', e.target.value)}
-          placeholder="All Branches"
+          disabled={branchLocked}
+          hint={branchLocked ? 'Locked to navbar Active Branch' : undefined}
+          onChange={(e) => {
+            if (branchLocked) return;
+            handleChange('branchId', e.target.value);
+          }}
+          placeholder={branchLocked ? 'Active branch' : 'All Branches'}
           size="sm"
         >
-          <option value="">All Branches</option>
+          {canViewAllBranches && !branchLocked ? (
+            <option value="">All Branches</option>
+          ) : null}
           {branchOptions.map((b) => (
             <option key={b.value} value={b.value}>
               {b.label}

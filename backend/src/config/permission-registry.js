@@ -94,6 +94,11 @@ export const PERMISSION_REGISTRY = [
   { key: 'roles.export', module: 'roles', action: 'export', name: 'Export Roles', groupName: 'Administration' },
   { key: 'roles.clone', module: 'roles', action: 'clone', name: 'Clone Roles', groupName: 'Administration' },
 
+  // Staff role applications (public apply → admin review)
+  { key: 'role_application.view', module: 'role_application', action: 'view', name: 'View Role Applications', groupName: 'Administration' },
+  { key: 'role_application.review', module: 'role_application', action: 'review', name: 'Review Role Applications', groupName: 'Administration' },
+  { key: 'role_application.approve', module: 'role_application', action: 'approve', name: 'Approve Role Applications', groupName: 'Administration' },
+
   // Settings & Masters
   { key: 'settings.view', module: 'settings', action: 'view', name: 'View Settings', groupName: 'Settings' },
   { key: 'settings.manage', module: 'settings', action: 'manage', name: 'Manage Settings', groupName: 'Settings' },

@@ -1,0 +1,83 @@
+/* Pinned page header slot — stays visible while body scrolls */
+.crm-page-shell {
+  height: 100%;
+  min-height: 0;
+}
+
+.crm-page-header-slot {
+  flex-shrink: 0;
+  z-index: 25;
+  background: var(--bg-page, var(--background));
+}
+
+.crm-page-header-slot .crm-page-header--standalone {
+  margin-bottom: 0;
+}
+
+.crm-page-shell__body {
+  flex: 1;
+  min-height: 0;
+}
+
+.crm-page-shell__body--fixed {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.crm-page-shell__content--fixed {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+}
+
+.crm-page-shell__content--scroll {
+  /* Let content grow naturally inside ScrollArea */
+  min-height: min-content;
+}
+
+.crm-page-shell__section {
+  min-width: 0;
+}
+
+.crm-page-shell__content--fixed > .crm-page-shell__section:last-child {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.crm-page-shell__content--fixed > .crm-page-shell__section:not(:last-child) {
+  flex-shrink: 0;
+}
+
+/* Fallback: sticky when header remains inside a scroll container */
+[data-page-scroll] .crm-page-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.crm-page-header {
+  background: var(--bg-card, var(--color-card-bg, #fff));
+}
+
+.crm-page-header--standalone {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border, var(--color-border, #e5e7eb));
+  box-shadow: var(--shadow-card, 0 1px 3px rgba(15, 23, 42, 0.06));
+}
+
+.crm-page-header--embedded {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Module pages fill the routed viewport */
+.app-page-root {
+  height: 100%;
+  min-height: 0;
+}

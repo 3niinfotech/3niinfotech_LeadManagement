@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiPatch } from '../../../api/apiClient';
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../../../api/apiClient';
 import apiClient from '../../../api/axios';
 import { API } from '../../../config/api';
 
@@ -33,6 +33,8 @@ export const organizationApi = {
 
   updateBranchStatus: async (id, isActive) =>
     unwrap(await apiPatch(API.ORGANIZATION_BRANCH_STATUS(id), { isActive })),
+
+  removeBranch: async (id) => unwrap(await apiDelete(API.ORGANIZATION_BRANCH(id))),
 };
 
 export default organizationApi;

@@ -44,6 +44,18 @@ export function attendancePercent({ present = 0, late = 0, excused = 0, total = 
   return Math.round((credited / total) * 1000) / 10;
 }
 
+/** Daily teacher/student view: PRESENT vs ABSENT only (legacy statuses map to present). */
+export function dailyAttendanceBucket(status) {
+  if (!status) return null;
+  if (status === 'ABSENT' || status === 'LEAVE') return 'ABSENT';
+  return 'PRESENT';
+}
+
+export function dailyAttendancePercent(present, total) {
+  if (!total) return 0;
+  return Math.round((present / total) * 1000) / 10;
+}
+
 export function isLowAttendance(percent, settings) {
   return percent < settings.lowAttendancePercent;
 }

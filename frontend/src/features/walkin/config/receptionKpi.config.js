@@ -1,43 +1,40 @@
 import {
-  FiUserPlus, FiClock, FiUsers, FiCheckCircle,
+  FiUserPlus, FiAlertCircle, FiUsers, FiCheckCircle,
 } from 'react-icons/fi';
 
-/** Clear operational KPIs only — no fake % trends */
-export function buildReceptionKpiItems(metrics = {}, summary = {}) {
+/**
+ * Reception KPIs — same item shape as Enquiry / Demo / Applications SummaryStatBar.
+ * No waiting-list KPI: course auto-assign covers counsellor routing.
+ */
+export function buildReceptionKpiItems(metrics = {}) {
   const {
     todayCount = 0,
-    waitingCount = 0,
+    unassignedCount = 0,
     inCounsellingCount = 0,
     completedCount = 0,
-    convertedCount = 0,
   } = metrics;
-
-  const converted = convertedCount ?? summary.convertedToday ?? 0;
 
   return [
     {
       key: 'todayWalkIns',
       label: 'Today',
       value: todayCount,
-      hint: 'Registered today',
       tone: 'primary',
       icon: FiUserPlus,
       filterValue: 'today',
     },
     {
-      key: 'waiting',
-      label: 'Waiting',
-      value: waitingCount,
-      hint: waitingCount ? 'Need counsellor' : 'No one waiting',
-      tone: 'warning',
-      icon: FiClock,
-      filterValue: 'waiting',
+      key: 'unassigned',
+      label: 'Unassigned',
+      value: unassignedCount,
+      tone: unassignedCount > 0 ? 'danger' : 'secondary',
+      icon: FiAlertCircle,
+      filterValue: 'unassigned',
     },
     {
       key: 'inCounselling',
-      label: 'In session',
+      label: 'In Session',
       value: inCounsellingCount,
-      hint: 'With counsellor now',
       tone: 'info',
       icon: FiUsers,
       filterValue: 'in_counselling',
@@ -46,7 +43,6 @@ export function buildReceptionKpiItems(metrics = {}, summary = {}) {
       key: 'completed',
       label: 'Done',
       value: completedCount,
-      hint: converted ? `${converted} became enquiry` : 'Completed today',
       tone: 'success',
       icon: FiCheckCircle,
       filterValue: 'completed',

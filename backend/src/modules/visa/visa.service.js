@@ -96,7 +96,49 @@ export const visaService = {
     return visaRepository.findMany({ ...query, sort, scopeWhere });
   },
 
-  getById: async (id, user) => assertVisaInTenant(id, user),
+  getSummary: async (query, user) => {
+    const scopeWhere = mergeStudentRelationScope(user);
+    if (query.studentId) await assertStudentInTenant(query.studentId, user);
+    return visaRepository.getSummary({ ...query, scopeWhere });
+  },
+
+  getById: async (id, user) => {
+    await assertVisaInTenant(id, user);
+    const record = await visaRepository.findById(id);
+    if (!record) throw new AppError('Visa case not found', 404);
+    return record;
+  },
+
+  exportVisas: async (query, user, userId, req) => {
+    const { ids: requestedIds, ...filters } = query || {};
+    const selected = Array.isArray(requestedIds) && requestedIds.length > 0;
+    const scopeWhere = mergeStudentRelationScope(user);
+    if (filters.studentId) await assertStudentInTenant(filters.studentId, user);
+
+    const sort = parseSort(filters, VISA_SORT_FIELDS);
+    const result = await visaRepository.findMany({
+      ...filters,
+      ...(selected ? { ids: requestedIds } : {}),
+      sort,
+      scopeWhere,
+      page: 1,
+      limit: selected ? Math.max(requestedIds.length, 1) : 5000,
+    });
+
+    const { buildVisaExportWorkbook, buildVisaExportFilename } = await import('./visa.export.service.js');
+    const buffer = await buildVisaExportWorkbook(result.data, { selected });
+    const filename = buildVisaExportFilename({ selected });
+
+    await auditLog({
+      userId,
+      action: 'EXPORT',
+      entityType: 'Visa',
+      newData: { count: result.data.length, selected },
+      req,
+    });
+
+    return { buffer, filename, count: result.data.length, selected };
+  },
 
   create: async (data, user, req) => {
     const userId = user?.id;

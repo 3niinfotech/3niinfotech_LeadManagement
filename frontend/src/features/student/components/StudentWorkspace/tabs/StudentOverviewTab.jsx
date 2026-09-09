@@ -1,223 +1,217 @@
-import { Link, useNavigate } from 'react-router-dom';
 import {
-  FiSend,
-  FiGlobe,
+  FiClock,
+  FiArrowRight,
   FiFileText,
+  FiGlobe,
+  FiFolder,
   FiMessageSquare,
-  FiPhone,
-  FiMail,
-  FiMapPin,
-  FiCalendar,
-  FiBookOpen,
-  FiAward,
-  FiExternalLink,
-  FiPlus,
-  FiUserCheck,
 } from 'react-icons/fi';
-import { FaWhatsapp } from 'react-icons/fa';
-import Avatar from '../../../../../components/ui/Avatar';
-import Badge from '../../../../../components/ui/Badge';
-import Button from '../../../../../components/ui/Button';
-import { STUDENT_STATUSES } from '../../../../../config/constants';
-import { ROUTES } from '../../../../../config/routes';
+import CountryFlagLabel from '../../../../../components/ui/CountryFlagLabel';
+import EnquiryTimelineItem from '../../../../enquiry/components/EnquiryDrawer/EnquiryTimelineItem';
+import { buildStudentJourneyStats } from '../../../utils/studentJourney.utils';
 import { useStudentStatusOptions } from '../../../hooks/useStudentStatusOptions';
 
-function QuickStatCard({ label, count, icon: Icon, color, onClick }) {
+function Field({ label, value, children }) {
+  const display = children ?? value;
+  if (display == null || display === '' || display === '—') return null;
   return (
-    <div
-      onClick={onClick}
-      className={`p-4 rounded-xl border border-border bg-surface transition-all duration-200 hover:shadow-sm ${
-        onClick ? 'cursor-pointer hover:border-primary/40' : ''
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">{label}</span>
-        <div className={`p-2 rounded-lg ${color}`}>
-          <Icon className="w-4 h-4" />
-        </div>
-      </div>
-      <div className="mt-2 text-2xl font-bold text-text tabular-nums">{count}</div>
+    <div className="crm-sov-field">
+      <dt>{label}</dt>
+      <dd>{display}</dd>
     </div>
   );
 }
 
-export default function StudentOverviewTab({ student, onTabChange }) {
-  const navigate = useNavigate();
-  const { getStatusMeta } = useStudentStatusOptions();
+function formatDate(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
+const STAT_ICONS = {
+  applications: FiFileText,
+  visa: FiGlobe,
+  documents: FiFolder,
+  notes: FiMessageSquare,
+};
+
+const STAT_TONES = {
+  applications: 'brand',
+  visa: 'info',
+  documents: 'warning',
+  notes: 'success',
+};
+
+/** Compact read-only overview — edit on Profile tab. */
+export default function StudentOverviewTab({ student, onTabChange, timelineRows = [] }) {
+  const { getStatusMeta } = useStudentStatusOptions();
   if (!student) return null;
 
-  const meta = getStatusMeta(student.status);
-  const statusMeta = meta || STUDENT_STATUSES.find((s) => s.value === student.status);
-  const enquiryId = student.metadata?.enquiryId || student.enquiry?.id;
-  const enquiryCode = student.metadata?.enquiryCode || student.enquiry?.enquiryCode;
+  const stats = buildStudentJourneyStats(student);
+  const statusMeta = getStatusMeta(student.status);
+  const recentActivity = timelineRows.slice(0, 5);
+  const meta = student.metadata || {};
+  const tags = Array.isArray(meta.tags) ? meta.tags.filter(Boolean) : [];
+  const testsGiven = Array.isArray(meta.testsGiven) ? meta.testsGiven.filter((t) => t?.name) : [];
+  const hasEnquiryExtras = Boolean(
+    meta.source || meta.remark || meta.otherReference || tags.length || testsGiven.length,
+  );
+  const showPreadmit = Boolean(stats.enquiryCode || hasEnquiryExtras);
 
-  const name = `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Student';
-  const cleanPhone = student.phone ? String(student.phone).replace(/\D/g, '') : '';
-
-  const appsCount = student.applications?.length ?? 0;
-  const visasCount = student.visas?.length ?? 0;
-  const docsCount = student.documents?.length ?? 0;
-  const notesCount = student.notes?.length ?? 0;
+  const journey = [
+    { key: 'applications', label: 'Applications', value: student.applications?.length ?? 0, tab: 'applications' },
+    { key: 'visa', label: 'Visa', value: student.visas?.length ?? 0, tab: 'visa' },
+    { key: 'documents', label: 'Documents', value: stats.documents, tab: 'documents' },
+    { key: 'notes', label: 'Notes', value: stats.notes, tab: 'notes' },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Profile Overview Card */}
-      <div className="p-5 rounded-2xl bg-surface border border-border flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xs">
-        <div className="flex items-start sm:items-center gap-4">
-          <Avatar
-            name={name}
-            size="xl"
-            className="ring-4 ring-surface-hover shadow-sm"
-          />
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h2 className="text-xl font-bold text-text">{name}</h2>
-              <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary">
-                {student.studentCode}
+    <div className="crm-sov">
+      <div className="crm-sov-strip" role="navigation" aria-label="Student journey shortcuts">
+        {journey.map((item) => {
+          const Icon = STAT_ICONS[item.key];
+          const tone = STAT_TONES[item.key];
+          return (
+            <button
+              key={item.key}
+              type="button"
+              className={`crm-sov-stat crm-sov-stat--${tone}`}
+              onClick={() => onTabChange?.(item.tab)}
+            >
+              <span className="crm-sov-stat__icon" aria-hidden>
+                {Icon ? <Icon /> : null}
               </span>
-              {statusMeta && (
-                <Badge color={statusMeta.color || 'primary'}>
-                  {statusMeta.label || student.status}
-                </Badge>
+              <span className="crm-sov-stat__copy">
+                <span className="crm-sov-stat__value">{item.value}</span>
+                <span className="crm-sov-stat__label">{item.label}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="crm-sov-grid">
+        <section className="crm-sov-block">
+          <h3 className="crm-sov-block__title">Personal</h3>
+          <dl className="crm-sov-dl">
+            <Field label="Name" value={name} />
+            <Field label="Email" value={student.email} />
+            <Field label="Phone" value={student.phone} />
+            <Field label="Emergency" value={meta.emergencyContact || meta.alternateNo} />
+            <Field label="Date of birth" value={formatDate(student.dateOfBirth)} />
+            <Field label="Gender" value={student.gender?.replace(/_/g, ' ')} />
+            <Field label="Nationality" value={student.nationality} />
+            <Field label="Passport" value={student.passportNo} />
+            {student.address ? (
+              <div className="crm-sov-field crm-sov-field--wide">
+                <dt>Address</dt>
+                <dd>{student.address}</dd>
+              </div>
+            ) : null}
+          </dl>
+        </section>
+
+        <section className="crm-sov-block">
+          <h3 className="crm-sov-block__title">Study plan</h3>
+          <dl className="crm-sov-dl">
+            <Field label="Country">
+              {student.country ? <CountryFlagLabel country={student.country} size="sm" /> : null}
+            </Field>
+            <Field label="Course" value={student.course} />
+            <Field label="University" value={student.university} />
+            <Field label="Intake" value={student.intake} />
+            <Field label="Qualification" value={meta.highestQual} />
+            <Field label="Apply level" value={meta.applyLevel?.replace(/_/g, ' ')} />
+            <Field label="Status" value={statusMeta?.label || student.status} />
+            <Field label="Branch" value={student.branch?.name} />
+          </dl>
+        </section>
+
+        {showPreadmit && (
+          <section className="crm-sov-block crm-sov-block--span">
+            <div className="crm-sov-block__head">
+              <h3 className="crm-sov-block__title">Pre-admission</h3>
+              {stats.enquiryCode && (
+                <button
+                  type="button"
+                  className="crm-sov-block__link"
+                  onClick={() => onTabChange?.('enquiry-history')}
+                >
+                  Enquiry history
+                  <FiArrowRight aria-hidden />
+                </button>
               )}
             </div>
 
-            <div className="flex items-center gap-4 mt-2 flex-wrap text-xs text-text-muted">
-              {student.phone && (
-                <span className="flex items-center gap-1">
-                  <FiPhone className="w-3.5 h-3.5" />
-                  <span className="tabular-nums font-medium text-text">{student.phone}</span>
-                </span>
-              )}
-              {student.email && (
-                <span className="flex items-center gap-1">
-                  <FiMail className="w-3.5 h-3.5" />
-                  <span className="font-medium text-text">{student.email}</span>
-                </span>
-              )}
-              {student.branch?.name && (
-                <span className="flex items-center gap-1">
-                  <FiMapPin className="w-3.5 h-3.5" />
-                  <span>{student.branch.name}</span>
-                </span>
-              )}
-              {student.assignedTo && (
-                <span className="flex items-center gap-1">
-                  <FiUserCheck className="w-3.5 h-3.5" />
+            {(stats.enquiryCode || stats.demos != null) && (
+              <div className="crm-sov-lead">
+                {stats.enquiryCode && (
+                  <div className="crm-sov-lead__id">
+                    <span className="crm-sov-lead__kicker">Enquiry</span>
+                    <span className="crm-sov-lead__code">{stats.enquiryCode}</span>
+                  </div>
+                )}
+                <div className="crm-sov-lead__counts">
                   <span>
-                    Counsellor: <strong className="text-text font-semibold">{`${student.assignedTo.firstName || ''} ${student.assignedTo.lastName || ''}`.trim()}</strong>
+                    <strong>{stats.demos}</strong> demos
                   </span>
-                </span>
-              )}
+                  <span>
+                    <strong>{stats.followups}</strong> follow-ups
+                  </span>
+                  <span>
+                    <strong>{stats.documents}</strong> docs
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {hasEnquiryExtras && (
+              <dl className="crm-sov-dl crm-sov-dl--dense">
+                <Field label="Source" value={meta.source} />
+                <Field label="Reference" value={meta.otherReference} />
+                <Field label="Remark" value={meta.remark} />
+                {tags.length > 0 && (
+                  <Field label="Tags">
+                    <span className="crm-sov-tags">
+                      {tags.map((tag) => (
+                        <span key={tag}>{tag}</span>
+                      ))}
+                    </span>
+                  </Field>
+                )}
+                {testsGiven.length > 0 && (
+                  <Field label="Tests">
+                    {testsGiven.map((t) => `${t.name}${t.score ? ` (${t.score})` : ''}`).join(', ')}
+                  </Field>
+                )}
+              </dl>
+            )}
+          </section>
+        )}
+
+        {recentActivity.length > 0 && (
+          <section className="crm-sov-block crm-sov-block--span">
+            <div className="crm-sov-block__head">
+              <h3 className="crm-sov-block__title">Recent activity</h3>
+              <button
+                type="button"
+                className="crm-sov-block__link"
+                onClick={() => onTabChange?.('timeline')}
+              >
+                <FiClock aria-hidden />
+                Full timeline ({timelineRows.length})
+              </button>
             </div>
-          </div>
-        </div>
-
-        {/* Quick Communication Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          {cleanPhone && (
-            <a
-              href={`https://wa.me/${cleanPhone}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors text-xs font-semibold"
-            >
-              <FaWhatsapp className="w-4 h-4" />
-              WhatsApp
-            </a>
-          )}
-          {cleanPhone && (
-            <a
-              href={`tel:${cleanPhone}`}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-semibold"
-            >
-              <FiPhone className="w-4 h-4" />
-              Call
-            </a>
-          )}
-          {enquiryId && (
-            <Link
-              to={ROUTES.ENQUIRY_DETAIL(enquiryId)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition-colors text-xs font-semibold"
-            >
-              <FiExternalLink className="w-4 h-4" />
-              Enquiry {enquiryCode || ''}
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* Target Destination & Academic Roadmap */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl border border-border bg-surface">
-          <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
-            <FiGlobe className="w-4 h-4 text-sky-500" /> Target Country
-          </div>
-          <div className="text-base font-bold text-text">{student.country || '—'}</div>
-          <div className="text-xs text-text-muted mt-1">Destination of interest</div>
-        </div>
-
-        <div className="p-4 rounded-xl border border-border bg-surface">
-          <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
-            <FiBookOpen className="w-4 h-4 text-indigo-500" /> Course / Program
-          </div>
-          <div className="text-base font-bold text-text">{student.course || '—'}</div>
-          <div className="text-xs text-text-muted mt-1">Study major</div>
-        </div>
-
-        <div className="p-4 rounded-xl border border-border bg-surface">
-          <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
-            <FiAward className="w-4 h-4 text-amber-500" /> University
-          </div>
-          <div className="text-base font-bold text-text truncate" title={student.university || '—'}>
-            {student.university || '—'}
-          </div>
-          <div className="text-xs text-text-muted mt-1">Preferred institution</div>
-        </div>
-
-        <div className="p-4 rounded-xl border border-border bg-surface">
-          <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
-            <FiCalendar className="w-4 h-4 text-emerald-500" /> Target Intake
-          </div>
-          <div className="text-base font-bold text-text">{student.intake || '—'}</div>
-          <div className="text-xs text-text-muted mt-1">Semester / Year</div>
-        </div>
-      </div>
-
-      {/* Quick Counts & Module Summary Cards */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-bold text-text uppercase tracking-wider">Application & Journey Metrics</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <QuickStatCard
-            label="Applications"
-            count={appsCount}
-            icon={FiSend}
-            color="bg-sky-500/10 text-sky-600"
-            onClick={() => onTabChange?.('applications')}
-          />
-          <QuickStatCard
-            label="Visa Cases"
-            count={visasCount}
-            icon={FiGlobe}
-            color="bg-amber-500/10 text-amber-600"
-            onClick={() => onTabChange?.('visa')}
-          />
-          <QuickStatCard
-            label="Documents"
-            count={docsCount}
-            icon={FiFileText}
-            color="bg-emerald-500/10 text-emerald-600"
-            onClick={() => onTabChange?.('documents')}
-          />
-          <QuickStatCard
-            label="Notes & Remarks"
-            count={notesCount}
-            icon={FiMessageSquare}
-            color="bg-purple-500/10 text-purple-600"
-            onClick={() => onTabChange?.('notes')}
-          />
-        </div>
+            <div className="crm-timeline crm-timeline--advanced crm-timeline--compact crm-sov-timeline">
+              <div className="crm-timeline__list">
+                {recentActivity.map((entry) => (
+                  <EnquiryTimelineItem key={entry.id} entry={entry} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

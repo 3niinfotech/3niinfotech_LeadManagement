@@ -18,5 +18,10 @@ export const extractToken = (req) => {
   if (authHeader?.startsWith('Bearer ')) {
     return authHeader.slice(7);
   }
+  // Allow ?access_token= for <img>/<iframe> on /uploads (no Authorization header)
+  const queryToken = req.query?.access_token || req.query?.token;
+  if (typeof queryToken === 'string' && queryToken.trim()) {
+    return queryToken.trim();
+  }
   return req.cookies?.accessToken || null;
 };

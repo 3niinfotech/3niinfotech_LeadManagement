@@ -1,15 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toastService from '../../services/toast/toast.service';
-import { motion } from 'framer-motion';
-import { pageEase } from '../../theme/pageMotion';
-import { FiMail, FiLock, FiArrowLeft } from 'react-icons/fi';
-import Input from '../ui/Input';
 import Button from '../ui/Button';
+import AuthShell from './AuthShell';
+import { IconMail, IconLock, IconLogIn, IconEye, IconEyeOff } from './AuthIcons';
 import {
   loginUser,
   clearAuthError,
@@ -18,11 +16,28 @@ import {
 } from '../../redux/slices/authSlice';
 import { MESSAGES } from '../../config/messages';
 import { PORTAL_META, PORTALS } from '../../config/portal.config';
+import { ROUTES } from '../../config/routes';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
 });
+
+function defaultLoginValues(portal, emailFromQuery) {
+  if (emailFromQuery) {
+    return {
+      email: emailFromQuery,
+      password: portal === PORTALS.STUDENT ? '123' : '',
+    };
+  }
+  if (portal === PORTALS.ADMIN) {
+    return { email: 'admin@crm.com', password: 'Admin@123' };
+  }
+  if (portal === PORTALS.STUDENT) {
+    return { email: 'aarav.patel@gmail.com', password: '123' };
+  }
+  return { email: '', password: '' };
+}
 
 export default function AuthLoginForm({ portal = PORTALS.ADMIN }) {
   const meta = PORTAL_META[portal] || PORTAL_META[PORTALS.ADMIN];
@@ -31,16 +46,14 @@ export default function AuthLoginForm({ portal = PORTALS.ADMIN }) {
   const [searchParams] = useSearchParams();
   const loading = useSelector(selectAuthLoading);
   const error = useSelector(selectAuthError);
+  const [showPassword, setShowPassword] = useState(false);
   const emailFromQuery = searchParams.get('email') || '';
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: emailFromQuery
-      ? { email: emailFromQuery, password: '' }
-      : portal === PORTALS.ADMIN
-        ? { email: 'admin@crm.com', password: 'Admin@123' }
-        : { email: '', password: '' },
+    defaultValues: defaultLoginValues(portal, emailFromQuery),
   });
+  const emailValue = watch('email') || '';
 
   useEffect(() => {
     if (error) toastService.action.error(error);
@@ -61,65 +74,98 @@ export default function AuthLoginForm({ portal = PORTALS.ADMIN }) {
     }
   };
 
+  const footerLinks = [];
+  if (portal === PORTALS.STUDENT) {
+    footerLinks.push({ key: 'forgot', href: ROUTES.FORGOT_PASSWORD_STUDENT, linkLabel: 'Forgot password?' });
+    footerLinks.push({ key: 'register', href: ROUTES.REGISTER_STUDENT, linkLabel: 'Create account' });
+    footerLinks.push({ key: 'staff', href: '/login/admin', linkLabel: 'Staff login' });
+  }
+  if (portal === PORTALS.ADMIN) {
+    footerLinks.push({ key: 'student', href: '/login/student', linkLabel: 'Student portal' });
+    footerLinks.push({ key: 'apply', href: ROUTES.APPLY, linkLabel: 'Apply for staff role' });
+  }
+  if (portal === PORTALS.AGENT) {
+    footerLinks.push({ key: 'staff', href: '/login/admin', linkLabel: 'Staff login' });
+  }
+
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex flex-1 bg-primary-700 items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_20%,#3B82F6,transparent_55%)]" />
-        <motion.div
-          initial={{ opacity: 0, x: -24 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.45, ease: pageEase }}
-          className="max-w-md text-white relative z-10"
-        >
-          <h1 className="text-4xl font-semibold mb-4 tracking-tight">{meta.label}</h1>
-          <p className="text-primary-100 text-lg leading-relaxed font-normal">{meta.description}</p>
-        </motion.div>
-      </div>
-      <div className="flex-1 flex items-center justify-center p-8 bg-background">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: pageEase, delay: 0.08 }}
-          className="w-full max-w-md"
-        >
-          <Link to="/login" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-primary-600 mb-6">
-            <FiArrowLeft /> Back to portal selection
-          </Link>
-          <div className="bg-card-bg rounded-lg shadow-card p-8 border border-card-border">
-            <h2 className="text-2xl font-semibold text-text mb-1">Sign in</h2>
-            <p className="text-sm text-text-secondary mb-8">{meta.label}</p>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              <Input label="Email" type="email" icon={FiMail} error={errors.email?.message} {...register('email')} />
-              <Input label="Password" type="password" icon={FiLock} error={errors.password?.message} {...register('password')} />
-              <Button type="submit" loading={loading} className="w-full" size="lg">Sign In</Button>
-            </form>
-            {portal === PORTALS.STUDENT && (
-              <p className="text-xs text-text-muted mt-4 text-center">
-                Counsellor / Reception / Admin?{' '}
-                <Link to="/login/admin" className="text-primary-600 hover:underline font-medium">
-                  Use Staff login
-                </Link>
-              </p>
-            )}
-            {portal === PORTALS.ADMIN && (
-              <p className="text-xs text-text-muted mt-4 text-center">
-                Student account?{' '}
-                <Link to="/login/student" className="text-primary-600 hover:underline font-medium">
-                  Student portal
-                </Link>
-              </p>
-            )}
-            {meta.registerPath && (
-              <p className="text-sm text-text-secondary mt-4 text-center">
-                No account?{' '}
-                <Link to={meta.registerPath} className="text-primary-600 hover:underline font-medium">
-                  Register here
-                </Link>
-              </p>
-            )}
+    <AuthShell
+      portal={portal}
+      variant="hero"
+      minimal
+      backTo={{ label: 'Back to website', href: ROUTES.LANDING }}
+      footerLinks={footerLinks}
+    >
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="auth-login-form"
+        noValidate
+      >
+        <div className="auth-login-form__field">
+          <label className="auth-login-form__label" htmlFor="login-email">Email</label>
+          <div className="auth-login-form__input-wrap">
+            <IconMail className="auth-login-form__icon" />
+            <input
+              id="login-email"
+              type="email"
+              className="auth-login-form__input"
+              placeholder="admin@crm.com"
+              autoComplete="email"
+              {...register('email')}
+            />
           </div>
-        </motion.div>
-      </div>
-    </div>
+          {errors.email?.message && (
+            <p className="auth-login-form__error">{errors.email.message}</p>
+          )}
+        </div>
+
+        <div className="auth-login-form__field">
+          <label className="auth-login-form__label" htmlFor="login-password">Password</label>
+          <div className="auth-login-form__input-wrap">
+            <IconLock className="auth-login-form__icon" />
+            <input
+              id="login-password"
+              type={showPassword ? 'text' : 'password'}
+              className="auth-login-form__input auth-login-form__input--password"
+              placeholder="••••••••"
+              autoComplete="current-password"
+              {...register('password')}
+            />
+            <button
+              type="button"
+              className="auth-login-form__toggle"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? (
+                <IconEyeOff className="auth-login-form__icon auth-login-form__icon--toggle" />
+              ) : (
+                <IconEye className="auth-login-form__icon auth-login-form__icon--toggle" />
+              )}
+            </button>
+          </div>
+          {errors.password?.message && (
+            <p className="auth-login-form__error">{errors.password.message}</p>
+          )}
+          {portal === PORTALS.STUDENT && (
+            <p className="auth-login-form__forgot">
+              <Link to={`${ROUTES.FORGOT_PASSWORD_STUDENT}?email=${encodeURIComponent(emailValue || 'aarav.patel@gmail.com')}`}>
+                Forgot password?
+              </Link>
+            </p>
+          )}
+        </div>
+
+        <Button
+          type="submit"
+          loading={loading}
+          className="auth-login-form__submit w-full"
+          size="lg"
+          icon={IconLogIn}
+        >
+          Sign In
+        </Button>
+      </form>
+    </AuthShell>
   );
 }

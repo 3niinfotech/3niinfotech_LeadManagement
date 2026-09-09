@@ -10,7 +10,11 @@ import {
 import { authRepository } from './auth.repository.js';
 import { studentRepository } from '../student/student.repository.js';
 
-const passwordField = z.string().min(8, 'Password must be at least 8 characters');
+const isProd = process.env.NODE_ENV === 'production';
+const passwordField = z.string().min(
+  isProd ? 8 : 1,
+  isProd ? 'Password must be at least 8 characters' : 'Password is required',
+);
 
 async function findRoleBySlug(slug) {
   const role = await prisma.role.findFirst({

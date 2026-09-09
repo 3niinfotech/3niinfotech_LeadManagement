@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   FiUpload, FiChevronDown, FiFilter, FiDownload, FiTrash2,
   FiUserCheck, FiMail, FiPhone, FiRefreshCw, FiTag,
-  FiShuffle, FiMapPin,
+  FiShuffle, FiMapPin, FiZap,
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import Button from '../../../components/ui/Button';
@@ -38,6 +38,9 @@ export default function EnquiryToolbar({
   const bulkItems = [
     can(PERMISSIONS.ENQUIRIES_ASSIGN) || can(PERMISSIONS.LEADS_ASSIGN) || can(PERMISSIONS.ENQUIRIES_UPDATE)
       ? { id: 'assign', label: 'Assign', icon: FiUserCheck, tone: 'success', onClick: () => onBulkAction('assign'), disabled }
+      : null,
+    can(PERMISSIONS.ENQUIRIES_ASSIGN)
+      ? { id: 'autoAssign', label: 'Auto Assign', icon: FiZap, tone: 'primary', onClick: () => onBulkAction('autoAssign'), disabled }
       : null,
     can(PERMISSIONS.ENQUIRIES_DELETE)
       ? { id: 'delete', label: 'Delete', icon: FiTrash2, tone: 'danger', onClick: onBulkDelete, disabled }

@@ -19,7 +19,7 @@ export default function PermissionRoute({
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const { canAny, roleSlug } = usePermissions();
 
-  if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
+  if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN_ADMIN} replace />;
 
   if (denyMastersForcedRoles && isMastersForcedHidden(roleSlug)) {
     return <Navigate to={ROUTES.FORBIDDEN} replace />;

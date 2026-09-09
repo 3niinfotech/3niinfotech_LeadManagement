@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useDispatch, useSelector } from 'react-redux';
-import { FiSave, FiUsers, FiDollarSign } from 'react-icons/fi';
+import { FiSave } from 'react-icons/fi';
 import Button from '../../../../components/ui/Button';
 import ContentLoader from '../../../../components/ui/ContentLoader';
 import { STUDENT_PROFILE_TABS } from '../../../../config/constants';
@@ -13,18 +13,28 @@ import {
 import { selectCurrentStudent } from '../../../../modules/student/redux/studentSlice';
 import toastService from '../../../../services/toast/toast.service';
 import EnquiryWorkspaceLayout from '../../../enquiry/components/EnquiryWorkspace/EnquiryWorkspaceLayout';
-import ProfilePlaceholderTab from '../../../enquiry/components/EnquiryDrawer/ProfilePlaceholderTab';
-import StudentSummaryStrip from './StudentSummaryStrip';
 import StudentOverviewTab from './tabs/StudentOverviewTab';
-import StudentPersonalTab from './tabs/StudentPersonalTab';
-import StudentAcademicTab from './tabs/StudentAcademicTab';
+import StudentProfileTab from './tabs/StudentProfileTab';
 import StudentAttendanceTab from './tabs/StudentAttendanceTab';
+import StudentFinanceTab from './tabs/StudentFinanceTab';
+import StudentDocumentsTab from './tabs/StudentDocumentsTab';
+import StudentTimelineTab from './tabs/StudentTimelineTab';
+import StudentEnquiryHistoryTab from './tabs/StudentEnquiryHistoryTab';
+import StudentDemoHistoryTab from './tabs/StudentDemoHistoryTab';
 import StudentRecordListTab, { formatDate } from './tabs/StudentRecordListTab';
+import {
+  mergeStudentDocuments,
+  mergeStudentNotes,
+  resolveStudentLead,
+} from '../../utils/studentJourney.utils';
+import { buildStudentTimelineEvents } from '../../utils/studentTimeline.utils';
 import { useStudentNav } from '../../hooks/useStudentNav';
 import { ROUTES } from '../../../../config/routes';
 import { PERMISSIONS } from '../../../../config/permissions';
 import { usePermissions } from '../../../../hooks/usePermissions';
+import '../../../../components/ui/modal.theme.css';
 import '../../../enquiry/styles/enquiry-workspace.css';
+import '../../styles/student-workspace.css';
 
 const defaultValues = {
   firstName: '',
@@ -36,6 +46,7 @@ const defaultValues = {
   nationality: '',
   passportNo: '',
   address: '',
+  emergencyContact: '',
   status: 'REGISTERED',
   intake: '',
   course: '',
@@ -43,7 +54,7 @@ const defaultValues = {
   country: '',
 };
 
-const EDIT_TABS = new Set(['personal', 'academic']);
+const EDIT_TABS = new Set(['profile']);
 
 const TAB_PERMISSIONS = {
   documents: [PERMISSIONS.DOCUMENTS_VIEW],
@@ -98,11 +109,13 @@ export default function StudentWorkspace({
 
   useEffect(() => {
     if (student) {
+      const meta = student.metadata && typeof student.metadata === 'object' ? student.metadata : {};
       reset({
         ...defaultValues,
         ...student,
         email: student.email || '',
         dateOfBirth: student.dateOfBirth?.slice?.(0, 10) || '',
+        emergencyContact: meta.emergencyContact || meta.alternateNo || student.enquiry?.alternateNo || '',
       });
     }
   }, [student, reset]);
@@ -112,6 +125,7 @@ export default function StudentWorkspace({
       const payload = {
         ...data,
         email: data.email?.trim() || null,
+        emergencyContact: data.emergencyContact?.trim() || null,
       };
       await dispatch(updateStudent({ id: studentId, data: payload })).unwrap();
       toastService.action.saved('Student updated');
@@ -121,11 +135,6 @@ export default function StudentWorkspace({
     }
   };
 
-  const title = 'Student Profile';
-  const subtitle = student
-    ? `${student.studentCode} · ${student.firstName} ${student.lastName}`.trim()
-    : 'Loading student…';
-
   const breadcrumbs = [
     { label: 'Dashboard', path: ROUTES.DASHBOARD },
     { label: 'Students', path: ROUTES.STUDENTS },
@@ -134,13 +143,22 @@ export default function StudentWorkspace({
 
   const showFooter = EDIT_TABS.has(activeTab);
   const handleTabChange = (tab) => onTabChange?.(tab);
+  const canEditDocs = can(PERMISSIONS.DOCUMENTS_UPLOAD) || can(PERMISSIONS.STUDENTS_UPDATE);
+  const refreshStudent = () => dispatch(fetchStudent(studentId));
 
-  const notesRows = (student?.notes || []).map((n) => ({
+  const mergedDocuments = useMemo(() => mergeStudentDocuments(student), [student]);
+  const mergedNotes = useMemo(() => mergeStudentNotes(student), [student]);
+  const lead = resolveStudentLead(student);
+
+  const notesRows = mergedNotes.map((n) => ({
     id: n.id,
-    content: n.content?.slice(0, 80) || n.content,
-    author: n.user ? `${n.user.firstName} ${n.user.lastName}`.trim() : '—',
+    content: n.content?.slice(0, 120) || n.content,
+    author: n.author,
     createdAt: n.createdAt,
+    source: n.source === 'enquiry' ? 'Enquiry' : 'Student',
   }));
+
+  const timelineRows = useMemo(() => buildStudentTimelineEvents(student), [student]);
 
   if (loading) {
     return <ContentLoader variant="module" />;
@@ -157,15 +175,12 @@ export default function StudentWorkspace({
 
   return (
     <EnquiryWorkspaceLayout
-      title={title}
-      subtitle={subtitle}
-      icon={FiUsers}
+      student={student}
       breadcrumbs={breadcrumbs}
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={handleTabChange}
       onBack={backToList}
-      summary={<StudentSummaryStrip student={student} />}
       footer={showFooter && can(PERMISSIONS.STUDENTS_UPDATE) ? (
         <>
           <Button variant="outline" onClick={backToList}>Cancel</Button>
@@ -177,31 +192,42 @@ export default function StudentWorkspace({
     >
       <form onSubmit={handleSubmit(onSubmit)} className="min-h-[200px]">
         {activeTab === 'overview' && (
-          <StudentOverviewTab student={student} onTabChange={handleTabChange} />
+          <StudentOverviewTab
+            student={student}
+            onTabChange={handleTabChange}
+            timelineRows={timelineRows}
+          />
         )}
-        {activeTab === 'personal' && (
-          <StudentPersonalTab register={register} control={control} errors={errors} />
+        {activeTab === 'profile' && (
+          <StudentProfileTab register={register} control={control} errors={errors} />
         )}
-        {activeTab === 'academic' && (
-          <StudentAcademicTab register={register} control={control} errors={errors} />
+        {activeTab === 'enquiry-history' && (
+          <StudentEnquiryHistoryTab
+            enquiry={student?.enquiry}
+            lead={lead}
+            onTabChange={handleTabChange}
+          />
+        )}
+        {activeTab === 'demo-history' && (
+          <StudentDemoHistoryTab
+            demos={student?.enquiry?.demos || []}
+            enquiryCode={student?.enquiry?.enquiryCode}
+            onTabChange={handleTabChange}
+          />
         )}
         {activeTab === 'documents' && (
-          <StudentRecordListTab
-            title="Documents"
-            description="Uploaded documents for this student."
-            emptyMessage="No documents uploaded yet."
-            columns={[
-              { key: 'name', label: 'Name' },
-              { key: 'type', label: 'Type' },
-              { key: 'createdAt', label: 'Uploaded', format: formatDate },
-            ]}
-            rows={student?.documents || []}
+          <StudentDocumentsTab
+            studentId={studentId}
+            enquiryId={student?.enquiry?.id}
+            documents={mergedDocuments}
+            canEdit={canEditDocs}
+            onRefresh={refreshStudent}
           />
         )}
         {activeTab === 'applications' && (
           <StudentRecordListTab
             title="Applications"
-            description="University applications in progress."
+            description="University applications on this student journey."
             emptyMessage="No applications yet — add one from the Applications module."
             columns={[
               { key: 'university', label: 'University' },
@@ -227,11 +253,7 @@ export default function StudentWorkspace({
           />
         )}
         {activeTab === 'finance' && (
-          <ProfilePlaceholderTab
-            icon={FiDollarSign}
-            title="Finance"
-            description="Fee quotations, payments, and instalment tracking."
-          />
+          <StudentFinanceTab student={student} />
         )}
         {activeTab === 'attendance' && (
           <StudentAttendanceTab studentId={studentId} />
@@ -239,28 +261,19 @@ export default function StudentWorkspace({
         {activeTab === 'notes' && (
           <StudentRecordListTab
             title="Notes"
-            description="Counsellor notes on this student."
-            emptyMessage="No notes yet."
+            description="Counsellor and staff notes on this student."
+            emptyMessage="No notes yet — rich note editor will match Manage Enquiry next."
             columns={[
               { key: 'content', label: 'Note' },
               { key: 'author', label: 'By' },
+              { key: 'source', label: 'Source' },
               { key: 'createdAt', label: 'Date', format: formatDate },
             ]}
             rows={notesRows}
           />
         )}
         {activeTab === 'timeline' && (
-          <StudentRecordListTab
-            title="Timeline"
-            description="Activity history for this student."
-            emptyMessage="No activity recorded yet."
-            columns={[
-              { key: 'action', label: 'Action' },
-              { key: 'description', label: 'Description' },
-              { key: 'createdAt', label: 'When', format: formatDate },
-            ]}
-            rows={student?.activities || []}
-          />
+          <StudentTimelineTab rows={timelineRows} />
         )}
       </form>
     </EnquiryWorkspaceLayout>

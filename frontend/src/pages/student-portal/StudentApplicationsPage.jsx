@@ -1,17 +1,38 @@
 import { useEffect, useState } from 'react';
 import { apiGet } from '../../api/apiClient';
 import { API } from '../../config/api';
-import GlobalLoader from '../../components/ui/GlobalLoader';
+import JourneyTimeline from './components/JourneyTimeline';
+import { formatDate } from './components/portalFormat';
+import {
+  PortalPage,
+  PortalPanel,
+  PortalEmpty,
+  PortalSkeletonPage,
+  PortalBadge,
+} from '../../components/portal/PortalUi';
+
+function appTone(status) {
+  const s = String(status || '').toUpperCase();
+  if (['OFFER_RECEIVED', 'ACCEPTED', 'APPROVED'].includes(s)) return 'success';
+  if (['REJECTED', 'WITHDRAWN'].includes(s)) return 'danger';
+  if (['SUBMITTED', 'UNDER_REVIEW'].includes(s)) return 'warning';
+  return 'info';
+}
 
 export default function StudentApplicationsPage() {
   const [rows, setRows] = useState([]);
+  const [expandedId, setExpandedId] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    apiGet(API.APPLICATIONS, { limit: 50 })
+    apiGet(API.PORTAL_STUDENT_APPLICATIONS)
       .then((res) => {
-        if (!cancelled) setRows(res.data || []);
+        if (!cancelled) {
+          const data = res.data || [];
+          setRows(data);
+          if (data[0]?.id) setExpandedId(data[0].id);
+        }
       })
       .catch(() => {
         if (!cancelled) setRows([]);
@@ -22,35 +43,57 @@ export default function StudentApplicationsPage() {
     return () => { cancelled = true; };
   }, []);
 
-  if (loading) return <GlobalLoader />;
+  if (loading) return <PortalSkeletonPage />;
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold text-text">My Applications</h2>
-        <p className="text-text-secondary mt-1">Applications linked to your student record only.</p>
-      </div>
-      <div className="bg-card-bg border border-card-border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-row-hover text-left">
-            <tr>
-              <th className="px-4 py-2">University / Course</th>
-              <th className="px-4 py-2">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr><td className="px-4 py-6 text-text-secondary" colSpan={2}>No applications yet.</td></tr>
-            )}
-            {rows.map((row) => (
-              <tr key={row.id} className="border-t border-border">
-                <td className="px-4 py-2">{row.university || row.course || row.applicationCode || 'Application'}</td>
-                <td className="px-4 py-2">{row.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <PortalPage>
+      {!rows.length ? (
+        <PortalEmpty
+          title="No applications yet"
+          description="Your counsellor will add applications as you progress."
+        />
+      ) : (
+        <div className="crm-student-dashboard__grid" style={{ gridTemplateColumns: '1fr' }}>
+          {rows.map((row) => {
+            const expanded = expandedId === row.id;
+            return (
+              <PortalPanel key={row.id}>
+                <button
+                  type="button"
+                  className="crm-student-expand-head"
+                  onClick={() => setExpandedId(expanded ? null : row.id)}
+                >
+                  <div className="min-w-0">
+                    <p className="crm-student-expand-title">
+                      {row.university || row.course || row.applicationNo || 'Application'}
+                    </p>
+                    <p className="crm-student-expand-meta">
+                      {[row.course, row.country, row.intake].filter(Boolean).join(' · ') || '—'}
+                    </p>
+                  </div>
+                  <PortalBadge tone={appTone(row.status)}>{String(row.status || '').replace(/_/g, ' ')}</PortalBadge>
+                </button>
+                {expanded && (
+                  <div className="crm-student-expand-body">
+                    <div className="crm-student-expand-facts">
+                      <p><span>Application #:</span> {row.applicationNo || '—'}</p>
+                      <p><span>Submitted:</span> {formatDate(row.submittedAt)}</p>
+                      <p><span>Offer date:</span> {formatDate(row.offerDate)}</p>
+                      {row.offerStatus && (
+                        <p><span>Offer status:</span> {row.offerStatus}</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="crm-portal-pick-card__title" style={{ marginBottom: '0.35rem' }}>Journey</p>
+                      <JourneyTimeline steps={row.timeline || []} />
+                    </div>
+                  </div>
+                )}
+              </PortalPanel>
+            );
+          })}
+        </div>
+      )}
+    </PortalPage>
   );
 }

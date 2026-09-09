@@ -1,131 +1,215 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiPlus } from 'react-icons/fi';
+import {
+  FiUsers, FiPlus, FiFilter, FiRefreshCw,
+} from 'react-icons/fi';
 import ModulePageCard from '../../../components/layout/ModulePageLayout';
 import Button from '../../../components/ui/Button';
-import Input from '../../../components/ui/Input';
+import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
-import Card from '../../../components/ui/Card';
-import EmptyState from '../../../components/ui/EmptyState';
-import ContentLoader from '../../../components/ui/ContentLoader';
+import FilterPanel from '../../../components/ui/FilterPanel';
 import { ROUTES } from '../../../config/routes';
 import { PERMISSIONS } from '../../../config/permissions';
 import PermissionGate from '../../../components/common/PermissionGate';
-import { useGetBatchesQuery, useCreateBatchMutation } from '../redux/attendanceApiSlice';
-import { userService } from '../../../services/user/user.service';
-import toastService from '../../../services/toast/toast.service';
-
-function instructorLabel(user) {
-  if (!user) return 'Unassigned';
-  return `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
-}
+import { useGetBatchesQuery } from '../redux/attendanceApiSlice';
+import {
+  buildBatchListSummary,
+  buildBatchListSummaryItems,
+} from '../config/batchSummary.config';
+import BatchCreateModal from '../components/BatchCreateModal';
+import BatchGrid from '../components/BatchGrid';
+import '../styles/batches.theme.css';
 
 export default function BatchListPage() {
   const navigate = useNavigate();
-  const { data, isLoading } = useGetBatchesQuery();
-  const [createBatch, { isLoading: creating }] = useCreateBatchMutation();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [courseName, setCourseName] = useState('');
-  const [room, setRoom] = useState('');
-  const [instructorId, setInstructorId] = useState('');
-  const [teacherOptions, setTeacherOptions] = useState([]);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [summaryFilter, setSummaryFilter] = useState(null);
+  const [instructorFilter, setInstructorFilter] = useState('all');
+  const [courseFilter, setCourseFilter] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const { data, isLoading, isFetching, refetch } = useGetBatchesQuery({
+    search: search || undefined,
+    limit: 100,
+  });
 
   const batches = data?.data || [];
 
-  useEffect(() => {
-    let cancelled = false;
-    userService.getAll({ role: 'teacher', status: 'ACTIVE', limit: 100 })
-      .then((res) => {
-        if (cancelled) return;
-        const rows = res.data || [];
-        setTeacherOptions([
-          { value: '', label: 'No instructor yet' },
-          ...rows.map((u) => ({ value: u.id, label: instructorLabel(u) })),
-        ]);
-      })
-      .catch(() => {
-        if (!cancelled) setTeacherOptions([{ value: '', label: 'No instructor yet' }]);
-      });
-    return () => { cancelled = true; };
-  }, []);
+  const courses = useMemo(() => {
+    const map = new Map();
+    batches.forEach((b) => {
+      const c = b.courseName || 'Other';
+      map.set(c, (map.get(c) || 0) + 1);
+    });
+    return [...map.entries()].sort((a, b) => b[1] - a[1]);
+  }, [batches]);
 
-  const submit = async () => {
-    if (!name.trim() || !courseName.trim()) {
-      toastService.info('Name and course are required');
-      return;
+  const visible = useMemo(() => {
+    let rows = batches;
+    if (instructorFilter === 'assigned') {
+      rows = rows.filter((b) => b.instructorId || b.instructor);
+    } else if (instructorFilter === 'unassigned') {
+      rows = rows.filter((b) => !(b.instructorId || b.instructor));
     }
-    try {
-      const created = await createBatch({
-        name: name.trim(),
-        courseName: courseName.trim(),
-        room: room.trim() || undefined,
-        instructorId: instructorId || undefined,
-      }).unwrap();
-      toastService.success('Batch created');
-      setOpen(false);
-      setName('');
-      setCourseName('');
-      setRoom('');
-      setInstructorId('');
-      const id = created?.id || created?.data?.id;
-      if (id) navigate(ROUTES.BATCH_DETAIL(id));
-    } catch (e) {
-      toastService.error(e?.data?.message || 'Could not create batch');
-    }
+    if (courseFilter) rows = rows.filter((b) => b.courseName === courseFilter);
+    if (summaryFilter === 'active') rows = rows.filter((b) => b.isActive !== false);
+    if (summaryFilter === 'assigned') rows = rows.filter((b) => b.instructorId || b.instructor);
+    if (summaryFilter === 'unassigned') rows = rows.filter((b) => !(b.instructorId || b.instructor));
+    if (summaryFilter === 'withSlots') rows = rows.filter((b) => (b._count?.sessions || 0) > 0);
+    return rows;
+  }, [batches, instructorFilter, courseFilter, summaryFilter]);
+
+  const summary = useMemo(() => buildBatchListSummary(batches), [batches]);
+  const statItems = useMemo(() => buildBatchListSummaryItems(summary), [summary]);
+
+  const activeFilterCount = [
+    instructorFilter !== 'all' ? 1 : 0,
+    courseFilter ? 1 : 0,
+    summaryFilter ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
+
+  const resetFilters = () => {
+    setInstructorFilter('all');
+    setCourseFilter('');
+    setSummaryFilter(null);
+    setSearchInput('');
+  };
+
+  const openBatch = (batch) => {
+    if (batch?.id) navigate(ROUTES.BATCH_DETAIL(batch.id));
   };
 
   return (
-    <ModulePageCard
-      title="Batches"
-      subtitle="Coaching batches, timetable, and class attendance"
-      icon={FiUsers}
-      breadcrumbs={[{ label: 'Dashboard', path: ROUTES.DASHBOARD }, { label: 'Batches' }]}
-      actions={(
-        <PermissionGate permission={PERMISSIONS.ATTENDANCE_EDIT}>
-          <Button size="sm" icon={FiPlus} onClick={() => setOpen((v) => !v)}>New Batch</Button>
-        </PermissionGate>
-      )}
-    >
-      <div className="flex-1 min-h-0 overflow-auto p-4 space-y-4">
-        {open && (
-          <Card className="p-4 grid grid-cols-1 sm:grid-cols-5 gap-3">
-            <Input label="Batch name" value={name} onChange={(e) => setName(e.target.value)} placeholder="IELTS Batch A" />
-            <Input label="Course" value={courseName} onChange={(e) => setCourseName(e.target.value)} placeholder="IELTS" />
-            <Input label="Room" value={room} onChange={(e) => setRoom(e.target.value)} placeholder="Room 2" />
-            <Select
-              label="Instructor (Teacher)"
-              value={instructorId}
-              onChange={(e) => setInstructorId(e.target.value)}
-              options={teacherOptions}
-              placeholder="Select teacher"
-            />
-            <div className="flex items-end">
-              <Button onClick={submit} loading={creating}>Create</Button>
+    <>
+      <ModulePageCard
+        title="Batches"
+        subtitle="Coaching batches, timetable, and class attendance"
+        icon={FiUsers}
+        iconColor="primary"
+        breadcrumbs={[{ label: 'Dashboard', path: ROUTES.DASHBOARD }, { label: 'Batches' }]}
+        actions={(
+          <PermissionGate permission={PERMISSIONS.ATTENDANCE_EDIT}>
+            <Button size="sm" icon={FiPlus} onClick={() => setCreateOpen(true)}>New Batch</Button>
+          </PermissionGate>
+        )}
+      >
+        <ModulePageCard.Stats
+          items={statItems}
+          activeFilter={summaryFilter}
+          onSelect={setSummaryFilter}
+          loading={isLoading}
+          ariaLabel="Batch summary filters"
+          layout="grid"
+        />
+
+        <ModulePageCard.Toolbar>
+          <div className="crm-batch-toolbar">
+            <div className="w-[220px] max-w-full">
+              <SearchInput
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search batch, course, code..."
+              />
             </div>
-          </Card>
-        )}
-        {isLoading ? <ContentLoader variant="module" /> : batches.length === 0 ? (
-          <EmptyState title="No batches yet" description="Create a batch, enroll students, add a timetable, then take attendance from each scheduled class." />
-        ) : (
-          <div className="grid gap-3">
-            {batches.map((batch) => (
-              <button
-                key={batch.id}
-                type="button"
-                className="text-left rounded-lg border border-border bg-card-bg p-4 hover:bg-surface-hover"
-                onClick={() => navigate(ROUTES.BATCH_DETAIL(batch.id))}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant={filtersOpen ? 'outline-primary' : 'outline'}
+                size="sm"
+                icon={FiFilter}
+                onClick={() => setFiltersOpen((v) => !v)}
               >
-                <p className="font-semibold text-text">{batch.name}</p>
-                <p className="text-xs text-text-muted mt-0.5">Instructor: {instructorLabel(batch.instructor)}</p>
-                <p className="text-sm text-text-muted mt-1">
-                  {batch.courseName} · {batch.branch?.name || 'Branch'} · {batch._count?.enrollments || 0} students
-                </p>
-              </button>
-            ))}
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-1.5 inline-flex min-w-[1.125rem] h-[1.125rem] items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white px-1">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={FiRefreshCw}
+                loading={isFetching}
+                onClick={() => refetch()}
+              >
+                Refresh
+              </Button>
+            </div>
           </div>
-        )}
-      </div>
-    </ModulePageCard>
+        </ModulePageCard.Toolbar>
+
+        <ModulePageCard.Filters>
+          <FilterPanel
+            open={filtersOpen}
+            activeCount={activeFilterCount}
+            onClose={() => setFiltersOpen(false)}
+            onReset={resetFilters}
+            onApply={() => setFiltersOpen(false)}
+            applyLabel="Done"
+            columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            <Select
+              label="Instructor"
+              size="sm"
+              value={instructorFilter}
+              onChange={(e) => setInstructorFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All batches' },
+                { value: 'assigned', label: 'Assigned' },
+                { value: 'unassigned', label: 'Unassigned' },
+              ]}
+              allowClear={false}
+            />
+            <Select
+              label="Course"
+              size="sm"
+              value={courseFilter}
+              onChange={(e) => setCourseFilter(e.target.value)}
+              options={[
+                { value: '', label: 'All courses' },
+                ...courses.map(([name, count]) => ({
+                  value: name,
+                  label: `${name} (${count})`,
+                })),
+              ]}
+            />
+          </FilterPanel>
+        </ModulePageCard.Filters>
+
+        <ModulePageCard.Table>
+          <BatchGrid
+            rows={visible}
+            loading={isLoading}
+            fetching={isFetching}
+            onRowClick={openBatch}
+            onOpen={openBatch}
+            emptyTitle={batches.length ? 'No batches match filters' : 'No batches yet'}
+            emptyDescription={batches.length
+              ? 'Widen filters or clear search.'
+              : 'Create a batch, enroll students, add timetable, then take attendance.'}
+            emptyActionLabel={batches.length === 0 ? 'New Batch' : 'Clear filters'}
+            onEmptyAction={() => {
+              if (batches.length === 0) setCreateOpen(true);
+              else resetFilters();
+            }}
+          />
+        </ModulePageCard.Table>
+      </ModulePageCard>
+
+      <BatchCreateModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(id) => {
+          if (id) navigate(ROUTES.BATCH_DETAIL(id));
+        }}
+      />
+    </>
   );
 }

@@ -49,13 +49,14 @@ Company Admin   ops.admin@3niinfotech.com       Staff@123     /login/admin
 Reception       reception.hq@3niinfotech.com    Staff@123     /login/admin
 Counsellor      priya.shah@3niinfotech.com      Staff@123     /login/admin
 Teacher         teacher.ielts@3niinfotech.com   Staff@123     /login/admin
-Student         aarav.patel@gmail.com           Student@123   /login/student
+Student         aarav.patel@gmail.com           123           /login/student
 ------------------------------------------------
+Forgot password (student): /forgot-password/student  → resets login password everywhere (default 123 for QA)
 
 Already seeded sample data (after npm run db:reset-qa):
   - Walk-in WAITING : Neha Mehta  (phone 9825022222)
   - Enquiry INTERESTED : Riya Desai (schedule demo test)
-  - Enquiry + Student + Demo : Aarav Patel
+  - Enquiry + Student + Demo : Aarav Patel  
   - Batch : IELTS Batch A — Morning (teacher assigned)
   - Today class session 10:00–11:00 → Take Attendance
 
@@ -169,7 +170,7 @@ STEP A4 — Teacher
 STEP A5 — Student
   1. Logout
   2. http://localhost:3000/login/student
-  3. aarav.patel@gmail.com / Student@123
+  3. aarav.patel@gmail.com / 123
   4. CHECK:
      [ ] Student shell (admin sidebar NA)
      [ ] Dashboard / Attendance / Profile
@@ -336,7 +337,7 @@ UI improve notes (attendance screen):
 
 DAY / ROUND 5 — STUDENT PORTAL (20 min)
 --------------------------------------
-Login: aarav.patel@gmail.com / Student@123  on /login/student
+Login: aarav.patel@gmail.com / 123  on /login/student
 
   [ ] Dashboard open
   [ ] Attendance page — teacher ke mark dikhe

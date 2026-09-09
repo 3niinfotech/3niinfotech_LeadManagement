@@ -30,6 +30,7 @@ export default function CounsellorRecommendPanel({
   onSelect,
   error,
   onRefresh,
+  showScores = false,
 }) {
   if (loading && !recommendations.length) {
     return (
@@ -65,7 +66,8 @@ export default function CounsellorRecommendPanel({
           const toneKey = row.availability?.tone || 'neutral';
           const tone = TONE_STYLES[toneKey] || TONE_STYLES.neutral;
           const statusLabel = row.availability?.label || 'Offline';
-          const free = row.availability?.key === 'AVAILABLE';
+          const free = row.availabilityState === 'AVAILABLE' || row.availability?.key === 'AVAILABLE';
+          const topReasons = (row.reasons || []).slice(0, 3);
 
           return (
             <li key={row.id}>
@@ -78,11 +80,36 @@ export default function CounsellorRecommendPanel({
                   <FiUser size={16} />
                   <span className={`crm-reception-counsellor__status-dot ${tone.dot}`} />
                 </span>
-                <span className="min-w-0 flex-1 flex items-center gap-2 text-left">
-                  <span className="font-semibold text-xs text-text truncate">{name}</span>
-                  <span className={`crm-reception-counsellor__chip border shrink-0 ${tone.chip}`}>
-                    {statusLabel}
+                <span className="min-w-0 flex-1 text-left">
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold text-xs text-text truncate">{name}</span>
+                    <span className={`crm-reception-counsellor__chip border shrink-0 ${tone.chip}`}>
+                      {statusLabel}
+                    </span>
+                    {showScores && row.score != null && (
+                      <span className="crm-reception-counsellor__score shrink-0">{row.score}%</span>
+                    )}
+                    {row.recommended && (
+                      <span className="text-[0.65rem] font-semibold text-emerald-700 shrink-0">Best match</span>
+                    )}
                   </span>
+                  {showScores && topReasons.length > 0 && (
+                    <span className="crm-reception-counsellor__meta">
+                      {topReasons.map((r) => (
+                        <span key={r} className="crm-reception-counsellor__reason">✓ {r}</span>
+                      ))}
+                    </span>
+                  )}
+                  {showScores && row.capacityPct != null && (
+                    <span className="crm-reception-counsellor__reason">
+                      {row.activeLeads ?? row.activeEnquiries ?? 0} / {row.capacityPct}% capacity
+                    </span>
+                  )}
+                  {showScores && !row.routable && (row.exclusions || []).length > 0 && (
+                    <span className="crm-reception-counsellor__reason text-rose-700">
+                      {(row.exclusions || []).slice(0, 2).join(' · ')}
+                    </span>
+                  )}
                 </span>
                 {selected && (
                   <span className="crm-reception-counsellor__check">

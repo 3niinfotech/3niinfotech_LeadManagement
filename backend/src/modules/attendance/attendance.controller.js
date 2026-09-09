@@ -97,4 +97,14 @@ export const classReport = asyncHandler(async (req, res) => {
   sendSuccess(res, data);
 });
 
+export const teacherDashboard = asyncHandler(async (req, res) => {
+  const data = await attendanceService.teacherDashboard(req.user);
+  sendSuccess(res, data);
+});
+
+export const teacherStudents = asyncHandler(async (req, res) => {
+  const result = await attendanceService.teacherStudents(req.query, req.user);
+  sendPaginated(res, result.data, result.pagination);
+});
+
 export { parsePagination };

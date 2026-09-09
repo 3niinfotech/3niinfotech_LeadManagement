@@ -1,0 +1,171 @@
+/* Fees module — create totals + detail modal */
+
+.fees-create-totals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.fees-create-totals > div,
+.fees-detail__calc > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--bg-page) 55%, var(--bg-card));
+}
+
+.fees-create-totals span,
+.fees-detail__calc span {
+  font-size: 0.5625rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fees-create-totals strong,
+.fees-detail__calc strong {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fees-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.fees-detail__hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--brand) 16%, var(--border));
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--brand) 7%, transparent) 0%,
+      color-mix(in srgb, var(--bg-card) 94%, transparent) 55%
+    );
+}
+
+.fees-detail__hero-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.fees-detail__hero-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.fees-detail__hero-name {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.fees-detail__hero-student {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fees-detail__hero-meta {
+  margin-top: 0.3rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.fees-detail__amount-block {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.fees-detail__amount-block span {
+  display: block;
+  font-size: 0.5625rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fees-detail__amount-block strong {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 1.125rem;
+  font-weight: 750;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fees-detail__section {
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  padding: 0.7rem 0.8rem;
+  background: var(--bg-card);
+}
+
+.fees-detail__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+}
+
+.fees-detail__section-head h4 {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.fees-detail__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem 0.65rem;
+}
+
+.fees-detail__calc {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .fees-detail__hero {
+    flex-direction: column;
+  }
+
+  .fees-detail__amount-block {
+    text-align: left;
+  }
+
+  .fees-detail__form-grid {
+    grid-template-columns: 1fr;
+  }
+}

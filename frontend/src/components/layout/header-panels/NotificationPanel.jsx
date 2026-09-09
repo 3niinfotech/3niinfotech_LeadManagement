@@ -20,6 +20,8 @@ import {
 } from '../../../modules/notification/redux/notificationSlice';
 import { useNotificationPreferences } from '../../../hooks/useNotificationPreferences';
 import { ROUTES } from '../../../config/routes';
+import { trackAnnouncementView } from '../../../features/announcement/utils/announcement.utils';
+import { selectUser } from '../../../redux/slices/authSlice';
 
 function formatRelativeTime(value) {
   if (!value) return '';
@@ -36,10 +38,36 @@ function formatRelativeTime(value) {
   return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
 }
 
+function parseNotificationMeta(item) {
+  const raw = item?.metadata;
+  if (!raw) return {};
+  if (typeof raw === 'object') return raw;
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 function resolveTone(item) {
-  const event = item?.metadata?.event || item?.metadata?.audience;
+  const meta = parseNotificationMeta(item);
+  const event = meta.event || meta.audience;
   const type = String(item?.type || '').toUpperCase();
 
+  if (event === 'ANNOUNCEMENT_PUBLISHED') {
+    return {
+      key: 'info',
+      label: 'Announcement',
+      Icon: FiVolume2,
+      iconWrap: 'bg-info-soft text-info',
+      unread: 'border-info/25 bg-info-soft/50 hover:border-info/40',
+      dot: 'bg-info',
+    };
+  }
   if (event === 'VISITOR_REGISTERED' || event === 'ACTOR') {
     return {
       key: 'success',
@@ -156,12 +184,20 @@ export function NotificationHeaderActions({ onClose }) {
 export default function NotificationPanel({ onClose, compact = false }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const user = useSelector(selectUser);
   const list = useSelector(selectNotifications);
   const unreadCount = useSelector(selectUnreadCount);
   const loading = useSelector(selectNotificationsLoading);
 
-  const openItem = (item) => {
+  const openItem = async (item) => {
+    const meta = parseNotificationMeta(item);
     if (!item.isRead) dispatch(markNotificationRead(item.id));
+    if (meta.event === 'ANNOUNCEMENT_PUBLISHED' && meta.announcementId) {
+      await trackAnnouncementView(user?.id, {
+        id: meta.announcementId,
+        updatedAt: item.createdAt,
+      });
+    }
     if (item.link) {
       navigate(item.link);
       onClose?.();
@@ -199,7 +235,7 @@ export default function NotificationPanel({ onClose, compact = false }) {
             </span>
             <p className="text-sm font-semibold text-text">All caught up</p>
             <p className="text-[12px] text-text-muted mt-1 leading-relaxed">
-              Walk-ins, assignments, and alerts appear here in real time.
+              Walk-ins, assignments, announcements, and alerts appear here in real time.
             </p>
           </div>
         ) : (

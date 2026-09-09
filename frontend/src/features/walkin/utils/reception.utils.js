@@ -25,10 +25,11 @@ export function computeReceptionMetrics(rows = [], summary = {}) {
   });
 
   const waiting = today.filter((r) => r.status === 'WAITING');
+  const unassigned = today.filter((r) => !r.assignedToId && ['WALK_IN', 'WAITING'].includes(r.status));
   const inCounselling = today.filter((r) => r.status === 'IN_COUNSELLING');
   const completed = today.filter((r) => r.status === 'COMPLETED');
 
-  const waitSamples = [...waiting, ...inCounselling, ...completed]
+  const waitSamples = [...unassigned, ...waiting, ...inCounselling, ...completed]
     .map((r) => Date.now() - new Date(r.walkInAt).getTime())
     .filter((ms) => ms > 0);
   const avgWaitMins = waitSamples.length
@@ -75,7 +76,7 @@ export function computeReceptionMetrics(rows = [], summary = {}) {
 
   return {
     todayCount: summary.todayWalkIns ?? today.length,
-    waitingCount: summary.waiting ?? waiting.length,
+    unassignedCount: summary.waiting ?? unassigned.length,
     inCounsellingCount: summary.inCounselling ?? inCounselling.length,
     completedCount: summary.completed ?? completed.length,
     convertedCount: converted,

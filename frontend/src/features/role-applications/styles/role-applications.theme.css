@@ -1,0 +1,247 @@
+.role-apply-page .role-apply-grid {
+  max-width: 56rem;
+}
+
+.role-apply-student-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  max-width: 56rem;
+  width: 100%;
+  margin: 0 auto 1.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.875rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.role-apply-student-note strong {
+  display: block;
+  font-size: 0.875rem;
+  color: #0f172a;
+}
+
+.role-apply-student-note span {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.role-apply-student-note a {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--brand, #2563eb);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.role-apply-card__icon {
+  background: linear-gradient(145deg, #1e3a8a 0%, #2563eb 48%, #3b82f6 100%) !important;
+}
+
+.role-apply-other {
+  max-width: 56rem;
+  width: 100%;
+  margin: 1.5rem auto 0;
+  text-align: center;
+}
+
+.role-apply-other h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.role-apply-other__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.role-apply-other__links a {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #475569;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.role-apply-other__links a:hover {
+  color: var(--brand, #2563eb);
+  border-color: color-mix(in srgb, var(--brand, #2563eb) 35%, #e2e8f0);
+}
+
+.role-apply-form-head {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.role-apply-form-head__badge {
+  display: inline-flex;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--auth-accent, #2563eb);
+  background: var(--auth-accent-soft, #eff6ff);
+  border: 1px solid color-mix(in srgb, var(--auth-accent, #2563eb) 16%, transparent);
+}
+
+.role-apply-form-head p {
+  margin: 0.625rem 0 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.role-apply-form .auth-login-form__input {
+  padding-left: 0.875rem;
+}
+
+.role-apply-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.role-apply-form__textarea {
+  width: 100%;
+  padding: 0.75rem 0.875rem;
+  border: 1.5px solid #e8edf3;
+  border-radius: 0.875rem;
+  background: #f4f7fb;
+  color: #0f172a;
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.role-apply-form__textarea:focus {
+  border-color: var(--auth-accent, #2563eb);
+  background: #fff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--auth-accent, #2563eb) 12%, transparent);
+}
+
+.role-apply-invalid {
+  min-height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Admin review page */
+.role-apps-page .crm-summary-stat-bar {
+  margin-bottom: 1rem;
+}
+
+.role-apps-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.role-apps-table-wrap {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.role-apps-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.role-apps-table th,
+.role-apps-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.role-apps-table th {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  background: #fafbfc;
+}
+
+.role-apps-table tr:hover td {
+  background: #f8fafc;
+}
+
+.role-apps-table__name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.role-apps-table__sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.role-apps-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.role-apps-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.role-apps-detail__item label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  margin-bottom: 0.2rem;
+}
+
+.role-apps-detail__item span,
+.role-apps-detail__item p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #0f172a;
+  line-height: 1.45;
+}
+
+.role-apps-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+@media (max-width: 640px) {
+  .role-apply-form__row {
+    grid-template-columns: 1fr;
+  }
+
+  .role-apps-detail__grid {
+    grid-template-columns: 1fr;
+  }
+}

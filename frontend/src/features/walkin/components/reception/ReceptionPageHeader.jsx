@@ -19,7 +19,7 @@ export default function ReceptionPageHeader({
     <div className="crm-reception-header">
       <ModulePageHeader
         title="Reception Registration"
-        subtitle="Walk-ins, waiting list, and counsellor assign"
+        subtitle="Walk-in registration with course-based counsellor auto-assign"
         icon={FiUserPlus}
         iconColor="primary"
         breadcrumbs={[

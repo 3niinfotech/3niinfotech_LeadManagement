@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { DEFAULT_PAGE_SIZE } from '../../../config/constants';
 import { setSummaryFilter, setActiveView } from '../redux/enquiryUiSlice';
 import { selectEnquiryUi } from '../redux/enquiryUiSlice';
+import { useViewingBranchFilter } from '../../../hooks/useViewingBranchFilter';
 
 export function useEnquiryFilters() {
   const dispatch = useDispatch();
@@ -11,6 +12,21 @@ export function useEnquiryFilters() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(DEFAULT_PAGE_SIZE);
+  const {
+    branchId: viewingBranchId,
+    branchLocked,
+    canViewAllBranches,
+  } = useViewingBranchFilter();
+
+  // Force page branch filter to match navbar Active Branch
+  useEffect(() => {
+    setFilters((prev) => {
+      const nextId = viewingBranchId || undefined;
+      if ((prev.branchId || undefined) === nextId) return prev;
+      return { ...prev, branchId: nextId };
+    });
+    setPage(1);
+  }, [viewingBranchId]);
 
   const queryParams = useMemo(() => {
     let status = filters.status || undefined;
@@ -25,6 +41,10 @@ export function useEnquiryFilters() {
       status = activeSummaryFilter;
     }
 
+    const effectiveBranchId = branchLocked
+      ? (viewingBranchId || undefined)
+      : (filters.branchId || viewingBranchId || undefined);
+
     return {
       page,
       limit: pageSize,
@@ -37,7 +57,7 @@ export function useEnquiryFilters() {
       keyword: filters.keyword || undefined,
       enquiryId: filters.enquiryId || undefined,
       country: filters.country || undefined,
-      branchId: filters.branchId || undefined,
+      branchId: effectiveBranchId,
       staffId: filters.staffId || undefined,
       source: filters.source || undefined,
       otherReference: filters.otherReference || undefined,
@@ -49,20 +69,23 @@ export function useEnquiryFilters() {
       updatedFrom: filters.updatedFrom || undefined,
       updatedTo: filters.updatedTo || undefined,
     };
-  }, [page, pageSize, activeView, activeSummaryFilter, search, filters]);
+  }, [page, pageSize, activeView, activeSummaryFilter, search, filters, branchLocked, viewingBranchId]);
 
   const applyFilters = useCallback((next) => {
-    setFilters(next);
+    const patched = branchLocked
+      ? { ...next, branchId: viewingBranchId || undefined }
+      : next;
+    setFilters(patched);
     setPage(1);
-  }, []);
+  }, [branchLocked, viewingBranchId]);
 
   const resetFilters = useCallback(() => {
-    setFilters({});
+    setFilters(branchLocked ? { branchId: viewingBranchId || undefined } : {});
     setSearch('');
     setPage(1);
     dispatch(setSummaryFilter(null));
     dispatch(setActiveView('all'));
-  }, [dispatch]);
+  }, [dispatch, branchLocked, viewingBranchId]);
 
   const selectSummaryCard = useCallback((filterValue) => {
     if (filterValue === '__closed') {
@@ -85,5 +108,7 @@ export function useEnquiryFilters() {
     queryParams, search, setSearch, page, setPage, pageSize,
     filters, applyFilters, resetFilters, selectSummaryCard,
     activeView, activeSummaryFilter,
+    branchLocked,
+    canViewAllBranches,
   };
 }

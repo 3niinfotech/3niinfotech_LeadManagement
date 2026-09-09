@@ -1,10 +1,12 @@
+import { useMemo } from 'react';
 import { Controller } from 'react-hook-form';
-import Select from '../../../components/ui/Select';
 import { useAsyncMasterOptions } from '../hooks/useAsyncMasterOptions';
+import { pairMasterOption } from '../utils/masterFieldDisplay.utils';
+import AsyncMasterSelectField from './AsyncMasterSelectField';
 
 /**
  * Searchable master dropdown backed by server-side options (Course / University).
- * Stores the option label by default so existing string columns keep working.
+ * Stores the human-readable label — never code or UUID.
  */
 export default function AsyncMasterSelect({
   name,
@@ -22,31 +24,37 @@ export default function AsyncMasterSelect({
 }) {
   const { options, loading, setSearch } = useAsyncMasterOptions(entity, extraParams, { enabled: !disabled, limit });
 
-  const mapped = options.map((opt) => ({
-    value: valueMode === 'id' ? opt.value : (opt.label || opt.name || opt.value),
-    label: opt.label || opt.name || opt.value,
-  }));
+  const mapped = useMemo(() => {
+    const pairs = options.map((opt) => pairMasterOption(
+      { ...opt, value: opt.value, label: opt.label, name: opt.name, code: opt.code, universityName: opt.universityName },
+      { disambiguate: entity === 'course' },
+    )).filter(Boolean);
+
+    if (valueMode === 'id') {
+      return pairs.map((p) => ({ value: p.id || p.value, label: p.label, code: p.code }));
+    }
+    return pairs.map((p) => ({ value: p.value, label: p.label, code: p.code, id: p.id }));
+  }, [options, valueMode, entity]);
 
   return (
     <Controller
       name={name}
       control={control}
       render={({ field }) => (
-        <Select
+        <AsyncMasterSelectField
+          field={field}
           label={label}
-          value={field.value ?? ''}
-          onChange={(e) => field.onChange(e.target.value ?? '')}
-          options={mapped}
+          entity={entity}
+          errors={errors}
+          name={name}
           placeholder={placeholder}
-          error={errors?.[name]?.message}
-          loading={loading}
-          allowClear={!required}
+          required={required}
           disabled={disabled}
-          showSearch
-          filterOption={false}
-          onSearch={(term) => setSearch(term)}
-          notFoundContent={loading ? 'Searching…' : 'Type to search'}
+          loading={loading}
+          mapped={mapped}
+          setSearch={setSearch}
           hint={hint}
+          valueMode={valueMode}
         />
       )}
     />

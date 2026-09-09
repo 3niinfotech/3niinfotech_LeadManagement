@@ -12,11 +12,11 @@ export const HEADER_ACTIONS = [
     id: 'reminder',
     label: 'Reminders',
     icon: FiClock,
-    tooltip: 'View upcoming reminders',
+    tooltip: 'Role-scoped due items & follow-ups',
     badgeKey: 'reminder',
     tone: 'warning',
     presentation: 'dropdown',
-    width: 380,
+    width: 400,
   },
   {
     id: 'notification',
@@ -36,7 +36,7 @@ export const HEADER_ACTIONS = [
     badgeKey: 'announcement',
     tone: 'info',
     presentation: 'dropdown',
-    width: 400,
+    width: 420,
   },
   {
     id: 'courseFinder',
@@ -53,11 +53,11 @@ export const HEADER_ACTIONS = [
     id: 'task',
     label: 'Tasks',
     icon: FiCheckSquare,
-    tooltip: 'Your tasks',
+    tooltip: 'Your action items & follow-ups',
     badgeKey: 'task',
     tone: 'brand',
     presentation: 'dropdown',
-    width: 400,
+    width: 440,
   },
 ];
 

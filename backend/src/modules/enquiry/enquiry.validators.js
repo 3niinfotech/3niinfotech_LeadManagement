@@ -44,9 +44,12 @@ export const createEnquirySchema = z.object({
   priority: z.enum(ENQUIRY_PRIORITY_VALUES).optional(),
   tags: z.array(z.enum(ENQUIRY_TAG_VALUES)).optional().default([]),
   remark: z.string().optional().nullable(),
+  allowDuplicate: z.boolean().optional().default(false),
+  manualCounsellorOverride: z.boolean().optional(),
+  applyCourseCounsellor: z.boolean().optional(),
 });
 
-export const updateEnquirySchema = createEnquirySchema.partial();
+export const updateEnquirySchema = createEnquirySchema.partial().omit({ allowDuplicate: true });
 
 export const statusSchema = z.object({
   status: z.enum(ENQUIRY_STATUS_VALUES),
@@ -131,7 +134,8 @@ export const demoSchema = z.object({
 });
 
 export const demoAttendanceSchema = z.object({
-  attendance: z.enum(['NOT_MARKED', 'ATTENDED', 'PRESENT', 'ABSENT', 'LATE', 'NO_SHOW', 'PARTIAL']),
+  // Canonical: PRESENT | ABSENT | NOT_MARKED. Legacy aliases accepted then normalized.
+  attendance: z.enum(['NOT_MARKED', 'PRESENT', 'ABSENT', 'ATTENDED', 'NO_SHOW']),
   feedback: z.string().optional().nullable(),
   remark: z.string().optional().nullable(),
   result: z.enum(DEMO_RESULT_VALUES).optional(),

@@ -405,13 +405,9 @@ async function seedCompany(company, userId, stats) {
     countKey(stats, 'DocumentRequirement', created);
   }
 
-  // Application Checklists + Statuses are country-specific.
-  // We seed a minimal subset for the first 2 countries to enable the parent/child UI.
-  const seededCountryIds = [RELATIONAL_COUNTRIES[0]?.code, RELATIONAL_COUNTRIES[1]?.code]
-    .filter(Boolean)
-    .map((code) => countryByCode.get(code))
-    .filter(Boolean)
-    .map((c) => c.id);
+  // Application + Visa checklists/statuses are country-specific.
+  // Seed for every active country so Visa/Application create flows always have workflow options.
+  const seededCountryIds = [...countryByCode.values()].map((c) => c.id);
 
   for (const countryId of seededCountryIds) {
     // Application Checklists (per-country)

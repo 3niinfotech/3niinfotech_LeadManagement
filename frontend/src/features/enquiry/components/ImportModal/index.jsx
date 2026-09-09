@@ -40,12 +40,12 @@ export default function ImportModal({ open, onClose }) {
     try {
       setFileName(file.name);
       const data = await parseImport(file).unwrap();
-      const rows = Array.isArray(data) ? data : (data?.rows || []);
-      if (!rows.length) {
+      const parsedRows = Array.isArray(data) ? data : (data?.rows || []);
+      if (!parsedRows.length) {
         toastService.error('No data rows found in the file');
         return;
       }
-      setRows(rows);
+      setRows(parsedRows);
       setStep(2);
     } catch (err) {
       toastService.error(err?.data?.message || 'Failed to parse import file');
@@ -90,7 +90,7 @@ export default function ImportModal({ open, onClose }) {
           layoutId="crm-import-tab-pill"
         />
 
-        <FormTabPanel panelKey={tab === 'history' ? 'history' : `import-${step}`} className="mt-3">
+        <FormTabPanel panelKey={tab === 'history' ? 'history' : `import-${step}`} className="mt-3 flex-1 min-h-0">
           {tab === 'history' ? (
             <ImportHistoryTab />
           ) : (
@@ -98,19 +98,19 @@ export default function ImportModal({ open, onClose }) {
               {step === 1 && <ImportUploadStep onFile={handleFile} loading={parsing} />}
               {step === 2 && <ImportPreviewStep rows={rows} />}
               {step === 3 && result && (
-                <div className="text-center py-8 space-y-3">
-                  <p className="text-lg font-semibold text-text">Import Summary</p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    <span className="px-3 py-1.5 rounded-lg bg-page border border-border text-sm">
+                <div className="crm-import text-center py-6">
+                  <p className="text-lg font-semibold text-text mb-3">Import Summary</p>
+                  <div className="crm-import__summary">
+                    <span className="crm-import__summary-pill">
                       Total <strong>{result.total ?? rows.length}</strong>
                     </span>
-                    <span className="px-3 py-1.5 rounded-lg bg-success-soft text-success text-sm">
+                    <span className="crm-import__summary-pill crm-import__summary-pill--ok">
                       Uploaded <strong>{result.uploaded}</strong>
                     </span>
-                    <span className="px-3 py-1.5 rounded-lg bg-warning-soft text-warning text-sm">
+                    <span className="crm-import__summary-pill crm-import__summary-pill--warn">
                       Duplicate <strong>{result.duplicates}</strong>
                     </span>
-                    <span className="px-3 py-1.5 rounded-lg bg-danger-soft text-danger text-sm">
+                    <span className="crm-import__summary-pill crm-import__summary-pill--danger">
                       Failed <strong>{result.failed}</strong>
                     </span>
                   </div>

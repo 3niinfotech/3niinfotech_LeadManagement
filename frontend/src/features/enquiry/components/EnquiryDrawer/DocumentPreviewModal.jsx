@@ -8,8 +8,8 @@ import {
   isPreviewable,
 } from '../../config/enquiryDocument.config';
 
-export default function DocumentPreviewModal({ doc, open, onClose }) {
-  if (!doc) return null;
+export default function DocumentPreviewModal({ doc, open = Boolean(doc), onClose }) {
+  if (!doc || !open) return null;
 
   const url = getDocumentUrl(doc.filePath);
   const previewType = isPreviewable(doc.mimeType, doc.name || doc.fileName);

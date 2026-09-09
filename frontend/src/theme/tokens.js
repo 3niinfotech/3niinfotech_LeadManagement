@@ -131,10 +131,23 @@ export function getPalette(mode = 'light') {
   return COLORS[mode] || COLORS.light;
 }
 
-/** Chart palette — uses token values per mode */
+/** Chart palette — distinct series colors (never one flat color for all bars) */
 export function getChartPalette(mode = 'light') {
   const t = getTokens(mode);
-  return [t.brand, t.info, t.success, t.warning, t.danger, t['chart-accent']];
+  return [
+    t.brand,
+    '#0d9488',
+    t.success,
+    t.warning,
+    t.danger,
+    '#0284c7',
+    t['brand-accent'],
+    '#db2777',
+    '#ea580c',
+    '#4f46e5',
+    t['chart-accent'],
+    t['brand-hover'],
+  ];
 }
 
 export function getChartTheme(mode = 'light') {

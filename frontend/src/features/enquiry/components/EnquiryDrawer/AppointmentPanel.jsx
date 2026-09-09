@@ -6,7 +6,6 @@ import Textarea from '../../../../components/ui/Textarea';
 import Select from '../../../../components/ui/Select';
 import Button from '../../../../components/ui/Button';
 import FormSection from '../../../../components/ui/FormSection';
-import ScrollArea from '../../../../components/ui/ScrollArea';
 import {
   APPOINTMENT_MODES,
   MEETING_PLATFORMS,
@@ -22,6 +21,13 @@ import { useAddAppointmentMutation } from '../../redux/enquiryApiSlice';
 import toastService from '../../../../services/toast/toast.service';
 
 const ROOM_OPTIONS = APPOINTMENT_ROOMS.map((r) => ({ value: r, label: r }));
+
+function formatApptWhen(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+  });
+}
 
 export default function AppointmentPanel({ enquiryId, enquiry, isEditMode, onBooked }) {
   const { options: counsellorOptions, loading: counsellorsLoading } = useCounsellorOptions({
@@ -102,36 +108,40 @@ export default function AppointmentPanel({ enquiryId, enquiry, isEditMode, onBoo
   return (
     <FormSection
       title="Appointment"
-      description="Book counselling with counsellor, room, and online or offline mode."
+      description="Book counselling — counsellor, mode, room or meeting link."
+      className="crm-outreach-panel crm-appointment-panel"
     >
-      <div className="space-y-4">
-        <div className="crm-followup-appointment-fields">
-          <DatePicker
-            label="Date"
-            value={date}
-            onChange={setDate}
-            placeholder="Pick date"
-            disabled={!isEditMode}
-          />
-          <Input
-            label="Time"
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            disabled={!isEditMode}
-          />
-          <Select
-            label="Counsellor"
-            value={counsellorId}
-            onChange={(e) => setCounsellorId(e.target.value)}
-            options={counsellorOptions}
-            placeholder="Select counsellor"
-            loading={counsellorsLoading}
-            disabled={!isEditMode}
-          />
-          <div className="col-span-full">
-            <span className="block text-[12px] font-medium text-text mb-1.5">Mode</span>
-            <div className="crm-appointment-mode" role="group" aria-label="Appointment mode">
+      <div className="crm-outreach-panel__stack">
+        <div className="crm-outreach-panel__form">
+          <div className="crm-outreach-panel__grid crm-outreach-panel__grid--3">
+            <DatePicker
+              label="Date"
+              value={date}
+              onChange={setDate}
+              placeholder="Pick date"
+              disabled={!isEditMode}
+            />
+            <Input
+              label="Time"
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              disabled={!isEditMode}
+            />
+            <Select
+              label="Counsellor"
+              value={counsellorId}
+              onChange={(e) => setCounsellorId(e.target.value)}
+              options={counsellorOptions}
+              placeholder="Select counsellor"
+              loading={counsellorsLoading}
+              disabled={!isEditMode}
+            />
+          </div>
+
+          <div>
+            <span className="crm-outreach-field-label">Mode</span>
+            <div className="crm-appointment-mode crm-appointment-mode--segmented" role="group" aria-label="Appointment mode">
               {APPOINTMENT_MODES.map((m) => (
                 <button
                   key={m.value}
@@ -149,8 +159,8 @@ export default function AppointmentPanel({ enquiryId, enquiry, isEditMode, onBoo
 
           {isOnline ? (
             <>
-              <div className="col-span-full">
-                <span className="block text-[12px] font-medium text-text mb-1.5">Platform</span>
+              <div>
+                <span className="crm-outreach-field-label">Platform</span>
                 <div className="crm-appointment-platform">
                   {MEETING_PLATFORMS.map((p) => (
                     <button
@@ -170,15 +180,13 @@ export default function AppointmentPanel({ enquiryId, enquiry, isEditMode, onBoo
                   ))}
                 </div>
               </div>
-              <div className="col-span-full">
-                <Input
-                  label="Meeting Link"
-                  value={meetingLink}
-                  onChange={(e) => setMeetingLink(e.target.value)}
-                  placeholder="https://meet.google.com/..."
-                  disabled={!isEditMode}
-                />
-              </div>
+              <Input
+                label="Meeting link"
+                value={meetingLink}
+                onChange={(e) => setMeetingLink(e.target.value)}
+                placeholder="https://meet.google.com/…"
+                disabled={!isEditMode}
+              />
             </>
           ) : (
             <Select
@@ -191,22 +199,20 @@ export default function AppointmentPanel({ enquiryId, enquiry, isEditMode, onBoo
             />
           )}
 
-          <div className="col-span-full">
-            <Textarea
-              label="Remarks"
-              value={remark}
-              onChange={(e) => setRemark(e.target.value)}
-              placeholder="Agenda or notes for this session..."
-              rows={2}
-              disabled={!isEditMode}
-            />
-          </div>
+          <Textarea
+            label="Remarks"
+            value={remark}
+            onChange={(e) => setRemark(e.target.value)}
+            placeholder="Agenda or notes for this session…"
+            rows={3}
+            disabled={!isEditMode}
+          />
         </div>
 
         {isEditMode && (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="crm-outreach-panel__footer">
             {startAt && (
-              <>
+              <div className="crm-outreach-panel__footer-secondary">
                 <Button
                   type="button"
                   size="sm"
@@ -233,9 +239,9 @@ export default function AppointmentPanel({ enquiryId, enquiry, isEditMode, onBoo
                     uid: `appt-${enquiryId}-${Date.now()}`,
                   })}
                 >
-                  Download .ics
+                  .ics
                 </Button>
-              </>
+              </div>
             )}
             <Button
               type="button"
@@ -243,64 +249,57 @@ export default function AppointmentPanel({ enquiryId, enquiry, isEditMode, onBoo
               icon={FiPlus}
               onClick={book}
               loading={isLoading}
-              className="ml-auto"
+              className="crm-outreach-panel__cta"
             >
-              Book Appointment
+              Book appointment
             </Button>
           </div>
         )}
 
         {isEditMode && history.length > 0 && (
-          <div className="pt-2 border-t border-border">
-            <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-2">
-              Scheduled appointments
-            </p>
-            <ScrollArea axis="x" className="rounded-lg border border-border">
-              <table className="w-full text-[12px]">
-                <thead className="bg-row-hover text-left text-text-secondary">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">Date & Time</th>
-                    <th className="px-3 py-2 font-semibold">Counsellor</th>
-                    <th className="px-3 py-2 font-semibold">Mode</th>
-                    <th className="px-3 py-2 font-semibold">Room / Platform</th>
-                    <th className="px-3 py-2 font-semibold">Remarks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((row) => (
-                    <tr key={row.id} className="border-t border-border">
-                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">
-                        {new Date(row.startAt).toLocaleString('en-IN')}
-                      </td>
-                      <td className="px-3 py-2">
-                        {row.counsellor
-                          ? `${row.counsellor.firstName} ${row.counsellor.lastName || ''}`.trim()
-                          : row.user
-                            ? `${row.user.firstName} ${row.user.lastName || ''}`.trim()
-                            : '—'}
-                      </td>
-                      <td className="px-3 py-2">{getAppointmentModeLabel(row.mode)}</td>
-                      <td className="px-3 py-2">
-                        {row.mode === 'ONLINE'
-                          ? getMeetingPlatformLabel(row.platform)
-                          : row.room || '—'}
-                        {row.meetingLink && (
-                          <a
-                            href={row.meetingLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block text-[10px] text-brand truncate max-w-[140px]"
-                          >
-                            Join link
-                          </a>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 max-w-[160px] truncate">{row.remark || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </ScrollArea>
+          <div className="crm-outreach-feed">
+            <div className="crm-outreach-feed__head">
+              <span className="crm-outreach-feed__title">Scheduled</span>
+              <span className="crm-outreach-feed__count">{history.length}</span>
+            </div>
+            <ul className="crm-outreach-feed__list crm-outreach-feed__list--cards">
+              {history.slice(0, 4).map((row) => {
+                const counsellorName = row.counsellor
+                  ? `${row.counsellor.firstName} ${row.counsellor.lastName || ''}`.trim()
+                  : row.user
+                    ? `${row.user.firstName} ${row.user.lastName || ''}`.trim()
+                    : 'Unassigned';
+                return (
+                  <li key={row.id} className="crm-outreach-appt-card">
+                    <div className="crm-outreach-appt-card__top">
+                      <time className="crm-outreach-appt-card__when">{formatApptWhen(row.startAt)}</time>
+                      <span className="crm-outreach-appt-card__mode">
+                        {getAppointmentModeLabel(row.mode)}
+                      </span>
+                    </div>
+                    <p className="crm-outreach-appt-card__counsellor">{counsellorName}</p>
+                    <p className="crm-outreach-appt-card__meta">
+                      {row.mode === 'ONLINE'
+                        ? getMeetingPlatformLabel(row.platform)
+                        : (row.room || 'Room TBA')}
+                    </p>
+                    {row.meetingLink && (
+                      <a
+                        href={row.meetingLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="crm-outreach-appt-card__link"
+                      >
+                        Join meeting
+                      </a>
+                    )}
+                    {row.remark && (
+                      <p className="crm-outreach-appt-card__remark">{row.remark}</p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
       </div>

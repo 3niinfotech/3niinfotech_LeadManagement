@@ -8,9 +8,8 @@ import Input from '../../../../components/ui/Input';
 import Textarea from '../../../../components/ui/Textarea';
 import Button from '../../../../components/ui/Button';
 import FormSection from '../../../../components/ui/FormSection';
-import ScrollArea from '../../../../components/ui/ScrollArea';
 import FollowupActionTabs from './FollowupActionTabs';
-import { ENQUIRY_FOLLOWUP_ACTIONS, getFollowupActionLabel } from '../../config/enquiryFollowup.config';
+import { ENQUIRY_FOLLOWUP_ACTIONS, getFollowupActionLabel, getFollowupActionMeta } from '../../config/enquiryFollowup.config';
 import {
   buildGoogleCalendarUrl, downloadIcsFile, buildWhatsAppUrl, buildTelUrl, buildMailtoUrl,
 } from '../../utils/followupCalendar.utils';
@@ -22,6 +21,14 @@ import { followupSlotOptions } from '../../../../config/company-settings.config'
 import Select from '../../../../components/ui/Select';
 
 const CALENDAR_ACTIONS = new Set(['MEETING', 'REMINDER', 'VIDEO_CALL']);
+const CONTACT_ACTIONS = new Set(['CALL', 'WHATSAPP', 'EMAIL']);
+
+function formatActivityWhen(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+  });
+}
 
 export default function FollowUpActionsPanel({
   enquiryId,
@@ -83,24 +90,9 @@ export default function FollowUpActionsPanel({
   };
 
   const contactHint = {
-    CALL: {
-      value: enquiry?.mobile,
-      label: 'Mobile',
-      hint: 'Opens your PC phone app (Skype, Phone Link, etc.). Browser may ask which app to use — that is normal on laptop.',
-      actionLabel: 'Dial number',
-    },
-    WHATSAPP: {
-      value: enquiry?.mobile,
-      label: 'WhatsApp',
-      hint: 'Opens WhatsApp Web or the desktop app with this number.',
-      actionLabel: 'Open WhatsApp',
-    },
-    EMAIL: {
-      value: enquiry?.email,
-      label: 'Email',
-      hint: 'Opens your default mail app (Outlook, Gmail, etc.).',
-      actionLabel: 'Open email',
-    },
+    CALL: { value: enquiry?.mobile, label: 'Mobile', actionLabel: 'Dial' },
+    WHATSAPP: { value: enquiry?.mobile, label: 'WhatsApp', actionLabel: 'Open chat' },
+    EMAIL: { value: enquiry?.email, label: 'Email', actionLabel: 'Compose' },
   }[actionType];
 
   const addToCalendar = () => {
@@ -159,108 +151,110 @@ export default function FollowUpActionsPanel({
   return (
     <FormSection
       title="Follow-up & Outreach"
-      description="Pick a channel, log calls and messages, and schedule with calendar sync."
-      className="crm-followup-actions-panel"
+      description="Log calls and messages, then schedule the next touchpoint."
+      className="crm-outreach-panel crm-followup-actions-panel"
     >
-      <div className="space-y-4">
+      <div className="crm-outreach-panel__stack">
         {!hideChannelTabs && (
-          <div className="crm-followup-channel-tabs-wrap">
+          <div className="crm-outreach-panel__channels">
             <FollowupActionTabs
               actions={ENQUIRY_FOLLOWUP_ACTIONS}
               value={actionType}
               onChange={setActionType}
               layoutId="crm-followup-outreach-indicator"
               ariaLabel="Outreach channels"
-              edgeFade={false}
-              variant="inline"
             />
           </div>
         )}
 
-        {isEditMode ? (
-          <div className="crm-followup-appointment-fields">
-            <DatePicker
-              label={showCalendar ? 'Schedule Date' : 'Next Follow-up Date'}
-              value={scheduleDate}
-              onChange={setScheduleDate}
-              placeholder="Pick date"
-            />
-            <Input
-              label="Time"
-              type="time"
-              value={scheduleTime}
-              onChange={(e) => setScheduleTime(e.target.value)}
-            />
-            <div className="col-span-full">
+        <div className="crm-outreach-panel__form">
+          {isEditMode ? (
+            <>
+              <div className="crm-outreach-panel__grid crm-outreach-panel__grid--2">
+                <DatePicker
+                  label={showCalendar ? 'Schedule date' : 'Next follow-up date'}
+                  value={scheduleDate}
+                  onChange={setScheduleDate}
+                  placeholder="Pick date"
+                />
+                <Input
+                  label="Time"
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                />
+              </div>
               <Textarea
                 label="Remarks"
                 value={remark}
                 onChange={(e) => setRemark(e.target.value)}
-                placeholder={`Notes for this ${selected?.label?.toLowerCase() || 'action'}...`}
-                rows={2}
+                placeholder={`Notes for this ${selected?.label?.toLowerCase() || 'action'}…`}
+                rows={3}
               />
-            </div>
-          </div>
-        ) : (
-          <div className="crm-followup-appointment-fields">
-            <Controller
-              name="followUpDate"
-              control={control}
-              render={({ field }) => (
-                <DatePicker
-                  label="Follow-up Date"
-                  value={field.value || ''}
-                  onChange={field.onChange}
-                  error={errors.followUpDate?.message}
+            </>
+          ) : (
+            <>
+              <div className="crm-outreach-panel__grid crm-outreach-panel__grid--2">
+                <Controller
+                  name="followUpDate"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      label="Follow-up date"
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      error={errors.followUpDate?.message}
+                    />
+                  )}
                 />
-              )}
-            />
-            {slotOptions.length ? (
-              <Controller
-                name="followUpTime"
-                control={control}
-                render={({ field }) => (
-                  <Select
+                {slotOptions.length ? (
+                  <Controller
+                    name="followUpTime"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        label="Time"
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        options={slotOptions}
+                        error={errors.followUpTime?.message}
+                      />
+                    )}
+                  />
+                ) : (
+                  <Input
                     label="Time"
-                    value={field.value || ''}
-                    onChange={(e) => field.onChange(e.target.value)}
-                    options={slotOptions}
+                    type="time"
+                    {...register('followUpTime')}
                     error={errors.followUpTime?.message}
                   />
                 )}
-              />
-            ) : (
-              <Input
-                label="Time"
-                type="time"
-                {...register('followUpTime')}
-                error={errors.followUpTime?.message}
-              />
-            )}
-            <div className="col-span-full">
+              </div>
               <Textarea
                 label="Remarks"
                 {...register('followUpRemarks')}
                 error={errors.followUpRemarks?.message}
-                placeholder="What to discuss on the next outreach..."
-                rows={2}
+                placeholder="What to discuss on the next outreach…"
+                rows={3}
               />
-            </div>
-          </div>
-        )}
+            </>
+          )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          {isEditMode && contactHint && (
-            <div className="crm-followup-contact-card w-full">
-              <div className="crm-followup-contact-card__row">
-                <FiPhone className="crm-followup-contact-card__icon" aria-hidden />
-                <div className="min-w-0 flex-1">
-                  <span className="crm-followup-contact-card__label">{contactHint.label}</span>
-                  <span className="crm-followup-contact-card__value">
+          {isEditMode && contactHint && CONTACT_ACTIONS.has(actionType) && (
+            <div className="crm-outreach-contact">
+              <div className="crm-outreach-contact__main">
+                <span className="crm-outreach-contact__icon" aria-hidden>
+                  <FiPhone />
+                </span>
+                <div className="min-w-0">
+                  <span className="crm-outreach-contact__label">{contactHint.label}</span>
+                  <span className="crm-outreach-contact__value">
                     {contactHint.value || 'Not set on this lead'}
                   </span>
                 </div>
-                {contactHint.value && (
+              </div>
+              {contactHint.value && (
+                <div className="crm-outreach-contact__actions">
                   <Button
                     type="button"
                     size="sm"
@@ -270,8 +264,6 @@ export default function FollowUpActionsPanel({
                   >
                     Copy
                   </Button>
-                )}
-                {contactHint.value && ['CALL', 'WHATSAPP', 'EMAIL'].includes(actionType) && (
                   <Button
                     type="button"
                     size="sm"
@@ -281,64 +273,66 @@ export default function FollowUpActionsPanel({
                   >
                     {contactHint.actionLabel}
                   </Button>
-                )}
-              </div>
-              <p className="crm-followup-contact-card__hint">{contactHint.hint}</p>
+                </div>
+              )}
             </div>
           )}
-          {isEditMode && showCalendar && (
-            <>
-              <Button type="button" size="sm" variant="outline-primary" icon={FiCalendar} onClick={addToCalendar}>
-                Google Calendar
-              </Button>
-              <Button type="button" size="sm" variant="outline" icon={FiDownload} onClick={downloadIcs}>
-                Download .ics
-              </Button>
-            </>
-          )}
-          {isEditMode && (
+        </div>
+
+        {isEditMode && (
+          <div className="crm-outreach-panel__footer">
+            {showCalendar && (
+              <div className="crm-outreach-panel__footer-secondary">
+                <Button type="button" size="sm" variant="outline-primary" icon={FiCalendar} onClick={addToCalendar}>
+                  Google Calendar
+                </Button>
+                <Button type="button" size="sm" variant="outline" icon={FiDownload} onClick={downloadIcs}>
+                  .ics
+                </Button>
+              </div>
+            )}
             <Button
               type="button"
               size="sm"
               icon={FiPlus}
               onClick={logFollowUp}
               loading={isLoading}
-              className="ml-auto"
+              className="crm-outreach-panel__cta"
             >
               Log {selected?.label}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
 
         {isEditMode && history.length > 0 && (
-          <div className="pt-2 border-t border-border">
-            <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-2">
-              Recent activity
-            </p>
-            <ScrollArea axis="y" hideBar className="max-h-40 rounded-lg border border-border">
-              <ul className="divide-y divide-border">
-                {history.map((row) => (
-                  <li key={row.id} className="px-3 py-2.5 text-[12px]">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-text">
+          <div className="crm-outreach-feed">
+            <div className="crm-outreach-feed__head">
+              <span className="crm-outreach-feed__title">Recent activity</span>
+              <span className="crm-outreach-feed__count">{history.length}</span>
+            </div>
+            <ul className="crm-outreach-feed__list">
+              {history.slice(0, 5).map((row) => {
+                const meta = getFollowupActionMeta(row.stage);
+                return (
+                  <li key={row.id} className="crm-outreach-feed__item">
+                    <div className="crm-outreach-feed__item-top">
+                      <span className={`crm-outreach-feed__badge crm-outreach-feed__badge--${meta?.color || 'secondary'}`}>
                         {getFollowupActionLabel(row.stage) || 'Follow-up'}
                       </span>
-                      <span className="text-text-muted tabular-nums shrink-0">
-                        {new Date(row.followupAt || row.createdAt).toLocaleString('en-IN', {
-                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-                        })}
-                      </span>
+                      <time className="crm-outreach-feed__time">
+                        {formatActivityWhen(row.followupAt || row.createdAt)}
+                      </time>
                     </div>
-                    <p className="text-text-secondary mt-0.5 line-clamp-2">{row.remark}</p>
+                    <p className="crm-outreach-feed__text">{row.remark}</p>
                     {row.nextDate && (
-                      <p className="text-[10px] text-text-muted mt-0.5">
-                        Next: {new Date(row.nextDate).toLocaleString('en-IN')}
+                      <p className="crm-outreach-feed__next">
+                        Next: {formatActivityWhen(row.nextDate)}
                       </p>
                     )}
                   </li>
-                ))}
-              </ul>
-            </ScrollArea>
+                );
+              })}
+            </ul>
           </div>
         )}
       </div>

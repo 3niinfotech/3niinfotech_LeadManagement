@@ -2,11 +2,13 @@ import {
   FiLayout, FiInbox, FiBookOpen, FiMonitor, FiDollarSign,
   FiBarChart2, FiSliders, FiDatabase, FiGrid, FiHome, FiGlobe, FiTarget,
   FiFileText, FiMail, FiUsers, FiBriefcase, FiShield, FiCalendar, FiUserPlus,
+  FiClipboard, FiCheckCircle,
 } from 'react-icons/fi';
 import * as FiIcons from 'react-icons/fi';
 import { ROUTES } from './routes';
 import { PERMISSIONS } from './permissions';
 import { MASTER_SECTIONS } from './master-registry.config';
+import { buildReportsSidebarChildren } from '../features/reports/config/reports.config';
 
 const MASTER_SECTION_ICONS = {
   organization: FiHome,
@@ -23,6 +25,9 @@ const MASTER_SECTION_ICONS = {
 };
 
 function mapMasterItem(entry) {
+  if (entry.hidden) return null;
+  // Alias entries that share another master’s engine but have their own route (e.g. announcements)
+  if (entry.aliasOf && entry.id === entry.aliasOf) return null;
   return {
     id: entry.id,
     label: entry.label,
@@ -60,8 +65,11 @@ export function buildMasterSidebarChildren() {
     description: section.description,
     icon: MASTER_SECTION_ICONS[section.id] || FiDatabase,
     keywords: [section.id, section.label],
-    children: section.items.filter((entry) => !entry.hidden).map(mapMasterItem),
-  }));
+    children: section.items
+      .filter((entry) => !entry.hidden && !entry.aliasOf)
+      .map(mapMasterItem)
+      .filter(Boolean),
+  })).filter((group) => group.children.length > 0);
 
   return [hub, ...sectionGroups];
 }
@@ -88,7 +96,7 @@ export const sidebarMenuStructure = [
   {
     id: 'reception',
     label: 'Reception',
-    description: 'Walk-in register & counsellor assignment',
+    description: 'Walk-in register & course counsellor auto-assign',
     icon: FiUserPlus,
     path: ROUTES.WALK_INS,
     permission: PERMISSIONS.WALKIN_VIEW,
@@ -134,6 +142,46 @@ export const sidebarMenuStructure = [
     permission: PERMISSIONS.ATTENDANCE_VIEW,
   },
   {
+    id: 'teacher-attendance',
+    label: 'Attendance',
+    description: 'Today\'s sessions and mark attendance',
+    icon: FiCheckCircle,
+    path: ROUTES.TEACHER_ATTENDANCE,
+    permission: PERMISSIONS.ATTENDANCE_VIEW,
+  },
+  {
+    id: 'teacher-assignments',
+    label: 'Assignments',
+    description: 'Create assignments and review submissions',
+    icon: FiClipboard,
+    path: ROUTES.TEACHER_ASSIGNMENTS,
+    permission: PERMISSIONS.ATTENDANCE_VIEW,
+  },
+  {
+    id: 'teacher-tests',
+    label: 'Tests',
+    description: 'Schedule tests and publish results',
+    icon: FiFileText,
+    path: ROUTES.TEACHER_TESTS,
+    permission: PERMISSIONS.ATTENDANCE_VIEW,
+  },
+  {
+    id: 'teacher-materials',
+    label: 'Materials',
+    description: 'Study materials for your classes',
+    icon: FiBookOpen,
+    path: ROUTES.TEACHER_MATERIALS,
+    permission: PERMISSIONS.ATTENDANCE_VIEW,
+  },
+  {
+    id: 'teacher-performance',
+    label: 'Performance',
+    description: 'Student performance summary',
+    icon: FiBarChart2,
+    path: ROUTES.TEACHER_PERFORMANCE,
+    permission: PERMISSIONS.ATTENDANCE_VIEW,
+  },
+  {
     id: 'applications',
     label: 'Applications',
     description: 'University applications & documents',
@@ -150,14 +198,6 @@ export const sidebarMenuStructure = [
     permission: PERMISSIONS.VISAS_VIEW,
   },
   {
-    id: 'partners',
-    label: 'Partners',
-    description: 'Partner / agent directory',
-    icon: FiBriefcase,
-    path: ROUTES.PARTNERS,
-    permission: PERMISSIONS.PARTNERS_VIEW,
-  },
-  {
     id: 'fees',
     label: 'Fees',
     description: 'Fee plans, payments & ledger',
@@ -170,8 +210,26 @@ export const sidebarMenuStructure = [
     label: 'Reports',
     description: 'Analytics & exports',
     icon: FiBarChart2,
-    path: ROUTES.REPORTS,
     permission: PERMISSIONS.REPORTS_VIEW,
+    children: buildReportsSidebarChildren(),
+  },
+  {
+    id: 'team-access',
+    label: 'Team & Access',
+    description: 'Team members, roles & permissions',
+    icon: FiShield,
+    path: ROUTES.TEAM_ACCESS,
+    permissions: [PERMISSIONS.USERS_VIEW, PERMISSIONS.ROLES_VIEW],
+    keywords: ['users', 'staff', 'roles', 'permissions', 'rbac', 'team'],
+  },
+  {
+    id: 'role-applications',
+    label: 'Role Applications',
+    description: 'Staff apply requests — counsellor, teacher & more',
+    icon: FiUserPlus,
+    path: ROUTES.ROLE_APPLICATIONS,
+    permission: PERMISSIONS.ROLE_APPLICATION_VIEW,
+    keywords: ['apply', 'hiring', 'recruitment', 'staff application'],
   },
   {
     id: 'settings',

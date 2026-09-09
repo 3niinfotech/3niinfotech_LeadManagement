@@ -22,7 +22,22 @@ import { normalizeEnquiryTags } from './enquiryTags.config.js';
 import { normalizeDocumentCategory } from './enquiryDocument.config.js';
 import { smartReminderService } from './enquirySmartReminder.service.js';
 import { SMART_REMINDER_PREFIX } from './enquirySmartReminder.config.js';
+import {
+  normalizeEnquiryMasterFields,
+  hydrateEnquiryMasterLabels,
+  hydrateEnquiryListMasterLabels,
+} from '../../utils/masterFieldNormalize.util.js';
 import { masterRepository } from '../master/master.repository.js';
+import { assignmentEngine } from '../assignment/assignment.engine.js';
+import { courseCounsellorMappingService } from '../assignment/courseCounsellorMapping.service.js';
+import {
+  normalizeDemoAttendanceWrite,
+  normalizeDemoAttendanceDisplay,
+  isDemoAttendanceWindowExpired,
+  isDemoAttendanceWindowOpen,
+  DEMO_ATTENDANCE_CLOSE_MINUTES_AFTER,
+  DEMO_DEFAULT_DURATION_MINUTES,
+} from './enquiryDemo.config.js';
 
 const CLOSED_STATUS_SET = new Set([...CLOSED_VIEW_STATUSES, 'CONVERTED']);
 
@@ -45,6 +60,33 @@ const ENQUIRY_TO_LEAD_STATUS = {
   SPAM: 'CANCELLED',
   DUPLICATE: 'CANCELLED',
 };
+
+async function findDuplicateStudents(params, user) {
+  const or = [];
+  if (params.email?.trim()) or.push({ email: params.email.trim() });
+  if (params.mobile?.trim()) or.push({ phone: params.mobile.trim() });
+  if (params.passportNo?.trim()) {
+    or.push({ passportNo: params.passportNo.trim().toUpperCase() });
+  }
+  if (!or.length) return [];
+
+  const scopeWhere = mergeScope(user, { entity: 'student' });
+  return prisma.student.findMany({
+    where: { deletedAt: null, ...scopeWhere, OR: or },
+    take: 5,
+    orderBy: { updatedAt: 'desc' },
+    select: {
+      id: true,
+      studentCode: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      passportNo: true,
+      status: true,
+    },
+  });
+}
 
 async function syncLinkedLeadStatus(enquiry, userId) {
   if (!enquiry?.leadId) return;
@@ -82,6 +124,110 @@ async function assertDemoDrivenStatusAllowed(enquiryId, status) {
       409,
     );
   }
+}
+
+/**
+ * Auto-absent: NOT_MARKED demos whose attendance window has closed → ABSENT.
+ * Idempotent (only updates rows still NOT_MARKED). Safe if browser is closed.
+ */
+export async function reconcileExpiredDemoAttendance({ take = 500 } = {}) {
+  const now = new Date();
+  const graceMs = DEMO_ATTENDANCE_CLOSE_MINUTES_AFTER * 60 * 1000;
+  const defaultSessionMs = DEMO_DEFAULT_DURATION_MINUTES * 60 * 1000;
+  const endAtCutoff = new Date(now.getTime() - graceMs);
+  const demoDateCutoff = new Date(now.getTime() - graceMs - defaultSessionMs);
+
+  const candidates = await prisma.enquiryDemo.findMany({
+    where: {
+      attendance: 'NOT_MARKED',
+      sessionStatus: { in: ['SCHEDULED', 'COMPLETED'] },
+      OR: [
+        { endAt: { lte: endAtCutoff } },
+        { AND: [{ endAt: null }, { demoDate: { lte: demoDateCutoff } }] },
+      ],
+    },
+    select: { id: true, endAt: true, demoDate: true },
+    take,
+  });
+
+  const expiredIds = candidates
+    .filter((row) => isDemoAttendanceWindowExpired(row, now))
+    .map((row) => row.id);
+
+  if (!expiredIds.length) return { updatedCount: 0 };
+
+  const result = await prisma.enquiryDemo.updateMany({
+    where: {
+      id: { in: expiredIds },
+      attendance: 'NOT_MARKED',
+    },
+    data: {
+      attendance: 'ABSENT',
+      attendanceMarkedAt: now,
+    },
+  });
+
+  if (result.count > 0) {
+    console.info(`[demo] auto-absent marked ${result.count} session(s)`);
+  }
+
+  return { updatedCount: result.count };
+}
+
+async function attachDemoDayAndAttendanceMeta(demos = []) {
+  if (!demos.length) return demos;
+  const now = new Date();
+  const enquiryIds = [...new Set(demos.map((d) => d.enquiryId).filter(Boolean))];
+
+  const siblings = enquiryIds.length
+    ? await prisma.enquiryDemo.findMany({
+      where: {
+        enquiryId: { in: enquiryIds },
+        sessionStatus: { notIn: ['CANCELLED', 'RESCHEDULED'] },
+      },
+      select: { id: true, enquiryId: true, demoDate: true },
+      orderBy: { demoDate: 'asc' },
+    })
+    : [];
+
+  const dayById = new Map();
+  const grouped = new Map();
+  siblings.forEach((s) => {
+    if (!grouped.has(s.enquiryId)) grouped.set(s.enquiryId, []);
+    grouped.get(s.enquiryId).push(s);
+  });
+  grouped.forEach((list) => {
+    list.forEach((s, index) => {
+      dayById.set(s.id, Math.min(index + 1, 3));
+    });
+  });
+
+  return demos.map((demo) => {
+    const attendance = normalizeDemoAttendanceDisplay(demo.attendance);
+    const windowExpired = isDemoAttendanceWindowExpired(demo, now);
+    const windowOpen = isDemoAttendanceWindowOpen(demo, now);
+    const inactive = demo.sessionStatus === 'CANCELLED' || demo.sessionStatus === 'RESCHEDULED';
+    return {
+      ...demo,
+      attendance,
+      demoDay: dayById.get(demo.id) || null,
+      attendanceWindowOpen: !inactive && windowOpen,
+      attendanceWindowExpired: !inactive && windowExpired,
+      canMarkAttendance: !inactive && attendance === 'NOT_MARKED' && !windowExpired,
+    };
+  });
+}
+
+function buildAttendanceFilter(value) {
+  if (!value) return undefined;
+  if (value === 'PRESENT' || value === 'ATTENDED') {
+    return { in: ['PRESENT', 'ATTENDED'] };
+  }
+  if (value === 'ABSENT' || value === 'NO_SHOW' || value === 'MISSED') {
+    return { in: ['ABSENT', 'NO_SHOW'] };
+  }
+  if (value === 'NOT_MARKED') return 'NOT_MARKED';
+  return value;
 }
 
 /** Assigned walk-ins become enquiries so the counsellor can work them. Unassigned stay on Reception. */
@@ -139,7 +285,7 @@ export const enquiryService = {
     const { page, limit, sortBy, sortOrder, ...filters } = query;
     const sort = parseSort({ sortBy, sortOrder }, ENQUIRY_SORT_FIELDS);
     const scopeWhere = mergeScope(user, { entity: 'enquiry' });
-    return enquiryRepository.findMany({
+    const result = await enquiryRepository.findMany({
       ...filters,
       scopeWhere,
       page: Number(page) || 1,
@@ -147,6 +293,10 @@ export const enquiryService = {
       sort,
       userId: user.id,
     });
+    if (user.companyId && result?.data?.length) {
+      result.data = await hydrateEnquiryListMasterLabels(result.data, user.companyId);
+    }
+    return result;
   },
 
   getSummary: async (query, user) => {
@@ -160,7 +310,20 @@ export const enquiryService = {
     let enquiry = await enquiryRepository.findById(id, scopeWhere);
     if (!enquiry) throw new AppError('Enquiry not found', 404);
     enquiry = await smartReminderService.evaluateAndProcess(enquiry);
-    return enquiry;
+    const companyId = enquiry.branch?.companyId || user.companyId;
+    if (companyId) {
+      enquiry = await hydrateEnquiryMasterLabels(enquiry, companyId);
+    }
+    const photo = (enquiry.documents || []).find((d) => {
+      if (String(d.category || '').toUpperCase() !== 'PHOTO') return false;
+      return String(d.mimeType || '').startsWith('image/')
+        || /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName || d.name || d.filePath || '')
+        || Boolean(d.filePath);
+    });
+    return {
+      ...enquiry,
+      photoUrl: photo?.filePath || enquiry.photoUrl || null,
+    };
   },
 
   checkDuplicates: async (params, user) => {
@@ -175,21 +338,80 @@ export const enquiryService = {
   create: async (data, userId, req) => {
     const branch = await assertBranchInTenant(data.branchId, req.user);
     if (data.assignedToId) await assertCounsellorInTenant(data.assignedToId, req.user);
+
+    if (!data.allowDuplicate) {
+      const scopeWhere = mergeScope(req.user, { entity: 'enquiry' });
+      const [enquiryMatches, studentMatches] = await Promise.all([
+        enquiryRepository.findDuplicates({
+          email: data.email,
+          mobile: data.mobile,
+          alternateNo: data.alternateNo,
+          passportNo: data.passportNo,
+          scopeWhere,
+        }),
+        findDuplicateStudents(data, req.user),
+      ]);
+      if (enquiryMatches.length || studentMatches.length) {
+        throw new AppError('Possible duplicate record found', 409, {
+          hasDuplicate: true,
+          matches: enquiryMatches,
+          studentMatches,
+        });
+      }
+    }
+
+    const { allowDuplicate: _allowDuplicate, manualCounsellorOverride: _m, applyCourseCounsellor: _a, ...input } = data;
     const enquiryCode = await enquiryRepository.generateCode(branch.companyId);
-    let status = data.status;
+    let status = input.status;
     if (!status) {
       const defaultRow = await masterRepository.findDefaultLeadStatus(branch.companyId);
       if (defaultRow?.code) status = defaultRow.code;
     }
+
+    const normalizedInput = await normalizeEnquiryMasterFields(input, branch.companyId);
+
+    const counsellorResolution = await courseCounsellorMappingService.resolveForEnquiryInput({
+      data: normalizedInput,
+      user: req.user,
+      branchId: branch.id,
+    });
+    if (counsellorResolution?.validationError) {
+      throw new AppError(counsellorResolution.validationError, 422);
+    }
+
+    let assignedToId = normalizedInput.assignedToId || null;
+    let assignedById = normalizedInput.assignedToId ? userId : null;
+    let metadata = {};
+
+    if (counsellorResolution?.assignedToId) {
+      await assertCounsellorInTenant(counsellorResolution.assignedToId, req.user);
+      assignedToId = counsellorResolution.assignedToId;
+      assignedById = counsellorResolution.assignedById;
+      metadata = counsellorResolution.metadata || {};
+    } else if (normalizedInput.assignedToId) {
+      await assertCounsellorInTenant(normalizedInput.assignedToId, req.user);
+      assignedToId = normalizedInput.assignedToId;
+      assignedById = userId;
+      if (input.manualCounsellorOverride) {
+        metadata = courseCounsellorMappingService.buildManualAssignmentMeta(
+          {},
+          userId,
+          normalizedInput.interestedCourse,
+        );
+      }
+    }
+
     const payload = {
-      ...mapEnquiryInput(data),
+      ...mapEnquiryInput(normalizedInput),
       enquiryCode,
-      assignedById: data.assignedToId ? userId : null,
+      assignedToId,
+      assignedById,
+      ...(Object.keys(metadata).length ? { metadata } : {}),
       createdBy: userId,
       updatedBy: userId,
       status: status || 'NEW',
-      priority: data.priority || 'MEDIUM',
-      tags: normalizeEnquiryTags(data.tags || []),
+      priority: input.priority || 'MEDIUM',
+      tags: normalizeEnquiryTags(input.tags || []),
     };
     const enquiry = await enquiryRepository.create(payload);
     await logEnquiryAudit({
@@ -203,6 +425,29 @@ export const enquiryService = {
     await auditLog({
       userId, action: 'CREATE', entityType: 'enquiry', entityId: enquiry.id, newData: enquiry, req,
     });
+
+    if (counsellorResolution?.source === 'COURSE_AUTO') {
+      await courseCounsellorMappingService.applyToEnquiry({
+        enquiry,
+        courseLabel: normalizedInput.interestedCourse,
+        branchId: branch.id,
+        companyId: branch.companyId,
+        actorId: userId,
+        user: req.user,
+        force: true,
+        existingMeta: metadata,
+      });
+      return enquiryRepository.findById(enquiry.id);
+    }
+
+    if (!assignedToId) {
+      const config = await assignmentEngine.getCompanyAssignmentConfig(branch.companyId);
+      if (config.autoAssignOnEnquiryCreate && config.mode !== 'manual') {
+        const assignResult = await assignmentEngine.autoAssignEnquiry(enquiry, userId);
+        if (assignResult.assigned) return assignResult.enquiry;
+      }
+    }
+
     return enquiry;
   },
 
@@ -307,26 +552,75 @@ export const enquiryService = {
     if (data.branchId !== undefined) await assertBranchInTenant(data.branchId, req.user);
     if (data.assignedToId) await assertCounsellorInTenant(data.assignedToId, req.user);
     if (data.status) await assertDemoDrivenStatusAllowed(id, data.status);
-    const payload = { ...mapEnquiryInput(data), updatedBy: userId };
-    if (data.assignedToId !== undefined) payload.assignedById = data.assignedToId ? userId : null;
+
+    const {
+      manualCounsellorOverride: _m,
+      applyCourseCounsellor: _a,
+      ...input
+    } = data;
+
+    const branchId = input.branchId || existing.branchId;
+    const companyId = existing.branch?.companyId || req.user?.companyId;
+    const normalizedInput = companyId
+      ? await normalizeEnquiryMasterFields(input, companyId)
+      : input;
+
+    const counsellorResolution = await courseCounsellorMappingService.resolveForEnquiryInput({
+      data: normalizedInput,
+      existing,
+      user: req.user,
+      branchId,
+    });
+    if (counsellorResolution?.validationError) {
+      throw new AppError(counsellorResolution.validationError, 422);
+    }
+
+    const payload = { ...mapEnquiryInput(normalizedInput), updatedBy: userId };
+
+    if (counsellorResolution?.assignedToId) {
+      payload.assignedToId = counsellorResolution.assignedToId;
+      payload.assignedById = counsellorResolution.assignedById;
+      payload.metadata = {
+        ...(existing.metadata || {}),
+        ...(counsellorResolution.metadata || {}),
+      };
+    } else if (input.assignedToId !== undefined) {
+      payload.assignedById = input.assignedToId ? userId : null;
+      if (input.manualCounsellorOverride && input.assignedToId) {
+        payload.metadata = {
+          ...(existing.metadata || {}),
+          ...courseCounsellorMappingService.buildManualAssignmentMeta(
+            existing.metadata || {},
+            userId,
+            normalizedInput.interestedCourse ?? existing.interestedCourse,
+          ),
+        };
+      }
+    }
+
     const enquiry = await enquiryRepository.update(id, payload);
     await logEnquiryChanges(id, userId, existing, enquiry, [
       'firstName', 'lastName', 'email', 'mobile', 'status', 'priority', 'tags', 'interestedCourse', 'interestedCountry',
     ], req);
-    if (data.assignedToId !== undefined && data.assignedToId !== existing.assignedToId) {
+    const assignedChanged = enquiry.assignedToId !== existing.assignedToId;
+    if (assignedChanged) {
       await logEnquiryAudit({
         enquiryId: id,
         userId,
         action: 'ASSIGN',
         field: 'assignedToId',
         oldValue: existing.assignedToId || '',
-        newValue: data.assignedToId || '',
-        description: data.assignedToId ? 'Counsellor assigned' : 'Assignment cleared',
+        newValue: enquiry.assignedToId || '',
+        description: enquiry.assignedToId
+          ? (counsellorResolution?.source === 'COURSE_AUTO'
+            ? `Counsellor auto-assigned from ${counsellorResolution.metadata?.counsellorAssignment?.courseLabel || 'course'}`
+            : 'Counsellor assigned')
+          : 'Assignment cleared',
         req,
       });
-      if (data.assignedToId) {
+      if (enquiry.assignedToId) {
         await notifyCounsellorAssigned({
-          counsellorId: data.assignedToId,
+          counsellorId: enquiry.assignedToId,
           lead: {
             id: enquiry.id,
             firstName: enquiry.firstName,
@@ -336,6 +630,22 @@ export const enquiryService = {
             enquiry: { id: enquiry.id },
           },
           actorId: userId,
+        });
+      }
+      if (counsellorResolution?.source === 'COURSE_AUTO') {
+        const branch = await prisma.branch.findUnique({
+          where: { id: enquiry.branchId },
+          select: { companyId: true },
+        });
+        await courseCounsellorMappingService.applyToEnquiry({
+          enquiry,
+          courseLabel: input.interestedCourse ?? existing.interestedCourse,
+          branchId: enquiry.branchId,
+          companyId: branch?.companyId,
+          actorId: userId,
+          user: req.user,
+          force: true,
+          existingMeta: enquiry.metadata || {},
         });
       }
     }
@@ -718,7 +1028,7 @@ export const enquiryService = {
 
     const demoDate = new Date(data.demoDate);
     const endAt = data.endAt ? new Date(data.endAt) : new Date(demoDate.getTime() + 60 * 60 * 1000);
-    const attendance = data.attendance || 'NOT_MARKED';
+    const attendance = normalizeDemoAttendanceWrite(data.attendance) || 'NOT_MARKED';
     const result = data.result || 'PENDING';
 
     const demo = await enquiryRepository.addDemo({
@@ -740,7 +1050,8 @@ export const enquiryService = {
 
     let nextStatus = enquiry.status;
     if (result === 'CONVERTED') {
-      nextStatus = 'CONVERTED';
+      // Demo outcome "CONVERTED" ≠ enquiry converted — use attended/demo-completed status
+      nextStatus = attendance !== 'NOT_MARKED' ? 'DEMO_ATTENDED' : 'DEMO_SCHEDULED';
     } else if (attendance !== 'NOT_MARKED') {
       nextStatus = 'DEMO_ATTENDED';
     } else {
@@ -773,12 +1084,19 @@ export const enquiryService = {
   },
 
   listDemos: async (query, user) => {
+    await reconcileExpiredDemoAttendance();
+
     const take = Math.min(Number(query.limit) || 50, 200);
     const currentPage = Number(query.page) || 1;
     const offset = (currentPage - 1) * take;
 
     const enquiryScope = mergeScope(user, { entity: 'enquiry' });
     const where = { enquiry: { ...enquiryScope, deletedAt: null } };
+
+    // Hide superseded sessions from default list (reschedule creates a new active row)
+    if (!query.sessionStatus && query.view !== 'history') {
+      where.sessionStatus = { not: 'RESCHEDULED' };
+    }
 
     if (query.ids) {
       const ids = Array.isArray(query.ids)
@@ -788,15 +1106,8 @@ export const enquiryService = {
     }
 
     if (query.sessionStatus) where.sessionStatus = query.sessionStatus;
-    if (query.attendance) {
-      if (query.attendance === 'ATTENDED') {
-        where.attendance = { in: ['ATTENDED', 'PRESENT'] };
-      } else if (query.attendance === 'ABSENT') {
-        where.attendance = { in: ['ABSENT', 'NO_SHOW'] };
-      } else {
-        where.attendance = query.attendance;
-      }
-    }
+    const attendanceFilter = buildAttendanceFilter(query.attendance);
+    if (attendanceFilter) where.attendance = attendanceFilter;
     if (query.result) where.result = query.result;
     if (query.facultyId) where.facultyId = query.facultyId;
     if (query.branchId) where.enquiry.branchId = query.branchId;
@@ -856,14 +1167,17 @@ export const enquiryService = {
       }
     }
 
-    const [data, total] = await Promise.all([
+    const [raw, total] = await Promise.all([
       enquiryRepository.listDemos(where, { skip: offset, take }),
       enquiryRepository.countDemos(where),
     ]);
+    const data = await attachDemoDayAndAttendanceMeta(raw);
     return { data, pagination: { page: currentPage, limit: take, total } };
   },
 
   getDemoSummary: async (query = {}, user) => {
+    await reconcileExpiredDemoAttendance();
+
     const enquiryScope = mergeScope(user, { entity: 'enquiry' });
     const baseWhere = { enquiry: { ...enquiryScope, deletedAt: null } };
     if (query.branchId) baseWhere.enquiry.branchId = query.branchId;
@@ -873,11 +1187,17 @@ export const enquiryService = {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const [total, today, scheduled, attended, converted, missed, pendingOutcome] = await Promise.all([
-      prisma.enquiryDemo.count({ where: baseWhere }),
-      prisma.enquiryDemo.count({
-        where: { ...baseWhere, demoDate: { gte: todayStart, lte: todayEnd } },
-      }),
+    const todayWhere = { ...baseWhere, demoDate: { gte: todayStart, lte: todayEnd } };
+    const activeSession = { sessionStatus: { notIn: ['CANCELLED', 'RESCHEDULED'] } };
+    const listWhere = { ...baseWhere, ...activeSession };
+
+    const [
+      total, today, scheduled, attended, converted, missed, pendingOutcome,
+      present, absent, notMarked,
+      todayPresent, todayAbsent, todayNotMarked,
+    ] = await Promise.all([
+      prisma.enquiryDemo.count({ where: listWhere }),
+      prisma.enquiryDemo.count({ where: todayWhere }),
       prisma.enquiryDemo.count({
         where: { ...baseWhere, sessionStatus: 'SCHEDULED' },
       }),
@@ -897,7 +1217,34 @@ export const enquiryService = {
           result: 'PENDING',
         },
       }),
+      prisma.enquiryDemo.count({
+        where: { ...baseWhere, ...activeSession, attendance: { in: ['PRESENT', 'ATTENDED'] } },
+      }),
+      prisma.enquiryDemo.count({
+        where: { ...baseWhere, ...activeSession, attendance: { in: ['ABSENT', 'NO_SHOW'] } },
+      }),
+      prisma.enquiryDemo.count({
+        where: { ...baseWhere, ...activeSession, attendance: 'NOT_MARKED' },
+      }),
+      prisma.enquiryDemo.count({
+        where: { ...todayWhere, ...activeSession, attendance: { in: ['PRESENT', 'ATTENDED'] } },
+      }),
+      prisma.enquiryDemo.count({
+        where: { ...todayWhere, ...activeSession, attendance: { in: ['ABSENT', 'NO_SHOW'] } },
+      }),
+      prisma.enquiryDemo.count({
+        where: { ...todayWhere, ...activeSession, attendance: 'NOT_MARKED' },
+      }),
     ]);
+
+    const applicable = present + absent;
+    const attendanceRate = applicable > 0
+      ? Math.round((present / applicable) * 10000) / 100
+      : null;
+    const todayApplicable = todayPresent + todayAbsent;
+    const todayAttendanceRate = todayApplicable > 0
+      ? Math.round((todayPresent / todayApplicable) * 10000) / 100
+      : null;
 
     return {
       total,
@@ -907,6 +1254,15 @@ export const enquiryService = {
       converted,
       missed,
       pendingOutcome,
+      present,
+      absent,
+      notMarked,
+      attendanceRate,
+      todayPresent,
+      todayAbsent,
+      todayNotMarked,
+      todayTotal: todayPresent + todayAbsent + todayNotMarked,
+      todayAttendanceRate,
     };
   },
 
@@ -1014,21 +1370,37 @@ export const enquiryService = {
     if (!Array.isArray(demoIds) || !demoIds.length) {
       throw new AppError('No demo sessions selected', 400);
     }
-    const attendance = data.attendance === 'PRESENT' ? 'ATTENDED' : data.attendance;
+
+    const attendance = normalizeDemoAttendanceWrite(data.attendance);
+    if (!attendance || attendance === 'NOT_MARKED') {
+      throw new AppError('Attendance must be PRESENT or ABSENT', 400);
+    }
+
+    const enquiryScope = mergeScope(req.user, { entity: 'enquiry' });
+    const scoped = await prisma.enquiryDemo.findMany({
+      where: {
+        id: { in: demoIds },
+        sessionStatus: { notIn: ['CANCELLED', 'RESCHEDULED'] },
+        enquiry: { ...enquiryScope, deletedAt: null },
+      },
+      select: { id: true },
+    });
+    const allowedIds = scoped.map((d) => d.id);
+    if (!allowedIds.length) {
+      throw new AppError('No eligible demo sessions in your tenant scope', 404);
+    }
+
     const updatePayload = {
+      attendance,
       attendanceMarkedAt: new Date(),
       attendanceMarkedById: userId,
     };
-    if (attendance) updatePayload.attendance = attendance;
     if (data.result) updatePayload.result = data.result;
     if (data.feedback !== undefined) updatePayload.feedback = data.feedback;
     if (data.remark !== undefined) updatePayload.remark = data.remark;
 
     const result = await prisma.enquiryDemo.updateMany({
-      where: {
-        id: { in: demoIds },
-        sessionStatus: { notIn: ['CANCELLED', 'RESCHEDULED'] },
-      },
+      where: { id: { in: allowedIds } },
       data: updatePayload,
     });
 
@@ -1036,7 +1408,7 @@ export const enquiryService = {
       userId,
       action: 'UPDATE',
       entityType: 'enquiryDemo',
-      newData: { bulk: true, count: result.count, demoIds, ...updatePayload },
+      newData: { bulk: true, count: result.count, demoIds: allowedIds, ...updatePayload },
       req,
     });
 
@@ -1047,11 +1419,23 @@ export const enquiryService = {
     if (!Array.isArray(demoIds) || !demoIds.length) {
       throw new AppError('No demo sessions selected', 400);
     }
-    const result = await prisma.enquiryDemo.updateMany({
+
+    const enquiryScope = mergeScope(req.user, { entity: 'enquiry' });
+    const scoped = await prisma.enquiryDemo.findMany({
       where: {
         id: { in: demoIds },
         sessionStatus: 'SCHEDULED',
+        enquiry: { ...enquiryScope, deletedAt: null },
       },
+      select: { id: true },
+    });
+    const allowedIds = scoped.map((d) => d.id);
+    if (!allowedIds.length) {
+      throw new AppError('No eligible demo sessions in your tenant scope', 404);
+    }
+
+    const result = await prisma.enquiryDemo.updateMany({
+      where: { id: { in: allowedIds } },
       data: {
         sessionStatus: 'CANCELLED',
         cancelledReason: data.reason || 'Bulk cancelled',
@@ -1062,7 +1446,7 @@ export const enquiryService = {
       userId,
       action: 'UPDATE',
       entityType: 'enquiryDemo',
-      newData: { bulk: true, cancelledCount: result.count, demoIds, reason: data.reason },
+      newData: { bulk: true, cancelledCount: result.count, demoIds: allowedIds, reason: data.reason },
       req,
     });
 
@@ -1077,21 +1461,31 @@ export const enquiryService = {
       throw new AppError('Attendance can only be marked on the active scheduled session', 409);
     }
 
-    const attendance = data.attendance === 'PRESENT' ? 'ATTENDED' : data.attendance;
+    const attendance = normalizeDemoAttendanceWrite(data.attendance);
+    if (!attendance) {
+      throw new AppError('Attendance must be PRESENT, ABSENT, or NOT_MARKED', 400);
+    }
+
+    const current = normalizeDemoAttendanceDisplay(demo.attendance);
+    if (attendance !== 'NOT_MARKED' && current === attendance) {
+      const [enriched] = await attachDemoDayAndAttendanceMeta([demo]);
+      return enriched;
+    }
+
     const updated = await enquiryRepository.updateDemo(demoId, {
       attendance,
       feedback: data.feedback !== undefined ? data.feedback : demo.feedback,
       remark: data.remark !== undefined ? data.remark : demo.remark,
       result: data.result || demo.result,
-      attendanceMarkedAt: new Date(),
-      attendanceMarkedById: userId,
+      attendanceMarkedAt: attendance === 'NOT_MARKED' ? null : new Date(),
+      attendanceMarkedById: attendance === 'NOT_MARKED' ? null : userId,
     });
 
     if (attendance !== 'NOT_MARKED' && demo.enquiry?.status !== 'CONVERTED') {
       await enquiryRepository.update(enquiryId, {
         lastTouchedAt: new Date(),
         updatedBy: userId,
-        status: attendance === 'NO_SHOW' || attendance === 'ABSENT' ? demo.enquiry.status : 'DEMO_ATTENDED',
+        status: attendance === 'ABSENT' ? demo.enquiry.status : 'DEMO_ATTENDED',
       });
     }
 
@@ -1102,7 +1496,7 @@ export const enquiryService = {
       field: 'attendance',
       oldValue: demo.attendance,
       newValue: attendance,
-      description: `Demo attendance ${demo.attendance} → ${attendance}`,
+      description: `Demo attendance ${current} → ${attendance}`,
       req,
     });
     await auditLog({
@@ -1111,17 +1505,18 @@ export const enquiryService = {
     });
 
     const counsellorId = demo.enquiry?.assignedToId;
-    if ((attendance === 'NO_SHOW' || attendance === 'ABSENT') && counsellorId) {
+    if (attendance === 'ABSENT' && counsellorId) {
       await notifyUser(counsellorId, {
         type: 'WARNING',
-        title: `Demo ${attendance === 'NO_SHOW' ? 'no-show' : 'absent'}: ${demo.enquiry.firstName} ${demo.enquiry.lastName || ''}`.trim(),
+        title: `Demo absent: ${demo.enquiry.firstName} ${demo.enquiry.lastName || ''}`.trim(),
         message: `${demo.enquiry.firstName} did not attend the demo session.`,
         link: `/admin/enquiries/${enquiryId}/demo`,
-        metadata: { kind: 'DEMO_NO_SHOW', enquiryId, demoId, attendance },
+        metadata: { kind: 'DEMO_ABSENT', enquiryId, demoId, attendance },
       });
     }
 
-    return updated;
+    const [enriched] = await attachDemoDayAndAttendanceMeta([{ ...updated, enquiry: demo.enquiry }]);
+    return enriched;
   },
 
   rescheduleDemo: async (enquiryId, demoId, data, userId, req) => {

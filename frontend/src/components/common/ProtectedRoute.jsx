@@ -2,6 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated, selectUser } from '../../redux/slices/authSlice';
 import { resolvePortalFromRole, getDefaultRoute, PORTAL_META, PORTALS } from '../../config/portal.config';
+import { ROUTES } from '../../config/routes';
 
 export default function ProtectedRoute({ children, portal }) {
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -10,7 +11,7 @@ export default function ProtectedRoute({ children, portal }) {
 
   if (!isAuthenticated) {
     const pathPortal = portal || resolvePortalFromPath(location.pathname);
-    const loginPath = PORTAL_META[pathPortal]?.loginPath || '/login';
+    const loginPath = PORTAL_META[pathPortal]?.loginPath || ROUTES.LANDING;
     return <Navigate to={loginPath} replace state={{ from: location.pathname }} />;
   }
 

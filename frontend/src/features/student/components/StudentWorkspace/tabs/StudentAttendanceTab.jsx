@@ -1,62 +1,111 @@
-import Badge from '../../../../../components/ui/Badge';
-import Card from '../../../../../components/ui/Card';
 import ContentLoader from '../../../../../components/ui/ContentLoader';
+import FormSection from '../../../../../components/ui/FormSection';
+import Badge from '../../../../../components/ui/Badge';
 import { useGetStudentAttendanceQuery } from '../../../../attendance/redux/attendanceApiSlice';
 
 function formatWhen(value) {
   if (!value) return '—';
-  return new Date(value).toLocaleString('en-IN');
+  return new Date(value).toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function statusTone(status) {
+  const s = String(status || '').toUpperCase();
+  if (s === 'PRESENT') return 'success';
+  if (s === 'ABSENT') return 'danger';
+  if (s === 'LATE' || s === 'HALF_DAY') return 'warning';
+  if (s === 'EXCUSED' || s === 'LEAVE') return 'info';
+  return 'secondary';
 }
 
 export default function StudentAttendanceTab({ studentId }) {
   const { data, isLoading } = useGetStudentAttendanceQuery(studentId, { skip: !studentId });
 
   if (isLoading) return <ContentLoader variant="section" />;
-  if (!data) return <p className="text-sm text-text-muted">Attendance history is unavailable.</p>;
+
+  if (!data) {
+    return (
+      <FormSection title="Class attendance" description="Academic attendance for this student.">
+        <p className="text-sm text-text-muted py-4">Attendance history could not be loaded.</p>
+      </FormSection>
+    );
+  }
 
   const t = data.totals || {};
+  const history = data.history || [];
+
+  const stats = [
+    { label: 'Rate', value: `${t.percent ?? 0}%` },
+    { label: 'Present', value: t.present || 0 },
+    { label: 'Absent', value: t.absent || 0 },
+    { label: 'Late', value: t.late || 0 },
+    { label: 'Excused', value: t.excused || 0 },
+    { label: 'Total', value: t.total || 0 },
+  ];
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        <Card className="p-3"><p className="text-xs text-text-muted">Total classes</p><p className="text-lg font-semibold">{t.total || 0}</p></Card>
-        <Card className="p-3"><p className="text-xs text-text-muted">Present</p><p className="text-lg font-semibold">{t.present || 0}</p></Card>
-        <Card className="p-3"><p className="text-xs text-text-muted">Absent</p><p className="text-lg font-semibold">{t.absent || 0}</p></Card>
-        <Card className="p-3"><p className="text-xs text-text-muted">Late</p><p className="text-lg font-semibold">{t.late || 0}</p></Card>
-        <Card className="p-3"><p className="text-xs text-text-muted">Excused</p><p className="text-lg font-semibold">{t.excused || 0}</p></Card>
-        <Card className="p-3">
-          <p className="text-xs text-text-muted">Attendance %</p>
-          <p className="text-lg font-semibold">{t.percent || 0}%</p>
-          {data.lowAttendance && <Badge color="danger" className="text-[10px]">Low attendance</Badge>}
-        </Card>
-      </div>
-      <div className="overflow-auto rounded-lg border border-border">
-        <table className="w-full text-sm">
-          <thead className="bg-row-hover text-left">
-            <tr>
-              <th className="px-3 py-2">Date</th>
-              <th className="px-3 py-2">Course</th>
-              <th className="px-3 py-2">Batch</th>
-              <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2">Marked by</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data.history || []).length === 0 && (
-              <tr><td className="px-3 py-6 text-text-muted" colSpan={5}>No class attendance recorded yet.</td></tr>
-            )}
-            {(data.history || []).map((row) => (
-              <tr key={row.id} className="border-t border-border">
-                <td className="px-3 py-2 whitespace-nowrap">{formatWhen(row.startAt || row.date)}</td>
-                <td className="px-3 py-2">{row.course || '—'}</td>
-                <td className="px-3 py-2">{row.batch || '—'}</td>
-                <td className="px-3 py-2">{row.status}</td>
-                <td className="px-3 py-2">{row.markedBy ? `${row.markedBy.firstName} ${row.markedBy.lastName || ''}` : '—'}</td>
-              </tr>
+      <FormSection
+        title="Attendance summary"
+        description="Records from teacher attendance marking."
+      >
+        {data.lowAttendance && (
+          <p className="text-sm text-danger mb-3">
+            Low attendance — below {data.threshold ?? 75}% threshold.
+          </p>
+        )}
+
+        <div className="crm-student-att-kpis">
+          {stats.map((s) => (
+            <div key={s.label} className="crm-student-att-kpi">
+              <div className="crm-student-att-kpi__label">{s.label}</div>
+              <div className="crm-student-att-kpi__value">{s.value}</div>
+            </div>
+          ))}
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="Session history"
+        description={`${history.length} session${history.length === 1 ? '' : 's'}`}
+      >
+        {history.length === 0 ? (
+          <p className="text-sm text-text-muted py-4">No class attendance recorded yet.</p>
+        ) : (
+          <ul className="crm-student-record-list">
+            {history.map((row) => (
+              <li
+                key={row.id}
+                className="crm-student-record"
+                style={{ gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr) auto minmax(0,1fr)' }}
+              >
+                <div className="crm-student-record__primary">
+                  {row.course || 'Class session'}
+                  <div className="crm-student-record__muted mt-0.5">{formatWhen(row.startAt || row.date)}</div>
+                </div>
+                <div className="crm-student-record__meta">
+                  <span className="block text-[10px] font-medium text-text-muted mb-0.5">Batch</span>
+                  {row.batch || '—'}
+                </div>
+                <Badge color={statusTone(row.status)} size="sm">
+                  {row.status || '—'}
+                </Badge>
+                <div className="crm-student-record__muted">
+                  <span className="block text-[10px] font-medium text-text-muted mb-0.5">Marked by</span>
+                  {row.markedBy
+                    ? `${row.markedBy.firstName || ''} ${row.markedBy.lastName || ''}`.trim()
+                    : '—'}
+                </div>
+              </li>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </ul>
+        )}
+      </FormSection>
     </div>
   );
 }

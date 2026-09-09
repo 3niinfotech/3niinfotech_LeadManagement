@@ -18,16 +18,18 @@ export default function DuplicateFoundModal({
       open={open}
       onClose={onClose}
       title="Possible Duplicate Found"
-      subtitle="A matching enquiry already exists in the system."
+      subtitle="Same email or mobile already exists — use the existing record instead of creating another."
       size="md"
       footer={(
         <>
-          <Button variant="outline" onClick={onClose}>Continue Anyway</Button>
           {primary && (
             <Button icon={FiExternalLink} onClick={() => onViewRecord?.(primary)}>
-              View Existing Record
+              Use existing record
             </Button>
           )}
+          <Button variant="outline" onClick={onClose}>
+            Create duplicate anyway
+          </Button>
         </>
       )}
     >
@@ -35,9 +37,11 @@ export default function DuplicateFoundModal({
         <div className="crm-duplicate-modal__alert">
           <FiAlertTriangle className="w-5 h-5 shrink-0" />
           <p className="text-sm">
-            Real-time duplicate check matched on
+            Matched on
             {' '}
             {primary?.matchedOn?.map(getDuplicateFieldLabel).join(', ') || 'contact details'}.
+            {' '}
+            One person should have one enquiry — open the existing record and add follow-up or demo there.
           </p>
         </div>
 

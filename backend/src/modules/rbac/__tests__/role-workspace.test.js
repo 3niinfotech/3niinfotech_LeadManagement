@@ -25,7 +25,7 @@ describe('role workspace defaults', () => {
     const cases = [
       ['receptionist', '/admin/reception'],
       ['counsellor', '/admin/enquiries'],
-      ['teacher', '/admin/dashboard'],
+      ['teacher', '/admin/teacher/dashboard'],
       ['application_officer', '/admin/applications'],
       ['visa_officer', '/admin/visas'],
       ['finance_manager', '/admin/fees'],

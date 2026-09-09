@@ -6,6 +6,7 @@ import * as reportsController from './reports.controller.js';
 const router = Router();
 
 router.use(authenticate);
+router.get('/overview', authorize(PERMISSIONS.REPORTS_VIEW), reportsController.getOverviewReport);
 router.get('/enquiries', authorize(PERMISSIONS.REPORTS_VIEW), reportsController.getEnquiryReports);
 router.get('/attendance', authorize(PERMISSIONS.REPORTS_VIEW, PERMISSIONS.ATTENDANCE_REPORT), reportsController.getAttendanceReport);
 router.get(

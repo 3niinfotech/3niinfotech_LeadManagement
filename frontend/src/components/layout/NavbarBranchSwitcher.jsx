@@ -1,31 +1,62 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { FiChevronDown, FiMapPin } from 'react-icons/fi';
+import { FiCheck, FiChevronDown, FiMapPin } from 'react-icons/fi';
+import { useDispatch } from 'react-redux';
 import {
   useGetViewingBranchQuery,
   useSetViewingBranchMutation,
 } from '../../features/organization/redux/organizationApiSlice';
 import { enquiryApi } from '../../features/enquiry/redux/enquiryApiSlice';
 import { walkinApi } from '../../features/walkin/redux/walkinApiSlice';
-import { useDispatch } from 'react-redux';
+import { applicationApi } from '../../features/applications/redux/applicationApiSlice';
+import { visaApi } from '../../features/visas/redux/visaApiSlice';
+import { feesApi } from '../../features/fees/redux/feesApiSlice';
+import { attendanceApi } from '../../features/attendance/redux/attendanceApiSlice';
+import { assignmentApi } from '../../features/assignment/redux/assignmentApiSlice';
+import { emitViewingBranchChanged } from '../../config/viewingBranch.events';
 import toastService from '../../services/toast/toast.service';
 
 function branchLabel(branch) {
   if (!branch) return 'All Branches';
-  return branch.city ? `${branch.name}` : branch.name;
+  return branch.name || branch.code || 'Branch';
 }
 
+function invalidateAllScopedLists(dispatch) {
+  dispatch(enquiryApi.util.invalidateTags([
+    'EnquiryList', 'EnquirySummary', 'EnquiryDetail',
+    'EnquiryDemos', 'EnquiryDemoSummary',
+  ]));
+  dispatch(walkinApi.util.invalidateTags(['WalkInList', 'WalkInSummary', 'WalkInDetail']));
+  dispatch(applicationApi.util.invalidateTags(['ApplicationList', 'ApplicationSummary', 'ApplicationDetail']));
+  dispatch(visaApi.util.invalidateTags(['VisaList', 'VisaSummary', 'VisaDetail']));
+  dispatch(feesApi.util.invalidateTags(['FeesList', 'FeesSummary', 'FeesDetail']));
+  dispatch(attendanceApi.util.invalidateTags([
+    'Batches', 'BatchDetail', 'Sessions', 'SessionAttendance', 'StudentAttendance',
+  ]));
+  try {
+    dispatch(assignmentApi.util.invalidateTags(['BranchOps']));
+  } catch {
+    /* optional tag */
+  }
+}
+
+/**
+ * Role-gated Active Branch switcher.
+ * Only users with branch.switch + branch.view_multiple see this.
+ * Selection is persisted server-side and clamps all mergeScope queries.
+ */
 export default function NavbarBranchSwitcher() {
   const dispatch = useDispatch();
   const { data, isLoading } = useGetViewingBranchQuery();
   const [setViewingBranch, { isLoading: switching }] = useSetViewingBranchMutation();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(null);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 260 });
 
-  const canSwitch = data?.canSwitch;
+  const canSwitch = Boolean(data?.canSwitch);
   const branches = data?.branches || [];
-  const canViewAll = data?.canViewAll;
+  const canViewAll = Boolean(data?.canViewAll);
+  const activeId = data?.viewingBranchId || null;
 
   const currentLabel = useMemo(() => {
     if (data?.viewingBranch) return branchLabel(data.viewingBranch);
@@ -40,10 +71,10 @@ export default function NavbarBranchSwitcher() {
       const el = triggerRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const width = Math.max(180, rect.width);
+      const width = Math.max(260, Math.min(320, Math.max(rect.width, 260)));
       let left = rect.right - width;
       left = Math.max(12, Math.min(left, window.innerWidth - width - 12));
-      setPos({ top: rect.bottom + 6, left, width });
+      setPos({ top: rect.bottom + 8, left, width });
     };
     place();
     window.addEventListener('resize', place);
@@ -54,74 +85,122 @@ export default function NavbarBranchSwitcher() {
     };
   }, [open]);
 
-  if (isLoading || !canSwitch || branches.length <= 1) return null;
-
-  const refreshLists = () => {
-    dispatch(enquiryApi.util.invalidateTags(['Enquiries', 'EnquirySummary']));
-    dispatch(walkinApi.util.invalidateTags(['WalkIns', 'WalkInSummary']));
-  };
+  // Role-forced: no permissions → no dropdown. Single-branch companies still show locked context.
+  if (isLoading || !canSwitch || branches.length < 1) return null;
 
   const handleSelect = async (branchId) => {
+    if (branchId === activeId || (branchId == null && activeId == null)) {
+      setOpen(false);
+      return;
+    }
     setOpen(false);
     try {
-      await setViewingBranch(branchId).unwrap();
-      refreshLists();
-      toastService.success(branchId ? 'Branch view updated' : 'Showing all branches');
+      const next = await setViewingBranch(branchId).unwrap();
+      invalidateAllScopedLists(dispatch);
+      emitViewingBranchChanged({
+        viewingBranchId: next?.viewingBranchId || null,
+        viewingBranch: next?.viewingBranch || null,
+        canViewAll: next?.canViewAll,
+      });
+      toastService.success(
+        branchId
+          ? `Showing ${branchLabel(next?.viewingBranch) || 'selected branch'} only`
+          : 'Showing all branches',
+      );
     } catch (err) {
-      toastService.error(err?.data?.message || 'Could not switch branch');
+      toastService.error(err?.data?.message || err?.message || 'Could not switch branch');
     }
   };
 
   return (
-    <div className="relative hidden md:block overflow-visible">
+    <div className="relative overflow-visible">
       <button
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         disabled={switching}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-surface px-2.5 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-hover transition-colors max-w-[200px]"
+        title="Active branch — filters all CRM data for your role"
+        className={`
+          inline-flex items-center gap-2 rounded-xl border bg-card-bg px-3 py-1.5
+          text-[12px] font-semibold text-text shadow-sm transition-all
+          hover:border-brand/30 hover:bg-brand-soft/40
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/25
+          disabled:opacity-60 max-w-[220px] sm:max-w-[260px]
+          ${open ? 'border-brand/35 ring-1 ring-brand/15' : 'border-border/80'}
+        `}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label={`Active branch: ${currentLabel}`}
       >
-        <FiMapPin className="shrink-0 text-primary" size={14} />
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+          <FiMapPin size={13} strokeWidth={2.2} />
+        </span>
         <span className="truncate">{currentLabel}</span>
-        <FiChevronDown size={14} className="shrink-0 opacity-60" />
+        <FiChevronDown
+          size={14}
+          className={`shrink-0 text-text-muted transition-transform ${open ? 'rotate-180' : ''}`}
+        />
       </button>
+
       {open && createPortal(
         <>
           <button
             type="button"
-            className="fixed inset-0 z-[1400] cursor-default"
+            className="fixed inset-0 z-[1400] cursor-default bg-transparent"
             aria-label="Close branch menu"
             onClick={() => setOpen(false)}
           />
           <ul
-            className="fixed z-[1401] min-w-[180px] rounded-lg border border-border bg-card-bg shadow-lg py-1 text-sm"
+            className="fixed z-[1401] overflow-hidden rounded-xl border border-border bg-card-bg py-1.5 text-[13px] shadow-xl"
             style={{ top: pos.top, left: pos.left, width: pos.width }}
             role="listbox"
+            aria-label="Select active branch"
           >
+            <li className="px-3 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              Active branch
+            </li>
             {canViewAll && (
-              <li>
+              <li role="option" aria-selected={activeId == null}>
                 <button
                   type="button"
-                  className="w-full text-left px-3 py-2 hover:bg-surface-hover text-text-primary"
+                  className={`flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors ${
+                    activeId == null
+                      ? 'bg-brand-soft/70 text-brand font-semibold'
+                      : 'text-text hover:bg-row-hover'
+                  }`}
                   onClick={() => handleSelect(null)}
                 >
-                  All Branches
+                  <span className="min-w-0 flex-1 truncate">All Branches</span>
+                  {activeId == null ? <FiCheck className="h-4 w-4 shrink-0" /> : null}
                 </button>
               </li>
             )}
-            {branches.map((branch) => (
-              <li key={branch.id}>
-                <button
-                  type="button"
-                  className="w-full text-left px-3 py-2 hover:bg-surface-hover text-text-primary"
-                  onClick={() => handleSelect(branch.id)}
-                >
-                  {branchLabel(branch)}
-                </button>
-              </li>
-            ))}
+            {branches.map((branch) => {
+              const selected = activeId === branch.id;
+              return (
+                <li key={branch.id} role="option" aria-selected={selected}>
+                  <button
+                    type="button"
+                    className={`flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors ${
+                      selected
+                        ? 'bg-brand-soft/70 text-brand font-semibold'
+                        : 'text-text hover:bg-row-hover'
+                    }`}
+                    onClick={() => handleSelect(branch.id)}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{branchLabel(branch)}</span>
+                      {branch.city ? (
+                        <span className="block truncate text-[11px] font-normal text-text-muted">
+                          {branch.city}
+                        </span>
+                      ) : null}
+                    </span>
+                    {selected ? <FiCheck className="h-4 w-4 shrink-0" /> : null}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </>,
         document.body,

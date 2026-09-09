@@ -303,6 +303,9 @@ export const MASTER_ENTITY_REGISTRY = {
     createFields: ['code', 'name', 'taxPercentage', 'description', 'isActive', 'sortOrder'],
     updateFields: ['code', 'name', 'taxPercentage', 'description', 'isActive', 'sortOrder'],
     uniqueName: true,
+    jsonUsage: [
+      { model: 'invoice', jsonPath: '$.taxId', label: 'invoices', via: 'student.branch' },
+    ],
   }),
 
   'lead-source': baseEntity({
@@ -326,6 +329,9 @@ export const MASTER_ENTITY_REGISTRY = {
     createFields: ['code', 'name', 'description', 'defaultStatus', 'colorCode', 'isActive', 'sortOrder'],
     updateFields: ['code', 'name', 'description', 'defaultStatus', 'colorCode', 'isActive', 'sortOrder'],
     uniqueName: true,
+    usage: [
+      { model: 'enquiry', field: 'status', label: 'enquiries', via: 'branch' },
+    ],
   }),
 
   'lost-reason': baseEntity({
@@ -511,6 +517,9 @@ export const MASTER_ENTITY_REGISTRY = {
     createFields: ['code', 'name', 'description', 'defaultStatus', 'colorCode', 'isActive', 'sortOrder'],
     updateFields: ['code', 'name', 'description', 'defaultStatus', 'colorCode', 'isActive', 'sortOrder'],
     uniqueName: true,
+    usage: [
+      { model: 'student', field: 'status', label: 'students', via: 'branch' },
+    ],
   }),
 
   'learning-resource': baseEntity({

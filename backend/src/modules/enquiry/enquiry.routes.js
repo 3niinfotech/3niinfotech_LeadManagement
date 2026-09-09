@@ -18,14 +18,20 @@ fs.mkdirSync(noteAttachmentDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  filename: (_req, file, cb) => {
+    const safe = String(file.originalname || 'file').replace(/\s+/g, '-').replace(/[^\w.\-()]+/g, '');
+    cb(null, `${Date.now()}-${safe || 'file'}`);
+  },
 });
 
 const fileUpload = multer({ storage });
 const memoryUpload = multer({ storage: multer.memoryStorage() });
 const voiceNoteStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, voiceNoteDir),
-  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`),
+  filename: (_req, file, cb) => {
+    const safe = String(file.originalname || 'audio').replace(/\s+/g, '-').replace(/[^\w.\-()]+/g, '');
+    cb(null, `${Date.now()}-${safe || 'audio'}`);
+  },
 });
 const voiceNoteUpload = multer({
   storage: voiceNoteStorage,
@@ -37,7 +43,10 @@ const voiceNoteUpload = multer({
 });
 const noteAttachmentStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, noteAttachmentDir),
-  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`),
+  filename: (_req, file, cb) => {
+    const safe = String(file.originalname || 'file').replace(/\s+/g, '-').replace(/[^\w.\-()]+/g, '');
+    cb(null, `${Date.now()}-${safe || 'file'}`);
+  },
 });
 const noteAttachmentUpload = multer({
   storage: noteAttachmentStorage,
@@ -97,6 +106,7 @@ router.post('/:id/communications', update, enquiryController.addCommunication);
 router.post('/:id/communications/voice', update, voiceNoteUpload.single('file'), enquiryController.addVoiceNote);
 router.post('/:id/drop', update, enquiryController.dropEnquiry);
 router.post('/:id/convert', update, enquiryController.convertToStudent);
+router.get('/:id/convert/preview', view, enquiryController.conversionPreview);
 router.get('/:id/timeline', view, enquiryController.getTimeline);
 router.get('/:id/documents', view, enquiryController.getDocuments);
 router.post('/:id/documents', update, fileUpload.single('file'), enquiryController.uploadDocument);

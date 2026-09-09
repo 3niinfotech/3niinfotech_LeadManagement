@@ -1,252 +1,303 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FiGlobe, FiPlus } from 'react-icons/fi';
-import PageShell from '../../../components/layout/PageShell';
-import PageHeader from '../../../components/layout/PageHeader';
+import ModulePageCard from '../../../components/layout/ModulePageLayout';
 import Button from '../../../components/ui/Button';
-import Badge from '../../../components/ui/Badge';
-import Select from '../../../components/ui/Select';
-import { apiGet, apiPost, apiPut, apiDelete } from '../../../api/apiClient';
-import { API } from '../../../config/api';
-import { PERMISSIONS } from '../../../config/permissions';
+import Pagination from '../../../components/ui/Pagination';
 import PermissionGate from '../../../components/common/PermissionGate';
+import MasterManageLink from '../../master/components/MasterManageLink';
+import { buildVisaSummaryItems } from '../config/visaSummary.config';
+import { ROUTES } from '../../../config/routes';
+import { PERMISSIONS } from '../../../config/permissions';
+import { usePermissions } from '../../../hooks/usePermissions';
 import toastService from '../../../services/toast/toast.service';
 import alertService from '../../../services/alert/alert.service';
 import { masterApi, getApiErrorMessage } from '../../master/services/masterApi.service';
-import { useRelationalMasterOptions } from '../../master/hooks/useRelationalMasterOptions';
-import MasterManageLink from '../../master/components/MasterManageLink';
 
-const EMPTY_FORM = {
-  studentId: '',
-  countryId: '',
-  visaType: '',
-  visaStatusMasterId: '',
-  applicationNo: '',
-};
+import VisaToolbar from '../components/VisaToolbar';
+import VisaFilters from '../components/VisaFilters';
+import VisaGrid from '../components/VisaGrid';
+import VisaCreateModal from '../components/VisaCreateModal';
+import VisaDetailModal from '../components/VisaDetailModal';
 
-function displayStatus(record) {
-  return record.metadata?.visaStatusName || record.status;
-}
-
-function statusColor(record) {
-  if (record.metadata?.colorCode?.startsWith?.('#')) return 'info';
-  if (record.metadata?.visaApproved || record.status === 'APPROVED') return 'success';
-  if (record.metadata?.visaRejected || record.status === 'REJECTED') return 'danger';
-  if (record.metadata?.visaWithdraw) return 'warning';
-  return 'warning';
-}
+import {
+  useListVisasQuery,
+  useGetVisaSummaryQuery,
+  useUpdateVisaMutation,
+  useDeleteVisaMutation,
+  useExportVisasMutation,
+} from '../redux/visaApiSlice';
+import { useVisaFilters } from '../hooks/useVisaFilters';
 
 export default function VisasPage() {
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [statusOptions, setStatusOptions] = useState([]);
-  const [checklist, setChecklist] = useState([]);
-  const [workflowLoading, setWorkflowLoading] = useState(false);
+  const { can } = usePermissions();
+  const canCreate = can(PERMISSIONS.VISAS_CREATE) || can(PERMISSIONS.VISAS_VIEW);
+  const canUpdate = can(PERMISSIONS.VISAS_UPDATE) || can(PERMISSIONS.VISAS_VIEW);
+  const canDelete = can(PERMISSIONS.VISAS_DELETE);
 
-  const { options: countryOptions } = useRelationalMasterOptions('country');
-  const { options: visaTypeOptions } = useRelationalMasterOptions(
-    'visa-type',
-    form.countryId ? { countryId: form.countryId } : {},
-    { enabled: Boolean(form.countryId) },
-  );
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterDraft, setFilterDraft] = useState({});
+  const [createOpen, setCreateOpen] = useState(false);
+  const [detailId, setDetailId] = useState(null);
+  const [advancingId, setAdvancingId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
+  const [selectedRowIds, setSelectedRowIds] = useState([]);
 
-  const load = async () => {
-    setLoading(true);
+  const {
+    queryParams,
+    summaryParams,
+    search,
+    setSearch,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    applyFilters,
+    resetFilters,
+    selectSummaryCard,
+    activeSummaryFilter,
+  } = useVisaFilters();
+
+  const {
+    data: listResult,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useListVisasQuery(queryParams, {
+    placeholderData: (previousData) => previousData,
+  });
+
+  const {
+    data: summary,
+    isLoading: summaryLoading,
+    refetch: refetchSummary,
+  } = useGetVisaSummaryQuery(summaryParams);
+
+  const [updateVisa] = useUpdateVisaMutation();
+  const [deleteVisa] = useDeleteVisaMutation();
+  const [exportVisas, { isLoading: exportLoading }] = useExportVisasMutation();
+
+  const rows = listResult?.data || [];
+  const pagination = listResult?.pagination || { page: 1, limit: pageSize, total: 0, totalPages: 0 };
+  const gridLoading = isLoading && rows.length === 0;
+  const gridFetching = isFetching && rows.length > 0;
+  const statItems = useMemo(() => buildVisaSummaryItems(summary), [summary]);
+
+  const handleRefresh = () => {
+    setFilterDraft({});
+    resetFilters();
+    setFiltersOpen(false);
+    setSelectedRowIds([]);
+    setRefreshToken((n) => n + 1);
+  };
+
+  useEffect(() => {
+    if (!refreshToken) return undefined;
+    let cancelled = false;
+    setRefreshing(true);
+    Promise.all([refetch(), refetchSummary()])
+      .catch((e) => {
+        if (!cancelled) toastService.error(e?.data?.message || 'Refresh failed');
+      })
+      .finally(() => {
+        if (!cancelled) setRefreshing(false);
+      });
+    return () => { cancelled = true; };
+  }, [refreshToken, refetch, refetchSummary]);
+
+  const handleActionSuccess = () => {
+    refetch();
+    refetchSummary();
+  };
+
+  const handleSelectionChanged = (selectedRows) => {
+    setSelectedRowIds((selectedRows || []).map((r) => r.id).filter(Boolean));
+  };
+
+  const handleExport = async () => {
     try {
-      const response = await apiGet(API.VISAS);
-      setRecords(response?.data || []);
-    } catch {
-      setRecords([]);
-    } finally {
-      setLoading(false);
+      const body = { ...queryParams };
+      if (selectedRowIds.length > 0) {
+        body.ids = selectedRowIds;
+      }
+      const res = await exportVisas(body).unwrap();
+      const url = URL.createObjectURL(res.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = res.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      const count = res.count || 0;
+      toastService.create(
+        {
+          title: res.selected
+            ? `${count} selected visa case${count === 1 ? '' : 's'} exported`
+            : `${count} visa case${count === 1 ? '' : 's'} exported`,
+          description: 'Excel is ready — open and share.',
+        },
+        { label: 'Exported' },
+      );
+    } catch (e) {
+      toastService.error(e?.data?.message || 'Export failed');
     }
   };
 
-  useEffect(() => { load(); }, []);
-
-  const loadCountryConfig = useCallback(async (countryId) => {
+  const advanceStatus = async (record) => {
+    const countryId = record.metadata?.countryId;
     if (!countryId) {
-      setStatusOptions([]);
-      setChecklist([]);
-      setForm((prev) => ({ ...prev, visaStatusMasterId: '', visaType: '' }));
+      toastService.error('Visa has no country — open details to assign country');
+      setDetailId(record.id);
       return;
     }
-    setWorkflowLoading(true);
+    setAdvancingId(record.id);
     try {
-      const [workflowRes, checklistRes] = await Promise.all([
-        masterApi.visaStatusWorkflow(countryId),
-        masterApi.visaChecklistByCountry(countryId),
-      ]);
+      const workflowRes = await masterApi.visaStatusWorkflow(countryId);
       const workflow = Array.isArray(workflowRes?.data) ? workflowRes.data : (workflowRes || []);
-      setStatusOptions(workflow);
-      setChecklist(Array.isArray(checklistRes?.data) ? checklistRes.data : (checklistRes || []));
-      const defaultStatus = workflow.find((s) => s.defaultStatus);
-      setForm((prev) => ({
-        ...prev,
-        countryId,
-        visaStatusMasterId: defaultStatus?.value || workflow[0]?.value || '',
-      }));
+      const currentId = record.metadata?.visaStatusMasterId;
+      const idx = workflow.findIndex((s) => s.value === currentId);
+      const next = idx >= 0 ? workflow[idx + 1] : workflow[0];
+      if (!next) {
+        toastService.info('Already at the final status');
+        return;
+      }
+      await updateVisa({ id: record.id, visaStatusMasterId: next.value }).unwrap();
+      toastService.success(`Status updated to ${next.label}`);
+      handleActionSuccess();
     } catch (err) {
-      toastService.error(getApiErrorMessage(err, 'Failed to load visa workflow'));
-      setStatusOptions([]);
-      setChecklist([]);
+      toastService.error(getApiErrorMessage(err, 'Update failed'));
     } finally {
-      setWorkflowLoading(false);
-    }
-  }, []);
-
-  const stats = useMemo(() => ({
-    total: records.length,
-    pending: records.filter((r) => !r.metadata?.visaApproved && !r.metadata?.visaRejected).length,
-    approved: records.filter((r) => r.metadata?.visaApproved || r.status === 'APPROVED').length,
-  }), [records]);
-
-  const submitCreate = async (event) => {
-    event.preventDefault();
-    try {
-      const countryName = countryOptions.find((o) => o.value === form.countryId)?.label || '';
-      await apiPost(API.VISAS, {
-        ...form,
-        country: countryName,
-      });
-      toastService.success('Visa case created');
-      setForm(EMPTY_FORM);
-      setStatusOptions([]);
-      setChecklist([]);
-      load();
-    } catch (err) {
-      toastService.error(err?.message || 'Unable to create visa case');
+      setAdvancingId(null);
     }
   };
 
-  const remove = async (id) => {
-    const ok = await alertService.deleteConfirm({ title: 'Delete visa case', text: 'This will remove the visa case.' });
+  const handleDelete = async (id) => {
+    const ok = await alertService.deleteConfirm({
+      title: 'Delete visa case',
+      text: 'This will remove the visa case.',
+    });
     if (!ok) return;
     try {
-      await apiDelete(`${API.VISAS}/${id}`);
+      await deleteVisa(id).unwrap();
       toastService.success('Visa case removed');
-      load();
+      setSelectedRowIds((ids) => ids.filter((x) => x !== id));
+      handleActionSuccess();
     } catch (err) {
-      toastService.error(err?.message || 'Delete failed');
+      toastService.error(getApiErrorMessage(err, 'Delete failed'));
     }
   };
 
   return (
-    <PageShell>
-      <PageHeader
-        title="Visa Processing"
-        subtitle="Filings use Visa Status and Visa Checklist masters by country"
-        icon={FiGlobe}
-        iconColor="primary"
-        actions={<MasterManageLink to="/admin/master/visa-status-master">Manage Visa Status</MasterManageLink>}
-      />
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-2xl border border-card-border bg-card-bg p-4 shadow-card">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-text">Visa Cases</h3>
-              <p className="text-sm text-text-muted">Track visa stages from country workflow masters.</p>
-            </div>
-            <PermissionGate permission={PERMISSIONS.VISAS_VIEW}>
-              <Button size="sm" icon={FiPlus}>New Visa</Button>
-            </PermissionGate>
-          </div>
-          <div className="mb-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-card-border bg-surface p-3"><div className="text-sm text-text-muted">Total</div><div className="text-2xl font-semibold text-text">{stats.total}</div></div>
-            <div className="rounded-xl border border-card-border bg-surface p-3"><div className="text-sm text-text-muted">Pending</div><div className="text-2xl font-semibold text-text">{stats.pending}</div></div>
-            <div className="rounded-xl border border-card-border bg-surface p-3"><div className="text-sm text-text-muted">Approved</div><div className="text-2xl font-semibold text-text">{stats.approved}</div></div>
-          </div>
-          {loading ? <div className="text-sm text-text-muted">Loading visa cases…</div> : (
-            <div className="space-y-3">
-              {records.map((record) => (
-                <div key={record.id} className="rounded-xl border border-card-border p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <div className="font-semibold text-text">{record.country} · {record.visaType || 'Visa'}</div>
-                      <div className="text-sm text-text-muted">{record.student?.firstName} {record.student?.lastName} · {record.applicationNo}</div>
-                    </div>
-                    <Badge color={statusColor(record)}>{displayStatus(record)}</Badge>
-                  </div>
-                  <div className="mt-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const nextStatus = record.status === 'APPROVED' ? 'NOT_STARTED' : 'APPROVED';
-                        apiPut(`${API.VISAS}/${record.id}`, { status: nextStatus }).then(() => {
-                          toastService.success('Status updated');
-                          load();
-                        }).catch(() => toastService.error('Update failed'));
-                      }}
-                    >
-                      Advance Status
-                    </Button>
-                    <Button size="sm" variant="danger" className="ml-2" onClick={() => remove(record.id)}>Delete</Button>
-                  </div>
-                </div>
-              ))}
+    <>
+      <div className="h-full min-h-0 flex flex-col">
+        <ModulePageCard
+          title="Visa Processing"
+          subtitle="Filings use Visa Status and Visa Checklist masters by country"
+          icon={FiGlobe}
+          iconColor="primary"
+          breadcrumbs={[
+            { label: 'Dashboard', path: ROUTES.DASHBOARD },
+            { label: 'Visa Processing' },
+          ]}
+          actions={(
+            <div className="flex items-center gap-2">
+              <MasterManageLink to="/admin/master/visa-status-master">
+                Manage Status
+              </MasterManageLink>
+              {canCreate && (
+                <PermissionGate permissions={[PERMISSIONS.VISAS_CREATE, PERMISSIONS.VISAS_VIEW]}>
+                  <Button variant="primary" size="sm" icon={FiPlus} onClick={() => setCreateOpen(true)}>
+                    New Visa Case
+                  </Button>
+                </PermissionGate>
+              )}
             </div>
           )}
-        </div>
-        <div className="rounded-2xl border border-card-border bg-card-bg p-4 shadow-card">
-          <h3 className="text-lg font-semibold text-text">Create Visa Case</h3>
-          <p className="mb-4 text-sm text-text-muted">Default status comes from Visa Status master for the selected country.</p>
-          <form className="mt-4 space-y-3" onSubmit={submitCreate}>
-            <input className="w-full rounded-lg border border-card-border bg-surface px-3 py-2" placeholder="Student ID" value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })} required />
-            <Select
-              label="Country"
-              value={form.countryId}
-              onChange={(e) => loadCountryConfig(e.target.value)}
-              options={[
-                { value: '', label: 'Select country' },
-                ...countryOptions.map((opt) => ({ value: opt.value, label: opt.label })),
-              ]}
-              required
-            />
-            <Select
-              label="Visa Type"
-              value={form.visaType}
-              onChange={(e) => setForm({ ...form, visaType: e.target.value })}
-              options={[
-                { value: '', label: form.countryId ? 'Select visa type' : 'Select country first' },
-                ...visaTypeOptions.map((opt) => ({ value: opt.label, label: opt.label })),
-              ]}
-              disabled={!form.countryId}
-            />
-            <Select
-              label="Visa Status"
-              value={form.visaStatusMasterId}
-              onChange={(e) => setForm({ ...form, visaStatusMasterId: e.target.value })}
-              options={[
-                { value: '', label: workflowLoading ? 'Loading statuses…' : 'Select status' },
-                ...statusOptions.map((opt) => ({
-                  value: opt.value,
-                  label: `${opt.label}${opt.defaultStatus ? ' (Default)' : ''}${opt.visaApproved ? ' · Approved' : ''}${opt.visaRejected ? ' · Rejected' : ''}`,
-                })),
-              ]}
-              disabled={!form.countryId || workflowLoading}
-            />
-            <input className="w-full rounded-lg border border-card-border bg-surface px-3 py-2" placeholder="Application No (optional)" value={form.applicationNo} onChange={(e) => setForm({ ...form, applicationNo: e.target.value })} />
+        >
+          <ModulePageCard.Stats
+            items={statItems}
+            activeFilter={activeSummaryFilter}
+            onSelect={selectSummaryCard}
+            loading={summaryLoading}
+            ariaLabel="Visa status filters"
+            layout="grid"
+          />
 
-            {checklist.length > 0 && (
-              <div className="rounded-lg border border-card-border bg-surface p-3">
-                <div className="text-sm font-semibold text-text mb-2">Visa Documents</div>
-                <ul className="space-y-1 text-sm text-text-muted">
-                  {checklist.map((item) => (
-                    <li key={item.id}>
-                      {item.name}
-                      {item.isMandatory ? ' *' : ''}
-                      {item.documentType ? ` (${item.documentType})` : ''}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          <ModulePageCard.Toolbar>
+            <VisaToolbar
+              search={search}
+              onSearchChange={setSearch}
+              filtersOpen={filtersOpen}
+              onToggleFilters={() => setFiltersOpen((v) => !v)}
+              onCreate={canCreate ? () => setCreateOpen(true) : undefined}
+              onRefresh={handleRefresh}
+              refreshLoading={refreshing || isFetching}
+              onExport={handleExport}
+              exportLoading={exportLoading}
+              selectedCount={selectedRowIds.length}
+            />
+          </ModulePageCard.Toolbar>
 
-            <Button type="submit" className="w-full">Save Visa Case</Button>
-          </form>
-        </div>
+          <ModulePageCard.Filters>
+            <VisaFilters
+              open={filtersOpen}
+              values={filterDraft}
+              onChange={setFilterDraft}
+              onSearch={() => applyFilters(filterDraft)}
+              onReset={() => {
+                setFilterDraft({});
+                resetFilters();
+              }}
+              onClose={() => setFiltersOpen(false)}
+            />
+          </ModulePageCard.Filters>
+
+          <ModulePageCard.Table className="min-h-[320px]">
+            <VisaGrid
+              rows={rows}
+              loading={gridLoading}
+              fetching={gridFetching}
+              onRowClick={(row) => setDetailId(row.id)}
+              onView={(row) => setDetailId(row.id)}
+              onAdvance={canUpdate ? advanceStatus : undefined}
+              onDelete={canDelete ? handleDelete : undefined}
+              onSelectionChanged={handleSelectionChanged}
+              canUpdate={canUpdate}
+              canDelete={canDelete}
+              advancingId={advancingId}
+              onCreate={canCreate ? () => setCreateOpen(true) : undefined}
+            />
+          </ModulePageCard.Table>
+
+          <Pagination
+            page={pagination.page || page}
+            limit={pagination.limit || pageSize}
+            total={pagination.total || 0}
+            totalPages={pagination.totalPages || 0}
+            onPageChange={setPage}
+            onPageSizeChange={(limit) => {
+              setPageSize(limit);
+              setPage(1);
+            }}
+          />
+        </ModulePageCard>
       </div>
-    </PageShell>
+
+      <VisaCreateModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSuccess={handleActionSuccess}
+      />
+
+      <VisaDetailModal
+        visaId={detailId}
+        open={Boolean(detailId)}
+        onClose={() => setDetailId(null)}
+        onUpdated={handleActionSuccess}
+        onDeleted={handleActionSuccess}
+      />
+    </>
   );
 }

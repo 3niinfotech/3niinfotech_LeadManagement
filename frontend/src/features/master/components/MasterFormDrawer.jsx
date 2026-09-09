@@ -1,14 +1,29 @@
 import { useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Drawer from '../../../components/ui/Drawer';
+import MasterFormShell from './MasterFormShell';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Textarea from '../../../components/ui/Textarea';
 import FormField from '../../../components/ui/FormField';
+import MasterFormSection from './MasterFormSection';
+import MasterSwitchField from './MasterSwitchField';
 import { useRelationalMasterOptions, useBranchOptions } from '../hooks/useRelationalMasterOptions';
 import { useAsyncMasterOptions } from '../hooks/useAsyncMasterOptions';
+import {
+  resolveMasterFormLayout,
+  resolveModalProps,
+  masterFormSubtitle,
+  masterSubmitLabel,
+} from '../utils/masterFormLayout.util';
+import '../styles/master-form.theme.css';
+
+const FULL_WIDTH_TYPES = new Set(['textarea', 'switch', 'options']);
+const FULL_WIDTH_NAMES = new Set([
+  'name', 'description', 'addressLine1', 'addressLine2', 'email', 'phone',
+  'variables', 'label', 'value',
+]);
 
 function emptyDefaults(fields = [], fieldDefaults = {}) {
   const out = {};
@@ -44,6 +59,19 @@ function normalizeIncoming(record, fields, fieldDefaults = {}) {
     base[f.name] = value;
   });
   return base;
+}
+
+function isFullWidth(field, columns) {
+  if (columns === 1) return true;
+  if (field.fullWidth) return true;
+  if (FULL_WIDTH_TYPES.has(field.type) && field.type !== 'options') return true;
+  if (field.type === 'textarea') return true;
+  if (field.type === 'switch') return false;
+  if (FULL_WIDTH_NAMES.has(field.name) && field.type !== 'number') {
+    return field.name === 'name' || field.name === 'description' || field.name === 'variables'
+      || field.name === 'addressLine1' || field.name === 'addressLine2';
+  }
+  return false;
 }
 
 function DependentOptionsSelect({
@@ -87,13 +115,31 @@ function DependentOptionsSelect({
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         options={options}
-        placeholder={loading ? 'Loading...' : (isLarge ? `Search ${field.label}` : `Select ${field.label}`)}
+        placeholder={loading ? 'Loading…' : (isLarge ? `Search ${field.label}` : `Select ${field.label}`)}
         disabled={disabled || !enabled || (loading && !isLarge)}
         allowClear={!field.required}
         showSearch
         filterOption={isLarge ? false : undefined}
         onSearch={isLarge ? (term) => asyncOpts.setSearch(term) : undefined}
-        notFoundContent={isLarge ? (loading ? 'Searching…' : 'Type to search') : undefined}
+        notFoundContent={isLarge ? (loading ? 'Searching…' : 'Type to search') : 'No results found'}
+      />
+    </FormField>
+  );
+}
+
+function BranchSelect({ label, value, onChange, error, disabled, required }) {
+  const { options, loading } = useBranchOptions({ enabled: !disabled });
+  return (
+    <FormField label={label} required={required} error={error}>
+      <Select
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        options={options}
+        placeholder={loading ? 'Loading…' : 'Select branch'}
+        disabled={disabled || loading}
+        allowClear={!required}
+        showSearch
+        notFoundContent={loading ? 'Loading…' : 'No results found'}
       />
     </FormField>
   );
@@ -180,9 +226,9 @@ function FieldControl({
           <FormField label={field.label} required={field.required} error={error}>
             <Textarea
               {...rhf}
-              rows={5}
+              rows={field.rows || 3}
               disabled={disabled}
-              placeholder={field.label}
+              placeholder={field.placeholder || field.label}
             />
           </FormField>
         )}
@@ -196,18 +242,13 @@ function FieldControl({
         name={field.name}
         control={control}
         render={({ field: rhf }) => (
-          <FormField label={field.label} error={error}>
-            <label className="inline-flex items-center gap-2 text-sm text-text">
-              <input
-                type="checkbox"
-                checked={Boolean(rhf.value)}
-                onChange={(e) => rhf.onChange(e.target.checked)}
-                disabled={disabled}
-                className="rounded border-border"
-              />
-              {field.label || 'On'}
-            </label>
-          </FormField>
+          <MasterSwitchField
+            label={field.label || 'Active'}
+            checked={Boolean(rhf.value)}
+            onChange={rhf.onChange}
+            disabled={disabled}
+            error={error}
+          />
         )}
       />
     );
@@ -225,6 +266,7 @@ function FieldControl({
               value={rhf.value ?? ''}
               onChange={(e) => rhf.onChange(e.target.value === '' ? '' : Number(e.target.value))}
               disabled={disabled}
+              placeholder={field.placeholder || field.label}
             />
           </FormField>
         )}
@@ -242,7 +284,7 @@ function FieldControl({
             {...rhf}
             disabled={disabled}
             maxLength={field.maxLength}
-            placeholder={field.label}
+            placeholder={field.placeholder || field.label}
           />
         </FormField>
       )}
@@ -250,28 +292,70 @@ function FieldControl({
   );
 }
 
-function BranchSelect({ label, value, onChange, error, disabled, required }) {
-  const { options, loading } = useBranchOptions({ enabled: !disabled });
+function SectionFields({
+  fields,
+  columns,
+  control,
+  errors,
+  disabled,
+  watch,
+  setValue,
+}) {
+  const switches = fields.filter((f) => f.type === 'switch');
+  const others = fields.filter((f) => f.type !== 'switch');
+  const gridClass = columns === 2 ? 'crm-master-drawer-grid--2col' : '';
+
   return (
-    <FormField label={label} required={required} error={error}>
-      <Select
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        options={options}
-        placeholder={loading ? 'Loading...' : 'Select branch'}
-        disabled={disabled || loading}
-        allowClear={!required}
-      />
-    </FormField>
+    <>
+      {others.length > 0 && (
+        <div className={`crm-master-drawer-grid ${gridClass}`}>
+          {others.map((field) => (
+            <div
+              key={field.name}
+              className={isFullWidth(field, columns) ? 'crm-master-drawer-grid__full' : undefined}
+            >
+              <FieldControl
+                field={field}
+                control={control}
+                errors={errors}
+                disabled={disabled}
+                watch={watch}
+                setValue={setValue}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+      {switches.length > 0 && (
+        <div className={`crm-master-drawer-grid--switches ${others.length ? 'mt-3' : ''}`}>
+          {switches.map((field) => (
+            <FieldControl
+              key={field.name}
+              field={field}
+              control={control}
+              errors={errors}
+              disabled={disabled}
+              watch={watch}
+              setValue={setValue}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
+/**
+ * Shared master Add/Edit/View form — adaptive modal (compact or structured).
+ * @deprecated import name MasterFormDrawer kept for compatibility; uses modal not drawer.
+ */
 export default function MasterFormDrawer({
   open,
   mode = 'add',
   entityConfig,
   record,
   submitting = false,
+  submitError = null,
   fieldDefaults = {},
   onClose,
   onSubmit,
@@ -279,6 +363,10 @@ export default function MasterFormDrawer({
   const fields = entityConfig?.fields || [];
   const schema = entityConfig?.schema;
   const readOnly = mode === 'view';
+  const singular = entityConfig?.singular || 'Record';
+
+  const layout = useMemo(() => resolveMasterFormLayout(entityConfig), [entityConfig]);
+  const modalProps = useMemo(() => resolveModalProps(layout), [layout]);
 
   const {
     control,
@@ -298,15 +386,16 @@ export default function MasterFormDrawer({
   }, [open, mode, record, fields, reset, fieldDefaults]);
 
   const title = mode === 'add'
-    ? `Add ${entityConfig?.singular || 'Record'}`
+    ? `Add ${singular}`
     : mode === 'edit'
-      ? `Edit ${entityConfig?.singular || 'Record'}`
-      : `View ${entityConfig?.singular || 'Record'}`;
+      ? `Edit ${singular}`
+      : `View ${singular}`;
+
+  const subtitle = masterFormSubtitle(mode, singular);
 
   const submit = handleSubmit(async (values) => {
     if (readOnly) return;
     const payload = { ...values };
-    // normalize empties
     Object.keys(payload).forEach((k) => {
       if (payload[k] === '') payload[k] = null;
     });
@@ -319,33 +408,45 @@ export default function MasterFormDrawer({
     await onSubmit?.(payload);
   });
 
+  const busy = submitting || isSubmitting;
+  const primaryLabel = masterSubmitLabel(mode, singular, busy);
+
   return (
-    <Drawer open={open} onClose={onClose} title={title} width="520px" anchor="header">
-      <form className="flex flex-col h-full" onSubmit={submit}>
-        <div className="flex-1 overflow-auto p-5 space-y-4">
-          {fields.map((field) => (
-            <FieldControl
-              key={field.name}
-              field={field}
-              control={control}
-              errors={errors}
-              disabled={readOnly || submitting || isSubmitting}
-              watch={watch}
-              setValue={setValue}
-            />
-          ))}
-        </div>
-        <div className="shrink-0 border-t border-border px-5 py-3 flex justify-end gap-2 bg-card-bg">
-          <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+    <MasterFormShell
+      open={open}
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
+      error={submitError}
+      {...modalProps}
+      footer={(
+        <>
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={busy}>
             {readOnly ? 'Close' : 'Cancel'}
           </Button>
           {!readOnly && (
-            <Button type="submit" loading={submitting || isSubmitting}>
-              {mode === 'add' ? 'Create' : 'Save changes'}
+            <Button type="submit" form="crm-master-entity-form" size="sm" loading={busy}>
+              {primaryLabel}
             </Button>
           )}
-        </div>
+        </>
+      )}
+    >
+      <form id="crm-master-entity-form" className="crm-master-form" onSubmit={submit} noValidate>
+        {layout.sections.map((section) => (
+          <MasterFormSection key={section.id} title={section.title}>
+            <SectionFields
+              fields={section.fields}
+              columns={layout.columns}
+              control={control}
+              errors={errors}
+              disabled={readOnly || busy}
+              watch={watch}
+              setValue={setValue}
+            />
+          </MasterFormSection>
+        ))}
       </form>
-    </Drawer>
+    </MasterFormShell>
   );
 }

@@ -23,7 +23,7 @@ function ModulePageCardRoot({
   className = '',
 }) {
   return (
-    <div className={`flex flex-col h-full min-h-0 ${className}`}>
+    <div className={`module-page-root flex flex-col h-full min-h-0 ${className}`}>
       <div className="flex flex-col flex-1 min-h-0 bg-card-bg border border-card-border rounded-xl shadow-card overflow-hidden">
         <ModulePageHeader
           title={title}
@@ -35,7 +35,7 @@ function ModulePageCardRoot({
           embedded
         />
 
-        <div className="flex flex-col flex-1 min-h-0">{children}</div>
+        <div className="module-page-body flex flex-col flex-1 min-h-0 overflow-hidden">{children}</div>
       </div>
     </div>
   );
@@ -52,14 +52,16 @@ function Stats({
 }) {
   if (items?.length || loading) {
     return (
-      <SummaryStatBar
-        items={items}
-        activeFilter={activeFilter}
-        onSelect={onSelect}
-        loading={loading}
-        ariaLabel={ariaLabel}
-        layout={layout}
-      />
+      <div className="shrink-0">
+        <SummaryStatBar
+          items={items}
+          activeFilter={activeFilter}
+          onSelect={onSelect}
+          loading={loading}
+          ariaLabel={ariaLabel}
+          layout={layout}
+        />
+      </div>
     );
   }
 
@@ -75,9 +77,10 @@ function Filters({ children }) {
   return <div className="shrink-0">{children}</div>;
 }
 
-function Table({ children, className = '' }) {
+function Table({ children, className = '', scroll = 'contain' }) {
+  const overflow = scroll === 'page' ? 'overflow-y-auto' : 'overflow-hidden';
   return (
-    <div className={`flex-1 min-h-0 flex flex-col overflow-hidden ${className}`}>
+    <div className={`flex-1 min-h-0 flex flex-col ${overflow} ${className}`}>
       {children}
     </div>
   );

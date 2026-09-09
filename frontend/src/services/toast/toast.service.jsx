@@ -108,8 +108,12 @@ export const toastService = {
     } else if (audience === 'ASSIGNEE' || event === 'ASSIGNEE') {
       type = 'info';
       label = 'Assignment';
+    } else if (event === 'SMART_REMINDER' || raw === 'REMINDER') {
+      type = 'warning';
+      label = 'Reminder';
     }
 
+    const isReminder = raw === 'REMINDER' || event === 'SMART_REMINDER' || notification.metadata?.urgent;
     return emit(
       {
         title: notification.title,
@@ -119,6 +123,7 @@ export const toastService = {
       {
         label,
         id: options.id || (notification.id ? `notif-${notification.id}` : undefined),
+        duration: options.duration ?? (isReminder ? 10000 : undefined),
         ...options,
       },
     );

@@ -3,10 +3,11 @@
  */
 import { z } from 'zod';
 import { AppError } from '../../utils/response.util.js';
-import { isValidMasterCategory, MASTER_DEFAULTS } from '../../config/master-defaults.config.js';
+import { isValidMasterCategory, MASTER_DEFAULTS, resolveMasterCategory, isMigratedMasterCategory, resolveRelationalSlug } from '../../config/master-defaults.config.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
 import { masterRepository } from './master.repository.js';
 import { getMasterEntityConfig, isRelationalMasterEntity } from './master.registry.js';
+import { maybeDispatchAnnouncement } from '../announcement/announcement.service.js';
 import {
   parseMasterCreate,
   parseMasterUpdate,
@@ -87,6 +88,30 @@ function formatDependencyMessage(entityLabel, deps) {
   return `${entityLabel} cannot be deleted because it is referenced by ${parts.join(' and ')}. Deactivate it instead.`;
 }
 
+async function attachAnnouncementNotificationResult(record, dispatchOptions) {
+  if (String(record?.channel || '').toUpperCase() !== 'ANNOUNCEMENT') return record;
+  try {
+    const result = await maybeDispatchAnnouncement(dispatchOptions);
+    return {
+      ...record,
+      notificationRecipients: result.recipientCount || 0,
+      notificationDispatched: Boolean(result.dispatched),
+      ...(result.reason === 'no_recipients' ? { notificationWarning: 'No active users found for the selected audience' } : {}),
+      ...(result.reason && result.reason !== 'no_recipients' && !result.dispatched
+        ? { notificationWarning: `Notifications not sent (${result.reason})` }
+        : {}),
+    };
+  } catch (err) {
+    console.error('[announcement] notification dispatch failed', err?.message || err);
+    return {
+      ...record,
+      notificationRecipients: 0,
+      notificationDispatched: false,
+      notificationWarning: 'Notification dispatch failed — check server logs',
+    };
+  }
+}
+
 export const upsertOptionSchema = z.object({
   label: z.string().min(1).max(150).trim(),
 });
@@ -95,14 +120,26 @@ export const masterService = {
   // ─── Legacy MasterItem ─────────────────────────────────────────────────────
 
   getOptions: async (category, user) => {
+    category = resolveMasterCategory(category);
     if (!isValidMasterCategory(category)) {
       throw new AppError('Unknown master category', 404);
     }
     const companyId = requireCompany(user);
 
+    const relationalSlug = resolveRelationalSlug(category);
+    if (isRelationalMasterEntity(relationalSlug)) {
+      const rows = await masterService.getRelationalOptions(relationalSlug, {}, user);
+      return rows.map((row) => ({
+        value: row.label,
+        label: row.label,
+        id: row.value,
+        code: row.code,
+      }));
+    }
+
     try {
       let items = await masterRepository.findByCategory(companyId, category);
-      if (items.length === 0 && MASTER_DEFAULTS[category]?.length) {
+      if (items.length === 0 && MASTER_DEFAULTS[category]?.length && !isMigratedMasterCategory(category)) {
         await masterRepository.seedDefaults(
           companyId,
           category,
@@ -114,12 +151,14 @@ export const masterService = {
       if (items.length === 0) return defaultsAsOptions(category);
       return items.map((item) => ({ value: item.label, label: item.label, id: item.id }));
     } catch (err) {
-      console.error('[master] getOptions fallback:', err.message);
-      return defaultsAsOptions(category);
+      if (err instanceof AppError) throw err;
+      console.error('[master] getOptions error:', err.message);
+      throw new AppError('Failed to load master options', 500);
     }
   },
 
   upsertOption: async (category, label, user) => {
+    category = resolveMasterCategory(category);
     if (!isValidMasterCategory(category)) {
       throw new AppError('Unknown master category', 404);
     }
@@ -130,12 +169,14 @@ export const masterService = {
       const item = await masterRepository.upsertByLabel(companyId, category, trimmed, user.id);
       return { value: item.label, label: item.label, id: item.id };
     } catch (err) {
-      console.error('[master] upsertOption fallback:', err.message);
-      return { value: trimmed, label: trimmed };
+      if (err instanceof AppError) throw err;
+      console.error('[master] upsertOption error:', err.message);
+      throw new AppError('Failed to save master option', 500);
     }
   },
 
   listMasterItems: async (category, query, user) => {
+    category = resolveMasterCategory(category);
     if (!isValidMasterCategory(category)) {
       throw new AppError('Unknown master category', 404);
     }
@@ -152,6 +193,7 @@ export const masterService = {
   },
 
   updateMasterItem: async (category, id, body, user, req) => {
+    category = resolveMasterCategory(category);
     if (!isValidMasterCategory(category)) {
       throw new AppError('Unknown master category', 404);
     }
@@ -185,6 +227,7 @@ export const masterService = {
   },
 
   updateMasterItemStatus: async (category, id, body, user, req) => {
+    category = resolveMasterCategory(category);
     if (!isValidMasterCategory(category)) {
       throw new AppError('Unknown master category', 404);
     }
@@ -212,6 +255,7 @@ export const masterService = {
   },
 
   removeMasterItem: async (category, id, user, req) => {
+    category = resolveMasterCategory(category);
     if (!isValidMasterCategory(category)) {
       throw new AppError('Unknown master category', 404);
     }
@@ -235,6 +279,7 @@ export const masterService = {
   seedCompanyDefaults: async (companyId, userId) => {
     let total = 0;
     for (const [category, labels] of Object.entries(MASTER_DEFAULTS)) {
+      if (isMigratedMasterCategory(category)) continue;
       total += await masterRepository.seedDefaults(companyId, category, labels, userId);
     }
     return total;
@@ -249,7 +294,7 @@ export const masterService = {
     const { page, limit, skip } = parseMasterPagination(query);
     const orderBy = parseMasterSort(query, config.sortableFields, config.defaultSort || 'sortOrder');
 
-    return masterRepository.findManyRelational(slug, companyId, {
+    const result = await masterRepository.findManyRelational(slug, companyId, {
       search: query.search,
       status: query.status,
       page,
@@ -258,6 +303,13 @@ export const masterService = {
       orderBy,
       query,
     });
+
+    const includeUsage = query.includeUsage !== 'false';
+    if (includeUsage && result.data?.length) {
+      result.data = await masterRepository.attachUsageCounts(config, companyId, result.data);
+    }
+
+    return result;
   },
 
   getById: async (slug, id, user) => {
@@ -266,6 +318,17 @@ export const masterService = {
     const record = await masterRepository.findByIdRelational(slug, companyId, id);
     if (!record) throw new AppError('Master record not found', 404);
     return record;
+  },
+
+  getRecordUsage: async (slug, id, user) => {
+    if (!isRelationalMasterEntity(slug)) throw new AppError('Unknown master entity', 404);
+    const config = getMasterEntityConfig(slug);
+    const companyId = requireCompany(user);
+    const record = await masterRepository.findByIdRelational(slug, companyId, id);
+    if (!record) throw new AppError('Master record not found', 404);
+    const dependencies = await masterRepository.countDependencies(config, record, companyId);
+    const total = dependencies.reduce((sum, d) => sum + d.count, 0);
+    return { id, dependencies, total, canDelete: total === 0 };
   },
 
   create: async (slug, body, user, req) => {
@@ -320,6 +383,13 @@ export const masterService = {
         newData: record,
         req,
       });
+      if (slug === 'communication-template') {
+        return attachAnnouncementNotificationResult(record, {
+          record,
+          actorId: user.id,
+          companyId,
+        });
+      }
       return record;
     } catch (err) {
       mapPrismaUniqueError(err, config.label);
@@ -387,6 +457,14 @@ export const masterService = {
         newData: record,
         req,
       });
+      if (slug === 'communication-template') {
+        return attachAnnouncementNotificationResult(record, {
+          existing,
+          record,
+          actorId: user.id,
+          companyId,
+        });
+      }
       return record;
     } catch (err) {
       mapPrismaUniqueError(err, config.label);
@@ -416,6 +494,15 @@ export const masterService = {
       newData: { isActive: record.isActive },
       req,
     });
+
+    if (slug === 'communication-template') {
+      return attachAnnouncementNotificationResult(record, {
+        existing,
+        record,
+        actorId: user.id,
+        companyId,
+      });
+    }
 
     return record;
   },
@@ -476,12 +563,22 @@ export const masterService = {
     const valueField = config.optionValueField || 'id';
     const labelField = config.optionLabelField || 'name';
 
-    return rows.map((row) => ({
-      value: row[valueField],
-      label: row[labelField],
-      code: row.code,
-      ...(row.phoneCode != null && row.phoneCode !== '' ? { phoneCode: row.phoneCode } : {}),
-    }));
+    return rows.map((row) => {
+      let label = row[labelField];
+      if (slug === 'course' && row.university?.name && row.name) {
+        label = `${row.name} · ${row.university.name}`;
+      }
+      return {
+        value: row[valueField],
+        label,
+        code: row.code,
+        name: row.name,
+        ...(row.university?.name ? { universityName: row.university.name } : {}),
+        ...(row.isoCode != null && row.isoCode !== '' ? { isoCode: String(row.isoCode).toUpperCase() } : {}),
+        ...(row.phoneCode != null && row.phoneCode !== '' ? { phoneCode: row.phoneCode } : {}),
+        ...(row.taxPercentage != null ? { taxPercentage: Number(row.taxPercentage) } : {}),
+      };
+    });
   },
 
   hubSummary: async (user) => {

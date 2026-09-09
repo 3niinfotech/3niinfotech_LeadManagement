@@ -1,12 +1,21 @@
 import { ENQUIRY_WORKSPACE_AREAS } from '../../config/enquiryWorkspace.config';
 
 /** One-click jump to any workspace area — counsellor never leaves the lead */
-export default function WorkspaceQuickNav({ activeTab, analyticsActive, onNavigate }) {
+export default function WorkspaceQuickNav({
+  activeTab,
+  analyticsActive,
+  onNavigate,
+  hideConversion = false,
+}) {
+  const areas = hideConversion
+    ? ENQUIRY_WORKSPACE_AREAS.filter((a) => a.id !== 'conversion')
+    : ENQUIRY_WORKSPACE_AREAS;
+
   return (
     <nav className="crm-workspace-quicknav" aria-label="Lead workspace areas">
       <p className="crm-workspace-quicknav__label">Workspace</p>
       <div className="crm-workspace-quicknav__track">
-        {ENQUIRY_WORKSPACE_AREAS.map((area) => {
+        {areas.map((area) => {
           const Icon = area.icon;
           const active = area.tab
             ? activeTab === area.tab

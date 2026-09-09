@@ -1,5 +1,5 @@
 import { API } from '../../../config/api';
-import { apiGet, apiPost, apiPut, apiPatch } from '../../../api/apiClient';
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../../../api/apiClient';
 
 export function getPartnerApiError(err, fallback = 'Request failed') {
   return err?.response?.data?.message || err?.message || fallback;
@@ -20,6 +20,7 @@ export const partnerApi = {
   create: async (payload) => unwrap(await apiPost(API.PARTNERS, payload)),
   update: async (id, payload) => unwrap(await apiPut(API.PARTNER_BY_ID(id), payload)),
   updateStatus: async (id, isActive) => unwrap(await apiPatch(API.PARTNER_STATUS(id), { isActive })),
+  remove: async (id) => unwrap(await apiDelete(API.PARTNER_BY_ID(id))),
 };
 
 export default partnerApi;

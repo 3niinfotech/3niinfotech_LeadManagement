@@ -308,8 +308,14 @@ export const downloadSample = asyncHandler(async (req, res) => {
 
 export const convertToStudent = asyncHandler(async (req, res) => {
   const data = await enquiryConversionService.convertToStudent(req.params.id, req.user.id, req);
-  const message = data.linkedExisting
-    ? 'Linked to existing student — same record'
-    : 'Converted to student — same record';
+  const message = data.alreadyConverted
+    ? 'This enquiry is already converted'
+    : data.linkedExisting
+      ? 'Linked to existing student — history preserved'
+      : 'Converted to student — enquiry, demo & documents linked';
   sendSuccess(res, data, message);
+});
+
+export const conversionPreview = asyncHandler(async (req, res) => {
+  sendSuccess(res, await enquiryConversionService.getConversionPreview(req.params.id, req.user));
 });

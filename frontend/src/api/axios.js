@@ -69,7 +69,7 @@ axiosInstance.interceptors.response.use(
         localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER);
         toastService.dismissAll();
-        window.location.href = '/login';
+        window.location.href = '/';
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

@@ -73,7 +73,7 @@ router.delete('/items/:category/:id', (req, _res, next) => {
   return next();
 }, manage, masterController.deleteMasterItem);
 
-// Options dispatcher (legacy MasterItem default for overlapping categories)
+// Options dispatcher (relational default; ?source=legacy for MasterItem labels)
 router.get(
   '/:entity/options',
   requireLegacyOrRelationalOptions,
@@ -100,6 +100,7 @@ router.get('/:entity/export', requireRelationalEntity, view, masterController.ex
 router.post('/:entity/bulk/status', requireRelationalEntity, manage, masterController.bulkUpdateStatus);
 router.post('/:entity/bulk/delete', requireRelationalEntity, manage, masterController.bulkRemove);
 router.get('/:entity', requireRelationalEntity, view, masterController.listEntity);
+router.get('/:entity/:id/usage', requireRelationalEntity, view, masterController.getEntityUsage);
 router.get('/:entity/:id', requireRelationalEntity, view, masterController.getEntity);
 router.post('/:entity', requireRelationalEntity, manage, masterController.createEntity);
 router.put('/:entity/:id', requireRelationalEntity, manage, masterController.updateEntity);

@@ -1,33 +1,29 @@
-import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { FiUser, FiArrowDown, FiRepeat, FiCheckCircle } from 'react-icons/fi';
+import { useMemo, useState } from 'react';
+import {
+  FiUserPlus, FiCheck, FiArrowRight, FiExternalLink, FiUser,
+} from 'react-icons/fi';
 import Badge from '../../../../components/ui/Badge';
 import Button from '../../../../components/ui/Button';
 import FormSection from '../../../../components/ui/FormSection';
 import { buildConversionFlow } from '../../utils/enquiryConversion.utils';
-import { ROUTES } from '../../../../config/routes';
+import { ROUTES, openRouteInNewTab } from '../../../../config/routes';
+import ConversionConfirmModal from './ConversionConfirmModal';
 
-function FlowStep({ step, isLast }) {
+function StepCard({ step, index }) {
+  const n = index + 1;
   return (
-    <>
-      <div className="crm-conversion-flow__step" data-status={step.status}>
-        <span className="crm-conversion-flow__step-dot" aria-hidden />
-        <div className="min-w-0 flex-1">
-          <div className="crm-conversion-flow__step-head">
-            <p className="crm-conversion-flow__step-title">{step.label}</p>
-            {step.meta && (
-              <span className="crm-conversion-flow__step-meta">{step.meta}</span>
-            )}
-          </div>
-          <p className="crm-conversion-flow__step-desc">{step.description}</p>
-        </div>
+    <div className="crm-convert-step" data-status={step.status}>
+      <div className="crm-convert-step__top">
+        <span className="crm-convert-step__index" aria-hidden>
+          {step.status === 'done' ? <FiCheck className="w-3.5 h-3.5" /> : n}
+        </span>
+        <span className="crm-convert-step__label">{step.label}</span>
+        {step.meta && (
+          <span className="crm-convert-step__meta">{step.meta}</span>
+        )}
       </div>
-      {!isLast && (
-        <div className="crm-conversion-flow__arrow" aria-hidden>
-          <FiArrowDown className="w-4 h-4" />
-        </div>
-      )}
-    </>
+      <p className="crm-convert-step__desc">{step.description}</p>
+    </div>
   );
 }
 
@@ -36,76 +32,107 @@ export default function ConversionFlowPanel({
   onConvert,
   converting = false,
 }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const flow = useMemo(() => buildConversionFlow(enquiry), [enquiry]);
+
+  const handleConfirm = () => {
+    setConfirmOpen(false);
+    onConvert?.();
+  };
 
   if (!flow) {
     return (
       <FormSection
         title="Convert to Student"
-        description="Creates a separate student record — applications, visa, and finance live there."
+        description="Promotes this enquiry into the student master for applications, visa, and fees."
+        className="crm-conversion-panel"
       >
-        <p className="text-sm text-text-muted text-center py-6 border border-dashed border-border rounded-lg">
-          Conversion flow appears once the enquiry is saved.
+        <p className="crm-convert-empty">
+          Save the enquiry first to unlock conversion.
         </p>
       </FormSection>
     );
   }
 
   return (
-    <FormSection
-      title="Convert to Student"
-      description="Creates a separate student record — applications, visa, and finance live there."
-    >
-      <div className="crm-conversion-flow">
-        <div className="crm-conversion-flow__banner">
-          <span className="crm-conversion-flow__banner-icon" aria-hidden>
-            {flow.converted ? <FiCheckCircle className="w-4 h-4" /> : <FiRepeat className="w-4 h-4" />}
-          </span>
-          <div className="min-w-0">
-            <p className="crm-conversion-flow__banner-title">
-              {flow.converted ? 'Converted to student' : 'Ready to convert'}
-            </p>
-            <p className="crm-conversion-flow__banner-meta">
-              {flow.enquiryCode}
-              {flow.studentCode ? ` → ${flow.studentCode}` : ''}
-              {flow.linkedExisting ? ' · linked to existing student' : ''}
-            </p>
+    <>
+      <FormSection
+        title="Convert to Student"
+        description="One person, one master record — enquiry history, demos and documents stay linked."
+        className="crm-conversion-panel"
+      >
+        <div className="crm-convert">
+          <div className="crm-convert__summary" data-state={flow.converted ? 'done' : 'ready'}>
+            <div className="min-w-0">
+              <p className="crm-convert__summary-title">
+                {flow.converted ? 'Student record active' : 'Ready for admission'}
+              </p>
+              <p className="crm-convert__summary-meta">
+                <span className="font-mono">{flow.enquiryCode}</span>
+                {flow.studentCode && (
+                  <>
+                    <FiArrowRight className="inline w-3 h-3 mx-1 opacity-60" aria-hidden />
+                    <span className="font-mono">{flow.studentCode}</span>
+                  </>
+                )}
+                {flow.linkedExisting && ' · linked existing'}
+              </p>
+            </div>
+            <Badge color={flow.converted ? 'success' : 'brand'} className="shrink-0">
+              {flow.converted ? 'Converted' : 'Pending'}
+            </Badge>
           </div>
-          <Badge color={flow.converted ? 'success' : 'brand'} className="shrink-0">
-            {flow.converted ? 'Done' : 'Pending'}
-          </Badge>
-        </div>
 
-        <div className="crm-conversion-flow__pipeline" aria-label="Lead to student conversion flow">
-          {flow.steps.map((step, index) => (
-            <FlowStep key={step.id} step={step} isLast={index === flow.steps.length - 1} />
-          ))}
-        </div>
+          <div className="crm-convert__rail" aria-label="Conversion stages">
+            {flow.steps.map((step, index) => (
+              <div key={step.id} className="crm-convert__rail-item">
+                <StepCard step={step} index={index} />
+                {index < flow.steps.length - 1 && (
+                  <span className="crm-convert__rail-arrow" aria-hidden>
+                    <FiArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
 
-        <div className="crm-conversion-flow__actions">
-          {flow.canConvert && (
-            <Button
-              icon={FiUser}
-              onClick={() => onConvert?.()}
-              loading={converting}
-            >
-              Convert to Student
-            </Button>
-          )}
-          {flow.converted && flow.studentId && (
-            <Link to={ROUTES.STUDENT_DETAIL(flow.studentId)}>
-              <Button variant="outline" icon={FiUser}>
+          <div className="crm-convert__footer">
+            {flow.canConvert && (
+              <Button
+                icon={FiUserPlus}
+                onClick={() => setConfirmOpen(true)}
+                loading={converting}
+              >
+                Convert to Student
+              </Button>
+            )}
+            {flow.converted && flow.studentId && (
+              <Button
+                variant="outline"
+                icon={FiExternalLink}
+                onClick={() => openRouteInNewTab(ROUTES.STUDENT_DETAIL(flow.studentId))}
+              >
                 Open student profile
               </Button>
-            </Link>
-          )}
-          {flow.blocked && !flow.converted && (
-            <p className="text-sm text-text-muted">
-              This enquiry cannot be converted in its current status.
-            </p>
-          )}
+            )}
+            {flow.blocked && !flow.converted && (
+              <p className="crm-convert__blocked">
+                <FiUser className="w-3.5 h-3.5 shrink-0" />
+                Current status blocks conversion. Update status first.
+              </p>
+            )}
+          </div>
         </div>
-      </div>
-    </FormSection>
+      </FormSection>
+
+      <ConversionConfirmModal
+        open={confirmOpen}
+        enquiryId={enquiry?.id}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirm}
+        onOpenStudent={(studentId) => openRouteInNewTab(ROUTES.STUDENT_DETAIL(studentId))}
+        converting={converting}
+      />
+    </>
   );
 }

@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
+import { z } from 'zod';
 import { FiDatabase, FiEye, FiEdit2, FiTrash2, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
 import * as FiIcons from 'react-icons/fi';
 import dayjs from 'dayjs';
@@ -9,6 +10,7 @@ import Button from '../../../components/ui/Button';
 import Pagination from '../../../components/ui/Pagination';
 import DataGrid from '../../../components/table/DataGrid';
 import { createActionsColumn } from '../../../components/table/grid.columns';
+import CountryFlagLabel from '../../../components/ui/CountryFlagLabel';
 import { ROUTES } from '../../../config/routes';
 import { resolveMasterPage, buildMasterBreadcrumbs, getMasterTypeMeta, COMMUNICATION_CHANNEL_BY_SLUG } from '../../../config/master-registry.config';
 import { PERMISSIONS } from '../../../config/permissions';
@@ -25,10 +27,23 @@ import MasterStaffPage from '../pages/MasterStaffPage';
 import MasterPartnerPage from '../pages/MasterPartnerPage';
 import ApplicationStatusPage from '../pages/ApplicationStatusPage';
 import VisaStatusPage from '../pages/VisaStatusPage';
+import AnnouncementsPage from '../../announcement/pages/AnnouncementsPage';
 import ApplicationChecklistBulkModal from '../components/ApplicationChecklistBulkModal';
 import VisaChecklistBulkModal from '../components/VisaChecklistBulkModal';
 import { useMasterList } from '../hooks/useMasterList';
 import { masterApi, getApiErrorMessage } from '../services/masterApi.service';
+import MasterWorkflowStrip from '../components/MasterWorkflowStrip';
+import { buildDeleteConfirmText } from '../utils/masterUsage.util';
+import {
+  ANNOUNCEMENT_AUDIENCE_OPTIONS,
+  buildAnnouncementPayload,
+  mapAnnouncementFormRecord,
+} from '../../announcement/utils/announcement.utils';
+
+const WORKFLOW_STATUS_SLUGS = {
+  'lead-status': { title: 'Enquiry pipeline', load: () => masterApi.leadStatusWorkflow() },
+  'student-status-master': { title: 'Student lifecycle', load: () => masterApi.studentStatusWorkflow() },
+};
 
 function StatusPill({ active }) {
   return (
@@ -45,6 +60,7 @@ function StatusPill({ active }) {
 function formatCell(value, cellType) {
   if (value == null || value === '') return '—';
   if (cellType === 'datetime') return dayjs(value).isValid() ? dayjs(value).format('DD MMM YYYY') : String(value);
+  if (cellType === 'date') return dayjs(value).isValid() ? dayjs(value).format('DD MMM YYYY') : String(value);
   if (cellType === 'percent') return `${value}%`;
   if (cellType === 'bool') return value ? 'Yes' : 'No';
   if (cellType === 'badge') {
@@ -96,10 +112,15 @@ export default function MasterDataPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [drawer, setDrawer] = useState({ open: false, mode: 'add', record: null });
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const [actionId, setActionId] = useState(null);
   const [bulkChecklistOpen, setBulkChecklistOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
   const [exporting, setExporting] = useState(false);
+  const [workflowSteps, setWorkflowSteps] = useState([]);
+  const [workflowLoading, setWorkflowLoading] = useState(false);
+
+  const workflowConfig = WORKFLOW_STATUS_SLUGS[slug];
 
   const list = useMasterList(engineEntity, {
     enabled: Boolean(entityConfig && engineEntity),
@@ -113,10 +134,78 @@ export default function MasterDataPage() {
 
   const fieldDefaults = useMemo(() => {
     const channel = COMMUNICATION_CHANNEL_BY_SLUG[slug];
+    if (slug === 'announcements') {
+      return { channel: 'ANNOUNCEMENT', eventType: 'student_portal', isActive: true };
+    }
     if (channel) return { channel };
     if (slug === 'partner-document-checklist') return { applicableFor: 'PARTNER' };
     return {};
   }, [slug]);
+
+  const formEntityConfig = useMemo(() => {
+    if (slug !== 'announcements' || !entityConfig) return entityConfig;
+    const baseFields = entityConfig.fields.filter((f) => (
+      !['eventType', 'variables'].includes(f.name)
+    ));
+    return {
+      ...entityConfig,
+      singular: 'Announcement',
+      plural: 'Announcements',
+      description: 'Publish notices with image, text, and role-based audience',
+      fields: [
+        ...baseFields.filter((f) => f.name !== 'subject'),
+        { name: 'subject', label: 'Subtitle (optional)', type: 'text', required: false },
+        {
+          name: 'eventType',
+          label: 'Target audience',
+          type: 'select',
+          required: true,
+          options: ANNOUNCEMENT_AUDIENCE_OPTIONS,
+        },
+        {
+          name: 'announcementImageUrl',
+          label: 'Image URL (optional)',
+          type: 'text',
+          required: false,
+          placeholder: 'https://… or /uploads/…',
+        },
+        { name: 'body', label: 'Message', type: 'textarea', required: true },
+        { name: 'description', label: 'Internal notes (admin only)', type: 'textarea', required: false },
+        { name: 'sortOrder', label: 'Sort Order', type: 'number', required: false },
+        { name: 'isActive', label: 'Published / Active', type: 'switch', required: false },
+      ],
+      schema: z.object({
+        code: z.string().min(1, 'Code is required').max(80),
+        name: z.string().min(1, 'Name is required').max(200),
+        channel: z.string().min(1),
+        subject: z.string().max(255).optional().nullable().or(z.literal('')),
+        body: z.string().min(1, 'Message is required').max(10000),
+        eventType: z.string().min(1, 'Target audience is required'),
+        announcementImageUrl: z.string().max(2000).optional().nullable().or(z.literal('')),
+        description: z.string().max(5000).optional().nullable().or(z.literal('')),
+        sortOrder: z.coerce.number().int().min(0).optional(),
+        isActive: z.boolean().optional(),
+      }),
+    };
+  }, [slug, entityConfig]);
+
+  const reloadWorkflow = useCallback(async () => {
+    if (!workflowConfig) return;
+    setWorkflowLoading(true);
+    try {
+      const res = await workflowConfig.load();
+      const rows = res?.data ?? res ?? [];
+      setWorkflowSteps(Array.isArray(rows) ? rows : []);
+    } catch {
+      setWorkflowSteps([]);
+    } finally {
+      setWorkflowLoading(false);
+    }
+  }, [workflowConfig]);
+
+  useEffect(() => {
+    reloadWorkflow();
+  }, [reloadWorkflow]);
 
   const activeFilterCount = useMemo(() => Object.entries(list.filters || {}).filter(([k, v]) => {
     if (k === 'status') return v && v !== 'all';
@@ -124,27 +213,34 @@ export default function MasterDataPage() {
   }).length, [list.filters]);
 
   const openDrawer = useCallback((mode, record = null) => {
-    setDrawer({ open: true, mode, record });
-  }, []);
+    const mapped = slug === 'announcements' && record
+      ? mapAnnouncementFormRecord(record)
+      : record;
+    setDrawer({ open: true, mode, record: mapped });
+  }, [slug]);
 
   const closeDrawer = useCallback(() => {
     setDrawer({ open: false, mode: 'add', record: null });
+    setSubmitError(null);
   }, []);
 
   const handleSubmit = async (payload) => {
     setSubmitting(true);
+    setSubmitError(null);
     try {
+      const body = slug === 'announcements' ? buildAnnouncementPayload(payload) : payload;
       if (drawer.mode === 'add') {
-        await masterApi.create(engineEntity, payload);
-        toastService.success(`${entityConfig.singular} created`);
+        await masterApi.create(engineEntity, body);
+        toastService.success(`${formEntityConfig?.singular || entityConfig.singular} created`);
       } else {
-        await masterApi.update(engineEntity, drawer.record.id, payload);
-        toastService.success(`${entityConfig.singular} updated`);
+        await masterApi.update(engineEntity, drawer.record.id, body);
+        toastService.success(`${formEntityConfig?.singular || entityConfig.singular} updated`);
       }
       closeDrawer();
       list.reload();
+      if (workflowConfig) reloadWorkflow();
     } catch (err) {
-      toastService.error(getApiErrorMessage(err, 'Save failed'));
+      setSubmitError(getApiErrorMessage(err, 'Save failed'));
     } finally {
       setSubmitting(false);
     }
@@ -164,6 +260,7 @@ export default function MasterDataPage() {
       await masterApi.updateStatus(engineEntity, row.id, next);
       toastService.success(`Marked ${next ? 'active' : 'inactive'}`);
       list.reload();
+      if (workflowConfig) reloadWorkflow();
     } catch (err) {
       toastService.error(getApiErrorMessage(err, 'Status update failed'));
     } finally {
@@ -173,9 +270,21 @@ export default function MasterDataPage() {
 
   const handleDelete = async (row) => {
     if (!canManage) return;
+    setActionId(row.id);
+    let usage = null;
+    try {
+      const res = await masterApi.getUsage(engineEntity, row.id);
+      usage = res?.data ?? res;
+    } catch {
+      usage = row.usageCount != null
+        ? { total: row.usageCount, dependencies: row.usageDetails || [] }
+        : null;
+    }
+    setActionId(null);
+
     const ok = await alertService.softDeleteConfirm({
       title: `Delete ${entityConfig.singular}`,
-      text: 'This record will be soft-deleted if it has no dependencies.',
+      text: buildDeleteConfirmText(usage, row.name),
       itemName: row.name,
     });
     if (!ok) return;
@@ -184,6 +293,7 @@ export default function MasterDataPage() {
       await masterApi.remove(engineEntity, row.id);
       toastService.success(`${entityConfig.singular} deleted`);
       list.reload();
+      if (workflowConfig) reloadWorkflow();
     } catch (err) {
       toastService.error(getApiErrorMessage(err, 'Delete failed'));
     } finally {
@@ -261,6 +371,7 @@ export default function MasterDataPage() {
   const columns = useMemo(() => {
     if (!entityConfig) return [];
     const cols = (entityConfig.columns || []).map((col) => {
+      const isCountryName = engineEntity === 'country' && col.field === 'name';
       const def = {
         field: col.field,
         headerName: col.headerName,
@@ -269,15 +380,40 @@ export default function MasterDataPage() {
         flex: col.flex,
         sortable: Boolean(col.sortable),
         valueGetter: col.valueGetter,
-        cellRenderer: col.cellType
-          ? (p) => formatCell(col.valueGetter ? col.valueGetter(p) : p.value, col.cellType)
-          : undefined,
+        cellRenderer: isCountryName
+          ? (p) => (
+            <CountryFlagLabel
+              country={{ name: p.data?.name, isoCode: p.data?.isoCode, code: p.data?.code }}
+              size="sm"
+            />
+          )
+          : col.cellType
+            ? (p) => formatCell(col.valueGetter ? col.valueGetter(p) : p.value, col.cellType)
+            : undefined,
       };
       if (col.sortable) {
         def.comparator = () => 0; // server-side sort — disable client compare noise
       }
       return def;
     });
+
+    const showUsage = list.rows?.some((row) => row.usageCount != null);
+    if (showUsage) {
+      cols.splice(Math.max(cols.length - 1, 0), 0, {
+        field: 'usageCount',
+        headerName: 'In use',
+        width: 80,
+        sortable: false,
+        cellRenderer: (p) => {
+          const count = p.data?.usageCount ?? 0;
+          return (
+            <span className={`text-[11px] font-semibold ${count > 0 ? 'text-amber-700' : 'text-text-muted'}`}>
+              {count}
+            </span>
+          );
+        },
+      });
+    }
 
     cols.push(createActionsColumn({
       width: canManage ? 148 : 72,
@@ -338,7 +474,7 @@ export default function MasterDataPage() {
     }));
 
     return cols;
-  }, [entityConfig, canManage, actionId, openDrawer]);
+  }, [entityConfig, engineEntity, canManage, actionId, openDrawer, handleStatusToggle, handleDelete, list.rows]);
 
   const onSortChanged = useCallback((event) => {
     const sorted = event.api.getColumnState().find((c) => c.sort);
@@ -374,12 +510,17 @@ export default function MasterDataPage() {
     return <VisaStatusPage />;
   }
 
+  if (slug === 'announcements') {
+    return <AnnouncementsPage />;
+  }
+
   if (slug === 'feature-toggle') return <Navigate to={ROUTES.FEATURE_TOGGLE} replace />;
-  if (slug === 'backup-export') return <Navigate to={`${ROUTES.REPORTS}?tab=export`} replace />;
+  if (slug === 'backup-export') return <Navigate to={`${ROUTES.REPORTS}/export`} replace />;
   if (slug === 'roles') return <Navigate to={ROUTES.ROLES} replace />;
 
   // Organization module (Company / Branch)
-  if (slug === 'company' || slug === 'company-config' || slug === 'invoice-config') return <OrganizationCompanyPage />;
+  if (slug === 'company-config') return <Navigate to="/admin/master/company" replace />;
+  if (slug === 'company' || slug === 'invoice-config') return <OrganizationCompanyPage />;
   if (slug === 'branch') return <OrganizationBranchPage />;
   if (slug === 'staff' || slug === 'contact-list') return <MasterStaffPage />;
   if (slug === 'partners' || slug === 'partner-commission' || slug === 'partner-agreement' || slug === 'partner-agreement-email') {
@@ -484,6 +625,14 @@ export default function MasterDataPage() {
           onReset={(reset) => list.applyFilters(reset)}
         />
 
+        {workflowConfig && (
+          <MasterWorkflowStrip
+            title={workflowConfig.title}
+            steps={workflowSteps}
+            loading={workflowLoading}
+          />
+        )}
+
         {list.error && list.rows.length === 0 ? (
           <div className="flex-1 flex items-center justify-center p-8">
             <Card className="p-8 text-center max-w-md">
@@ -527,9 +676,10 @@ export default function MasterDataPage() {
       <MasterFormDrawer
         open={drawer.open}
         mode={drawer.mode}
-        entityConfig={entityConfig}
+        entityConfig={formEntityConfig || entityConfig}
         record={drawer.record}
         submitting={submitting}
+        submitError={submitError}
         fieldDefaults={fieldDefaults}
         onClose={closeDrawer}
         onSubmit={handleSubmit}

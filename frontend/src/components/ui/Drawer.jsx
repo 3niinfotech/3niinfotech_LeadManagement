@@ -5,30 +5,36 @@ import { FiX } from 'react-icons/fi';
 import IconButton from './IconButton';
 import ScrollArea from './ScrollArea';
 import { navbar as navbarTheme } from '../../theme';
+import './drawer.theme.css';
 
 const NAVBAR_HEIGHT = navbarTheme.height || '64px';
 
 const SIZE_WIDTH = {
-  sm: '400px',
+  sm: '420px',
   md: '480px',
   lg: '560px',
   xl: '640px',
 };
 
+const DRAWER_EASE = [0.32, 0.72, 0, 1];
+const DRAWER_MS = 0.22;
+
 /**
- * Drawer overlay — portaled to document.body so header backdrop-blur
- * does not trap fixed positioning inside the navbar.
+ * Theme drawer — dense master forms use `dense` + `footer` (no nested scroll padding clash).
  */
 export default function Drawer({
   open,
   onClose,
   title,
+  subtitle,
   children,
   footer = null,
   size,
   width = '480px',
   anchor = 'full',
   zIndex = 1200,
+  dense = false,
+  bodyClassName = '',
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -45,10 +51,20 @@ export default function Drawer({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   if (!mounted) return null;
 
   const isHeaderAnchor = anchor === 'header';
   const panelWidth = (size && SIZE_WIDTH[size]) || width;
+  const pad = dense ? 'crm-drawer-body--dense' : '';
 
   const panel = (
     <AnimatePresence>
@@ -64,36 +80,46 @@ export default function Drawer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
+            transition={{ duration: DRAWER_MS, ease: DRAWER_EASE }}
+            className="absolute inset-0 bg-black/30"
             onClick={onClose}
           />
 
           <motion.div
-            initial={{ x: '100%', opacity: 0.6 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: '100%', opacity: 0.4 }}
-            transition={{ type: 'spring', damping: 32, stiffness: 340 }}
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ duration: DRAWER_MS, ease: DRAWER_EASE }}
             className={`
-              absolute right-0 bg-card-bg border-l border-border shadow-2xl flex flex-col
-              ${isHeaderAnchor ? 'rounded-tl-2xl overflow-hidden' : ''}
+              crm-drawer-panel absolute right-0 bg-card-bg border-l border-border shadow-xl flex flex-col
+              ${isHeaderAnchor ? 'rounded-tl-lg overflow-hidden' : ''}
+              ${dense ? 'crm-drawer-panel--dense' : ''}
             `}
             style={{
               width: panelWidth,
+              maxWidth: '100vw',
               ...(isHeaderAnchor
-                ? { top: NAVBAR_HEIGHT, height: `calc(100% - ${NAVBAR_HEIGHT})` }
-                : { top: 0, height: '100%' }),
+                ? { top: NAVBAR_HEIGHT, height: `calc(100dvh - ${NAVBAR_HEIGHT})` }
+                : { top: 0, height: '100dvh' }),
             }}
           >
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border shrink-0 bg-card-bg/95 backdrop-blur-sm">
-              <h2 className="text-base font-semibold text-text">{title}</h2>
+            <div className={`crm-drawer-header shrink-0 ${dense ? 'crm-drawer-header--dense' : ''}`}>
+              <div className="min-w-0">
+                <h2 className="crm-drawer-title">{title}</h2>
+                {subtitle ? <p className="crm-drawer-subtitle">{subtitle}</p> : null}
+              </div>
               <IconButton icon={FiX} onClick={onClose} label="Close drawer" />
             </div>
-            <ScrollArea axis="y" className="crm-drawer-body flex-1 min-h-0 p-5 text-text">
+
+            <ScrollArea
+              axis="y"
+              className={`crm-drawer-body flex-1 min-h-0 text-text ${pad} ${bodyClassName}`.trim()}
+            >
               {children}
             </ScrollArea>
+
             {footer ? (
-              <div className="shrink-0 border-t border-border px-5 py-3 bg-card-bg">
+              <div className={`crm-drawer-footer shrink-0 ${dense ? 'crm-drawer-footer--dense' : ''}`}>
                 {footer}
               </div>
             ) : null}

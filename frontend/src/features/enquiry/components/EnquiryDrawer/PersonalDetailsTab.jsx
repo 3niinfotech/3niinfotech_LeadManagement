@@ -1,12 +1,11 @@
 import { Controller } from 'react-hook-form';
 import Input from '../../../../components/ui/Input';
-import Textarea from '../../../../components/ui/Textarea';
 import DatePicker from '../../../../components/ui/DatePicker';
 import FormSection from '../../../../components/ui/FormSection';
 import FormSelectField from './FormSelectField';
 import { useEnquiryFormOptions } from '../../hooks/useEnquiryFormOptions';
 
-const GRID = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-4';
+const GRID = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-3 gap-y-3';
 
 export default function PersonalDetailsTab({
   register, control, errors, showPassport = false, disabled = false,
@@ -19,10 +18,10 @@ export default function PersonalDetailsTab({
       description={showPassport
         ? 'Contact, identity, and passport information.'
         : 'Contact and basic identity for this lead.'}
+      className="crm-personal-details"
     >
       <fieldset disabled={disabled} className="contents">
         <div className={GRID}>
-          {/* Row 1 */}
           <Input
             label="First Name"
             required
@@ -45,8 +44,7 @@ export default function PersonalDetailsTab({
             placeholder="email@example.com"
           />
 
-          {/* Row 2 */}
-          <div className="grid grid-cols-[4.75rem_1fr] gap-2 items-end min-w-0">
+          <div className="grid grid-cols-[4.5rem_1fr] gap-1.5 items-end min-w-0">
             <FormSelectField
               name="mobileCountry"
               control={control}
@@ -65,10 +63,11 @@ export default function PersonalDetailsTab({
             />
           </div>
           <Input
-            label="Alternate No"
+            label="Alternate / Emergency"
             {...register('alternateNo')}
             error={errors.alternateNo?.message}
-            placeholder="Optional alternate number"
+            placeholder="Alternate or emergency contact"
+            placeholder="Optional"
           />
           {showPassport ? (
             <Input
@@ -93,7 +92,6 @@ export default function PersonalDetailsTab({
             />
           )}
 
-          {/* Row 3 */}
           {showPassport && (
             <Controller
               name="dateOfBirth"
@@ -133,15 +131,12 @@ export default function PersonalDetailsTab({
             errors={errors}
             placeholder="Select status"
           />
-
-          {/* Row 4 — full width */}
-          <div className="md:col-span-2 lg:col-span-3">
-            <Textarea
+          <div className="sm:col-span-2 xl:col-span-3">
+            <Input
               label="Address"
-              rows={2}
               {...register('address')}
               error={errors.address?.message}
-              placeholder="Full address"
+              placeholder="Street, city, state"
             />
           </div>
         </div>

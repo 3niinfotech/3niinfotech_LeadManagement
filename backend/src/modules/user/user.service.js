@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import fs from 'fs';
 import { AppError, buildPagination, parsePagination } from '../../utils/response.util.js';
 import { userRepository } from './user.repository.js';
 import {
@@ -8,6 +9,11 @@ import {
 } from '../../utils/tenant.util.js';
 import prisma from '../../config/database.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
+import {
+  buildAvatarPath,
+  deleteStoredAvatar,
+  isSupportedImageFile,
+} from '../../utils/avatar.util.js';
 
 const formatUser = (user) => {
   if (!user) return null;
@@ -115,6 +121,8 @@ export const userService = {
       lastName: payload.lastName?.trim() || '',
       email: payload.email.trim().toLowerCase(),
       phone: payload.phone?.trim() || null,
+      employeeCode: payload.employeeCode?.trim() || null,
+      department: payload.department?.trim() || null,
       password: hashedPassword,
       status: payload.status || 'ACTIVE',
       createdBy: requester.id,
@@ -150,6 +158,8 @@ export const userService = {
     if (payload.lastName !== undefined) data.lastName = payload.lastName?.trim() || '';
     if (payload.email) data.email = payload.email.trim().toLowerCase();
     if (payload.phone !== undefined) data.phone = payload.phone?.trim() || null;
+    if (payload.employeeCode !== undefined) data.employeeCode = payload.employeeCode?.trim() || null;
+    if (payload.department !== undefined) data.department = payload.department?.trim() || null;
     if (payload.roleId) data.roleId = payload.roleId;
     if (payload.branchId) data.branchId = payload.branchId;
     if (payload.status) data.status = payload.status;
@@ -194,6 +204,69 @@ export const userService = {
       req,
     });
 
+    return formatUser(updated);
+  },
+
+  delete: async (id, requester, req) => {
+    const existing = await assertUserInCompany(id, requester);
+    if (existing.id === requester.id) {
+      throw new AppError('You cannot delete your own account', 422);
+    }
+    if (existing.role?.slug === 'super_admin' && requester.role?.slug !== 'super_admin') {
+      throw new AppError('Only Super Admin can delete Super Admin users', 403);
+    }
+
+    await userRepository.softDelete(id, requester.id);
+
+    await auditLog({
+      userId: requester.id,
+      action: 'DELETE',
+      entityType: 'user',
+      entityId: id,
+      oldData: formatUser(existing),
+      req,
+    });
+
+    return { id, deleted: true };
+  },
+
+  uploadAvatar: async (id, file, relativeDir, requester, req) => {
+    if (!file || !relativeDir) throw new AppError('Profile photo is required', 400);
+    if (!isSupportedImageFile(file.path)) {
+      fs.unlinkSync(file.path);
+      throw new AppError('The uploaded file is not a valid JPG, PNG, or WEBP image', 422);
+    }
+    const existing = await assertUserInCompany(id, requester);
+    const avatar = buildAvatarPath(relativeDir, file.filename);
+    const updated = await userRepository.update(id, { avatar, updatedBy: requester.id });
+    if (existing.avatar && existing.avatar !== avatar) deleteStoredAvatar(existing.avatar);
+    await auditLog({
+      userId: requester.id,
+      action: 'UPDATE',
+      entityType: 'user',
+      entityId: id,
+      field: 'avatar',
+      oldValue: existing.avatar,
+      newValue: avatar,
+      req,
+    });
+    return formatUser(updated);
+  },
+
+  removeAvatar: async (id, requester, req) => {
+    const existing = await assertUserInCompany(id, requester);
+    const updated = await userRepository.update(id, { avatar: null, updatedBy: requester.id });
+    deleteStoredAvatar(existing.avatar);
+    await auditLog({
+      userId: requester.id,
+      action: 'UPDATE',
+      entityType: 'user',
+      entityId: id,
+      field: 'avatar',
+      oldValue: existing.avatar,
+      newValue: null,
+      req,
+    });
     return formatUser(updated);
   },
 };

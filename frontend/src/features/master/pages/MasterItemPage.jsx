@@ -9,7 +9,9 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import DataGrid from '../../../components/table/DataGrid';
 import Pagination from '../../../components/ui/Pagination';
-import Modal from '../../../components/ui/Modal';
+import MasterFormShell from '../components/MasterFormShell';
+import { masterFormSubtitle, masterSubmitLabel } from '../utils/masterFormLayout.util';
+import '../styles/master-form.theme.css';
 import { createActionsColumn } from '../../../components/table/grid.columns';
 import MasterListToolbar from '../components/MasterListToolbar';
 import { ROUTES } from '../../../config/routes';
@@ -385,53 +387,71 @@ export default function MasterItemPage() {
         </div>
       </ModulePageCard>
 
-      <Modal
+      <MasterFormShell
         open={addOpen}
         onClose={() => setAddOpen(false)}
         title={`Add ${meta.singular}`}
+        subtitle={masterFormSubtitle('add', meta.singular)}
+        size="sm"
+        compact
         footer={(
           <>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button loading={saving} onClick={handleAdd}>Save</Button>
+            <Button variant="outline" size="sm" onClick={() => setAddOpen(false)} disabled={saving}>Cancel</Button>
+            <Button size="sm" loading={saving} onClick={handleAdd}>
+              {masterSubmitLabel('add', meta.singular, saving)}
+            </Button>
           </>
         )}
       >
-        <Input
-          label={`${meta.singular} label`}
-          value={newLabel}
-          onChange={(e) => setNewLabel(e.target.value)}
-          placeholder={`Enter ${meta.singular.toLowerCase()} name`}
-          autoFocus
-        />
-      </Modal>
+        <form className="crm-master-form" onSubmit={(e) => { e.preventDefault(); handleAdd(); }}>
+          <Input
+            label={`${meta.singular} label`}
+            required
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            placeholder={`Enter ${meta.singular.toLowerCase()} name`}
+            autoFocus
+          />
+        </form>
+      </MasterFormShell>
 
-      <Modal
+      <MasterFormShell
         open={editOpen}
         onClose={() => { setEditOpen(false); setEditing(null); }}
         title={`Edit ${meta.singular}`}
+        subtitle={masterFormSubtitle('edit', meta.singular)}
+        size="sm"
+        compact
         footer={(
           <>
-            <Button variant="outline" onClick={() => { setEditOpen(false); setEditing(null); }}>Cancel</Button>
-            <Button loading={saving} onClick={handleEdit}>Save</Button>
+            <Button variant="outline" size="sm" onClick={() => { setEditOpen(false); setEditing(null); }} disabled={saving}>Cancel</Button>
+            <Button size="sm" loading={saving} onClick={handleEdit}>
+              {masterSubmitLabel('edit', meta.singular, saving)}
+            </Button>
           </>
         )}
       >
-        <div className="space-y-3">
-          <Input
-            label={`${meta.singular} label`}
-            value={editLabel}
-            onChange={(e) => setEditLabel(e.target.value)}
-            autoFocus
-          />
-          <Input
-            label="Sort order"
-            type="number"
-            min={0}
-            value={editSortOrder}
-            onChange={(e) => setEditSortOrder(e.target.value)}
-          />
-        </div>
-      </Modal>
+        <form className="crm-master-form" onSubmit={(e) => { e.preventDefault(); handleEdit(); }}>
+          <div className="crm-master-form-grid">
+            <div className="crm-master-form-grid__full">
+              <Input
+                label={`${meta.singular} label`}
+                required
+                value={editLabel}
+                onChange={(e) => setEditLabel(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <Input
+              label="Sort order"
+              type="number"
+              min={0}
+              value={editSortOrder}
+              onChange={(e) => setEditSortOrder(e.target.value)}
+            />
+          </div>
+        </form>
+      </MasterFormShell>
     </>
   );
 }

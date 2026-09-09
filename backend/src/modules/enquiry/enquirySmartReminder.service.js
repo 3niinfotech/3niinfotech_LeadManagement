@@ -1,5 +1,7 @@
+import { notifyUser } from '../notification/notification.dispatcher.js';
+import { featureService } from '../feature/feature.service.js';
 import prisma from '../../config/database.js';
-import { notificationService } from '../notification/notification.service.js';
+import { softDeleteWhere } from '../../utils/response.util.js';
 import { enquiryRepository } from './enquiry.repository.js';
 import { logEnquiryAudit } from './enquiry.audit.js';
 import {
@@ -95,6 +97,15 @@ export const smartReminderService = {
       return enquiry;
     }
 
+    const companyId = enquiry.branch?.companyId
+      || (enquiry.branchId
+        ? (await prisma.branch.findUnique({ where: { id: enquiry.branchId }, select: { companyId: true } }))?.companyId
+        : null);
+    if (companyId) {
+      const enabled = await featureService.isEnabled('automation.auto_followup', { companyId });
+      if (!enabled) return enquiry;
+    }
+
     const days = daysWithoutFollowUp(enquiry);
     const anchorKey = getAnchorKey(enquiry);
     const meta = enquiry.metadata?.smartReminder || {};
@@ -139,16 +150,18 @@ export const smartReminderService = {
 
     let notification = null;
     if (assigneeId) {
-      notification = await notificationService.create({
-        userId: assigneeId,
+      notification = await notifyUser(assigneeId, {
         type: 'REMINDER',
         title: `Follow-up overdue — ${leadName}`,
         message: `No outreach on enquiry ${enquiry.enquiryCode} for ${days} days. Smart reminder sent automatically.`,
-        link: `/enquiries?open=${enquiry.id}`,
+        link: `/admin/enquiries/${enquiry.id}`,
         metadata: {
+          event: 'SMART_REMINDER',
+          audience: 'ASSIGNEE',
           enquiryId: enquiry.id,
           enquiryCode: enquiry.enquiryCode,
           source: 'smart_reminder',
+          urgent: true,
         },
       });
     }
@@ -207,3 +220,43 @@ export const smartReminderService = {
     return enquiryRepository.findById(enquiry.id);
   },
 };
+
+/** Batch processor for scheduled smart follow-up reminders (cron). */
+export async function processSmartReminderBatch({ take = 100 } = {}) {
+  const companies = await prisma.company.findMany({
+    where: { deletedAt: null, isActive: true },
+    select: { id: true },
+  });
+
+  let processed = 0;
+  for (const company of companies) {
+    const enabled = await featureService.isEnabled('automation.auto_followup', { companyId: company.id });
+    if (!enabled) continue;
+
+    const enquiries = await prisma.enquiry.findMany({
+      where: {
+        ...softDeleteWhere,
+        branch: { companyId: company.id },
+      status: { notIn: ['LOST', 'NOT_INTERESTED', 'SPAM', 'DUPLICATE', 'CONVERTED'] },
+      },
+      include: {
+        branch: { select: { companyId: true } },
+        followups: { orderBy: { createdAt: 'desc' }, take: 10 },
+      },
+      orderBy: { lastTouchedAt: 'asc' },
+      take,
+    });
+
+    for (const enquiry of enquiries) {
+      try {
+        const before = enquiry.metadata?.smartReminder?.completedAt;
+        const after = await smartReminderService.evaluateAndProcess(enquiry);
+        if (after?.metadata?.smartReminder?.completedAt && !before) processed += 1;
+      } catch (err) {
+        console.error('[smart-reminder] enquiry', enquiry.id, err.message);
+      }
+    }
+  }
+
+  return { processed };
+}

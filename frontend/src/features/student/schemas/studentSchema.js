@@ -10,6 +10,7 @@ export const studentFormSchema = z.object({
   nationality: z.string().optional(),
   passportNo: z.string().optional(),
   address: z.string().optional(),
+  emergencyContact: z.string().max(200).optional().or(z.literal('')),
   status: z.string().optional(),
   intake: z.string().optional(),
   course: z.string().optional(),

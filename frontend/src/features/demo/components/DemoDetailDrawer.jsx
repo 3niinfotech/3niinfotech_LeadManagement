@@ -13,6 +13,7 @@ import {
   FiEdit,
   FiMessageSquare,
   FiInfo,
+  FiFileText,
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import Drawer from '../../../components/ui/Drawer';
@@ -67,9 +68,27 @@ export default function DemoDetailDrawer({
   const isRescheduled = demo.sessionStatus === 'RESCHEDULED';
   const isInactive = isCancelled || isRescheduled;
 
+  const studentId = enquiry.studentId;
+  const hasStudent = Boolean(studentId);
+
   const handleOpenEnquiry = () => {
     if (!enquiryId) return;
     navigate(ROUTES.ENQUIRY_TAB(enquiryId, 'demo'));
+    onClose();
+  };
+
+  const handleOpenStudent = () => {
+    if (!studentId) return;
+    navigate(ROUTES.STUDENT_DETAIL(studentId));
+    onClose();
+  };
+
+  const handleOpenApplications = () => {
+    if (hasStudent) {
+      navigate(ROUTES.STUDENT_TAB(studentId, 'applications'));
+    } else {
+      navigate(ROUTES.APPLICATIONS);
+    }
     onClose();
   };
 
@@ -80,15 +99,35 @@ export default function DemoDetailDrawer({
       title="Demo Session Details"
       width="540px"
       footer={
-        <div className="flex items-center justify-between gap-2 w-full">
-          <Button
-            variant="outline"
-            size="sm"
-            icon={FiExternalLink}
-            onClick={handleOpenEnquiry}
-          >
-            Open Enquiry
-          </Button>
+        <div className="flex items-center justify-between gap-2 w-full flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={FiExternalLink}
+              onClick={handleOpenEnquiry}
+            >
+              Enquiry
+            </Button>
+            {hasStudent && (
+              <Button
+                variant="outline"
+                size="sm"
+                icon={FiUser}
+                onClick={handleOpenStudent}
+              >
+                Student
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              icon={FiFileText}
+              onClick={handleOpenApplications}
+            >
+              Admissions
+            </Button>
+          </div>
 
           <div className="flex items-center gap-2">
             {!isInactive && (
@@ -184,6 +223,41 @@ export default function DemoDetailDrawer({
                 <FiMail className="w-4 h-4" />
               </a>
             )}
+          </div>
+        </div>
+
+        {/* Quick journey links */}
+        <div className="p-3 rounded-xl border border-border bg-card-bg">
+          <div className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">
+            Related Pages
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleOpenEnquiry}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
+            >
+              <FiExternalLink className="w-3.5 h-3.5" />
+              Enquiry Workspace
+            </button>
+            {hasStudent && (
+              <button
+                type="button"
+                onClick={handleOpenStudent}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 transition-colors"
+              >
+                <FiUser className="w-3.5 h-3.5" />
+                Student Profile
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleOpenApplications}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-800 hover:bg-amber-500/15 transition-colors"
+            >
+              <FiFileText className="w-3.5 h-3.5" />
+              Admissions
+            </button>
           </div>
         </div>
 

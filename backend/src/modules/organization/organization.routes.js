@@ -52,6 +52,7 @@ router.get('/branches', view, organizationController.listBranches);
 router.post('/branches', manage, organizationController.createBranch);
 router.put('/branches/:id', manage, organizationController.updateBranch);
 router.patch('/branches/:id/status', manage, organizationController.updateBranchStatus);
+router.delete('/branches/:id', manage, organizationController.deleteBranch);
 router.get('/viewing-branch', view, organizationController.getViewingBranch);
 router.patch('/viewing-branch', view, organizationController.setViewingBranch);
 

@@ -15,11 +15,12 @@ export default function ModulePageHeader({
   embedded = true,
   className = '',
 }) {
-  const pad = embedded ? 'px-4' : '';
+  const pad = embedded ? 'px-4' : 'px-1';
 
   return (
     <header
-      className={`shrink-0 border-b border-border bg-card-bg ${className}`.trim()}
+      data-page-header
+      className={`crm-page-header shrink-0 border-b border-border bg-card-bg ${embedded ? 'crm-page-header--embedded' : 'crm-page-header--standalone'} ${className}`.trim()}
     >
       {breadcrumbs.length > 0 && (
         <div className={`${pad} pt-2.5 pb-0`}>
@@ -59,3 +60,5 @@ export default function ModulePageHeader({
     </header>
   );
 }
+
+ModulePageHeader.displayName = 'ModulePageHeader';

@@ -10,7 +10,6 @@ import { ROUTES } from '../../../config/routes';
 import { PERMISSIONS } from '../../../config/permissions';
 import { usePermissions } from '../../../hooks/usePermissions';
 import toastService from '../../../services/toast/toast.service';
-import alertService from '../../../services/alert/alert.service';
 
 import DemoToolbar from '../components/DemoToolbar';
 import DemoFilters from '../components/DemoFilters';
@@ -25,6 +24,7 @@ import {
   useListDemosQuery,
   useGetDemoSummaryQuery,
   useExportDemosMutation,
+  useMarkDemoAttendanceMutation,
 } from '../../enquiry/redux/enquiryApiSlice';
 
 import {
@@ -76,11 +76,21 @@ export default function DemoPage() {
     applyFilters,
     resetFilters,
     selectSummaryCard,
+    branchLocked,
+    canViewAllBranches,
+    filters,
   } = useDemoFilters();
 
   const [filterDraft, setFilterDraft] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+
+  useEffect(() => {
+    setFilterDraft((prev) => ({
+      ...prev,
+      branchId: filters.branchId || undefined,
+    }));
+  }, [filters.branchId]);
 
   const canCreate = canAny([
     PERMISSIONS.ENQUIRIES_CREATE,
@@ -109,11 +119,35 @@ export default function DemoPage() {
   } = useGetDemoSummaryQuery(summaryParams);
 
   const [exportDemos, { isLoading: exportLoading }] = useExportDemosMutation();
+  const [markDemoAttendance] = useMarkDemoAttendanceMutation();
+  const [markingId, setMarkingId] = useState(null);
 
   const rows = listResult?.data || [];
   const gridLoading = isLoading && rows.length === 0;
   const gridFetching = isFetching && rows.length > 0;
   const statItems = useMemo(() => buildDemoSummaryItems(summary), [summary]);
+
+  const canMark = can(PERMISSIONS.ENQUIRIES_UPDATE);
+
+  const handleQuickMark = async (row, attendance) => {
+    const enquiryId = row?.enquiry?.id || row?.enquiryId;
+    if (!enquiryId || !row?.id) return;
+    setMarkingId(row.id);
+    try {
+      await markDemoAttendance({
+        id: enquiryId,
+        demoId: row.id,
+        attendance,
+      }).unwrap();
+      toastService.success(`Marked ${attendance}`);
+      refetch();
+      refetchSummary();
+    } catch (e) {
+      toastService.error(e?.data?.message || 'Failed to mark attendance');
+    } finally {
+      setMarkingId(null);
+    }
+  };
 
   const handleExport = async () => {
     try {
@@ -250,10 +284,13 @@ export default function DemoPage() {
               onChange={setFilterDraft}
               onSearch={() => applyFilters(filterDraft)}
               onReset={() => {
-                setFilterDraft({});
+                const next = branchLocked ? { branchId: filters.branchId } : {};
+                setFilterDraft(next);
                 resetFilters();
               }}
               onClose={() => dispatch(toggleDemoFilters())}
+              branchLocked={branchLocked}
+              canViewAllBranches={canViewAllBranches}
             />
           </ModulePageCard.Filters>
 
@@ -263,6 +300,8 @@ export default function DemoPage() {
               loading={gridLoading}
               fetching={gridFetching}
               density={columnDensity}
+              canMark={canMark}
+              markingId={markingId}
               onRowClick={(row) => {
                 const enquiryId = row?.enquiry?.id || row?.enquiryId;
                 if (enquiryId) navigate(ROUTES.ENQUIRY_TAB(enquiryId, 'demo'));
@@ -272,6 +311,7 @@ export default function DemoPage() {
                 if (enquiryId) navigate(ROUTES.ENQUIRY_TAB(enquiryId, 'demo'));
               }}
               onMarkAttendance={(row) => dispatch(openMarkAttendanceModal(row))}
+              onQuickMark={handleQuickMark}
               onReschedule={(row) => dispatch(openRescheduleDemoModal(row))}
               onCancel={(row) => dispatch(openCancelDemoModal(row))}
               onSelectionChanged={(selected) =>

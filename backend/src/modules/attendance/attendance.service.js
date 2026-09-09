@@ -23,6 +23,8 @@ import {
   attendanceWindowState,
   suggestLateStatus,
   attendancePercent,
+  dailyAttendanceBucket,
+  dailyAttendancePercent,
   isLowAttendance,
 } from './attendance.rules.js';
 import { STUDENT_ROLE_SLUGS } from '../../config/portal.config.js';
@@ -543,15 +545,50 @@ export const attendanceService = {
       studentId = own.id;
     }
     const student = await assertStudentInTenant(studentId, user);
+    if (user.role?.slug === 'teacher') {
+      const batchScope = academicBranchScope(user, 'batch');
+      const batches = await attendanceRepository.findBatches(batchScope, { take: 200 });
+      const batchIds = batches.map((b) => b.id);
+      const enrolled = batchIds.length
+        ? await prisma.batchEnrollment.findFirst({
+          where: { studentId: student.id, isActive: true, batchId: { in: batchIds } },
+        })
+        : null;
+      if (!enrolled) throw new AppError('Forbidden', 403);
+    }
     const settings = await companySettings(user);
     const rows = await attendanceRepository.findStudentAttendances(studentId);
     const total = rows.length;
-    const present = rows.filter((r) => r.status === 'PRESENT' || r.status === 'HALF_DAY').length;
+    const present = rows.filter((r) => dailyAttendanceBucket(r.status) === 'PRESENT').length;
+    const absent = rows.filter((r) => dailyAttendanceBucket(r.status) === 'ABSENT').length;
     const late = rows.filter((r) => r.status === 'LATE').length;
-    const absent = rows.filter((r) => r.status === 'ABSENT').length;
     const excused = rows.filter((r) => r.status === 'EXCUSED').length;
     const leave = rows.filter((r) => r.status === 'LEAVE').length;
-    const percent = attendancePercent({ present, late, excused, total });
+    const percent = dailyAttendancePercent(present, total);
+
+    const byBatchMap = {};
+    rows.forEach((row) => {
+      const batchId = row.session?.batch?.id;
+      const key = batchId || row.session?.batch?.name || 'unknown';
+      if (!byBatchMap[key]) {
+        byBatchMap[key] = {
+          batchId: batchId || null,
+          batch: row.session?.batch?.name || '—',
+          course: row.session?.batch?.courseName || null,
+          total: 0,
+          present: 0,
+          absent: 0,
+        };
+      }
+      byBatchMap[key].total += 1;
+      if (dailyAttendanceBucket(row.status) === 'PRESENT') byBatchMap[key].present += 1;
+      else byBatchMap[key].absent += 1;
+    });
+    const byBatch = Object.values(byBatchMap).map((bucket) => ({
+      ...bucket,
+      percent: dailyAttendancePercent(bucket.present, bucket.total),
+    }));
+
     return {
       student: {
         id: student.id,
@@ -562,15 +599,19 @@ export const attendanceService = {
       totals: { total, present, absent, late, excused, leave, percent },
       lowAttendance: isLowAttendance(percent, settings) && total > 0,
       threshold: settings.lowAttendancePercent,
+      byBatch,
       history: rows.map((row) => ({
         id: row.id,
         date: row.session?.startAt,
         course: row.session?.batch?.courseName,
         batch: row.session?.batch?.name,
+        batchId: row.session?.batch?.id,
         sessionTime: row.session ? `${row.session.startAt} – ${row.session.endAt}` : null,
         startAt: row.session?.startAt,
         endAt: row.session?.endAt,
         status: row.status,
+        dailyStatus: dailyAttendanceBucket(row.status) === 'ABSENT' ? 'A' : 'P',
+        markedAt: row.markedAt,
         markedBy: row.markedBy,
         remarks: row.remarks,
       })),
@@ -700,6 +741,317 @@ export const attendanceService = {
         excused: students.reduce((s, r) => s + r.excused, 0),
       },
       students,
+    };
+  },
+
+  /**
+   * Teacher workspace cockpit — real data from assigned batches/sessions only.
+   * Assignment/test KPIs omitted until academic homework schema ships (Phase 2).
+   */
+  teacherDashboard: async (user) => {
+    const settings = await companySettings(user);
+    const batchScope = academicBranchScope(user, 'batch');
+    const sessionScope = academicBranchScope(user, 'session');
+
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    const weekEnd = new Date(start);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    const batches = await attendanceRepository.findBatches(batchScope, { take: 200 });
+    const batchIds = batches.map((b) => b.id);
+
+    const enrollments = batchIds.length
+      ? await prisma.batchEnrollment.findMany({
+        where: { batchId: { in: batchIds }, isActive: true },
+        include: {
+          student: {
+            select: {
+              id: true, studentCode: true, firstName: true, lastName: true, status: true,
+            },
+          },
+          batch: { select: { id: true, name: true, courseName: true, code: true } },
+        },
+      })
+      : [];
+
+    const uniqueStudentIds = [...new Set(enrollments.map((e) => e.studentId))];
+
+    const sessions = await attendanceRepository.findSessions({
+      ...sessionScope,
+      startAt: { gte: start, lt: weekEnd },
+      status: { not: 'CANCELLED' },
+    });
+    const todaySessions = sessions.filter((s) => s.startAt >= start && s.startAt < end);
+
+    const schedule = [];
+    let attendancePending = 0;
+    let attendanceCompleted = 0;
+    const overview = {
+      present: 0, absent: 0, late: 0, leave: 0, excused: 0, total: 0,
+    };
+
+    for (const session of todaySessions) {
+      const enrolled = await prisma.batchEnrollment.count({
+        where: { batchId: session.batchId, isActive: true },
+      });
+      const marked = session._count?.attendances ?? (session.attendances?.length || 0);
+      const window = attendanceWindowState(session.startAt, session.endAt, settings);
+      const pending = marked < enrolled && window.state !== 'NOT_OPEN';
+      if (pending) attendancePending += 1;
+      else if (enrolled > 0) attendanceCompleted += 1;
+
+      schedule.push({
+        id: session.id,
+        time: session.startAt,
+        endAt: session.endAt,
+        course: session.batch?.courseName,
+        batch: session.batch?.name,
+        batchId: session.batchId,
+        room: session.room || session.batch?.room || null,
+        studentCount: enrolled,
+        marked,
+        status: session.status,
+        pending,
+      });
+    }
+
+    if (todaySessions.length) {
+      const marks = await prisma.classAttendance.findMany({
+        where: { sessionId: { in: todaySessions.map((s) => s.id) } },
+        select: { status: true },
+      });
+      for (const row of marks) {
+        overview.total += 1;
+        if (row.status === 'PRESENT' || row.status === 'HALF_DAY') overview.present += 1;
+        else if (row.status === 'ABSENT') overview.absent += 1;
+        else if (row.status === 'LATE') overview.late += 1;
+        else if (row.status === 'LEAVE') overview.leave += 1;
+        else if (row.status === 'EXCUSED') overview.excused += 1;
+      }
+    }
+
+    const attendancePercentToday = attendancePercent({
+      present: overview.present,
+      late: overview.late,
+      excused: overview.excused,
+      total: overview.total,
+    });
+
+    const needingAttention = [];
+    for (const studentId of uniqueStudentIds.slice(0, 80)) {
+      const rows = await attendanceRepository.findStudentAttendances(studentId);
+      const total = rows.length;
+      if (!total) continue;
+      const present = rows.filter((r) => r.status === 'PRESENT' || r.status === 'HALF_DAY').length;
+      const late = rows.filter((r) => r.status === 'LATE').length;
+      const excused = rows.filter((r) => r.status === 'EXCUSED').length;
+      const absent = rows.filter((r) => r.status === 'ABSENT').length;
+      const percent = attendancePercent({ present, late, excused, total });
+      const consecutive = (() => {
+        let streak = 0;
+        for (const row of rows) {
+          if (row.status === 'ABSENT') streak += 1;
+          else break;
+        }
+        return streak;
+      })();
+      const reasons = [];
+      if (isLowAttendance(percent, settings)) reasons.push('Low attendance');
+      if (consecutive >= (settings.consecutiveAbsenceAlert || 3)) reasons.push('Repeated absence');
+      if (!reasons.length) continue;
+      const enrollment = enrollments.find((e) => e.studentId === studentId);
+      needingAttention.push({
+        id: studentId,
+        studentCode: enrollment?.student?.studentCode,
+        name: `${enrollment?.student?.firstName || ''} ${enrollment?.student?.lastName || ''}`.trim(),
+        batch: enrollment?.batch?.name,
+        course: enrollment?.batch?.courseName,
+        percent,
+        absent,
+        reasons,
+      });
+    }
+    needingAttention.sort((a, b) => a.percent - b.percent);
+
+    const now = new Date();
+    const [pendingAssignments, upcomingTests, reviewedMarks] = batchIds.length
+      ? await Promise.all([
+        prisma.classAssignment.count({
+          where: {
+            batchId: { in: batchIds },
+            deletedAt: null,
+            status: 'PUBLISHED',
+            OR: [{ dueDate: null }, { dueDate: { gte: now } }],
+          },
+        }),
+        prisma.classTest.count({
+          where: {
+            batchId: { in: batchIds },
+            deletedAt: null,
+            status: 'PUBLISHED',
+            OR: [{ testDate: null }, { testDate: { gte: start } }],
+          },
+        }),
+        prisma.classTestResult.findMany({
+          where: {
+            published: true,
+            test: { batchId: { in: batchIds }, deletedAt: null },
+            percentage: { not: null },
+          },
+          select: { percentage: true },
+          take: 500,
+        }),
+      ])
+      : [0, 0, []];
+
+    const avgPerformance = reviewedMarks.length
+      ? Math.round(reviewedMarks.reduce((s, r) => s + (r.percentage || 0), 0) / reviewedMarks.length)
+      : null;
+
+    return {
+      workspace: {
+        title: 'Teacher workspace',
+        subtitle: 'Your classes, students, and academics',
+      },
+      metrics: {
+        myClasses: batches.length,
+        totalStudents: uniqueStudentIds.length,
+        todayClasses: todaySessions.length,
+        upcomingSessions: sessions.length,
+        attendancePending,
+        attendanceCompleted,
+        attendancePercent: attendancePercentToday,
+        pendingAssignments,
+        upcomingTests,
+        averageStudentPerformance: avgPerformance,
+      },
+      attendanceOverview: {
+        ...overview,
+        percent: attendancePercentToday,
+      },
+      todaySchedule: schedule.sort((a, b) => new Date(a.time) - new Date(b.time)),
+      needingAttention: needingAttention.slice(0, 8),
+      classes: batches.map((b) => ({
+        id: b.id,
+        code: b.code,
+        name: b.name,
+        courseName: b.courseName,
+        room: b.room,
+        studentCount: b._count?.enrollments ?? b.enrollments?.length ?? 0,
+        isActive: b.isActive,
+        startDate: b.startDate,
+        endDate: b.endDate,
+      })),
+      capabilities: {
+        assignments: true,
+        tests: true,
+        materials: true,
+        performance: true,
+      },
+    };
+  },
+
+  teacherStudents: async (query, user) => {
+    const settings = await companySettings(user);
+    const batchScope = academicBranchScope(user, 'batch');
+    const batches = await attendanceRepository.findBatches(batchScope, { take: 200 });
+    const batchIds = batches.map((b) => b.id);
+    if (!batchIds.length) {
+      return { data: [], pagination: { page: 1, limit: 25, total: 0, totalPages: 0 } };
+    }
+
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(query.limit) || 25));
+    const search = query.search?.trim();
+
+    const where = {
+      batchId: { in: batchIds },
+      isActive: true,
+      ...(query.batchId ? { batchId: query.batchId } : {}),
+      ...(search
+        ? {
+          student: {
+            OR: [
+              { firstName: { contains: search } },
+              { lastName: { contains: search } },
+              { studentCode: { contains: search } },
+              { email: { contains: search } },
+            ],
+          },
+        }
+        : {}),
+    };
+
+    const [total, rows] = await Promise.all([
+      prisma.batchEnrollment.count({ where }),
+      prisma.batchEnrollment.findMany({
+        where,
+        include: {
+          student: {
+            select: {
+              id: true,
+              studentCode: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+              status: true,
+            },
+          },
+          batch: {
+            select: {
+              id: true, name: true, courseName: true, code: true,
+            },
+          },
+        },
+        orderBy: [{ enrolledAt: 'desc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+
+    const data = [];
+    for (const row of rows) {
+      const marks = await attendanceRepository.findStudentAttendances(row.studentId);
+      const totalMarks = marks.length;
+      const present = marks.filter((r) => r.status === 'PRESENT' || r.status === 'HALF_DAY').length;
+      const late = marks.filter((r) => r.status === 'LATE').length;
+      const excused = marks.filter((r) => r.status === 'EXCUSED').length;
+      const absent = marks.filter((r) => r.status === 'ABSENT').length;
+      const percent = attendancePercent({ present, late, excused, total: totalMarks });
+      data.push({
+        id: row.student.id,
+        studentCode: row.student.studentCode,
+        firstName: row.student.firstName,
+        lastName: row.student.lastName,
+        email: row.student.email,
+        phone: row.student.phone,
+        status: row.student.status,
+        batchId: row.batch.id,
+        batchName: row.batch.name,
+        courseName: row.batch.courseName,
+        attendance: {
+          total: totalMarks,
+          present,
+          absent,
+          late,
+          percent,
+          low: isLowAttendance(percent, settings) && totalMarks > 0,
+        },
+      });
+    }
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 0,
+      },
     };
   },
 };

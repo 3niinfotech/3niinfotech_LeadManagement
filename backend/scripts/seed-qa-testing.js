@@ -20,7 +20,7 @@ const prisma = new PrismaClient();
 const PASS = {
   admin: 'Admin@123',
   staff: 'Staff@123',
-  student: 'Student@123',
+  student: '123',
 };
 
 const STAFF = [
@@ -86,6 +86,20 @@ function atTime(hours, minutes = 0) {
   const d = new Date();
   d.setHours(hours, minutes, 0, 0);
   return d;
+}
+
+/** Session times so attendance window is OPEN right now (for QA testing). */
+function currentAttendanceSessionTimes() {
+  const now = new Date();
+  const sessionStart = new Date(now.getTime() - 20 * 60 * 1000);
+  const sessionEnd = new Date(now.getTime() + 45 * 60 * 1000);
+  return {
+    sessionStart,
+    sessionEnd,
+    sessionDate: startOfToday(),
+    startTime: `${String(sessionStart.getHours()).padStart(2, '0')}:${String(sessionStart.getMinutes()).padStart(2, '0')}`,
+    endTime: `${String(sessionEnd.getHours()).padStart(2, '0')}:${String(sessionEnd.getMinutes()).padStart(2, '0')}`,
+  };
 }
 
 async function upsertUser(company, branchByCode, roleBySlug, row, passwordHashByKey) {
@@ -165,6 +179,38 @@ async function main() {
   for (const row of STAFF) {
     users[row.key] = await upsertUser(company, branchByCode, roleBySlug, row, passwordHashByKey);
     console.log(`  user  ${row.email} (${row.roleSlug})`);
+  }
+
+  const courseMappings = [
+    { courseLabel: 'IELTS', counsellorId: users.counsellor.id },
+    { courseLabel: 'PTE', counsellorId: users.counsellor.id },
+    { courseLabel: 'Spoken English', counsellorId: users.counsellor.id },
+    { courseLabel: 'Study Visa', counsellorId: users.counsellor.id },
+    { courseLabel: 'Tourist Visa', counsellorId: users.counsellor.id },
+  ];
+  for (const row of courseMappings) {
+    const existing = await prisma.courseCounsellorMapping.findFirst({
+      where: {
+        companyId: company.id,
+        branchId: null,
+        deletedAt: null,
+        courseLabel: { equals: row.courseLabel, mode: 'insensitive' },
+      },
+    });
+    if (!existing) {
+      await prisma.courseCounsellorMapping.create({
+        data: {
+          companyId: company.id,
+          branchId: null,
+          courseLabel: row.courseLabel,
+          counsellorId: row.counsellorId,
+          isActive: true,
+          createdBy: users.superAdmin.id,
+          updatedBy: users.superAdmin.id,
+        },
+      });
+      console.log(`  course mapping ${row.courseLabel} → counsellor`);
+    }
   }
 
   let faculty = await prisma.faculty.findFirst({
@@ -452,6 +498,55 @@ async function main() {
     },
   });
 
+  const extraStudents = [
+    { firstName: 'Ananya', lastName: 'Shah', email: 'ananya.shah.qa@gmail.com', phone: '9825044444', suffix: '000002' },
+    { firstName: 'Rohan', lastName: 'Mehta', email: 'rohan.mehta.qa@gmail.com', phone: '9825055555', suffix: '000003' },
+    { firstName: 'Isha', lastName: 'Desai', email: 'isha.desai.qa@gmail.com', phone: '9825066666', suffix: '000004' },
+  ];
+
+  for (const row of extraStudents) {
+    const code = `${company.code}-STU-2026-${row.suffix}`;
+    let extra = await prisma.student.findFirst({
+      where: { OR: [{ studentCode: code }, { email: row.email }], deletedAt: null },
+    });
+    if (!extra) {
+      extra = await prisma.student.create({
+        data: {
+          branchId: hq.id,
+          assignedToId: users.counsellor.id,
+          studentCode: code,
+          firstName: row.firstName,
+          lastName: row.lastName,
+          email: row.email,
+          phone: row.phone,
+          nationality: 'Indian',
+          gender: 'Female',
+          status: 'ENROLLED',
+          course: 'IELTS',
+          country: 'Canada',
+          intake: 'Sep 2026',
+          createdBy: users.counsellor.id,
+        },
+      });
+    } else {
+      extra = await prisma.student.update({
+        where: { id: extra.id },
+        data: { status: 'ENROLLED', deletedAt: null, assignedToId: users.counsellor.id },
+      });
+    }
+    await prisma.batchEnrollment.upsert({
+      where: { batchId_studentId: { batchId: batch.id, studentId: extra.id } },
+      update: { isActive: true },
+      create: {
+        batchId: batch.id,
+        studentId: extra.id,
+        isActive: true,
+        createdBy: users.superAdmin.id,
+      },
+    });
+    console.log(`  student ${extra.studentCode} → batch enrolled`);
+  }
+
   let slot = await prisma.classTimetableSlot.findFirst({
     where: { batchId: batch.id, deletedAt: null },
   });
@@ -467,13 +562,36 @@ async function main() {
         isActive: true,
       },
     });
+  } else {
+    slot = await prisma.classTimetableSlot.update({
+      where: { id: slot.id },
+      data: {
+        dayOfWeek: new Date().getDay(),
+        instructorId: users.teacher.id,
+        isActive: true,
+        deletedAt: null,
+      },
+    });
   }
 
-  const sessionStart = atTime(10, 0);
-  const sessionEnd = atTime(11, 0);
+  const todayStart = startOfToday();
+  const tomorrow = new Date(todayStart);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const { sessionStart, sessionEnd, sessionDate, startTime, endTime } = currentAttendanceSessionTimes();
+
   let session = await prisma.classSession.findFirst({
-    where: { batchId: batch.id, startAt: sessionStart, deletedAt: null },
+    where: {
+      batchId: batch.id,
+      deletedAt: null,
+      startAt: { gte: todayStart, lt: tomorrow },
+    },
   });
+  if (!session) {
+    session = await prisma.classSession.findFirst({
+      where: { batchId: batch.id, deletedAt: null },
+      orderBy: { startAt: 'desc' },
+    });
+  }
   if (!session) {
     session = await prisma.classSession.create({
       data: {
@@ -482,7 +600,7 @@ async function main() {
         branchId: hq.id,
         timetableSlotId: slot.id,
         instructorId: users.teacher.id,
-        sessionDate: startOfToday(),
+        sessionDate,
         startAt: sessionStart,
         endAt: sessionEnd,
         room: 'Room 2',
@@ -493,10 +611,28 @@ async function main() {
   } else {
     session = await prisma.classSession.update({
       where: { id: session.id },
-      data: { instructorId: users.teacher.id, status: 'SCHEDULED', deletedAt: null },
+      data: {
+        instructorId: users.teacher.id,
+        status: 'SCHEDULED',
+        deletedAt: null,
+        sessionDate,
+        startAt: sessionStart,
+        endAt: sessionEnd,
+        room: 'Room 2',
+      },
     });
   }
-  console.log(`  session today 10:00–11:00 (id ${session.id.slice(0, 8)}…)`);
+
+  if (slot) {
+    await prisma.classTimetableSlot.update({
+      where: { id: slot.id },
+      data: { startTime, endTime, dayOfWeek: new Date().getDay() },
+    });
+  }
+
+  console.log(`  session NOW ${startTime}–${endTime} (id ${session.id})`);
+  console.log(`  → Attendance window OPEN for testing`);
+  console.log(`  → Teacher URL: /admin/sessions/${session.id}/attendance`);
 
   console.log('\n════════════════════════════════════════════════════════');
   console.log('QA LOGIN CHEAT-SHEET  (or use DEV password: 123)');
@@ -512,8 +648,10 @@ async function main() {
   console.log('\nQuick test order:');
   console.log('  1. Reception → Walk-ins → see Neha Mehta (WAITING) / register new');
   console.log('  2. Counsellor → Enquiries → Riya (demo tab) / Aarav (demo + converted)');
-  console.log('  3. Teacher → Batches → IELTS Batch A → Take attendance on today session');
-  console.log('  4. Student → Attendance tab (own records)');
+  console.log(`  3. Teacher → ${session.id ? `/admin/sessions/${session.id}/attendance` : 'Batches → Take attendance'}`);
+  console.log('     Login: teacher.ielts@3niinfotech.com / Staff@123');
+  console.log('     Batch: IELTS Batch A — Morning (4 students enrolled)');
+  console.log('  4. Student → /login/student → aarav.patel@gmail.com / 123 → Attendance');
   console.log('  5. Admin → Masters still populated (Faculty, Countries, …)\n');
 }
 

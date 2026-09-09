@@ -46,6 +46,11 @@ export const updateBranchStatus = asyncHandler(async (req, res) => {
   sendSuccess(res, data, 'Branch status updated');
 });
 
+export const deleteBranch = asyncHandler(async (req, res) => {
+  const data = await organizationService.removeBranch(req.params.id, req.user, req);
+  sendSuccess(res, data, 'Branch deleted');
+});
+
 export const getViewingBranch = asyncHandler(async (req, res) => {
   const data = await organizationService.getViewingBranchContext(req.user);
   sendSuccess(res, data);

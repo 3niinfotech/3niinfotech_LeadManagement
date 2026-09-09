@@ -304,6 +304,40 @@ export const MASTER_DEFAULTS = {
 
 export const MASTER_CATEGORIES = Object.keys(MASTER_DEFAULTS);
 
+/** Categories with relational tables — MasterItem is NOT source of truth */
+export const LEGACY_CATEGORY_ALIASES = {
+  'enquiry-status': 'lead-status',
+  'document-checklist': 'document-type',
+  source: 'lead-source',
+  courseFinderLevel: 'applyLevel',
+};
+
+export const MIGRATED_TO_RELATIONAL = new Set([
+  'department', 'country', 'university', 'course', 'intake', 'qualification',
+  'visa-type', 'embassy', 'currency', 'payment-mode', 'tax', 'lead-source',
+  'visit-purpose', 'counsellor-skill', 'communication-template', 'lead-status',
+  'document-type', 'lost-reason', 'followup-type', 'faculty', 'document-requirement',
+  'application-checklist', 'application-status-master', 'visa-checklist',
+  'visa-status-master', 'student-status-master', 'learning-resource',
+  'enquiry-status', 'document-checklist', 'source',
+]);
+
+export function resolveRelationalSlug(category) {
+  const key = resolveMasterCategory(category);
+  return LEGACY_CATEGORY_ALIASES[key] || key;
+}
+
+export function isMigratedMasterCategory(category) {
+  const key = resolveMasterCategory(category);
+  return MIGRATED_TO_RELATIONAL.has(key) || MIGRATED_TO_RELATIONAL.has(category);
+}
+
 export function isValidMasterCategory(category) {
+  if (category === 'courseFinderLevel') return true;
   return MASTER_CATEGORIES.includes(category);
+}
+
+export function resolveMasterCategory(category) {
+  if (category === 'courseFinderLevel') return 'applyLevel';
+  return category;
 }

@@ -5,6 +5,7 @@ export const NOTIFICATION_PREF_DEFAULTS = {
   sound: true,
   browser: true,
   toast: true,
+  reminderPopup: true,
   volume: 0.55,
 };
 
@@ -24,5 +25,9 @@ export const NOTIFICATION_PREF_LABELS = {
   toast: {
     title: 'In-app toast',
     description: 'Show a toast banner inside the CRM window',
+  },
+  reminderPopup: {
+    title: 'Reminder popup',
+    description: 'Show a strong popup when a role-based reminder arrives',
   },
 };

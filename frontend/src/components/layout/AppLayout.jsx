@@ -4,8 +4,10 @@ import AppFooter from './AppFooter';
 import PageTransition from './PageTransition';
 import GlobalDrawer from '../common/GlobalDrawer';
 import CommandPalette from '../common/CommandPalette';
+import TeacherPortalShell from './TeacherPortalShell';
 import { useSelector } from 'react-redux';
 import { selectSidebarCollapsed } from '../../redux/slices/uiSlice';
+import { selectUser } from '../../redux/slices/authSlice';
 import { sidebar as sidebarTheme } from '../../theme';
 import { CompanyRuntimeProvider, useCompanyRuntime } from '../../features/organization/CompanyRuntime';
 
@@ -19,7 +21,7 @@ function ScrollingBanner() {
   );
 }
 
-function AppLayoutInner() {
+function AdminAppLayout() {
   const collapsed = useSelector(selectSidebarCollapsed);
   const sidebarWidth = collapsed ? sidebarTheme.collapsedWidth : sidebarTheme.width;
   const { settings } = useCompanyRuntime();
@@ -45,6 +47,22 @@ function AppLayoutInner() {
       <CommandPalette />
     </div>
   );
+}
+
+function AppLayoutInner() {
+  const user = useSelector(selectUser);
+  const roleSlug = user?.role?.slug;
+
+  if (roleSlug === 'teacher') {
+    return (
+      <>
+        <TeacherPortalShell />
+        <GlobalDrawer />
+      </>
+    );
+  }
+
+  return <AdminAppLayout />;
 }
 
 export default function AppLayout() {

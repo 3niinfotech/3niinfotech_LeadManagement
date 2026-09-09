@@ -1,3 +1,5 @@
+import { getDocumentUrl } from './enquiryDocument.config';
+
 export const COMMUNICATION_CHANNELS = [
   { value: 'CALL', label: 'Calls', icon: 'phone', color: 'primary' },
   { value: 'WHATSAPP', label: 'WhatsApp', icon: 'messageSquare', color: 'success' },
@@ -43,13 +45,5 @@ export function formatDuration(seconds) {
 }
 
 export function getVoiceNoteUrl(filePath) {
-  if (!filePath) return null;
-  if (filePath.startsWith('http')) return filePath;
-  const normalized = filePath.replace(/\\/g, '/');
-  const relative = normalized.includes('uploads/')
-    ? normalized.slice(normalized.indexOf('uploads/'))
-    : `uploads/${normalized}`;
-  const apiBase = import.meta.env.VITE_API_URL || '/api';
-  const origin = apiBase.replace(/\/api\/?$/, '') || '';
-  return `${origin}/${relative}`;
+  return getDocumentUrl(filePath);
 }

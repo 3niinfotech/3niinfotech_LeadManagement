@@ -1,7 +1,6 @@
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { FiPlus, FiTrash2 } from 'react-icons/fi';
 import Input from '../../../../components/ui/Input';
-import Textarea from '../../../../components/ui/Textarea';
 import Button from '../../../../components/ui/Button';
 import FormSection from '../../../../components/ui/FormSection';
 import FormSelectField from './FormSelectField';
@@ -12,12 +11,14 @@ import { ENQUIRY_PRIORITIES } from '../../../../config/constants';
 import { useEnquiryFormOptions } from '../../hooks/useEnquiryFormOptions';
 import { useCounsellorOptions } from '../../hooks/useCounsellorOptions';
 import { useEnquiryTagOptions } from '../../hooks/useEnquiryTagOptions';
+import CourseCounsellorAssignField from './CourseCounsellorAssignField';
 
 const PRIORITY_OPTIONS = ENQUIRY_PRIORITIES.map(({ value, label }) => ({ value, label }));
-const FIELD_GRID = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-4';
+const FIELD_GRID = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-3 gap-y-3';
 
 export default function OtherDetailsTab({
-  register, errors, control, variant = 'full', disabled = false,
+  register, errors, control, setValue, variant = 'full', disabled = false,
+  assignmentMeta,
 }) {
   const branchId = useWatch({ control, name: 'branchId' });
   const { getOptions } = useEnquiryFormOptions();
@@ -32,8 +33,9 @@ export default function OtherDetailsTab({
       <FormSection
         title={isEnquiry ? 'Lead Interest' : 'Other Details'}
         description={isEnquiry
-          ? 'Course interest, source, status, tags, and counsellor notes.'
+          ? 'Course, country, intake, source, status, and counsellor.'
           : 'Academic background, course interest, enquiry source, tags, and notes.'}
+        className="crm-lead-interest"
       >
         <fieldset disabled={disabled} className="contents">
           <div className={FIELD_GRID}>
@@ -48,7 +50,6 @@ export default function OtherDetailsTab({
                 hint={<MasterManageLink to="/admin/master/qualification">Manage Qualification</MasterManageLink>}
               />
             )}
-            {/* Row 1 */}
             <AsyncMasterSelect
               name="interestedCourse"
               control={control}
@@ -76,7 +77,6 @@ export default function OtherDetailsTab({
               placeholder="Select intake"
               hint={<MasterManageLink to="/admin/master/intake">Manage Intake</MasterManageLink>}
             />
-            {/* Row 2 */}
             {!isEnquiry && (
               <FormSelectField
                 name="applyLevel"
@@ -97,7 +97,18 @@ export default function OtherDetailsTab({
               placeholder="Select source"
               hint={<MasterManageLink to="/admin/master/lead-source">Manage Sources</MasterManageLink>}
             />
-            {isEnquiry && (
+            {isEnquiry && setValue && (
+              <CourseCounsellorAssignField
+                control={control}
+                errors={errors}
+                setValue={setValue}
+                branchId={branchId}
+                counsellorOptions={counsellorOptions}
+                counsellorsLoading={counsellorsLoading}
+                assignmentMeta={assignmentMeta}
+              />
+            )}
+            {isEnquiry && !setValue && (
               <FormSelectField
                 name="assignedToId"
                 control={control}
@@ -131,7 +142,7 @@ export default function OtherDetailsTab({
               label="Other / Reference"
               {...register('otherReference')}
               error={errors.otherReference?.message}
-              placeholder="Referrer name or campaign"
+              placeholder="Referrer or campaign"
             />
             <FormSelectField
               name="tags"
@@ -144,14 +155,12 @@ export default function OtherDetailsTab({
               allowClear
               searchable
             />
-            <div className="md:col-span-2 lg:col-span-3">
-              <Textarea
+            <div className="sm:col-span-2 xl:col-span-2">
+              <Input
                 label="Remark"
-                disabled={disabled}
                 {...register('remark')}
                 error={errors.remark?.message}
-                placeholder="Counsellor notes about this enquiry..."
-                rows={3}
+                placeholder="Short counsellor note"
               />
             </div>
           </div>

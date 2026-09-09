@@ -86,7 +86,46 @@ export const applicationService = {
     return applicationRepository.findMany({ ...query, sort, scopeWhere });
   },
 
+  getSummary: async (query, user) => {
+    const scopeWhere = mergeStudentRelationScope(user);
+    if (query.studentId) await assertStudentInTenant(query.studentId, user);
+    return applicationRepository.getSummary({ ...query, scopeWhere });
+  },
+
   getById: async (id, user) => assertApplicationInTenant(id, user),
+
+  exportApplications: async (query, user, userId, req) => {
+    const { ids: requestedIds, ...filters } = query || {};
+    const selected = Array.isArray(requestedIds) && requestedIds.length > 0;
+    const scopeWhere = mergeStudentRelationScope(user);
+    if (filters.studentId) await assertStudentInTenant(filters.studentId, user);
+
+    const sort = parseSort(filters, APPLICATION_SORT_FIELDS);
+    const result = await applicationRepository.findMany({
+      ...filters,
+      ...(selected ? { ids: requestedIds } : {}),
+      sort,
+      scopeWhere,
+      page: 1,
+      limit: selected ? Math.max(requestedIds.length, 1) : 5000,
+    });
+
+    const { buildApplicationExportWorkbook, buildApplicationExportFilename } = await import(
+      './application.export.service.js'
+    );
+    const buffer = await buildApplicationExportWorkbook(result.data, { selected });
+    const filename = buildApplicationExportFilename({ selected });
+
+    await auditLog({
+      userId,
+      action: 'EXPORT',
+      entityType: 'Application',
+      newData: { count: result.data.length, selected },
+      req,
+    });
+
+    return { buffer, filename, count: result.data.length, selected };
+  },
 
   create: async (data, user, req) => {
     const userId = user?.id;

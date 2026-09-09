@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fi';
 import Button from '../../../../components/ui/Button';
 import { ENQUIRY_PROFILE_TABS, ENQUIRY_CREATE_FORM_TABS } from '../../../../config/constants';
+import { ROUTES, openRouteInNewTab } from '../../../../config/routes';
 import { buildEnquiryFormSchema } from '../../schemas/enquirySchema';
 import {
   useGetEnquiryQuery,
@@ -117,12 +118,14 @@ export default function EnquiryDrawer() {
   const [addFollowup] = useAddFollowupMutation();
   const [addAppointment] = useAddAppointmentMutation();
   const [convertEnquiry, { isLoading: converting }] = useConvertEnquiryMutation();
+  const isConverted = enquiry?.status === 'CONVERTED' || Boolean(enquiry?.studentId);
 
   const {
     register,
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(enquirySchema),
@@ -139,6 +142,7 @@ export default function EnquiryDrawer() {
     matches: duplicateMatches,
     modalOpen: duplicateModalOpen,
     dismissModal: dismissDuplicateModal,
+    duplicateAcknowledged,
   } = useDuplicateDetection({
     email: watchedEmail,
     mobile: watchedMobile,
@@ -159,11 +163,23 @@ export default function EnquiryDrawer() {
   }, [drawerOpen, enquiry, isEditMode, reset, user?.branchId, formDefaults, settings?.followupPopup, setTab]);
 
   const visibleTabs = useMemo(
-    () => (isEditMode
-      ? ENQUIRY_PROFILE_TABS.filter((t) => !t.editOnly || isEditMode)
-      : ENQUIRY_CREATE_FORM_TABS),
-    [isEditMode],
+    () => {
+      const tabs = isEditMode
+        ? ENQUIRY_PROFILE_TABS.filter((t) => !t.editOnly || isEditMode)
+        : ENQUIRY_CREATE_FORM_TABS;
+      if (isConverted) {
+        return tabs.filter((t) => t.id !== 'conversion');
+      }
+      return tabs;
+    },
+    [isEditMode, isConverted],
   );
+
+  useEffect(() => {
+    if (isConverted && drawerTab === 'conversion') {
+      setTab('overview');
+    }
+  }, [isConverted, drawerTab, setTab]);
 
   const tabErrors = useMemo(() => buildTabErrorMap(errors), [errors]);
 
@@ -196,11 +212,20 @@ export default function EnquiryDrawer() {
     try {
       const payload = await convertEnquiry(selectedEnquiryId).unwrap();
       const body = payload?.data ?? payload;
+      const studentId = body?.student?.id ?? body?.enquiry?.studentId;
       const linked = body?.linkedExisting;
-      toastService.action.saved(
-        linked ? 'Linked to existing student — same record' : 'Converted to student — same record',
+      const already = body?.alreadyConverted;
+      toastService.success(
+        already
+          ? `Already converted · ${body?.student?.studentCode || ''}`
+          : linked
+            ? 'Linked to existing student — history preserved'
+            : `Student created · ${body?.student?.studentCode || ''}. History linked.`,
       );
       refetch();
+      if (studentId) {
+        openRouteInNewTab(ROUTES.STUDENT_DETAIL(studentId));
+      }
     } catch (err) {
       toastService.error(err?.data?.message || 'Conversion failed');
     }
@@ -213,6 +238,7 @@ export default function EnquiryDrawer() {
         ...payload,
         branchId: payload.branchId || user?.branchId,
         testsGiven: (payload.testsGiven || []).filter((t) => t?.name?.trim()),
+        allowDuplicate: duplicateAcknowledged,
       };
       const hasFollowUp = Boolean(followUp.followUpRemarks?.trim());
       const hasAppointment = Boolean(appointment.appointmentDate);
@@ -288,6 +314,7 @@ export default function EnquiryDrawer() {
           activeTab={drawerTab}
           analyticsActive={analyticsHighlight}
           onNavigate={handleWorkspaceNavigate}
+          hideConversion={isConverted}
         />
       ) : null}
       footer={showFormFooter ? (
@@ -320,7 +347,14 @@ export default function EnquiryDrawer() {
           <PersonalDetailsTab register={register} control={control} errors={errors} />
         )}
         {!isEditMode && drawerTab === 'other' && (
-          <OtherDetailsTab register={register} control={control} errors={errors} variant="enquiry" />
+          <OtherDetailsTab
+            register={register}
+            control={control}
+            errors={errors}
+            setValue={setValue}
+            variant="enquiry"
+            assignmentMeta={enquiry?.metadata?.counsellorAssignment}
+          />
         )}
         {!isEditMode && drawerTab === 'followup' && (
           <FollowUpActionsPanel
@@ -354,7 +388,7 @@ export default function EnquiryDrawer() {
             onAppointmentBooked={refetch}
           />
         )}
-        {drawerTab === 'conversion' && isEditMode && (
+        {drawerTab === 'conversion' && isEditMode && !isConverted && (
           <ConversionTab
             enquiry={enquiry}
             onConvert={handleConvert}
@@ -391,6 +425,8 @@ export default function EnquiryDrawer() {
             enquiry={enquiry}
             isEditMode={isEditMode}
             onRecorded={refetch}
+            onConvertToStudent={handleConvert}
+            converting={converting}
           />
         )}
         {drawerTab === 'fees' && isEditMode && (

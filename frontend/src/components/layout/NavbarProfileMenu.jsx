@@ -90,7 +90,7 @@ export default function NavbarProfileMenu({ open, onToggle, onClose }) {
   const handleLogout = () => {
     onClose();
     dispatch(logoutUser());
-    navigate('/login');
+    navigate('/');
   };
 
   const go = (path) => {

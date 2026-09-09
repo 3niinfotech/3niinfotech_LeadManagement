@@ -21,6 +21,7 @@ export function useDuplicateDetection({
   const [checkDuplicates] = useLazyCheckDuplicatesQuery();
   const [matches, setMatches] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [acknowledged, setAcknowledged] = useState(false);
   const dismissedRef = useRef('');
 
   const debounced = useDebouncedValue(
@@ -78,11 +79,13 @@ export function useDuplicateDetection({
   const dismissModal = () => {
     dismissedRef.current = matches.map((m) => m.id).sort().join(',');
     setModalOpen(false);
+    setAcknowledged(true);
   };
 
   return {
     matches,
     hasDuplicate: matches.length > 0,
+    duplicateAcknowledged: acknowledged,
     modalOpen,
     dismissModal,
   };

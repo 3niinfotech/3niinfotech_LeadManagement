@@ -40,7 +40,8 @@ export function applyViewingBranchClamp(user, branchField = 'branchId') {
   const policy = resolveBranchAccessPolicy(user);
   if (!isBranchIdAllowedByPolicy(policy, viewingId)) return null;
 
-  if (policy.mode === 'COMPANY' || policy.mode === 'ALL') {
+  // COMPANY / ALL / LIST multi-branch roles — force selected branch wall
+  if (policy.mode === 'COMPANY' || policy.mode === 'ALL' || policy.mode === 'LIST') {
     return { [branchField]: viewingId };
   }
   return null;

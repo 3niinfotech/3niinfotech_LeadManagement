@@ -20,7 +20,7 @@ export default function WalkInStatusBadge({ status, onChange, compact = false })
       onClick={(e) => e.stopPropagation()}
       title={getWalkInStatusLabel(status)}
     >
-      {['WAITING', 'IN_COUNSELLING', 'COMPLETED', 'CANCELLED', 'APPOINTMENT'].map((value) => (
+      {['WALK_IN', 'IN_COUNSELLING', 'COMPLETED', 'CANCELLED', 'APPOINTMENT'].map((value) => (
         <option key={value} value={value}>{getWalkInStatusLabel(value)}</option>
       ))}
     </select>

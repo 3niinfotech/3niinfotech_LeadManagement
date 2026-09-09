@@ -1,0 +1,108 @@
+.crm-avail-panel {
+  font-size: 12px;
+}
+
+.crm-avail-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  margin: 0.75rem 1rem 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: 8px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.crm-avail-hero__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  margin-top: 0.3125rem;
+  flex-shrink: 0;
+}
+
+.crm-avail-hero__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.crm-avail-hero__detail {
+  margin-top: 0.125rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.crm-avail-capacity__track {
+  height: 4px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--border) 80%, var(--bg-page));
+  overflow: hidden;
+}
+
+.crm-avail-capacity__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand);
+  transition: width 0.25s ease;
+}
+
+.crm-avail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+}
+
+.crm-avail-metric {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.5rem 0.5625rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.crm-avail-metric__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-page) 60%, var(--bg-card));
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.crm-avail-metric__label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.crm-avail-metric__value {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-avail-metric__sub {
+  margin-top: 0.125rem;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

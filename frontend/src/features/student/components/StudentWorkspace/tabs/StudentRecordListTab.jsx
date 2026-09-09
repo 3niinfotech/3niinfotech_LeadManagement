@@ -1,5 +1,7 @@
-import FormSection from '../../../../../components/ui/FormSection';
+import { FiInbox } from 'react-icons/fi';
 import Badge from '../../../../../components/ui/Badge';
+import FormSection from '../../../../../components/ui/FormSection';
+import CountryFlagLabel from '../../../../../components/ui/CountryFlagLabel';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -15,90 +17,96 @@ function formatDate(value) {
 function getStatusBadgeColor(status) {
   if (!status) return 'secondary';
   const s = String(status).toUpperCase();
-  if (s.includes('GRANTED') || s.includes('ACCEPTED') || s.includes('APPROVED') || s.includes('COMPLETE') || s.includes('ENROLLED')) {
+  if (s.includes('GRANTED') || s.includes('ACCEPTED') || s.includes('APPROVED') || s.includes('COMPLETE') || s.includes('ENROLLED') || s.includes('PRESENT')) {
     return 'success';
   }
-  if (s.includes('PENDING') || s.includes('SUBMITTED') || s.includes('PROGRESS') || s.includes('APPLIED')) {
+  if (s.includes('PENDING') || s.includes('SUBMITTED') || s.includes('PROGRESS') || s.includes('APPLIED') || s.includes('SCHEDULED')) {
     return 'primary';
   }
-  if (s.includes('REJECT') || s.includes('CANCEL') || s.includes('WITHDRAW') || s.includes('REFUSE')) {
+  if (s.includes('REJECT') || s.includes('CANCEL') || s.includes('WITHDRAW') || s.includes('REFUSE') || s.includes('ABSENT')) {
     return 'danger';
   }
-  if (s.includes('OFFER') || s.includes('REVIEW')) {
+  if (s.includes('OFFER') || s.includes('REVIEW') || s.includes('LATE')) {
     return 'warning';
   }
   return 'secondary';
+}
+
+function cellValue(col, row) {
+  const val = row[col.key];
+  if (col.format) return col.format(val, row);
+  const isCountry = col.key === 'country' || col.key === 'interestedCountry';
+  if (isCountry && val) {
+    return <CountryFlagLabel country={val} size="sm" />;
+  }
+  const isStatus = col.key.toLowerCase().includes('status');
+  if (isStatus && val) {
+    return (
+      <Badge color={getStatusBadgeColor(val)} size="sm">
+        {String(val).replace(/_/g, ' ')}
+      </Badge>
+    );
+  }
+  return val || '—';
 }
 
 export default function StudentRecordListTab({
   title,
   description,
   emptyMessage,
-  columns,
+  columns = [],
   rows = [],
   actionButton,
 }) {
+  const [primary, ...rest] = columns;
+  const countLabel = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-base font-bold text-text">{title}</h3>
-          {description && <p className="text-xs text-text-muted mt-0.5">{description}</p>}
-        </div>
-        {actionButton}
-      </div>
+      <FormSection
+        title={title}
+        description={description ? `${description} · ${countLabel}` : countLabel}
+        className="crm-student-section"
+      >
+        {actionButton ? (
+          <div className="flex justify-end mb-3">{actionButton}</div>
+        ) : null}
 
-      {rows.length === 0 ? (
-        <div className="p-12 text-center border border-dashed border-border rounded-xl bg-surface/50">
-          <p className="text-sm text-text-muted">{emptyMessage}</p>
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead>
-                <tr className="border-b border-border bg-surface-hover/60">
-                  {columns.map((col) => (
-                    <th
-                      key={col.key}
-                      className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-text-muted"
-                    >
-                      {col.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {rows.map((row, index) => (
-                  <tr
-                    key={row.id || index}
-                    className="hover:bg-surface-hover/40 transition-colors"
-                  >
-                    {columns.map((col) => {
-                      const val = row[col.key];
-                      const isStatus = col.key.toLowerCase().includes('status');
-
-                      return (
-                        <td key={col.key} className="px-4 py-3.5 text-text">
-                          {col.format ? (
-                            col.format(val, row)
-                          ) : isStatus && val ? (
-                            <Badge color={getStatusBadgeColor(val)} size="sm">
-                              {String(val).replace(/_/g, ' ')}
-                            </Badge>
-                          ) : (
-                            <span className="font-medium text-text-secondary">{val || '—'}</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {rows.length === 0 ? (
+          <div className="crm-timeline__empty py-6">
+            <span className="crm-timeline__empty-icon" aria-hidden>
+              <FiInbox className="w-5 h-5" />
+            </span>
+            <h3 className="crm-timeline__empty-title">{title}</h3>
+            <p className="crm-timeline__empty-desc">{emptyMessage}</p>
           </div>
-        </div>
-      )}
+        ) : (
+          <ul className="crm-student-record-list">
+            {rows.map((row, index) => (
+              <li key={row.id || index} className="crm-student-record">
+                {primary && (
+                  <div className="crm-student-record__primary truncate" title={String(row[primary.key] || '')}>
+                    {cellValue(primary, row)}
+                  </div>
+                )}
+                {rest.map((col) => (
+                  <div
+                    key={col.key}
+                    className={col.key.toLowerCase().includes('at') || col.key === 'createdAt'
+                      ? 'crm-student-record__muted'
+                      : 'crm-student-record__meta'}
+                  >
+                    <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-muted mb-0.5">
+                      {col.label}
+                    </span>
+                    {cellValue(col, row)}
+                  </div>
+                ))}
+              </li>
+            ))}
+          </ul>
+        )}
+      </FormSection>
     </div>
   );
 }

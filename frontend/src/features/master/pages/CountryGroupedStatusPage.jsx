@@ -7,6 +7,7 @@ import Button from '../../../components/ui/Button';
 import Pagination from '../../../components/ui/Pagination';
 import DataGrid from '../../../components/table/DataGrid';
 import { createActionsColumn } from '../../../components/table/grid.columns';
+import CountryFlagLabel from '../../../components/ui/CountryFlagLabel';
 import { PERMISSIONS } from '../../../config/permissions';
 import { usePermissions } from '../../../hooks/usePermissions';
 import toastService from '../../../services/toast/toast.service';
@@ -61,10 +62,14 @@ export default function CountryGroupedStatusPage({
   const [countrySummaryLoading, setCountrySummaryLoading] = useState(false);
   const [drawer, setDrawer] = useState({ open: false, mode: 'add', record: null });
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const [actionId, setActionId] = useState(null);
 
   const openDrawer = useCallback((mode, record = null) => setDrawer({ open: true, mode, record }), []);
-  const closeDrawer = useCallback(() => setDrawer({ open: false, mode: 'add', record: null }), []);
+  const closeDrawer = useCallback(() => {
+    setDrawer({ open: false, mode: 'add', record: null });
+    setSubmitError(null);
+  }, []);
 
   const reloadCountries = useCallback(async () => {
     setCountrySummaryLoading(true);
@@ -96,6 +101,7 @@ export default function CountryGroupedStatusPage({
   const handleSubmit = async (payload) => {
     if (!canManage) return;
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const nextPayload = { ...payload };
       if (drawer.mode === 'add' && !nextPayload.countryId) nextPayload.countryId = selectedCountryId;
@@ -110,7 +116,7 @@ export default function CountryGroupedStatusPage({
       await reloadCountries();
       list.reload();
     } catch (err) {
-      toastService.error(getApiErrorMessage(err, 'Save failed'));
+      setSubmitError(getApiErrorMessage(err, 'Save failed'));
     } finally {
       setSubmitting(false);
     }
@@ -255,7 +261,9 @@ export default function CountryGroupedStatusPage({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="text-sm font-medium truncate">{g.countryName}</div>
+                          <div className="text-sm font-medium truncate">
+                            <CountryFlagLabel country={g.countryName} size="sm" />
+                          </div>
                           <div className="text-xs text-text-muted">
                             {g.statusCount} status{g.statusCount === 1 ? '' : 'es'}
                           </div>
@@ -342,6 +350,7 @@ export default function CountryGroupedStatusPage({
         entityConfig={entityConfig}
         record={drawer.record}
         submitting={submitting}
+        submitError={submitError}
         onClose={closeDrawer}
         onSubmit={handleSubmit}
       />

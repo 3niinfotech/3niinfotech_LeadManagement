@@ -1,15 +1,15 @@
-import { Link } from 'react-router-dom';
-import { FiArrowUpRight, FiUser } from 'react-icons/fi';
 import Badge from '../../../../components/ui/Badge';
+import CountryFlagLabel from '../../../../components/ui/CountryFlagLabel';
 import { ENQUIRY_STATUSES, ENQUIRY_PRIORITIES } from '../../../../config/constants';
-import { ROUTES } from '../../../../config/routes';
 
-function MetaChip({ label, value }) {
+function MetaChip({ label, value, country = false }) {
   if (!value) return null;
   return (
     <div className="crm-enquiry-summary__chip">
       <span className="crm-enquiry-summary__chip-label">{label}</span>
-      <span className="crm-enquiry-summary__chip-value">{value}</span>
+      <span className="crm-enquiry-summary__chip-value">
+        {country ? <CountryFlagLabel country={value} size="sm" /> : value}
+      </span>
     </div>
   );
 }
@@ -30,7 +30,6 @@ export default function EnquirySummaryStrip({ enquiry }) {
       day: '2-digit', month: 'short', year: 'numeric',
     })
     : null;
-  const converted = enquiry.status === 'CONVERTED' && enquiry.studentId;
   const leadName = `${enquiry.firstName || ''} ${enquiry.lastName || ''}`.trim();
 
   return (
@@ -49,13 +48,14 @@ export default function EnquirySummaryStrip({ enquiry }) {
 
       <div className="crm-enquiry-summary__badges">
         {status && <Badge color={status.color}>{status.label}</Badge>}
-        {priority && <Badge color="secondary">{priority.label}</Badge>}
-        {converted && <Badge color="success">Converted</Badge>}
+        {priority && enquiry.status !== 'CONVERTED' && (
+          <Badge color="secondary">{priority.label}</Badge>
+        )}
       </div>
 
       <div className="crm-enquiry-summary__meta">
         <MetaChip label="Source" value={enquiry.source} />
-        <MetaChip label="Country" value={enquiry.interestedCountry} />
+        <MetaChip label="Country" value={enquiry.interestedCountry} country />
         <MetaChip label="Course" value={enquiry.interestedCourse} />
         {counsellor && (
           <div className="crm-enquiry-summary__chip crm-enquiry-summary__chip--counsellor">
@@ -68,14 +68,6 @@ export default function EnquirySummaryStrip({ enquiry }) {
         )}
         <MetaChip label="Next follow-up" value={nextFollowUp} />
       </div>
-
-      {converted && (
-        <Link to={ROUTES.STUDENT_DETAIL(enquiry.studentId)} className="crm-enquiry-summary__cta">
-          <FiUser className="crm-enquiry-summary__cta-icon" aria-hidden />
-          Student profile
-          <FiArrowUpRight className="crm-enquiry-summary__cta-arrow" aria-hidden />
-        </Link>
-      )}
     </div>
   );
 }

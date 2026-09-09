@@ -11,11 +11,39 @@ export const PHASE1_ROOT_IDS = new Set([
   'demo',
   'students',
   'batches',
+  'teacher-attendance',
+  'teacher-assignments',
+  'teacher-tests',
+  'teacher-materials',
+  'teacher-performance',
   'applications',
   'visas',
-  'partners',
   'fees',
   'reports',
+  'reports-overview',
+  'reports-leads-group',
+  'reports-leads',
+  'reports-source',
+  'reports-country',
+  'reports-counsellor',
+  'reports-lead-performance',
+  'reports-lost',
+  'reports-ops-group',
+  'reports-followup',
+  'reports-demo',
+  'reports-attendance',
+  'reports-academic-group',
+  'reports-students',
+  'reports-performance',
+  'reports-appvisa-group',
+  'reports-applications',
+  'reports-visa',
+  'reports-finance-group',
+  'reports-fees',
+  'reports-outstanding',
+  'reports-targets',
+  'reports-export',
+  'team-access',
   'settings',
 ]);
 
@@ -32,6 +60,7 @@ export const PHASE1_ROUTES = new Set([
   '/admin/visas',
   '/admin/fees',
   '/admin/reports',
+  '/admin/users',
   '/admin/settings',
   '/admin/master',
   '/admin/master/partners',
@@ -47,9 +76,13 @@ export function isPhase1Path(path) {
   if (path.startsWith('/admin/calendar')) return true;
   if (path.startsWith('/admin/students')) return true;
   if (path.startsWith('/admin/batches')) return true;
+  if (path.startsWith('/admin/teacher')) return true;
   if (path.startsWith('/admin/applications')) return true;
   if (path.startsWith('/admin/visas')) return true;
   if (path.startsWith('/admin/settings')) return true;
+  if (path.startsWith('/admin/reports')) return true;
+  if (path.startsWith('/admin/users')) return true;
+  if (path.startsWith('/admin/fees')) return true;
   return false;
 }
 

@@ -4,7 +4,6 @@ import NavbarGlobalSearch from './NavbarGlobalSearch';
 import NavbarQuickActions from './NavbarQuickActions';
 import NavbarUtilities from './NavbarUtilities';
 import NavbarBranchSwitcher from './NavbarBranchSwitcher';
-import NavbarPresenceStatus from './NavbarPresenceStatus';
 
 export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -25,7 +24,6 @@ export default function Navbar() {
         <div className="flex-1 hidden lg:block min-w-2" aria-hidden />
 
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 overflow-visible">
-          <NavbarPresenceStatus />
           <NavbarBranchSwitcher />
           <NavbarQuickActions />
           <NavbarUtilities

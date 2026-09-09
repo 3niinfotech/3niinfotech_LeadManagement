@@ -1,10 +1,9 @@
 import { useMemo, useState, useEffect } from 'react';
 import {
-  FiExternalLink, FiPlus, FiPhone, FiMail, FiMessageSquare, FiMic,
+  FiExternalLink, FiPlus, FiPhone, FiMail, FiMessageSquare, FiMic, FiCopy, FiClock,
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import Input from '../../../../components/ui/Input';
-import Textarea from '../../../../components/ui/Textarea';
 import Select from '../../../../components/ui/Select';
 import Button from '../../../../components/ui/Button';
 import Badge from '../../../../components/ui/Badge';
@@ -60,6 +59,23 @@ function groupByDate(items) {
   return [...groups.entries()];
 }
 
+function copyText(value, label) {
+  if (!value) {
+    toastService.info(`${label} not available`);
+    return;
+  }
+  navigator.clipboard?.writeText(String(value)).then(
+    () => toastService.success(`${label} copied`),
+    () => toastService.error('Could not copy'),
+  );
+}
+
+function snippet(text, max = 90) {
+  const t = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  return t.length > max ? `${t.slice(0, max)}…` : t;
+}
+
 export default function CommunicationTab({ enquiryId, enquiry, isEditMode, onLogged }) {
   const [channel, setChannel] = useState('CALL');
   const [subject, setSubject] = useState('');
@@ -68,6 +84,7 @@ export default function CommunicationTab({ enquiryId, enquiry, isEditMode, onLog
   const [direction, setDirection] = useState('OUTBOUND');
   const [status, setStatus] = useState('SENT');
   const [filter, setFilter] = useState('ALL');
+  const [expandedId, setExpandedId] = useState(null);
 
   const [addCommunication, { isLoading }] = useAddCommunicationMutation();
   const [addVoiceNote, { isLoading: savingVoice }] = useAddVoiceNoteMutation();
@@ -197,91 +214,175 @@ export default function CommunicationTab({ enquiryId, enquiry, isEditMode, onLog
     }
   };
 
+  const noteLabel = channel === 'CALL' ? 'Call notes' : channel === 'EMAIL' ? 'Subject / notes' : 'Message';
+
   return (
-    <div className="space-y-5">
+    <div className="crm-comm">
       <FormSection
         title="Communication Center"
-        description="Calls, WhatsApp, email, SMS, and voice notes — everything logs to history automatically."
+        description="Log calls and messages — appears in history and timeline."
+        className="crm-comm-center"
       >
-        <div className="space-y-4">
-          <FollowupActionTabs
-            actions={COMMUNICATION_CHANNELS}
-            value={channel}
-            onChange={setChannel}
-            disabled={!isEditMode}
-            ariaLabel="Communication channel"
-            layoutId="crm-communication-channel-indicator"
-          />
+        <div className="">
+          <div className="crm-comm-composer__top">
+            <FollowupActionTabs
+              actions={COMMUNICATION_CHANNELS}
+              value={channel}
+              onChange={setChannel}
+              disabled={!isEditMode}
+              ariaLabel="Communication channel"
+              layoutId="crm-communication-channel-indicator"
+              density="fit"
+            />
+
+            {(enquiry?.mobile || enquiry?.email) && channel !== 'VOICE_NOTE' && (
+              <div className="crm-comm-contact">
+                {enquiry?.mobile && ['CALL', 'WHATSAPP', 'SMS'].includes(channel) && (
+                  <div className="crm-comm-contact__chip">
+                    <span className="crm-comm-contact__label">Mobile</span>
+                    <span className="crm-comm-contact__value tabular-nums">{enquiry.mobile}</span>
+                    <button type="button" className="crm-comm-contact__btn" onClick={() => copyText(enquiry.mobile, 'Mobile')} aria-label="Copy mobile">
+                      <FiCopy className="w-3 h-3" />
+                    </button>
+                    {channel === 'CALL' && (
+                      <button type="button" className="crm-comm-contact__btn crm-comm-contact__btn--accent" onClick={launchExternal}>
+                        Dial
+                      </button>
+                    )}
+                  </div>
+                )}
+                {enquiry?.email && channel === 'EMAIL' && (
+                  <div className="crm-comm-contact__chip">
+                    <span className="crm-comm-contact__label">Email</span>
+                    <span className="crm-comm-contact__value truncate" title={enquiry.email}>{enquiry.email}</span>
+                    <button type="button" className="crm-comm-contact__btn" onClick={() => copyText(enquiry.email, 'Email')} aria-label="Copy email">
+                      <FiCopy className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {channel !== 'VOICE_NOTE' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3.5">
-              {channelTemplates.length > 0 && (
-                <div className="sm:col-span-2">
+            <>
+              {(channelTemplates.length > 0 || channel === 'EMAIL') && (
+                <div className="crm-comm-composer__row crm-comm-composer__row--secondary">
+                  {channelTemplates.length > 0 && (
+                    <Select
+                      label="Template"
+                      value={templateId}
+                      onChange={(e) => applyTemplate(e.target.value)}
+                      options={[
+                        { value: '', label: 'Template' },
+                        ...channelTemplates.map((t) => ({ value: t.id, label: t.name })),
+                      ]}
+                      disabled={!isEditMode}
+                      allowClear
+                    />
+                  )}
+                  {channel === 'EMAIL' && (
+                    <Input
+                      label="Subject"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="Email subject"
+                      disabled={!isEditMode}
+                    />
+                  )}
+                </div>
+              )}
+
+              <div className="crm-comm-composer__row">
+                {channel === 'CALL' && (
+                  <div className="crm-comm-field crm-comm-field--sm">
+                    <Input
+                      label="Duration"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={durationMin}
+                      onChange={(e) => setDurationMin(e.target.value)}
+                      placeholder="min"
+                      disabled={!isEditMode}
+                    />
+                  </div>
+                )}
+                <div className="crm-comm-field crm-comm-field--sm">
                   <Select
-                    label="Template"
-                    value={templateId}
-                    onChange={(e) => applyTemplate(e.target.value)}
-                    options={[
-                      { value: '', label: 'Select a communication template' },
-                      ...channelTemplates.map((t) => ({ value: t.id, label: t.name })),
-                    ]}
+                    label="Direction"
+                    value={direction}
+                    onChange={(e) => setDirection(e.target.value)}
+                    options={COMMUNICATION_DIRECTION_OPTIONS}
                     disabled={!isEditMode}
-                    allowClear
                   />
                 </div>
-              )}
-              {channel === 'EMAIL' && (
-                <div className="sm:col-span-2">
+                <div className="crm-comm-field crm-comm-field--sm">
+                  <Select
+                    label="Status"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    options={COMMUNICATION_STATUS_OPTIONS}
+                    disabled={!isEditMode}
+                  />
+                </div>
+                <div className="crm-comm-field crm-comm-field--grow">
                   <Input
-                    label="Subject"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Email subject"
+                    label={noteLabel}
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    placeholder={channel === 'CALL' ? 'Brief call summary' : 'Message…'}
                     disabled={!isEditMode}
                   />
                 </div>
-              )}
-              {channel === 'CALL' && (
-                <Input
-                  label="Duration (minutes)"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={durationMin}
-                  onChange={(e) => setDurationMin(e.target.value)}
-                  placeholder="e.g. 5"
-                  disabled={!isEditMode}
-                />
-              )}
-              <Select
-                label="Direction"
-                value={direction}
-                onChange={(e) => setDirection(e.target.value)}
-                options={COMMUNICATION_DIRECTION_OPTIONS}
-                disabled={!isEditMode}
-              />
-              <Select
-                label="Status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                options={COMMUNICATION_STATUS_OPTIONS}
-                disabled={!isEditMode}
-              />
-              <div className="sm:col-span-2">
-                <Textarea
-                  label={channel === 'CALL' ? 'Call notes' : 'Message'}
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder={
-                    channel === 'CALL'
-                      ? 'Summary of the conversation...'
-                      : `Write your ${selected?.label?.toLowerCase() || 'message'}...`
-                  }
-                  rows={3}
-                  disabled={!isEditMode}
-                />
+                {isEditMode && (
+                  <div className="crm-comm-composer__btns">
+                    {['CALL', 'WHATSAPP', 'EMAIL', 'SMS'].includes(channel) && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline-primary"
+                        icon={FiExternalLink}
+                        onClick={launchExternal}
+                      >
+                        Open
+                      </Button>
+                    )}
+                    {['WHATSAPP', 'EMAIL', 'SMS'].includes(channel) && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => logCommunication(true)}
+                        loading={isLoading}
+                      >
+                        Send & log
+                      </Button>
+                    )}
+                    {channel === 'CALL' && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => logCommunication(true)}
+                        loading={isLoading}
+                      >
+                        Call & log
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      icon={FiPlus}
+                      onClick={() => logCommunication(false)}
+                      loading={isLoading}
+                    >
+                      Log
+                    </Button>
+                  </div>
+                )}
               </div>
-            </div>
+            </>
           ) : (
             <VoiceNoteRecorder
               disabled={!isEditMode}
@@ -289,68 +390,16 @@ export default function CommunicationTab({ enquiryId, enquiry, isEditMode, onLog
               onSave={saveVoiceNote}
             />
           )}
-
-          {isEditMode && channel !== 'VOICE_NOTE' && (
-            <div className="flex flex-wrap items-center gap-2">
-              {['CALL', 'WHATSAPP', 'EMAIL', 'SMS'].includes(channel) && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline-primary"
-                  icon={FiExternalLink}
-                  onClick={launchExternal}
-                >
-                  Open {selected?.label}
-                </Button>
-              )}
-              <Button
-                type="button"
-                size="sm"
-                icon={FiPlus}
-                onClick={() => logCommunication(false)}
-                loading={isLoading}
-                className="ml-auto"
-              >
-                Log to history
-              </Button>
-              {['WHATSAPP', 'EMAIL', 'SMS'].includes(channel) && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => logCommunication(true)}
-                  loading={isLoading}
-                >
-                  Send & log
-                </Button>
-              )}
-              {channel === 'CALL' && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => logCommunication(true)}
-                  loading={isLoading}
-                >
-                  Call & log
-                </Button>
-              )}
-            </div>
-          )}
         </div>
       </FormSection>
 
-      <div className="pt-1 border-t border-border">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          <div>
-            <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">
-              Communication history
-            </p>
-            <p className="text-[12px] text-text-secondary mt-0.5">
-              {filtered.length} entr{filtered.length === 1 ? 'y' : 'ies'} · updated automatically
-            </p>
-          </div>
-          <div className="w-full sm:w-44">
+      <section className="crm-comm-history">
+        <div className="crm-comm-history__head">
+          <p className="crm-comm-history__title">
+            History
+            <span className="crm-comm-history__count">{filtered.length}</span>
+          </p>
+          <div className="crm-comm-history__filter">
             <Select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -361,77 +410,86 @@ export default function CommunicationTab({ enquiryId, enquiry, isEditMode, onLog
         </div>
 
         {filtered.length === 0 ? (
-          <p className="text-sm text-text-muted text-center py-10 border border-dashed border-border rounded-lg">
-            No communications yet. Log a call, message, or voice note above.
-          </p>
+          <div className="crm-comm-history__empty">
+            <FiClock className="w-4 h-4 text-text-muted" />
+            <span>No entries yet</span>
+          </div>
         ) : (
-          <ScrollArea hideBar className="max-h-[420px] pr-1">
-            <div className="space-y-5">
+          <ScrollArea hideBar className="max-h-[380px]">
+            <div className="crm-comm-history__list">
               {grouped.map(([dateLabel, items]) => (
-                <div key={dateLabel}>
-                  <p className="text-[11px] font-semibold text-text-muted mb-2 sticky top-0 bg-bg-card py-1">
-                    {dateLabel}
-                  </p>
-                  <div className="space-y-2">
+                <div key={dateLabel} className="crm-comm-history__day">
+                  <p className="crm-comm-history__date">{dateLabel}</p>
+                  <ul className="crm-comm-history__rows">
                     {items.map((item) => {
                       const meta = getCommunicationChannelMeta(item.channel);
                       const Icon = ICONS[meta.icon] || FiPhone;
                       const voiceUrl = item.channel === 'VOICE_NOTE' ? getVoiceNoteUrl(item.filePath) : null;
+                      const open = expandedId === item.id;
+                      const preview = item.subject || snippet(item.body);
 
                       return (
-                        <div key={item.id} className="crm-comm-history-item">
-                          <div className="crm-comm-history-item__icon" data-tone={meta.color}>
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                              <span className="text-sm font-medium text-text">
-                                {getCommunicationChannelLabel(item.channel)}
-                              </span>
-                              <Badge color={getCommunicationStatusTone(item.status)} className="text-[10px]">
-                                {getCommunicationStatusLabel(item.status)}
-                              </Badge>
-                              <span className="text-[10px] text-text-muted uppercase tracking-wide">
-                                {item.direction === 'INBOUND' ? 'Inbound' : 'Outbound'}
-                              </span>
-                            </div>
-                            {item.subject && (
-                              <p className="text-sm font-medium text-text-secondary">{item.subject}</p>
-                            )}
-                            {item.body && (
-                              <p className="text-sm text-text-secondary mt-0.5 whitespace-pre-wrap">{item.body}</p>
-                            )}
-                            {item.channel === 'CALL' && item.durationSec != null && (
-                              <p className="text-[12px] text-text-muted mt-1">
-                                Duration: {formatDuration(item.durationSec)}
-                              </p>
-                            )}
-                            {voiceUrl && (
-                              <audio controls src={voiceUrl} className="w-full h-9 mt-2">
-                                <track kind="captions" />
-                              </audio>
-                            )}
-                            <p className="text-[11px] text-text-muted mt-2">
+                        <li key={item.id}>
+                          <button
+                            type="button"
+                            className="crm-comm-row"
+                            data-channel={item.channel}
+                            onClick={() => setExpandedId(open ? null : item.id)}
+                            aria-expanded={open}
+                          >
+                            <span className="crm-comm-row__icon" data-tone={meta.color}>
+                              <Icon className="w-3.5 h-3.5" />
+                            </span>
+                            <span className="crm-comm-row__channel">
+                              {getCommunicationChannelLabel(item.channel)}
+                            </span>
+                            <Badge color={getCommunicationStatusTone(item.status)} className="text-[10px] shrink-0">
+                              {getCommunicationStatusLabel(item.status)}
+                            </Badge>
+                            <span className="crm-comm-row__dir">
+                              {item.direction === 'INBOUND' ? 'In' : 'Out'}
+                            </span>
+                            <span className="crm-comm-row__preview" title={preview}>
+                              {preview || '—'}
+                            </span>
+                            <span className="crm-comm-row__meta">
                               {formatActor(item.user)}
-                              {' · '}
+                            </span>
+                            <time className="crm-comm-row__time" dateTime={item.sentAt}>
                               {new Date(item.sentAt).toLocaleTimeString('en-IN', {
                                 hour: '2-digit', minute: '2-digit',
                               })}
-                              {item.channel === 'VOICE_NOTE' && item.durationSec != null && (
-                                <> · {formatDuration(item.durationSec)}</>
+                            </time>
+                          </button>
+                          {open && (
+                            <div className="crm-comm-row__detail">
+                              {item.subject && (
+                                <p className="crm-comm-row__detail-subject">{item.subject}</p>
                               )}
-                            </p>
-                          </div>
-                        </div>
+                              {item.body && (
+                                <p className="crm-comm-row__detail-body">{item.body}</p>
+                              )}
+                              <p className="crm-comm-row__detail-foot">
+                                {formatActor(item.user)}
+                                {item.durationSec != null && <> · {formatDuration(item.durationSec)}</>}
+                              </p>
+                              {voiceUrl && (
+                                <audio controls src={voiceUrl} className="w-full max-w-md h-8 mt-2">
+                                  <track kind="captions" />
+                                </audio>
+                              )}
+                            </div>
+                          )}
+                        </li>
                       );
                     })}
-                  </div>
+                  </ul>
                 </div>
               ))}
             </div>
           </ScrollArea>
         )}
-      </div>
+      </section>
     </div>
   );
 }

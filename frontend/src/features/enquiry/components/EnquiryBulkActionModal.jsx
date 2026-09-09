@@ -16,12 +16,14 @@ import {
   useBulkMergeEnquiriesMutation,
   useBulkCommunicationMutation,
 } from '../redux/enquiryApiSlice';
+import { useBulkAutoAssignEnquiriesMutation } from '../../assignment/redux/assignmentApiSlice';
 import toastService from '../../../services/toast/toast.service';
 import { DEMO_DRIVEN_ENQUIRY_STATUSES } from '../config/enquiryDemo.config';
 
 
 const TITLES = {
   assign: 'Assign Enquiries',
+  autoAssign: 'Auto Assign Enquiries',
   status: 'Change Status',
   tags: 'Add Tags',
   email: 'Send Email',
@@ -60,6 +62,7 @@ export default function EnquiryBulkActionModal({
   const [body, setBody] = useState('');
 
   const [bulkAssign, { isLoading: assigning }] = useBulkAssignEnquiriesMutation();
+  const [bulkAutoAssign, { isLoading: autoAssigning }] = useBulkAutoAssignEnquiriesMutation();
   const [bulkStatus, { isLoading: statusLoading }] = useBulkUpdateStatusMutation();
   const [bulkTags, { isLoading: tagsLoading }] = useBulkAddTagsMutation();
   const [bulkBranch, { isLoading: branchLoading }] = useBulkMoveBranchMutation();
@@ -85,11 +88,16 @@ export default function EnquiryBulkActionModal({
     setBody('');
   }, [open, selectedIds]);
 
-  const loading = assigning || statusLoading || tagsLoading || branchLoading || mergeLoading || commLoading;
+  const loading = assigning || autoAssigning || statusLoading || tagsLoading || branchLoading || mergeLoading || commLoading;
   const count = selectedIds.length;
 
   const submit = async () => {
     try {
+      if (action === 'autoAssign') {
+        const result = await bulkAutoAssign(selectedIds).unwrap();
+        toastService.success(`Auto-assigned ${result.assigned} of ${result.total} enquiries`);
+      }
+
       if (action === 'assign') {
         if (!assigneeId) return toastService.info('Select a counsellor');
         await bulkAssign({ ids: selectedIds, assignedToId: assigneeId }).unwrap();
@@ -158,6 +166,13 @@ export default function EnquiryBulkActionModal({
       )}
     >
       <div className="space-y-4">
+        {action === 'autoAssign' && (
+          <p className="text-sm text-text-secondary">
+            Each enquiry will be matched independently using skills, capacity, availability, and branch rules.
+            Unassigned enquiries remain in the queue if no eligible counsellor is found.
+          </p>
+        )}
+
         {action === 'assign' && (
           <Select
             label="Assign to"

@@ -1,129 +1,32 @@
-import {
-  ROUTABLE_PRESENCE,
-  OFFER_TIMEOUT_SECONDS,
-  MAX_CONCURRENT_SESSIONS,
-  DEFAULT_SLA,
-  RECEPTION_ASSIGN_ROLE_SLUGS,
-} from './assignment.config.js';
-import { assignmentRepository } from './assignment.repository.js';
 import prisma from '../../config/database.js';
+import { RECEPTION_ASSIGN_ROLE_SLUGS } from './assignment.config.js';
+import { assignmentRepository } from './assignment.repository.js';
+import { availabilityEngine, mapAvailabilityLabelFromState } from './availability.engine.js';
+import { scoreCounsellorForLead, pickBestCandidate, mergeAssignmentConfig } from './assignment.scoring.js';
 
-/** Map presence (+ active session) → reception availability label */
-export function mapAvailabilityLabel(presenceStatus, activeSessions = 0) {
-  if (activeSessions > 0 || presenceStatus === 'IN_COUNSELLING') {
-    return { key: 'IN_COUNSELLING', label: 'With student', tone: 'warning', detail: 'Busy in counselling' };
-  }
-  switch (presenceStatus) {
-    case 'AVAILABLE':
-    case 'WFH':
-      return { key: 'AVAILABLE', label: 'Free', tone: 'success', detail: 'Ready for walk-ins' };
-    case 'LUNCH':
-      return { key: 'LUNCH', label: 'Lunch', tone: 'caution', detail: 'On lunch break' };
-    case 'BREAK':
-      return { key: 'ON_BREAK', label: 'Break', tone: 'caution', detail: 'On short break' };
-    case 'LEAVE':
-      return { key: 'ON_LEAVE', label: 'Leave', tone: 'danger', detail: 'On leave today' };
-    case 'MEETING':
-      return { key: 'MEETING', label: 'Meeting', tone: 'danger', detail: 'In a meeting' };
-    case 'TRAINING':
-      return { key: 'TRAINING', label: 'Training', tone: 'danger', detail: 'In training' };
-    case 'BUSY':
-    case 'DND':
-      return { key: 'UNAVAILABLE', label: 'Busy', tone: 'danger', detail: 'Not taking walk-ins' };
-    case 'OFFLINE':
-    default:
-      return { key: 'OFFLINE', label: 'Offline', tone: 'neutral', detail: 'Not signed in' };
-  }
+async function buildSkillsProfile(counsellor, companyId) {
+  return availabilityEngine.getCounsellorSkillsProfile(counsellor.id, companyId);
 }
 
-/**
- * Score counsellor for a lead — higher is better.
- * Hybrid: skill hints from metadata + load balancing + round-robin tie-break.
- */
-async function scoreCounsellor(counsellor, lead) {
-  const presence = counsellor.counsellorPresence;
-  const status = presence?.status || 'OFFLINE';
-  if (!ROUTABLE_PRESENCE.includes(status)) return -1;
+async function buildRecommendationRow(counsellor, leadHint, companyId, branchId, weights) {
+  const leadPriority = leadHint.priority || 'MEDIUM';
+  const availability = await availabilityEngine.evaluateCounsellor(counsellor, {
+    companyId,
+    branchId,
+    leadPriority,
+  });
+  const workload = availability.workload || await availabilityEngine.getWorkload(counsellor.id, counsellor.counsellorPresence);
+  const skillsProfile = await buildSkillsProfile(counsellor, companyId);
 
-  const [activeSessions, pendingOffers, todayCount] = await Promise.all([
-    assignmentRepository.countActiveSessions(counsellor.id),
-    assignmentRepository.countPendingOffers(counsellor.id),
-    assignmentRepository.countTodayAssignments(counsellor.id),
-  ]);
-
-  if (activeSessions >= MAX_CONCURRENT_SESSIONS) return -1;
-  if (pendingOffers > 0) return -1;
-
-  const maxDaily = presence?.maxDailyCapacity || 20;
-  if (todayCount >= maxDaily) return -1;
-
-  let score = 50;
-  const skills = presence?.skills;
-  const meta = skills && typeof skills === 'object' && !Array.isArray(skills) ? skills : {};
-
-  const countries = Array.isArray(meta.countries) ? meta.countries : [];
-  const courses = Array.isArray(meta.courses) ? meta.courses : [];
-  const languages = Array.isArray(meta.languages) ? meta.languages : [];
-  const services = Array.isArray(meta.services) ? meta.services : [];
-
-  if (lead.country && countries.includes(lead.country)) score += 25;
-  if (lead.interestedCourse && courses.some((c) => lead.interestedCourse.toLowerCase().includes(String(c).toLowerCase()))) score += 20;
-  if (lead.metadata?.preferredLanguage && languages.includes(lead.metadata.preferredLanguage)) score += 15;
-  if (lead.metadata?.visitPurpose && services.some((s) => String(lead.metadata.visitPurpose).toLowerCase().includes(String(s).toLowerCase()))) score += 10;
-  if (lead.priority === 'VIP') score += 10;
-
-  score -= todayCount * 2;
-  score -= activeSessions * 10;
-
-  const lastAssigned = presence?.lastAssignedAt?.getTime() || 0;
-  const waitBonus = Math.min(20, (Date.now() - lastAssigned) / 60000);
-  score += waitBonus;
-
-  return score;
-}
-
-async function buildRecommendationRow(counsellor, lead) {
-  const presence = counsellor.counsellorPresence;
-  let status = presence?.status || 'OFFLINE';
-  const heartbeatAt = presence?.lastHeartbeatAt ? new Date(presence.lastHeartbeatAt).getTime() : 0;
-  // No recent heartbeat → Offline (except Leave). Heartbeat every ~15s while CRM open.
-  const staleMs = 90 * 1000;
-  if ((!heartbeatAt || Date.now() - heartbeatAt > staleMs) && status !== 'LEAVE') {
-    status = 'OFFLINE';
-  }
-  const [activeSessions, todayCount, activeLeads] = await Promise.all([
-    assignmentRepository.countActiveSessions(counsellor.id),
-    assignmentRepository.countTodayAssignments(counsellor.id),
-    prisma.lead.count({
-      where: {
-        assignedToId: counsellor.id,
-        deletedAt: null,
-        status: { in: ['WALK_IN', 'WAITING', 'IN_COUNSELLING', 'APPOINTMENT'] },
-      },
-    }),
-  ]);
-
-  const rawScore = await scoreCounsellor(counsellor, lead);
-  const availability = mapAvailabilityLabel(status, activeSessions);
-  if (availability.key === 'UNAVAILABLE' && activeLeads > 0 && activeSessions === 0) {
-    availability.detail = 'Assigned visitor waiting';
-  }
-  if (availability.key === 'AVAILABLE') {
-    availability.detail = 'Ready for walk-ins';
-  }
-  const skillsRaw = presence?.skills;
-  const skills = skillsRaw && typeof skillsRaw === 'object' && !Array.isArray(skillsRaw) ? skillsRaw : {};
-  const countries = Array.isArray(skills.countries) ? skills.countries : [];
-  const services = Array.isArray(skills.services)
-    ? skills.services
-    : (Array.isArray(skills.courses) ? skills.courses : []);
-
-  let displayScore = rawScore;
-  if (displayScore < 0) {
-    displayScore = 10;
-    if (lead.country && countries.includes(lead.country)) displayScore += 25;
-    displayScore -= todayCount;
-  }
+  const scored = scoreCounsellorForLead({
+    counsellor: { ...counsellor, skillsProfile },
+    availability,
+    workload,
+    lead: leadHint,
+    branchId,
+    weights,
+    priority: leadHint.priority || 'MEDIUM',
+  });
 
   return {
     id: counsellor.id,
@@ -132,176 +35,261 @@ async function buildRecommendationRow(counsellor, lead) {
     email: counsellor.email,
     branchId: counsellor.branchId,
     role: counsellor.role?.name || counsellor.role?.slug,
-    countries,
-    services,
-    specializationLabel: [...countries, ...services].filter(Boolean).slice(0, 4).join('/') || 'General',
-    availability,
-    activeLeads,
-    todayAssignments: todayCount,
-    activeSessions,
-    score: displayScore,
-    routable: rawScore >= 0,
+    countries: skillsProfile.countries,
+    courses: skillsProfile.courses,
+    services: skillsProfile.services,
+    specializationLabel: [...skillsProfile.countries, ...skillsProfile.courses].filter(Boolean).slice(0, 4).join(' / ') || 'General',
+    availability: mapAvailabilityLabelFromState(availability),
+    availabilityState: availability.state,
+    activeLeads: workload.activeLeadTotal,
+    activeEnquiries: workload.activeEnquiries,
+    todayAssignments: workload.todayAssigned,
+    activeSessions: workload.activeSessions,
+    capacityPct: Math.round(workload.activeLeadCapacityPct),
+    score: scored.percent,
+    scoreRaw: scored.score,
+    scoreBreakdown: scored.breakdown,
+    reasons: scored.reasons,
+    exclusions: [...(availability.exclusions || []), ...scored.exclusions],
+    eligible: scored.eligible,
+    routable: scored.routable,
+    tier: scored.tier,
     recommended: false,
   };
 }
 
 export const assignmentEngine = {
-  pickCounsellor: async (lead, excludeIds = []) => {
+  async getCompanyAssignmentConfig(companyId) {
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    return mergeAssignmentConfig(company?.settings || {});
+  },
+
+  async scoreAllForLead(leadHint, { branchId, companyId, excludeIds = [] }) {
+    const config = await this.getCompanyAssignmentConfig(companyId);
+    const counsellors = (await assignmentRepository.listEligibleCounsellors(
+      branchId,
+      excludeIds,
+      companyId,
+      RECEPTION_ASSIGN_ROLE_SLUGS,
+    )).filter((c) => RECEPTION_ASSIGN_ROLE_SLUGS.includes(c.role?.slug));
+
+    const rows = await Promise.all(
+      counsellors.map((c) => buildRecommendationRow(c, leadHint, companyId, branchId, config.scoring)),
+    );
+
+    rows.sort((a, b) => {
+      if (a.routable !== b.routable) return a.routable ? -1 : 1;
+      if (a.availabilityState === 'AVAILABLE' && b.availabilityState !== 'AVAILABLE') return -1;
+      if (b.availabilityState === 'AVAILABLE' && a.availabilityState !== 'AVAILABLE') return 1;
+      return b.score - a.score;
+    });
+
+    return { rows, config };
+  },
+
+  async pickCounsellor(lead, excludeIds = []) {
     const branch = await prisma.branch.findUnique({
       where: { id: lead.branchId },
       select: { companyId: true },
     });
-    const counsellors = await assignmentRepository.listEligibleCounsellors(
-      lead.branchId,
+    if (!branch?.companyId) return null;
+
+    const leadHint = {
+      branchId: lead.branchId,
+      country: lead.country || lead.interestedCountry,
+      interestedCountry: lead.interestedCountry || lead.country,
+      interestedCourse: lead.interestedCourse,
+      priority: lead.priority || 'MEDIUM',
+      metadata: lead.metadata || {},
+    };
+
+    const { rows, config } = await assignmentEngine.scoreAllForLead(leadHint, {
+      branchId: lead.branchId,
+      companyId: branch.companyId,
       excludeIds,
-      branch?.companyId,
-      RECEPTION_ASSIGN_ROLE_SLUGS,
-    );
-    if (!counsellors.length) return null;
+    });
 
-    const scored = await Promise.all(
-      counsellors.map(async (c) => ({
-        counsellor: c,
-        score: await scoreCounsellor(c, lead),
-      })),
-    );
+    const { selected } = pickBestCandidate(rows, config.fallback);
+    if (!selected) return null;
 
-    const eligible = scored.filter((s) => s.score >= 0).sort((a, b) => b.score - a.score);
-    return eligible[0]?.counsellor || null;
+    const counsellor = await prisma.user.findUnique({
+      where: { id: selected.id },
+      include: { counsellorPresence: true, role: { select: { slug: true, name: true } } },
+    });
+    return counsellor ? { counsellor, match: selected } : null;
   },
 
-  /**
-   * Reception recommendations — scored list. Reception chooses manually.
-   * Does NOT create offers or auto-assign.
-   */
-  recommendCounsellors: async ({
-    branchId, companyId, country, interestedCourse, preferredLanguage, visitPurpose, priority,
-  }) => {
+  async recommendCounsellors({
+    branchId, companyId, country, interestedCourse, interestedCountry,
+    preferredLanguage, visitPurpose, priority,
+  }) {
     const leadHint = {
       branchId,
-      country: country || null,
+      country: country || interestedCountry || null,
+      interestedCountry: interestedCountry || country || null,
       interestedCourse: interestedCourse || null,
-      priority: priority || 'NORMAL',
+      priority: priority || 'MEDIUM',
       metadata: {
         preferredLanguage: preferredLanguage || null,
         visitPurpose: visitPurpose || null,
       },
     };
 
-    const counsellors = (await assignmentRepository.listEligibleCounsellors(
-      branchId,
-      [],
-      companyId,
-      RECEPTION_ASSIGN_ROLE_SLUGS,
-    )).filter((c) => RECEPTION_ASSIGN_ROLE_SLUGS.includes(c.role?.slug));
-
-    const rows = await Promise.all(counsellors.map((c) => buildRecommendationRow(c, leadHint)));
-    rows.sort((a, b) => {
-      if (a.routable !== b.routable) return a.routable ? -1 : 1;
-      if (a.availability.key === 'AVAILABLE' && b.availability.key !== 'AVAILABLE') return -1;
-      if (b.availability.key === 'AVAILABLE' && a.availability.key !== 'AVAILABLE') return 1;
-      return b.score - a.score;
-    });
-
+    const { rows } = await assignmentEngine.scoreAllForLead(leadHint, { branchId, companyId, excludeIds: [] });
     const best = rows.find((r) => r.routable) || null;
     if (best) best.recommended = true;
     return rows;
   },
 
-  async offerToCounsellor(lead, counsellorId, actorId = null) {
-    const expiresAt = new Date(Date.now() + OFFER_TIMEOUT_SECONDS * 1000);
-    const branch = await prisma.branch.findUnique({
-      where: { id: lead.branchId },
-      select: { companyId: true },
-    });
-    const counsellor = await assignmentRepository.listEligibleCounsellors(
-      lead.branchId,
-      [],
-      branch?.companyId,
-    ).then((list) => list.find((c) => c.id === counsellorId));
+  async autoAssignLead(lead, actorId = null) {
+    const picked = await this.pickCounsellor(lead);
+    if (!picked) {
+      await assignmentRepository.logAudit({
+        leadId: lead.id,
+        branchId: lead.branchId,
+        actorId,
+        action: 'NO_COUNSELLOR',
+        description: 'No eligible counsellor found by assignment engine',
+        metadata: { engine: 'availability_v2' },
+      });
+      return { lead, assigned: false, match: null };
+    }
 
-    const score = counsellor ? await scoreCounsellor(counsellor, lead) : null;
-
-    const offer = await assignmentRepository.createOffer({
-      leadId: lead.id,
-      counsellorId,
-      branchId: lead.branchId,
-      expiresAt,
-      assignmentScore: score,
-      ruleSnapshot: { strategy: 'hybrid_skill_load_rr', score },
-      createdBy: actorId,
+    const updated = await assignmentRepository.updateLead(lead.id, {
+      assignedToId: picked.counsellor.id,
+      updatedBy: actorId,
     });
 
     await assignmentRepository.logAudit({
       leadId: lead.id,
       branchId: lead.branchId,
       actorId,
-      action: 'OFFERED',
-      toUserId: counsellorId,
-      description: 'Assignment offered to counsellor',
-      metadata: { offerId: offer.id, expiresAt },
+      action: 'AUTO_ASSIGNED',
+      toUserId: picked.counsellor.id,
+      description: `Auto-assigned to ${picked.counsellor.firstName} ${picked.counsellor.lastName}`,
+      metadata: {
+        score: picked.match.score,
+        reasons: picked.match.reasons,
+        breakdown: picked.match.scoreBreakdown,
+        engine: 'availability_v2',
+      },
     });
 
-    await assignmentRepository.upsertPresence(counsellorId, lead.branchId, {
+    await assignmentRepository.upsertPresence(picked.counsellor.id, lead.branchId, {
       lastAssignedAt: new Date(),
     });
 
-    return offer;
+    return { lead: updated, assigned: true, counsellor: picked.counsellor, match: picked.match };
+  },
+
+  async autoAssignEnquiry(enquiry, actorId = null) {
+    const branch = await prisma.branch.findUnique({
+      where: { id: enquiry.branchId },
+      select: { companyId: true },
+    });
+    if (!branch?.companyId) return { enquiry, assigned: false };
+
+    const leadHint = {
+      branchId: enquiry.branchId,
+      country: enquiry.interestedCountry,
+      interestedCountry: enquiry.interestedCountry,
+      interestedCourse: enquiry.interestedCourse,
+      priority: enquiry.priority,
+      metadata: enquiry.metadata || {},
+    };
+
+    const { rows, config } = await this.scoreAllForLead(leadHint, {
+      branchId: enquiry.branchId,
+      companyId: branch.companyId,
+    });
+    const { selected } = pickBestCandidate(rows, config.fallback);
+    if (!selected?.routable) {
+      return { enquiry, assigned: false, match: null, candidates: rows };
+    }
+
+    const updated = await prisma.enquiry.update({
+      where: { id: enquiry.id },
+      data: {
+        assignedToId: selected.id,
+        assignedById: actorId,
+        updatedBy: actorId,
+        lastTouchedAt: new Date(),
+      },
+    });
+
+    await assignmentRepository.logEnquiryAssignment({
+      enquiryId: enquiry.id,
+      companyId: branch.companyId,
+      branchId: enquiry.branchId,
+      fromUserId: enquiry.assignedToId,
+      toUserId: selected.id,
+      assignmentType: 'AUTO',
+      score: selected.score,
+      scoreBreakdown: selected.scoreBreakdown,
+      reasons: selected.reasons,
+      exclusions: rows.filter((r) => r.id !== selected.id).map((r) => ({
+        userId: r.id,
+        name: `${r.firstName} ${r.lastName}`,
+        exclusions: r.exclusions,
+        score: r.score,
+      })),
+      actorId,
+    });
+
+    await assignmentRepository.upsertPresence(selected.id, enquiry.branchId, {
+      lastAssignedAt: new Date(),
+    });
+
+    return { enquiry: updated, assigned: true, match: selected, candidates: rows };
+  },
+
+  /** @deprecated Legacy offer flow — prefer direct assign */
+  async offerToCounsellor(lead, counsellorId, actorId = null) {
+    return assignmentRepository.createOffer({
+      leadId: lead.id,
+      counsellorId,
+      branchId: lead.branchId,
+      expiresAt: new Date(Date.now() + 120000),
+      assignmentScore: 0,
+      ruleSnapshot: { legacy: true },
+      createdBy: actorId,
+    });
   },
 
   async autoAssign(leadId, actorId = null, excludeIds = []) {
-    // Legacy helper — Reception no longer auto-queues. Prefer recommendCounsellors + manual assign.
     const lead = await assignmentRepository.findLeadById(leadId);
-    if (!lead || lead.assignedToId) return { lead, offer: null };
-
-    const pending = await assignmentRepository.findPendingOfferForLead(leadId);
-    if (pending) return { lead, offer: pending };
-
-    const counsellor = await this.pickCounsellor(lead, excludeIds);
-    if (!counsellor) {
-      await assignmentRepository.logAudit({
-        leadId: lead.id,
-        branchId: lead.branchId,
-        actorId,
-        action: 'NO_COUNSELLOR',
-        description: 'No eligible counsellor for recommendation engine',
-      });
-      return { lead, offer: null, queued: false };
-    }
-
-    const offer = await this.offerToCounsellor(lead, counsellor.id, actorId);
-    return { lead, offer, counsellor };
+    if (!lead || lead.assignedToId) return { lead, assigned: false };
+    return this.autoAssignLead(lead, actorId);
   },
 
   async processExpiredOffers() {
     await assignmentRepository.expireStaleOffers();
-    const expired = await assignmentRepository.getExpiredOffersNeedingReroute();
-    const results = [];
-
-    for (const item of expired) {
-      await assignmentRepository.logAudit({
-        leadId: item.leadId,
-        branchId: item.branchId,
-        action: 'EXPIRED',
-        fromUserId: item.counsellorId,
-        description: 'Offer expired — awaiting manual Reception assign',
-        metadata: { offerId: item.id },
-      });
-      results.push({ leadId: item.leadId, expired: true });
-    }
-    return results;
+    return [];
   },
 
-  evaluateSla(waitingLeads, branchSla = DEFAULT_SLA) {
+  evaluateSla(waitingLeads, branchSla) {
     const now = Date.now();
+    const sla = branchSla || { warningMinutes: 10, escalateMinutes: 15, managerNotifyMinutes: 20, mandatoryReassignMinutes: 30 };
     return waitingLeads.map((lead) => {
-      const waitMin = Math.floor((now - new Date(lead.walkInAt).getTime()) / 60000);
+      const waitMin = Math.floor((now - new Date(lead.walkInAt || lead.createdAt).getTime()) / 60000);
       let tier = 'ok';
-      if (waitMin >= branchSla.mandatoryReassignMinutes) tier = 'mandatory_reassign';
-      else if (waitMin >= branchSla.managerNotifyMinutes) tier = 'manager';
-      else if (waitMin >= branchSla.escalateMinutes) tier = 'escalate';
-      else if (waitMin >= branchSla.warningMinutes) tier = 'warning';
+      if (waitMin >= sla.mandatoryReassignMinutes) tier = 'mandatory_reassign';
+      else if (waitMin >= sla.managerNotifyMinutes) tier = 'manager';
+      else if (waitMin >= sla.escalateMinutes) tier = 'escalate';
+      else if (waitMin >= sla.warningMinutes) tier = 'warning';
       return { leadId: lead.id, waitMinutes: waitMin, tier };
     });
   },
 };
+
+/** @deprecated use mapAvailabilityLabelFromState */
+export function mapAvailabilityLabel(presenceStatus, activeSessions = 0) {
+  return mapAvailabilityLabelFromState({
+    state: activeSessions > 0 ? 'TEMPORARILY_BUSY' : (presenceStatus === 'AVAILABLE' ? 'AVAILABLE' : 'OFFLINE'),
+    label: presenceStatus,
+    display: { tone: 'neutral', detail: presenceStatus },
+  });
+}

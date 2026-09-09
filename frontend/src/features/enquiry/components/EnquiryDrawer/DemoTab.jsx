@@ -3,6 +3,8 @@ import {
   FiMonitor,
   FiPlus,
   FiRefreshCw,
+  FiUserPlus,
+  FiArrowRight,
 } from 'react-icons/fi';
 import { usePermissions } from '../../../../hooks/usePermissions';
 import DatePicker from '../../../../components/ui/DatePicker';
@@ -52,7 +54,7 @@ function formatDemoDateTime(dateStr) {
   };
 }
 
-export default function DemoTab({ enquiryId, enquiry, isEditMode, onRecorded }) {
+export default function DemoTab({ enquiryId, enquiry, isEditMode, onRecorded, onConvertToStudent, converting = false }) {
   const { canAny } = usePermissions();
   const canSchedule = canAny([PERMISSIONS.ENQUIRIES_UPDATE, PERMISSIONS.CALENDAR_CREATE]);
   const { options: facultyOptions, loading: facultyLoading } = useRelationalMasterOptions('faculty', {}, { enabled: true });
@@ -76,6 +78,9 @@ export default function DemoTab({ enquiryId, enquiry, isEditMode, onRecorded }) 
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
 
   const history = enquiry?.demos || [];
+  const demoConverted = history.some((d) => d.result === 'CONVERTED');
+  const enquiryConverted = enquiry?.status === 'CONVERTED' && enquiry?.studentId;
+  const showConvertBanner = demoConverted && !enquiryConverted && isEditMode;
 
   const resetForm = () => {
     setDemoDate('');
@@ -266,6 +271,32 @@ export default function DemoTab({ enquiryId, enquiry, isEditMode, onRecorded }) 
 
   return (
     <div className="space-y-6">
+      {showConvertBanner && (
+        <div className="p-4 rounded-2xl bg-emerald-500/8 border border-emerald-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+              <FiUserPlus className="w-4 h-4" />
+              Demo outcome: Converted — ready for student promotion
+            </p>
+            <p className="text-xs text-text-muted mt-1 max-w-xl">
+              Demo &quot;Converted&quot; marks trial success only. Use Convert to Student to copy profile photo,
+              documents, notes, and all enquiry details into the student master record.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            icon={FiArrowRight}
+            loading={converting}
+            onClick={() => onConvertToStudent?.()}
+            className="shrink-0"
+          >
+            Convert to Student
+          </Button>
+        </div>
+      )}
+
       {/* 6-Column Schedule Form with integrated action buttons in Row 2 */}
       {canSchedule && (
         <div className="p-5 rounded-2xl bg-surface border border-border shadow-xs space-y-4">

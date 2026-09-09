@@ -56,24 +56,23 @@ export const deleteMasterItem = asyncHandler(async (req, res) => {
 
 /**
  * Dispatcher for GET /:slug/options
- * - MasterItem categories (default): legacy label options — preserves Enquiry/Walk-in
- * - Relational-only slugs, or ?source=relational: registry options { value: id, label: name }
+ * - Relational entities (default): registry options { value: id, label: name }
+ * - MasterItem-only categories, or ?source=legacy: legacy label options
  */
 export const getOptionsDispatcher = asyncHandler(async (req, res) => {
   const slug = req.params.entity || req.params.category;
   const source = String(req.query.source || '').toLowerCase();
+  const wantLegacy = source === 'legacy' || source === 'masteritem';
 
-  const wantRelational =
-    source === 'relational' ||
-    (isRelationalMasterEntity(slug) && !isValidMasterCategory(slug));
-
-  if (wantRelational && isRelationalMasterEntity(slug)) {
+  if (isRelationalMasterEntity(slug) && !wantLegacy) {
     const data = await masterService.getRelationalOptions(slug, req.query, req.user);
     return sendSuccess(res, data);
   }
 
-  if (isValidMasterCategory(slug)) {
-    const data = await masterService.getOptions(slug, req.user);
+  const legacyCategory = slug === 'courseFinderLevel' ? 'applyLevel' : slug;
+
+  if (isValidMasterCategory(legacyCategory)) {
+    const data = await masterService.getOptions(legacyCategory, req.user);
     return sendSuccess(res, data);
   }
 
@@ -95,6 +94,11 @@ export const listEntity = asyncHandler(async (req, res) => {
 export const getEntity = asyncHandler(async (req, res) => {
   const record = await masterService.getById(req.params.entity, req.params.id, req.user);
   sendSuccess(res, record);
+});
+
+export const getEntityUsage = asyncHandler(async (req, res) => {
+  const data = await masterService.getRecordUsage(req.params.entity, req.params.id, req.user);
+  sendSuccess(res, data);
 });
 
 export const createEntity = asyncHandler(async (req, res) => {

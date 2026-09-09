@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FiPlus, FiTrash2 } from 'react-icons/fi';
-import Modal from '../../../components/ui/Modal';
+import MasterFormShell from './MasterFormShell';
+import MasterFormSection from './MasterFormSection';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
+import FormField from '../../../components/ui/FormField';
 import { masterApi, getApiErrorMessage } from '../services/masterApi.service';
 import { useRelationalMasterOptions } from '../hooks/useRelationalMasterOptions';
 import toastService from '../../../services/toast/toast.service';
+import '../styles/master-form.theme.css';
 
 const emptyRow = () => ({
   documentType: '',
@@ -19,11 +22,13 @@ export default function VisaChecklistBulkModal({ open, onClose, onSuccess }) {
   const [countryId, setCountryId] = useState('');
   const [rows, setRows] = useState([emptyRow()]);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
     if (!open) return;
     setCountryId('');
     setRows([emptyRow()]);
+    setSubmitError(null);
   }, [open]);
 
   const updateRow = useCallback((index, field, value) => {
@@ -61,92 +66,100 @@ export default function VisaChecklistBulkModal({ open, onClose, onSuccess }) {
     }
 
     setSubmitting(true);
+    setSubmitError(null);
     try {
       await masterApi.bulkCreateVisaChecklist({ countryId, items });
       toastService.success(`${items.length} visa checklist item(s) created`);
       onSuccess?.();
       onClose();
     } catch (err) {
-      toastService.error(getApiErrorMessage(err, 'Bulk create failed'));
+      setSubmitError(getApiErrorMessage(err, 'Bulk create failed'));
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <Modal
+    <MasterFormShell
       open={open}
       onClose={onClose}
       title="Add Visa Checklist Rows"
+      subtitle="Bulk create document checklist for a country"
       size="lg"
+      variant="form"
+      error={submitError}
       footer={(
         <>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button loading={submitting} onClick={handleSubmit}>Save All</Button>
+          <Button variant="outline" size="sm" onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button size="sm" loading={submitting} form="crm-visa-checklist-bulk-form" type="submit">
+            {submitting ? 'Saving…' : 'Save all'}
+          </Button>
         </>
       )}
     >
-      <div className="space-y-4">
-        <Select
-          label="Country"
-          value={countryId}
-          onChange={(e) => setCountryId(e.target.value)}
-          required
-          disabled={countriesLoading}
-          options={[
-            { value: '', label: 'Select country' },
-            ...countryOptions.map((opt) => ({ value: opt.value, label: opt.label })),
-          ]}
-        />
+      <form id="crm-visa-checklist-bulk-form" className="crm-master-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+        <MasterFormSection title="Country">
+          <FormField label="Country" required>
+            <Select
+              value={countryId}
+              onChange={(e) => setCountryId(e.target.value)}
+              disabled={countriesLoading}
+              showSearch
+              placeholder={countriesLoading ? 'Loading…' : 'Select country'}
+              options={countryOptions.map((opt) => ({ value: opt.value, label: opt.label }))}
+            />
+          </FormField>
+        </MasterFormSection>
 
-        <div className="space-y-3">
-          {rows.map((row, index) => (
-            <div key={index} className="rounded-lg border border-border p-3 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-text-muted">Row {index + 1}</span>
-                {rows.length > 1 && (
-                  <button
-                    type="button"
-                    className="text-danger hover:opacity-80"
-                    onClick={() => removeRow(index)}
-                    aria-label="Remove row"
-                  >
-                    <FiTrash2 className="w-4 h-4" />
-                  </button>
-                )}
+        <MasterFormSection title="Checklist items">
+          <div className="crm-master-bulk-rows">
+            {rows.map((row, index) => (
+              <div key={index} className="crm-master-bulk-row">
+                <div className="crm-master-bulk-row__head">
+                  <span className="crm-master-bulk-row__label">Row {index + 1}</span>
+                  {rows.length > 1 && (
+                    <button
+                      type="button"
+                      className="crm-master-bulk-row__remove"
+                      onClick={() => removeRow(index)}
+                      aria-label="Remove row"
+                    >
+                      <FiTrash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <div className="crm-master-form-grid crm-master-form-grid--2col">
+                  <Input
+                    label="Document Type"
+                    value={row.documentType}
+                    onChange={(e) => updateRow(index, 'documentType', e.target.value)}
+                    placeholder="e.g. Academic"
+                    required
+                  />
+                  <Input
+                    label="Document Name"
+                    value={row.name}
+                    onChange={(e) => updateRow(index, 'name', e.target.value)}
+                    placeholder="e.g. Passport Copy"
+                    required
+                  />
+                </div>
+                <label className="crm-master-bulk-row__check">
+                  <input
+                    type="checkbox"
+                    checked={row.isMandatory}
+                    onChange={(e) => updateRow(index, 'isMandatory', e.target.checked)}
+                  />
+                  Mandatory
+                </label>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Input
-                  label="Document Type"
-                  value={row.documentType}
-                  onChange={(e) => updateRow(index, 'documentType', e.target.value)}
-                  placeholder="e.g. Academic"
-                  required
-                />
-                <Input
-                  label="Document Name"
-                  value={row.name}
-                  onChange={(e) => updateRow(index, 'name', e.target.value)}
-                  placeholder="e.g. Passport Copy"
-                  required
-                />
-              </div>
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={row.isMandatory}
-                  onChange={(e) => updateRow(index, 'isMandatory', e.target.checked)}
-                />
-                Mandatory
-              </label>
-            </div>
-          ))}
-        </div>
-
-        <Button type="button" variant="outline" size="sm" icon={FiPlus} onClick={addRow}>
-          Add Row
-        </Button>
-      </div>
-    </Modal>
+            ))}
+          </div>
+          <Button type="button" variant="outline" size="sm" icon={FiPlus} onClick={addRow} className="mt-2">
+            Add row
+          </Button>
+        </MasterFormSection>
+      </form>
+    </MasterFormShell>
   );
 }

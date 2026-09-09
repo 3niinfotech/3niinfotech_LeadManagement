@@ -29,11 +29,18 @@ import {
   selectStudentLoading,
 } from '../../modules/student/redux/studentSlice';
 import { studentService } from '../../modules/student/services/student.service';
+import { onViewingBranchChanged } from '../../config/viewingBranch.events';
+import { useViewingBranchFilter } from '../../hooks/useViewingBranchFilter';
 
 export default function StudentsPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { can } = usePermissions();
+  const {
+    branchId: viewingBranchId,
+    branchLocked,
+    canViewAllBranches,
+  } = useViewingBranchFilter();
 
   const students = useSelector(selectStudents);
   const loading = useSelector(selectStudentLoading);
@@ -51,6 +58,12 @@ export default function StudentsPage() {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [bulkAction, setBulkAction] = useState(null);
+
+  useEffect(() => {
+    const nextId = viewingBranchId || undefined;
+    setFilterDraft((prev) => ({ ...prev, branchId: nextId }));
+    setAppliedFilters((prev) => ({ ...prev, branchId: nextId }));
+  }, [viewingBranchId]);
 
   const { statusOptions } = useStudentStatusOptions();
 
@@ -71,19 +84,23 @@ export default function StudentsPage() {
       status,
       country: appliedFilters.country || undefined,
       course: appliedFilters.course || undefined,
-      branchId: appliedFilters.branchId || undefined,
+      branchId: branchLocked
+        ? (viewingBranchId || undefined)
+        : (appliedFilters.branchId || viewingBranchId || undefined),
       assignedToId: appliedFilters.assignedToId || undefined,
       createdFrom: appliedFilters.createdFrom || undefined,
       createdTo: appliedFilters.createdTo || undefined,
       limit: 100,
     };
-  }, [search, activeView, activeSummaryFilter, appliedFilters]);
+  }, [search, activeView, activeSummaryFilter, appliedFilters, branchLocked, viewingBranchId]);
 
   const loadSummary = useCallback(async () => {
     try {
       setSummaryLoading(true);
       const data = await studentService.getSummary({
-        branchId: appliedFilters.branchId || undefined,
+        branchId: branchLocked
+          ? (viewingBranchId || undefined)
+          : (appliedFilters.branchId || viewingBranchId || undefined),
       });
       setSummary(data || {});
     } catch {
@@ -91,7 +108,7 @@ export default function StudentsPage() {
     } finally {
       setSummaryLoading(false);
     }
-  }, [appliedFilters.branchId]);
+  }, [appliedFilters.branchId, branchLocked, viewingBranchId]);
 
   const loadStudents = useCallback(() => {
     dispatch(fetchStudents(queryParams));
@@ -101,6 +118,10 @@ export default function StudentsPage() {
   useEffect(() => {
     loadStudents();
   }, [loadStudents]);
+
+  useEffect(() => onViewingBranchChanged(() => {
+    loadStudents();
+  }), [loadStudents]);
 
   const statItems = useMemo(() => buildStudentSummaryItems(summary), [summary]);
 
@@ -117,12 +138,16 @@ export default function StudentsPage() {
   };
 
   const handleSearchApply = () => {
-    setAppliedFilters(filterDraft);
+    const next = branchLocked
+      ? { ...filterDraft, branchId: viewingBranchId || undefined }
+      : filterDraft;
+    setAppliedFilters(next);
   };
 
   const handleResetFilters = () => {
-    setFilterDraft({});
-    setAppliedFilters({});
+    const next = branchLocked ? { branchId: viewingBranchId || undefined } : {};
+    setFilterDraft(next);
+    setAppliedFilters(next);
     setSearch('');
     setActiveView('all');
     setActiveSummaryFilter(null);
@@ -282,6 +307,8 @@ export default function StudentsPage() {
               onSearch={handleSearchApply}
               onReset={handleResetFilters}
               onClose={() => setFiltersOpen(false)}
+              branchLocked={branchLocked}
+              canViewAllBranches={canViewAllBranches}
             />
           </ModulePageCard.Filters>
 

@@ -29,6 +29,8 @@
     "db:seed-counsellors": "node scripts/seed-counsellors.js",
     "db:purge-operational": "node scripts/purge-operational-keep-masters.js",
     "db:seed-qa": "node scripts/seed-qa-testing.js",
+    "db:seed-attendance": "node scripts/seed-qa-testing.js",
+    "db:fix-attendance-now": "node scripts/fix-attendance-session-now.js",
     "db:seed-role-workspace": "node scripts/seed-role-workspace-rbac.js",
     "db:reset-qa": "node scripts/purge-operational-keep-masters.js && node scripts/seed-qa-testing.js",
     "test": "node --test --test-concurrency=1 src/utils/__tests__/branch-access.test.js src/modules/attendance/__tests__/attendance-rules.test.js src/modules/rbac/__tests__/role-workspace.test.js src/test/integration/branch-isolation.test.js src/test/integration/attendance.test.js",

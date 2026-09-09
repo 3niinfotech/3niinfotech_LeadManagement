@@ -6,6 +6,7 @@ import EnquiryTabPanel from './EnquiryTabPanel';
 import Button from '../../../../components/ui/Button';
 import EnquiryWorkspaceTabs from './EnquiryWorkspaceTabs';
 import EnquiryPageHeader from './EnquiryPageHeader';
+import StudentPageHeader from '../../../student/components/StudentWorkspace/StudentPageHeader';
 
 export default function EnquiryWorkspaceLayout({
   title,
@@ -13,6 +14,7 @@ export default function EnquiryWorkspaceLayout({
   icon: Icon = FiInbox,
   breadcrumbs = [],
   enquiry,
+  student,
   tabs,
   activeTab,
   onTabChange,
@@ -26,19 +28,28 @@ export default function EnquiryWorkspaceLayout({
 }) {
   const TabNav = useFormTabs ? FormStepTabs : EnquiryWorkspaceTabs;
   const layoutId = useFormTabs ? 'crm-enquiry-form-tab' : undefined;
-  const isDetailView = Boolean(enquiry);
+  const isDetailView = Boolean(enquiry) || Boolean(student);
   const TabPanel = isDetailView ? EnquiryTabPanel : FormTabPanel;
 
   return (
     <div className="h-full min-h-0 flex flex-col">
       {isDetailView ? (
-        <ModulePageLayout className="crm-enquiry-workspace--detail">
-          <EnquiryPageHeader
-            enquiry={enquiry}
-            breadcrumbs={breadcrumbs}
-            quickActions={quickActions}
-            onBack={onBack}
-          />
+        <ModulePageLayout className={student ? 'crm-student-workspace--detail' : 'crm-enquiry-workspace--detail'}>
+          {enquiry ? (
+            <EnquiryPageHeader
+              enquiry={enquiry}
+              breadcrumbs={breadcrumbs}
+              quickActions={quickActions}
+              onBack={onBack}
+            />
+          ) : (
+            <StudentPageHeader
+              student={student}
+              breadcrumbs={breadcrumbs}
+              quickActions={quickActions}
+              onBack={onBack}
+            />
+          )}
           <div className="crm-enquiry-page flex-1 min-h-0">
             <div className="crm-enquiry-page__main">
               <div className="crm-enquiry-page__tabs">

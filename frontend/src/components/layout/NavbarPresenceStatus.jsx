@@ -1,134 +1,82 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { FiChevronDown, FiRadio } from 'react-icons/fi';
 import { selectUser } from '../../redux/slices/authSlice';
-import {
-  useHeartbeatMutation,
-  useUpdatePresenceMutation,
-} from '../../features/assignment/redux/assignmentApiSlice';
-import toastService from '../../services/toast/toast.service';
+import { useGetMyAvailabilityQuery } from '../../features/assignment/redux/assignmentApiSlice';
+import HeaderActionPopover from './HeaderActionPopover';
+import AvailabilityPanel from './header-panels/AvailabilityPanel';
+import './styles/availability-panel.theme.css';
 
 const PRESENCE_ROLES = new Set(['counsellor', 'team_leader']);
 
-/** Manual overrides only — Free / With student are automatic via heartbeat + session. */
-const STATUS_OPTIONS = [
-  { value: 'AVAILABLE', label: 'Free (auto)', hint: 'Resume automatic Free', tone: 'success' },
-  { value: 'LUNCH', label: 'Lunch', hint: 'Hold ~1 hour, then Free', tone: 'caution' },
-  { value: 'BREAK', label: 'Break', hint: 'Hold ~20 min, then Free', tone: 'caution' },
-  { value: 'MEETING', label: 'Meeting', hint: 'Hold ~2 hours, then Free', tone: 'danger' },
-  { value: 'BUSY', label: 'Busy', hint: 'Not taking walk-ins (~2h)', tone: 'danger' },
-  { value: 'LEAVE', label: 'Leave', hint: 'Until you set Free again', tone: 'danger' },
-  { value: 'OFFLINE', label: 'Offline', hint: 'Appear offline now', tone: 'neutral' },
-];
-
-const DISPLAY = {
-  AVAILABLE: { label: 'Free', tone: 'success' },
-  IN_COUNSELLING: { label: 'With student', tone: 'warning' },
-  BUSY: { label: 'Busy', tone: 'danger' },
-  LUNCH: { label: 'Lunch', tone: 'caution' },
-  BREAK: { label: 'Break', tone: 'caution' },
-  MEETING: { label: 'Meeting', tone: 'danger' },
-  LEAVE: { label: 'Leave', tone: 'danger' },
-  OFFLINE: { label: 'Offline', tone: 'neutral' },
-  TRAINING: { label: 'Training', tone: 'danger' },
-  DND: { label: 'Busy', tone: 'danger' },
-  WFH: { label: 'Free', tone: 'success' },
+const PILL_TONE = {
+  success: 'text-emerald-700 bg-emerald-50 border-emerald-200/80',
+  warning: 'text-amber-800 bg-amber-50 border-amber-200/80',
+  caution: 'text-orange-800 bg-orange-50 border-orange-200/80',
+  danger: 'text-rose-700 bg-rose-50 border-rose-200/80',
+  neutral: 'text-text-secondary bg-page border-border/80',
 };
 
-const TONE_CLASS = {
-  success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  warning: 'bg-amber-50 text-amber-800 border-amber-200',
-  caution: 'bg-orange-50 text-orange-800 border-orange-200',
-  danger: 'bg-rose-50 text-rose-700 border-rose-200',
-  neutral: 'bg-slate-100 text-slate-600 border-slate-200',
+const DOT_TONE = {
+  success: 'bg-emerald-500',
+  warning: 'bg-amber-500',
+  caution: 'bg-orange-500',
+  danger: 'bg-rose-500',
+  neutral: 'bg-text-muted',
 };
 
 /**
- * Auto Free online · Busy in counselling · Offline when away.
- * Optional Lunch / Leave override only.
+ * Read-only system-derived counsellor availability indicator.
  */
 export default function NavbarPresenceStatus() {
   const user = useSelector(selectUser);
-  const [heartbeat] = useHeartbeatMutation();
-  const [updatePresence, { isLoading }] = useUpdatePresenceMutation();
-  const [status, setStatus] = useState('AVAILABLE');
+  const btnRef = useRef(null);
   const [open, setOpen] = useState(false);
-
   const visible = PRESENCE_ROLES.has(user?.role?.slug) && Boolean(user?.branchId);
 
-  useEffect(() => {
-    if (!visible) return undefined;
-    let cancelled = false;
-    const sync = () => {
-      heartbeat()
-        .unwrap()
-        .then((res) => {
-          if (!cancelled && res?.status) setStatus(res.status);
-        })
-        .catch(() => {});
-    };
-    sync();
-    const id = setInterval(sync, 60000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [visible, heartbeat]);
-
-  const current = useMemo(() => {
-    const d = DISPLAY[status] || DISPLAY.AVAILABLE;
-    return d;
-  }, [status]);
+  const { data, isFetching, isLoading } = useGetMyAvailabilityQuery(undefined, {
+    skip: !visible,
+    pollingInterval: 60000,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
 
   if (!visible) return null;
 
-  const selectStatus = async (next) => {
-    setOpen(false);
-    if (next === status) return;
-    try {
-      const res = await updatePresence({ status: next }).unwrap();
-      setStatus(res?.status || next);
-      toastService.success(`Status: ${STATUS_OPTIONS.find((o) => o.value === next)?.label || next}`);
-    } catch (e) {
-      toastService.error(e?.data?.message || 'Could not update status');
-    }
-  };
+  const tone = data?.tone || 'neutral';
+  const label = data?.label || (isLoading ? '…' : 'Available');
+  const pillClass = PILL_TONE[tone] || PILL_TONE.neutral;
+  const dotClass = DOT_TONE[tone] || DOT_TONE.neutral;
 
   return (
-    <div className="relative">
+    <>
       <button
+        ref={btnRef}
         type="button"
-        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${TONE_CLASS[current.tone] || TONE_CLASS.neutral}`}
+        className={`
+          inline-flex items-center gap-1.5 h-9 max-w-[148px] sm:max-w-[168px]
+          rounded-lg border px-2.5 text-[11px] font-semibold
+          transition-colors duration-200 focus-ring shrink-0
+          ${pillClass} ${isFetching ? 'opacity-90' : ''}
+        `}
         onClick={() => setOpen((v) => !v)}
-        title="Auto Free when online. Optional Lunch / Leave override."
-        disabled={isLoading}
+        title="Your availability (system calculated)"
+        aria-expanded={open}
+        aria-haspopup="dialog"
       >
-        <FiRadio size={12} />
-        {current.label}
-        <FiChevronDown size={12} />
+        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dotClass}`} aria-hidden />
+        <span className="truncate">{label}</span>
       </button>
-      {open && (
-        <>
-          <button type="button" className="fixed inset-0 z-[1190]" aria-label="Close" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1.5 z-[1200] w-60 rounded-xl border border-border bg-card-bg shadow-lg p-1.5">
-            <p className="px-2 py-1 text-[10px] uppercase tracking-wide text-text-muted font-semibold">Auto status</p>
-            <p className="px-2 pb-2 text-[11px] text-text-muted leading-snug">
-              Free while logged in · With student in counselling · Offline when you leave. Optional override:
-            </p>
-            {STATUS_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                className={`w-full text-left rounded-lg px-2.5 py-2 hover:bg-surface-hover ${status === opt.value ? 'bg-surface-hover' : ''}`}
-                onClick={() => selectStatus(opt.value)}
-              >
-                <span className="block text-sm font-medium text-text">{opt.label}</span>
-                <span className="block text-[11px] text-text-muted">{opt.hint}</span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+
+      <HeaderActionPopover
+        open={open}
+        onClose={() => setOpen(false)}
+        anchorEl={btnRef.current}
+        title="Availability"
+        width={320}
+        maxHeight={420}
+      >
+        <AvailabilityPanel data={data} loading={isLoading && !data} />
+      </HeaderActionPopover>
+    </>
   );
 }

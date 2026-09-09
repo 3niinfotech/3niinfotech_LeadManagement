@@ -18,6 +18,7 @@ import {
   parseCompositeId,
 } from './calendar.constants.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
+import { notifyStudentLinkedUser } from '../notification/notification.dispatcher.js';
 
 const { personName } = calendarRepository;
 
@@ -653,10 +654,23 @@ export const calendarService = {
       const row = await calendarRepository.getStudentAppointmentById(parsed.sourceId);
       if (!row?.student || row.student.deletedAt) throw new AppError('Appointment not found', 404);
       await assertStudentInTenant(row.student.id, user);
-      await calendarRepository.updateStudentAppointment(parsed.sourceId, { isCompleted: true });
+      const meta = (row.metadata && typeof row.metadata === 'object') ? { ...row.metadata } : {};
+      await calendarRepository.updateStudentAppointment(parsed.sourceId, {
+        isCompleted: true,
+        metadata: { ...meta, status: 'COMPLETED' },
+      });
       await auditLog({
         userId: user.id, action: 'STATUS_CHANGE', entityType: 'Appointment', entityId: parsed.sourceId,
-        newData: { isCompleted: true }, req,
+        newData: { isCompleted: true, status: 'COMPLETED' }, req,
+      });
+      await notifyStudentLinkedUser({
+        studentId: row.student.id,
+        userId: row.student.userId,
+        type: 'SUCCESS',
+        title: 'Counseling session completed',
+        message: `Your appointment "${row.title || 'Counseling'}" is marked complete.`,
+        link: '/student/counseling',
+        metadata: { event: 'APPOINTMENT_COMPLETED', appointmentId: parsed.sourceId },
       });
       return { id: compositeId, status: 'COMPLETED' };
     }

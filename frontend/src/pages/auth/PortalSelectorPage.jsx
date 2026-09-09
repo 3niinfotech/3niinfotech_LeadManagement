@@ -1,47 +1,78 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiUsers, FiUser, FiBriefcase } from 'react-icons/fi';
+import { FiArrowRight } from 'react-icons/fi';
 import { pageEase } from '../../theme/pageMotion';
-import { PORTALS, PORTAL_META } from '../../config/portal.config';
-
-const PORTAL_CARDS = [
-  { portal: PORTALS.ADMIN, icon: FiUsers, color: 'bg-primary-600' },
-  { portal: PORTALS.STUDENT, icon: FiUser, color: 'bg-emerald-600' },
-  { portal: PORTALS.AGENT, icon: FiBriefcase, color: 'bg-violet-600' },
-];
+import { ROUTES } from '../../config/routes';
+import { PORTAL_META } from '../../config/portal.config';
+import { AUTH_BRAND, AUTH_PORTAL_CARDS, AUTH_PORTAL_THEME } from '../../config/auth.config';
+import '../../components/auth/auth.theme.css';
 
 export default function PortalSelectorPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-8">
+    <div className="auth-portal-page">
+      <div className="auth-portal-page__top">
+        <Link to={ROUTES.LANDING || '/'} className="auth-portal-page__brand">
+          <span className="auth-portal-page__brand-mark">3ni</span>
+          <span className="auth-portal-page__brand-name">{AUTH_BRAND.productName}</span>
+        </Link>
+        <Link to={ROUTES.LANDING || '/'} className="auth-portal-page__home">
+          Back to home
+        </Link>
+      </div>
+
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: pageEase }}
-        className="w-full max-w-3xl"
+        className="auth-portal-page__hero"
       >
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-semibold text-text mb-2">Welcome to VisaERP</h1>
-          <p className="text-text-secondary">Choose your portal to continue</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {PORTAL_CARDS.map(({ portal, icon: Icon, color }) => {
-            const meta = PORTAL_META[portal];
-            return (
-              <Link
-                key={portal}
-                to={meta.loginPath}
-                className="group bg-card-bg border border-card-border rounded-xl p-6 shadow-card hover:border-primary-400 hover:shadow-md transition-all"
-              >
-                <div className={`w-12 h-12 rounded-lg ${color} text-white flex items-center justify-center mb-4`}>
-                  <Icon size={22} />
-                </div>
-                <h2 className="text-lg font-semibold text-text group-hover:text-primary-600 mb-1">{meta.label}</h2>
-                <p className="text-sm text-text-secondary">{meta.description}</p>
-              </Link>
-            );
-          })}
-        </div>
+        <h1>Choose your portal</h1>
+        <p>
+          Sign in to {AUTH_BRAND.productName} — pick the workspace that matches your role.
+        </p>
       </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: pageEase, delay: 0.06 }}
+        className="auth-portal-page__grid"
+      >
+        {AUTH_PORTAL_CARDS.map(({ portal }) => {
+          const meta = PORTAL_META[portal];
+          const theme = AUTH_PORTAL_THEME[portal];
+          const Icon = theme.icon;
+          return (
+            <Link
+              key={portal}
+              to={meta.loginPath}
+              className="auth-portal-card"
+              style={{
+                '--auth-accent': theme.accent,
+                borderColor: 'transparent',
+              }}
+            >
+              <div
+                className="auth-portal-card__icon"
+                style={{ background: theme.gradient }}
+              >
+                <Icon size={20} />
+              </div>
+              <h2 className="auth-portal-card__title">{meta.label}</h2>
+              <p className="auth-portal-card__desc">{meta.description}</p>
+              <span className="auth-portal-card__cta" style={{ color: theme.accent }}>
+                Continue
+                <FiArrowRight size={14} />
+              </span>
+            </Link>
+          );
+        })}
+      </motion.div>
+
+      <p className="auth-portal-page__foot">
+        © {new Date().getFullYear()} {AUTH_BRAND.companyName} ·{' '}
+        <Link to={ROUTES.APPLY} style={{ color: 'var(--brand, #2563eb)', fontWeight: 600 }}>Apply to join our team</Link>
+      </p>
     </div>
   );
 }

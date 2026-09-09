@@ -33,8 +33,11 @@ const buildWhere = (filters = {}) => {
 
   if (view === 'today') {
     where.walkInAt = { gte: startOfToday(), lte: endOfToday() };
-  } else if (view === 'waiting') where.status = 'WAITING';
-  else if (view === 'in_counselling') where.status = 'IN_COUNSELLING';
+  } else if (view === 'unassigned' || view === 'waiting') {
+    // Auto-assign miss: registered walk-in still without counsellor
+    where.assignedToId = null;
+    where.status = { in: ['WALK_IN', 'WAITING'] };
+  } else if (view === 'in_counselling') where.status = 'IN_COUNSELLING';
   else if (view === 'completed') where.status = 'COMPLETED';
   else if (view === 'cancelled') where.status = 'CANCELLED';
   else if (view === 'appointment') where.status = 'APPOINTMENT';
@@ -186,19 +189,28 @@ export const walkinRepository = {
       walkInAt: { gte: startOfToday(), lte: endOfToday() },
     };
 
-    const [total, todayWalkIns, convertedToday, ...statusCounts] = await Promise.all([
+    const [total, todayWalkIns, convertedToday, waitingUnassigned, ...statusCounts] = await Promise.all([
       prisma.lead.count({ where: baseWhere }),
       prisma.lead.count({ where: todayWhere }),
       prisma.lead.count({
         where: { ...todayWhere, enquiry: { isNot: null } },
+      }),
+      prisma.lead.count({
+        where: {
+          ...baseWhere,
+          assignedToId: null,
+          status: { in: ['WALK_IN', 'WAITING'] },
+        },
       }),
       ...WALKIN_STATUSES.map((s) => prisma.lead.count({
         where: { ...baseWhere, status: s.value },
       })),
     ]);
 
-    const summary = { total, todayWalkIns, convertedToday };
+    const summary = { total, todayWalkIns, convertedToday, waiting: waitingUnassigned };
     WALKIN_STATUSES.forEach((s, i) => {
+      // Prefer unassigned count for "waiting" KPI (need counsellor)
+      if (s.summaryKey === 'waiting') return;
       summary[s.summaryKey] = statusCounts[i];
     });
     WALKIN_SUMMARY_VIEWS.forEach((v) => {

@@ -48,4 +48,17 @@ export const studentService = {
 
   bulkUpdateStatus: async (ids, status) =>
     apiPost(API.STUDENTS_BULK_STATUS, { ids, status }),
+
+  uploadDocument: async (studentId, file, category) => {
+    const form = new FormData();
+    form.append('file', file);
+    if (category) form.append('category', category);
+    const { data } = await apiClient.post(API.STUDENT_DOCUMENTS(studentId), form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.data;
+  },
+
+  deleteDocument: (studentId, docId) =>
+    apiClient.delete(API.STUDENT_DOCUMENT(studentId, docId)),
 };

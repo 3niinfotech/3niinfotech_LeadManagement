@@ -11,18 +11,22 @@ export const DEMO_VIEW_TABS = [
   { id: 'all', label: 'All Demos', icon: FiInbox },
   { id: 'today', label: "Today's", icon: FiCalendar },
   { id: 'upcoming', label: 'Upcoming', icon: FiClock },
-  { id: 'attended', label: 'Attended', icon: FiCheckCircle },
-  { id: 'missed', label: 'Missed', icon: FiXCircle },
+  { id: 'attended', label: 'Present', icon: FiCheckCircle },
+  { id: 'missed', label: 'Absent', icon: FiXCircle },
   { id: 'converted', label: 'Converted', icon: FiTrendingUp },
 ];
 
+/** Final statuses only: PRESENT | ABSENT. NOT_MARKED is temporary. */
 export const DEMO_ATTENDANCE_OPTIONS = [
-  { value: 'NOT_MARKED', label: 'Not marked', tone: 'secondary' },
-  { value: 'ATTENDED', label: 'Attended', tone: 'success' },
-  { value: 'ABSENT', label: 'Absent', tone: 'danger' },
-  { value: 'LATE', label: 'Late', tone: 'warning' },
-  { value: 'PARTIAL', label: 'Partial', tone: 'info' },
-  { value: 'NO_SHOW', label: 'No-show', tone: 'danger' },
+  { value: 'PRESENT', label: 'PRESENT', tone: 'success' },
+  { value: 'ABSENT', label: 'ABSENT', tone: 'danger' },
+  { value: 'NOT_MARKED', label: 'NOT MARKED', tone: 'warning' },
+];
+
+/** Filter dropdown — All + three states */
+export const DEMO_ATTENDANCE_FILTER_OPTIONS = [
+  { value: '', label: 'All' },
+  ...DEMO_ATTENDANCE_OPTIONS,
 ];
 
 export const DEMO_SESSION_STATUS_OPTIONS = [
@@ -62,22 +66,28 @@ export const DEMO_BATCHES = [
   'Weekend FastTrack',
 ];
 
+export function normalizeDemoAttendance(value) {
+  const raw = String(value || 'NOT_MARKED').toUpperCase();
+  if (raw === 'PRESENT' || raw === 'ATTENDED') return 'PRESENT';
+  if (raw === 'ABSENT' || raw === 'NO_SHOW') return 'ABSENT';
+  return 'NOT_MARKED';
+}
+
 export function getDemoAttendanceBadgeTone(attendance) {
-  switch (attendance) {
+  switch (normalizeDemoAttendance(attendance)) {
     case 'PRESENT':
-    case 'ATTENDED':
       return 'success';
     case 'ABSENT':
-    case 'NO_SHOW':
       return 'danger';
-    case 'LATE':
-      return 'warning';
-    case 'PARTIAL':
-      return 'info';
     case 'NOT_MARKED':
     default:
-      return 'secondary';
+      return 'warning';
   }
+}
+
+export function getDemoAttendanceLabel(attendance) {
+  const v = normalizeDemoAttendance(attendance);
+  return DEMO_ATTENDANCE_OPTIONS.find((a) => a.value === v)?.label || v;
 }
 
 export function getDemoSessionStatusTone(status) {
@@ -109,4 +119,9 @@ export function getDemoResultBadgeTone(result) {
     default:
       return 'secondary';
   }
+}
+
+export function formatDemoDay(day) {
+  if (!day) return '—';
+  return `Day ${day}`;
 }

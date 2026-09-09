@@ -28,7 +28,16 @@ const FIELDS = [
   { key: 'createdTo', label: 'Created To', type: 'date' },
 ];
 
-export default function EnquiryFilters({ open, values, onChange, onSearch, onReset, onClose }) {
+export default function EnquiryFilters({
+  open,
+  values,
+  onChange,
+  onSearch,
+  onReset,
+  onClose,
+  branchLocked = false,
+  canViewAllBranches = true,
+}) {
   const { options: tagOptions } = useEnquiryTagOptions();
   const { statusOptions } = useEnquiryStatusOptions();
   const { options: branchOptions } = useBranchOptions();
@@ -37,6 +46,7 @@ export default function EnquiryFilters({ open, values, onChange, onSearch, onRes
 
   const renderField = (field) => {
     const val = values[field.key] || '';
+    const isBranchField = field.key === 'branchId';
 
     if (field.type === 'select') {
       const optionList = field.options === 'priority'
@@ -54,7 +64,7 @@ export default function EnquiryFilters({ open, values, onChange, onSearch, onRes
         : field.options === 'tag'
           ? 'All tags'
           : field.options === 'branch'
-            ? 'All branches'
+            ? (branchLocked ? 'Active branch' : 'All branches')
             : field.options === 'staff'
               ? 'All staff'
               : 'All statuses';
@@ -62,9 +72,12 @@ export default function EnquiryFilters({ open, values, onChange, onSearch, onRes
       return (
         <Select
           key={field.key}
-          label={field.label}
+          label={isBranchField && branchLocked ? 'Branch (Active)' : field.label}
           value={val}
+          disabled={isBranchField && branchLocked}
+          hint={isBranchField && branchLocked ? 'Locked to navbar Active Branch' : undefined}
           onChange={(e) => {
+            if (isBranchField && branchLocked) return;
             // Prevent stale staff selection when branch changes.
             if (field.key === 'branchId') {
               onChange({ ...values, branchId: e.target.value, staffId: undefined });
@@ -75,6 +88,9 @@ export default function EnquiryFilters({ open, values, onChange, onSearch, onRes
           placeholder={placeholder}
           size="sm"
         >
+          {isBranchField && canViewAllBranches && !branchLocked ? (
+            <option value="">All branches</option>
+          ) : null}
           {optionList.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}

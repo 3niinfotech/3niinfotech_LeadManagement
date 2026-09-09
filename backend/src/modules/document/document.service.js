@@ -4,6 +4,7 @@ import { parseSort } from '../../utils/response.util.js';
 import { documentRepository, DOCUMENT_SORT_FIELDS } from './document.repository.js';
 import prisma from '../../config/database.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
+import { notifyStudentLinkedUser } from '../notification/notification.dispatcher.js';
 
 export const createDocumentSchema = z.object({
   studentId: z.string().optional().nullable(),
@@ -45,6 +46,40 @@ export const documentService = {
     const record = await documentRepository.update(id, data);
     await prisma.activity.create({ data: { userId, action: 'UPDATE', entityType: 'Document', entityId: id, description: 'Document updated' } });
     await auditLog({ userId, action: 'UPDATE', entityType: 'Document', entityId: id, oldData: existing, newData: record, req });
+
+    const oldMeta = existing.metadata && typeof existing.metadata === 'object' ? existing.metadata : {};
+    const newMeta = record.metadata && typeof record.metadata === 'object' ? record.metadata : {};
+    const oldStatus = oldMeta.status;
+    const newStatus = newMeta.status;
+    if (existing.studentId && newStatus && oldStatus !== newStatus) {
+      const statusMessages = {
+        VERIFIED: {
+          type: 'SUCCESS',
+          title: 'Document verified',
+          message: `${record.name} has been approved.`,
+        },
+        REJECTED: {
+          type: 'WARNING',
+          title: 'Document needs revision',
+          message: `${record.name}: ${newMeta.rejectionReason || 'Please re-upload from Documents.'}`,
+        },
+        UNDER_REVIEW: {
+          type: 'INFO',
+          title: 'Document under review',
+          message: `${record.name} is being reviewed by your counsellor.`,
+        },
+      };
+      const payload = statusMessages[newStatus];
+      if (payload) {
+        await notifyStudentLinkedUser({
+          studentId: existing.studentId,
+          ...payload,
+          link: '/student/documents',
+          metadata: { event: 'DOCUMENT_STATUS', documentId: id, status: newStatus },
+        });
+      }
+    }
+
     return record;
   },
 

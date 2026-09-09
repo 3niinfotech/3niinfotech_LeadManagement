@@ -1,0 +1,489 @@
+.crm-ann-page {
+  padding: 0.75rem 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.crm-ann-page__hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid color-mix(in srgb, var(--info) 22%, var(--border));
+  border-radius: 1rem;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--info) 8%, var(--bg-card)) 0%, var(--bg-card) 60%);
+}
+
+.crm-ann-page__hero-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.crm-ann-page__hero-text {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  max-width: 36rem;
+  line-height: 1.45;
+}
+
+.crm-ann-page__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.crm-ann-page__stat {
+  min-width: 4.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  text-align: center;
+}
+
+.crm-ann-page__stat strong {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--info);
+  line-height: 1.1;
+}
+
+.crm-ann-page__stat span {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.crm-ann-page__toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.crm-ann-page__search {
+  flex: 1;
+  max-width: 320px;
+  height: 2.375rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--bg-card);
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+}
+
+.crm-ann-page__refresh {
+  width: 2.375rem;
+  height: 2.375rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.crm-ann-page__refresh:hover:not(:disabled) {
+  color: var(--brand);
+  border-color: color-mix(in srgb, var(--brand) 20%, var(--border));
+}
+
+.crm-ann-page__error {
+  font-size: 0.8125rem;
+  color: var(--danger);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--danger-soft);
+}
+
+.crm-ann-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.875rem;
+}
+
+.crm-ann-page__card {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.crm-ann-page__card:hover {
+  border-color: color-mix(in srgb, var(--info) 22%, var(--border));
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--info) 8%, transparent);
+}
+
+.crm-ann-page__card--draft {
+  opacity: 0.88;
+  border-style: dashed;
+}
+
+.crm-ann-page__card-media {
+  position: relative;
+  aspect-ratio: 16 / 8;
+  background: color-mix(in srgb, var(--info) 8%, var(--bg-page));
+  overflow: hidden;
+}
+
+.crm-ann-page__card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.crm-ann-page__card-media-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--info);
+  opacity: 0.45;
+}
+
+.crm-ann-page__status {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: color-mix(in srgb, var(--bg-card) 90%, transparent);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.crm-ann-page__status--live {
+  background: var(--success-soft);
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 25%, transparent);
+}
+
+.crm-ann-page__files-badge {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--bg-card) 85%, transparent);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.crm-ann-badge--files {
+  background: var(--bg-page);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.crm-ann-page__card-body {
+  padding: 0.875rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.crm-ann-page__card-title {
+  margin-top: 0.375rem;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.crm-ann-page__card-sub {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.crm-ann-page__card-excerpt {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.crm-ann-page__card-date {
+  margin-top: 0.625rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.crm-ann-page__card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.crm-ann-page__card-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 1.875rem;
+  padding: 0 0.625rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg-page);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.crm-ann-page__card-actions button:hover:not(:disabled) {
+  background: var(--row-hover);
+  color: var(--text-primary);
+}
+
+.crm-ann-page__card-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.crm-ann-page__danger:hover:not(:disabled) {
+  color: var(--danger) !important;
+  border-color: color-mix(in srgb, var(--danger) 25%, var(--border));
+  background: var(--danger-soft) !important;
+}
+
+.crm-ann-page__reach {
+  margin-top: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--info) 20%, var(--border));
+  background: color-mix(in srgb, var(--info) 5%, var(--bg-page));
+}
+
+.crm-ann-page__reach-bar {
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.crm-ann-page__reach-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--info), var(--brand));
+  transition: width 0.2s ease;
+}
+
+.crm-ann-page__reach-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.crm-ann-page__reach-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.crm-ann-page__reach-meta strong {
+  color: var(--text-primary);
+  font-weight: 800;
+}
+
+.crm-ann-page__reach-pct {
+  font-weight: 700;
+  color: var(--info);
+}
+
+.crm-ann-page__reach-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.crm-ann-page__reach-btn:hover {
+  color: var(--info);
+  border-color: color-mix(in srgb, var(--info) 30%, var(--border));
+  background: color-mix(in srgb, var(--info) 6%, var(--bg-card));
+}
+
+.crm-ann-page__reach-btn--notify {
+  margin-top: 0.35rem;
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 25%, var(--border));
+}
+
+.crm-ann-page__reach-btn--notify:hover {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--primary) 8%, var(--bg-card));
+}
+
+.crm-ann-reach__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+}
+
+.crm-ann-reach__stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--bg-page);
+  color: var(--text-muted);
+}
+
+.crm-ann-reach__stat--primary {
+  border-color: color-mix(in srgb, var(--info) 30%, var(--border));
+  background: color-mix(in srgb, var(--info) 6%, var(--bg-page));
+}
+
+.crm-ann-reach__stat strong {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.crm-ann-reach__stat span {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.crm-ann-reach__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.crm-ann-reach__list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.crm-ann-reach__list-head h4 {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.crm-ann-reach__pending {
+  font-size: 0.6875rem;
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.crm-ann-reach__empty {
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.crm-ann-reach__list {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.crm-ann-reach__row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--bg-page);
+}
+
+.crm-ann-reach__avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--info);
+  flex-shrink: 0;
+}
+
+.crm-ann-reach__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.crm-ann-reach__name {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.crm-ann-reach__role {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-ann-reach__time {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}

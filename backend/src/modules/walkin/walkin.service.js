@@ -13,6 +13,7 @@ import {
 } from '../../utils/tenant.util.js';
 import { notifyUser, notifyVisitorRegistered, notifyCounsellorAssigned } from '../notification/notification.dispatcher.js';
 import { assignmentService } from '../assignment/assignment.service.js';
+import { courseCounsellorMappingService } from '../assignment/courseCounsellorMapping.service.js';
 import { assignmentEngine } from '../assignment/assignment.engine.js';
 import { enquiryService } from '../enquiry/enquiry.service.js';
 import { walkinRepository } from './walkin.repository.js';
@@ -49,7 +50,9 @@ export const walkinService = {
   },
 
   getById: async (id, user) => {
-    const lead = await assertLeadInTenant(id, user);
+    await assertLeadInTenant(id, user);
+    const lead = await walkinRepository.findById(id);
+    if (!lead) throw new AppError('Walk-in not found', 404);
     const notes = await walkinRepository.listNotes(id);
     return { ...lead, leadNotes: notes };
   },
@@ -71,10 +74,63 @@ export const walkinService = {
     const branchId = await resolveWriteBranchId(user, data.branchId);
     const branch = await assertBranchInTenant(branchId, user);
 
-    if (!data.assignedToId) {
+    const config = await assignmentEngine.getCompanyAssignmentConfig(branch.companyId);
+    let assignedToId = data.assignedToId || null;
+    let assignmentMatch = null;
+
+    if (!assignedToId) {
+      const courseLabel = data.interestedCourse?.trim() || null;
+      if (courseLabel) {
+        const courseMapped = await courseCounsellorMappingService.resolve({
+          courseLabel,
+          branchId,
+          user,
+        });
+        if (courseMapped.found) {
+          assignedToId = courseMapped.counsellor.id;
+          assignmentMatch = {
+            score: 100,
+            reasons: [`Course mapping: ${courseMapped.courseLabel}`],
+            source: 'COURSE_MAPPING',
+          };
+        }
+      }
+
+      const canAuto = !assignedToId && (
+        config.mode === 'automatic'
+        || config.autoAssignOnWalkInCreate
+        || (config.mode === 'hybrid' && data.autoAssign === true)
+      );
+
+      if (!assignedToId && !canAuto && config.mode === 'manual') {
+        throw new AppError('Counsellor assignment is required — Reception must select a counsellor', 400);
+      }
+
+      if (!assignedToId && canAuto) {
+        const picked = await assignmentEngine.pickCounsellor({
+          branchId,
+          country: data.interestedCountry?.trim() || data.country?.trim() || null,
+          interestedCountry: data.interestedCountry?.trim() || null,
+          interestedCourse: data.interestedCourse?.trim() || null,
+          priority: data.priority || 'NORMAL',
+          metadata: {
+            preferredLanguage: data.preferredLanguage || null,
+            visitPurpose: data.visitPurpose || null,
+          },
+        });
+        if (picked) {
+          assignedToId = picked.counsellor.id;
+          assignmentMatch = picked.match;
+        } else if (config.mode !== 'automatic') {
+          throw new AppError('No eligible counsellor available — select manually', 422);
+        }
+      }
+    }
+
+    if (!assignedToId) {
       throw new AppError('Counsellor assignment is required — Reception must select a counsellor', 400);
     }
-    await assertCounsellorInTenant(data.assignedToId, user);
+    await assertCounsellorInTenant(assignedToId, user);
 
     const dup = await walkinRepository.findByPhone(data.phone, branchId);
     if (dup) {
@@ -94,7 +150,7 @@ export const walkinService = {
       leadCode,
       tokenNumber,
       branchId,
-      assignedToId: data.assignedToId,
+      assignedToId,
       receptionUserId: userId,
       firstName,
       lastName,
@@ -119,7 +175,12 @@ export const walkinService = {
         studyLevel: data.studyLevel || null,
         preferredLanguage: data.preferredLanguage || null,
         visitPurpose: data.visitPurpose || null,
-        assignedManually: true,
+        assignedManually: Boolean(data.manualCounsellorOverride || data.assignedToId),
+        manualCounsellorOverride: Boolean(data.manualCounsellorOverride),
+        autoAssigned: Boolean(assignmentMatch),
+        assignmentSource: assignmentMatch?.source || (assignmentMatch ? 'ENGINE' : null),
+        assignmentScore: assignmentMatch?.score || null,
+        assignmentReasons: assignmentMatch?.reasons || [],
       },
     });
 
@@ -131,7 +192,7 @@ export const walkinService = {
         entityId: lead.id,
         action: 'WALK_IN_REGISTERED',
         description: `Walk-in registered and assigned — ${leadCode}`,
-        metadata: { leadCode, status: 'WALK_IN', assignedToId: data.assignedToId },
+        metadata: { leadCode, status: 'WALK_IN', assignedToId },
       },
     });
 
@@ -140,7 +201,7 @@ export const walkinService = {
       action: 'CREATE',
       entityType: 'Lead',
       entityId: lead.id,
-      newData: { leadCode, status: 'WALK_IN', branchId, assignedToId: data.assignedToId },
+      newData: { leadCode, status: 'WALK_IN', branchId, assignedToId },
       req,
     });
 

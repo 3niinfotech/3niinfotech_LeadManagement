@@ -1,0 +1,151 @@
+.crm-assignment-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.crm-assignment-hub__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.crm-assignment-stat {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.crm-assignment-stat span {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.crm-assignment-stat strong {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.crm-assignment-stat.is-high strong {
+  color: var(--danger, #dc2626);
+}
+
+.crm-assignment-hub__filters {
+  max-width: 220px;
+}
+
+.crm-assignment-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+}
+
+.crm-assignment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.crm-assignment-table th,
+.crm-assignment-table td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.crm-assignment-table th {
+  background: var(--surface-muted, #f8fafc);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary, #64748b);
+}
+
+.crm-assignment-link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+.crm-assignment-link strong {
+  color: var(--primary, #2563eb);
+}
+
+.crm-assignment-link span {
+  color: var(--text-secondary, #64748b);
+  font-size: 0.75rem;
+}
+
+.crm-assignment-priority {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.crm-assignment-priority.is-high,
+.crm-assignment-priority.is-hot,
+.crm-assignment-priority.is-vip {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.crm-assignment-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.crm-assignment-suggest small {
+  color: var(--text-secondary, #64748b);
+  font-size: 0.68rem;
+}
+
+.crm-assignment-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.crm-assignment-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.crm-reception-counsellor__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+}
+
+.crm-reception-counsellor__score {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--primary, #2563eb);
+}
+
+.crm-reception-counsellor__reason {
+  font-size: 0.65rem;
+  color: var(--text-secondary, #64748b);
+}

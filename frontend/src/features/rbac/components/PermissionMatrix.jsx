@@ -23,6 +23,8 @@ export default function PermissionMatrix({
   pendingKey = null,
   className = '',
   showKeys = false,
+  themed = false,
+  compact = false,
 }) {
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const lockedSet = useMemo(
@@ -51,21 +53,28 @@ export default function PermissionMatrix({
   };
 
   return (
-    <div className={`space-y-4 overflow-y-auto pr-1 ${className || 'max-h-[420px]'}`}>
+    <div className={`space-y-4 overflow-y-auto pr-1 ${themed ? 'crm-permission-matrix--themed' : ''} ${className || 'max-h-[420px]'}`}>
       {Object.entries(groups).map(([groupName, perms]) => {
         const keys = perms.map((p) => p.key);
         const freeKeys = keys.filter((k) => !lockedSet.has(k));
         const allSelected = freeKeys.length > 0 && freeKeys.every((k) => selectedSet.has(k));
-        const someSelected = freeKeys.some((k) => selectedSet.has(k));
+
+        const enabledCount = freeKeys.filter((k) => selectedSet.has(k)).length;
 
         return (
-          <div key={groupName} className="border border-border rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2.5 bg-row-hover">
+          <div key={groupName} className={`crm-perm-group ${themed ? 'crm-perm-group--themed' : ''}`}>
+            <div className="crm-perm-group__head">
               <div>
-                <span className="text-sm font-semibold text-text-primary">{groupName}</span>
-                <span className="ml-2 text-[11px] text-text-muted">
-                  {freeKeys.filter((k) => selectedSet.has(k)).length}/{freeKeys.length || keys.length} allowed
-                </span>
+                <span className="crm-perm-group__title">{groupName}</span>
+                {themed ? (
+                  <span className="crm-perm-group__count">
+                    {enabledCount} of {freeKeys.length || keys.length} on
+                  </span>
+                ) : (
+                  <span className="ml-2 text-[11px] text-text-muted">
+                    {enabledCount}/{freeKeys.length || keys.length} allowed
+                  </span>
+                )}
               </div>
               {!readOnly && freeKeys.length > 0 && (
                 <button
@@ -78,7 +87,7 @@ export default function PermissionMatrix({
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 p-2">
+            <div className={`crm-perm-group__grid ${themed ? 'crm-perm-group__grid--themed' : 'grid grid-cols-1 sm:grid-cols-2 gap-1 p-2'}`}>
               {perms.map((perm) => {
                 const locked = lockedSet.has(perm.key);
                 const checked = locked ? false : selectedSet.has(perm.key);
@@ -89,39 +98,38 @@ export default function PermissionMatrix({
                 return (
                   <label
                     key={perm.key}
-                    className={`flex items-start gap-2.5 p-2.5 rounded-md text-sm transition-colors ${
-                      checked ? 'bg-brand-soft/60' : 'hover:bg-row-hover'
-                    } ${locked || readOnly ? 'cursor-default opacity-80' : 'cursor-pointer'} ${
-                      saving ? 'ring-1 ring-brand/30' : ''
-                    }`}
-                    title={locked ? 'This role cannot have this access' : label}
+                    className={`crm-perm-item ${themed ? 'crm-perm-item--themed' : ''} ${
+                      checked ? 'crm-perm-item--checked' : ''
+                    } ${locked || readOnly ? 'crm-perm-item--locked' : ''} ${
+                      saving ? 'crm-perm-item--saving' : ''
+                    } flex items-start gap-2.5 p-2.5 rounded-md text-sm transition-colors ${
+                      !themed && checked ? 'bg-brand-soft/60' : !themed ? 'hover:bg-row-hover' : ''
+                    } ${locked || readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                    title={locked ? 'Not available for this role' : hint}
                   >
                     {saving ? (
                       <FiLoader className="mt-0.5 animate-spin text-brand shrink-0" size={14} />
                     ) : locked ? (
-                      <FiLock className="mt-0.5 text-text-muted shrink-0" size={14} />
+                      <FiLock className="mt-0.5 text-warning shrink-0" size={14} />
                     ) : (
                       <input
                         type="checkbox"
-                        className="mt-1"
+                        className={themed ? 'crm-access-checkbox' : 'mt-1'}
                         checked={checked}
                         disabled={readOnly || locked || Boolean(pendingKey)}
                         onChange={() => applyToggle(perm.key)}
                       />
                     )}
                     <span className="min-w-0 flex-1">
-                      <span className="font-medium text-text-primary block leading-snug">{label}</span>
-                      <span className="text-[11px] text-text-muted block mt-0.5 leading-snug">{hint}</span>
+                      <span className="crm-perm-item__label">{label}</span>
+                      {!compact && !themed && (
+                        <span className="text-[11px] text-text-muted block mt-0.5 leading-snug">{hint}</span>
+                      )}
                       {showKeys && (
                         <span className="text-[10px] text-text-muted/80 font-mono block mt-0.5">{perm.key}</span>
                       )}
-                      {locked && (
-                        <span className="block text-[10px] text-warning mt-0.5 font-medium">
-                          Locked for this role
-                        </span>
-                      )}
                     </span>
-                    {checked && !saving && <FiCheck className="ml-auto text-brand shrink-0 mt-0.5" size={14} />}
+                    {checked && !saving && !locked && <FiCheck className="ml-auto text-brand shrink-0 mt-0.5" size={14} />}
                   </label>
                 );
               })}

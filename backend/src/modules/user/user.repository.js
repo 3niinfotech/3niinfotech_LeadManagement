@@ -11,7 +11,7 @@ const counsellorSelect = {
 };
 
 const userInclude = {
-  role: { select: { id: true, name: true, slug: true, permissions: true } },
+  role: { select: { id: true, name: true, slug: true, dataScope: true, permissions: true } },
   company: { select: { id: true, name: true, code: true } },
   branch: { select: { id: true, name: true, code: true } },
 };
@@ -67,8 +67,17 @@ export const userRepository = {
 
   findRoles: async () =>
     prisma.role.findMany({
+      where: { deletedAt: null, isActive: true },
       orderBy: { name: 'asc' },
-      select: { id: true, name: true, slug: true, description: true, isSystem: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        isSystem: true,
+        dataScope: true,
+        permissions: true,
+      },
     }),
 
   getTeamSummary: async (companyId) => {
@@ -130,5 +139,15 @@ export const userRepository = {
       where: { id },
       data,
       include: { ...userInclude, ...workloadSelect },
+    }),
+
+  softDelete: (id, updatedBy) =>
+    prisma.user.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        status: 'INACTIVE',
+        updatedBy,
+      },
     }),
 };

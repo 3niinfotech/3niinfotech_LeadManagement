@@ -7,10 +7,15 @@ export const getEnquiryReports = asyncHandler(async (req, res) => {
   sendSuccess(res, data);
 });
 
+export const getOverviewReport = asyncHandler(async (req, res) => {
+  const data = await reportsService.getOverview(req.query, req.user);
+  sendSuccess(res, data);
+});
+
 export const getAttendanceReport = asyncHandler(async (req, res) => {
   const [classReport, demoList] = await Promise.all([
     attendanceService.classReport(req.query, req.user),
-    reportsService.getEnquiryReports(req.query, req.user).then((r) => r.demo),
+    reportsService.getEnquiryReports(req.query, req.user).then((r) => r.demo).catch(() => null),
   ]);
   sendSuccess(res, { class: classReport, demo: demoList });
 });

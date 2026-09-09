@@ -1,128 +1,218 @@
-import { useEffect, useState } from 'react';
-import { FiChevronDown, FiExternalLink, FiVolume2 } from 'react-icons/fi';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FiExternalLink, FiImage, FiUsers, FiVolume2 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
-import { masterApi } from '../../../features/master/services/masterApi.service';
+import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
+import { announcementApi } from '../../../features/announcement/services/announcementApi.service';
+import AnnouncementAttachmentList from '../../../features/announcement/components/AnnouncementAttachmentList';
+import {
+  countUnreadAnnouncements,
+  getAnnouncementHeroImage,
+  isAnnouncementUnread,
+  resolveUploadSrc,
+  trackAnnouncementView,
+} from '../../../features/announcement/utils/announcement.utils';
+import { selectUser } from '../../../redux/slices/authSlice';
+import { PERMISSIONS } from '../../../config/permissions';
+import { usePermissions } from '../../../hooks/usePermissions';
+import './announcements.theme.css';
+import '../../../features/announcement/styles/announcement-attachments.theme.css';
 
 const MASTER_ROUTE = '/admin/master/announcements';
 
-function mapRecord(row) {
-  return {
-    id: row.id,
-    title: row.name || row.subject || 'Announcement',
-    date: row.updatedAt && dayjs(row.updatedAt).isValid() ? dayjs(row.updatedAt).format('DD MMM YYYY') : '',
-    excerpt: row.body || row.description || '',
-  };
+function formatDate(value) {
+  if (!value || !dayjs(value).isValid()) return '';
+  return dayjs(value).format('DD MMM YYYY · h:mm A');
 }
 
 export default function AnnouncementPanel({ onClose }) {
+  const user = useSelector(selectUser);
+  const { can } = usePermissions();
+  const canManage = can(PERMISSIONS.MASTERS_VIEW);
+
   const [items, setItems] = useState([]);
   const [openId, setOpenId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await announcementApi.list({ pageSize: 20 });
+      const rows = res?.data || [];
+      setItems(rows);
+      setOpenId(null);
+      setRefreshKey((k) => k + 1);
+    } catch {
+      setItems([]);
+      setOpenId(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await masterApi.list('communication-template', {
-          channel: 'ANNOUNCEMENT',
-          status: 'active',
-          pageSize: 20,
-          sort: 'updatedAt',
-          sortDirection: 'desc',
-        });
-        const rows = (res?.data || []).map(mapRecord);
-        if (!cancelled) {
-          setItems(rows);
-          setOpenId(rows[0]?.id || null);
-        }
-      } catch {
-        if (!cancelled) {
-          setItems([]);
-          setOpenId(null);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+    load();
+  }, [load]);
+
+  const openAnnouncement = useCallback(async (item) => {
+    if (!item?.id) return;
+    const nextOpen = openId === item.id ? null : item.id;
+    setOpenId(nextOpen);
+    if (nextOpen) {
+      await trackAnnouncementView(user?.id, item);
+      setRefreshKey((k) => k + 1);
+      window.dispatchEvent(new Event('crm-announcements-seen'));
+    }
+  }, [openId, user?.id]);
+
+  const unreadCount = useMemo(
+    () => countUnreadAnnouncements(user?.id, items),
+    [user?.id, items, refreshKey],
+  );
+
+  const roleLabel = user?.role?.name || user?.role?.slug || 'your role';
 
   return (
     <div>
-      <div className="px-4 pt-3 pb-2 border-b border-border bg-page/40 flex items-center justify-between gap-2">
-        <p className="text-[12px] text-text-secondary">
-          <span className="font-semibold text-text">{items.length}</span>
-          {' '}
-          published
-        </p>
-        <Link
-          to={MASTER_ROUTE}
-          onClick={() => onClose?.()}
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-text-muted hover:text-brand"
-        >
-          <FiExternalLink className="w-3.5 h-3.5" />
-          Manage
-        </Link>
+      <div className="crm-ann-panel__summary">
+        <div className="crm-ann-panel__stats">
+          <span className="crm-ann-panel__stat">
+            <strong>{items.length}</strong>
+            {' '}
+            for you
+          </span>
+          {unreadCount > 0 && (
+            <>
+              <span aria-hidden>·</span>
+              <span className="crm-ann-panel__stat crm-ann-panel__stat--new">
+                <strong>{unreadCount}</strong>
+                {' '}
+                new
+              </span>
+            </>
+          )}
+        </div>
+        {canManage && (
+          <Link
+            to={MASTER_ROUTE}
+            onClick={() => onClose?.()}
+            className="crm-ann-panel__manage"
+          >
+            <FiExternalLink className="w-3.5 h-3.5" />
+            Manage
+          </Link>
+        )}
       </div>
 
-      <div className="px-2 py-2">
+      <p className="px-4 py-1.5 text-[10px] text-text-muted border-b border-border/60">
+        Showing announcements for
+        {' '}
+        <span className="font-semibold text-text-secondary">{roleLabel}</span>
+      </p>
+
+      <div className="crm-ann-panel__list">
         {loading ? (
-          <p className="py-10 text-center text-sm text-text-muted">Loading…</p>
+          <p className="py-10 text-center text-sm text-text-muted">Loading announcements…</p>
         ) : items.length === 0 ? (
-          <div className="py-10 text-center px-4">
-            <FiVolume2 className="w-9 h-9 text-text-muted mx-auto mb-2 opacity-45" />
-            <p className="text-sm font-medium text-text">No announcements</p>
-            <p className="text-[12px] text-text-muted mt-1">
-              Publish from Master → Communication → Announcement.
+          <div className="crm-ann-empty">
+            <div className="crm-ann-empty__icon">
+              <FiVolume2 className="w-6 h-6" />
+            </div>
+            <p className="crm-ann-empty__title">No announcements</p>
+            <p className="crm-ann-empty__hint">
+              {canManage
+                ? 'Publish from Master → Communication → Announcements. Upload images or share files with your audience.'
+                : 'New notices for your role will appear here and in Notifications.'}
             </p>
           </div>
         ) : (
-          <ul className="space-y-1 max-h-[400px] overflow-y-auto no-scrollbar">
-            {items.map((item) => {
-              const isOpen = openId === item.id;
-              return (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onClick={() => setOpenId(isOpen ? null : item.id)}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
-                      isOpen
-                        ? 'border-info/20 bg-info-soft/40'
-                        : 'border-transparent hover:bg-row-hover'
-                    }`}
-                  >
-                    <div className="flex items-start gap-2.5">
-                      <span className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-lg bg-info-soft text-info shrink-0">
-                        <FiVolume2 className="w-3.5 h-3.5" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-[13px] font-semibold text-text line-clamp-1">{item.title}</p>
-                          <FiChevronDown
-                            className={`w-3.5 h-3.5 text-text-muted shrink-0 transition-transform ${
-                              isOpen ? 'rotate-180' : ''
-                            }`}
-                          />
+          items.map((item) => {
+            const isOpen = openId === item.id;
+            const unread = isAnnouncementUnread(user?.id, item);
+            const heroUrl = resolveUploadSrc(getAnnouncementHeroImage(item));
+
+            return (
+              <article
+                key={item.id}
+                className={`crm-ann-card ${isOpen ? 'crm-ann-card--open' : ''} ${unread ? 'crm-ann-card--unread' : ''}`}
+              >
+                <button
+                  type="button"
+                  className="crm-ann-card__toggle"
+                  onClick={() => openAnnouncement(item)}
+                >
+                  {(isOpen || heroUrl) && (
+                    <div className="crm-ann-card__hero">
+                      {heroUrl ? (
+                        <img src={heroUrl} alt="" loading="lazy" />
+                      ) : (
+                        <div className="crm-ann-card__hero-fallback">
+                          <FiImage className="w-8 h-8" />
                         </div>
-                        {item.date && (
-                          <p className="text-[10px] text-text-muted mt-0.5">{item.date}</p>
-                        )}
-                        {isOpen && (
-                          <p className="mt-2 text-[12px] text-text-secondary leading-relaxed whitespace-pre-wrap">
-                            {item.excerpt || 'No details added yet.'}
-                          </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="crm-ann-card__body">
+                    <div className="crm-ann-card__meta">
+                      <div className="crm-ann-card__badges">
+                        <span className="crm-ann-badge crm-ann-badge--audience">
+                          <FiUsers className="w-3 h-3" />
+                          {item.audienceLabel || 'All staff'}
+                        </span>
+                        {unread && (
+                          <span className="crm-ann-badge crm-ann-badge--new">New</span>
                         )}
                       </div>
+                      <span className="crm-ann-card__date">
+                        {formatDate(item.publishedAt || item.updatedAt)}
+                      </span>
                     </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+
+                    <p className="crm-ann-card__title">{item.title}</p>
+                    {item.subtitle && (
+                      <p className="crm-ann-card__subtitle">{item.subtitle}</p>
+                    )}
+
+                    {isOpen && (
+                      <>
+                        <p className="crm-ann-card__excerpt">
+                          {item.body || 'No details added yet.'}
+                        </p>
+                        {(item.attachments || []).length > 0 && (
+                          <div className="crm-ann-card__attachments">
+                            <AnnouncementAttachmentList
+                              attachments={item.attachments}
+                              compact
+                            />
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </button>
+              </article>
+            );
+          })
         )}
       </div>
+
+      {items.length > 0 && (
+        <div className="crm-ann-panel__footer">
+          <button
+            type="button"
+            className="crm-ann-panel__footer-btn"
+            onClick={async () => {
+              await Promise.all(items.map((item) => trackAnnouncementView(user?.id, item)));
+              setRefreshKey((k) => k + 1);
+              onClose?.();
+            }}
+          >
+            Mark all as seen
+          </button>
+        </div>
+      )}
     </div>
   );
 }

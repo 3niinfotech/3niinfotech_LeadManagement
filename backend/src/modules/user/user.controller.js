@@ -44,3 +44,60 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
   const data = await userService.updateStatus(req.params.id, status, req.user, req);
   sendSuccess(res, data, 'User status updated');
 });
+
+export const deleteUser = asyncHandler(async (req, res) => {
+  const data = await userService.delete(req.params.id, req.user, req);
+  sendSuccess(res, data, 'User deleted');
+});
+
+export const uploadUserAvatar = asyncHandler(async (req, res) => {
+  const data = await userService.uploadAvatar(
+    req.params.id,
+    req.file,
+    req.avatarRelativeDir,
+    req.user,
+    req,
+  );
+  sendSuccess(res, data, 'Profile photo updated');
+});
+
+export const removeUserAvatar = asyncHandler(async (req, res) => {
+  const data = await userService.removeAvatar(req.params.id, req.user, req);
+  sendSuccess(res, data, 'Profile photo removed');
+});
+
+export const getWorkingHours = asyncHandler(async (req, res) => {
+  const { userStaffProfileService } = await import('./user.staff-profile.service.js');
+  const data = await userStaffProfileService.getWorkingHours(req.params.id, req.user);
+  sendSuccess(res, data);
+});
+
+export const saveWorkingHours = asyncHandler(async (req, res) => {
+  const { userStaffProfileService } = await import('./user.staff-profile.service.js');
+  const data = await userStaffProfileService.saveWorkingHours(req.params.id, req.body.schedule, req.user);
+  sendSuccess(res, data, 'Working hours saved');
+});
+
+export const listLeave = asyncHandler(async (req, res) => {
+  const { userStaffProfileService } = await import('./user.staff-profile.service.js');
+  const data = await userStaffProfileService.listLeave(req.params.id, req.user);
+  sendSuccess(res, data);
+});
+
+export const createLeave = asyncHandler(async (req, res) => {
+  const { userStaffProfileService } = await import('./user.staff-profile.service.js');
+  const data = await userStaffProfileService.createLeave(req.params.id, req.body, req.user);
+  sendSuccess(res, data, 'Leave recorded', 201);
+});
+
+export const getCounsellorSkills = asyncHandler(async (req, res) => {
+  const { userStaffProfileService } = await import('./user.staff-profile.service.js');
+  const data = await userStaffProfileService.getCounsellorSkills(req.params.id, req.user);
+  sendSuccess(res, data);
+});
+
+export const saveCounsellorSkills = asyncHandler(async (req, res) => {
+  const { userStaffProfileService } = await import('./user.staff-profile.service.js');
+  const data = await userStaffProfileService.saveCounsellorSkills(req.params.id, req.body.skills, req.user);
+  sendSuccess(res, data, 'Counsellor skills saved');
+});

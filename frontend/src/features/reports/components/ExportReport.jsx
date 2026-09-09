@@ -1,19 +1,63 @@
 import { useState } from 'react';
-import { FiDownload } from 'react-icons/fi';
-import Card from '../../../components/ui/Card';
+import {
+  FiDownload, FiUsers, FiFileText, FiGlobe, FiUserCheck, FiUserX, FiClock, FiShield,
+} from 'react-icons/fi';
 import Button from '../../../components/ui/Button';
 import { apiGet } from '../../../api/apiClient';
 import { API } from '../../../config/api';
 import toastService from '../../../services/toast/toast.service';
+import '../styles/reports.css';
 
 const DATASETS = [
-  { kind: 'enquiry', label: 'Enquiry Export', description: 'All enquiries in your company' },
-  { kind: 'student', label: 'Student Export', description: 'Student master records' },
-  { kind: 'application', label: 'Application Export', description: 'University applications' },
-  { kind: 'visa', label: 'Visa Export', description: 'Visa cases' },
-  { kind: 'enrolled', label: 'Enrolled Export', description: 'Students with status Enrolled' },
-  { kind: 'drop', label: 'Drop Export', description: 'Lost / dropped enquiries' },
-  { kind: 'defer', label: 'Defer Export', description: 'Students with status Deferred' },
+  {
+    kind: 'enquiry',
+    label: 'Enquiry Export',
+    description: 'All enquiries in your company scope',
+    icon: FiUsers,
+    tone: 'primary',
+  },
+  {
+    kind: 'student',
+    label: 'Student Export',
+    description: 'Student master records',
+    icon: FiUserCheck,
+    tone: 'success',
+  },
+  {
+    kind: 'application',
+    label: 'Application Export',
+    description: 'University applications',
+    icon: FiFileText,
+    tone: 'info',
+  },
+  {
+    kind: 'visa',
+    label: 'Visa Export',
+    description: 'Visa cases by country & status',
+    icon: FiGlobe,
+    tone: 'warning',
+  },
+  {
+    kind: 'enrolled',
+    label: 'Enrolled Export',
+    description: 'Students with status Enrolled',
+    icon: FiUserCheck,
+    tone: 'success',
+  },
+  {
+    kind: 'drop',
+    label: 'Drop Export',
+    description: 'Lost / dropped enquiries',
+    icon: FiUserX,
+    tone: 'danger',
+  },
+  {
+    kind: 'defer',
+    label: 'Defer Export',
+    description: 'Students with status Deferred',
+    icon: FiClock,
+    tone: 'info',
+  },
 ];
 
 function toCsv(rows) {
@@ -65,32 +109,46 @@ export default function ExportReport() {
   };
 
   return (
-    <div className="space-y-3">
-      <Card className="!p-4">
-        <h3 className="text-sm font-semibold text-text">Backup / Export</h3>
-        <p className="text-xs text-text-muted mt-1">
-          Tenant-safe CSV downloads. Capped at 5,000 rows per file. No backup table is created.
-        </p>
-      </Card>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {DATASETS.map((item) => (
-          <Card key={item.kind} className="!p-4 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-text">{item.label}</p>
-              <p className="text-xs text-text-muted mt-0.5">{item.description}</p>
+    <div className="crm-report-stack">
+      <div className="crm-report-hero-banner">
+        <div>
+          <h3 className="crm-report-hero-banner__title">Tenant-safe CSV backup</h3>
+          <p className="crm-report-hero-banner__sub">
+            Exports respect your company wall. Each file is capped at 5,000 rows — no cross-tenant
+            leakage, no fabricated backups.
+          </p>
+        </div>
+        <span className="crm-report-hero-banner__badge">
+          <FiShield className="h-3.5 w-3.5" />
+          Isolated
+        </span>
+      </div>
+
+      <div className="crm-report-export-grid">
+        {DATASETS.map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.kind} className="crm-report-export-card">
+              <span className={`crm-report-export-card__icon crm-report-export-card__icon--${item.tone}`}>
+                <Icon strokeWidth={1.75} />
+              </span>
+              <div className="crm-report-export-card__copy">
+                <p className="crm-report-export-card__title">{item.label}</p>
+                <p className="crm-report-export-card__desc">{item.description}</p>
+              </div>
+              <Button
+                size="sm"
+                variant="primary"
+                icon={FiDownload}
+                loading={busy === item.kind}
+                disabled={Boolean(busy)}
+                onClick={() => runExport(item.kind)}
+              >
+                Export
+              </Button>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              icon={FiDownload}
-              loading={busy === item.kind}
-              disabled={Boolean(busy)}
-              onClick={() => runExport(item.kind)}
-            >
-              Export
-            </Button>
-          </Card>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

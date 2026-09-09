@@ -8,8 +8,8 @@ export const ROLE_DEFAULT_ROUTES = {
   operational_head: '/admin/dashboard',
   branch_manager: '/admin/dashboard',
   team_leader: '/admin/dashboard',
-  counsellor: '/admin/enquiries',
-  teacher: '/admin/dashboard',
+  counsellor: '/admin/dashboard',
+  teacher: '/admin/teacher/dashboard',
   receptionist: '/admin/reception',
   application_officer: '/admin/applications',
   visa_officer: '/admin/visas',
@@ -33,12 +33,12 @@ export const ROLE_WORKSPACE_META = {
     subtitle: "Today's appointments, visitors, and follow-ups",
   },
   counsellor: {
-    title: 'Counselling',
-    subtitle: 'Your assigned enquiries, follow-ups, and demos',
+    title: 'My counselling desk',
+    subtitle: 'Pipeline, follow-ups, demos, and appointments assigned to you',
   },
   teacher: {
-    title: 'Classes',
-    subtitle: "Today's sessions and student attendance",
+    title: 'Teacher workspace',
+    subtitle: 'Your classes, students, and attendance',
   },
   application_officer: {
     title: 'Applications',

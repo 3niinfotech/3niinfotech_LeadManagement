@@ -6,7 +6,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  FiChevronDown, FiChevronLeft, FiChevronRight, FiSearch, FiGrid, FiLogOut, FiX,
+  FiChevronDown, FiChevronLeft, FiChevronRight, FiSearch, FiGrid, FiX,
 } from 'react-icons/fi';
 import { iconSize } from '../../theme/icons';
 import { pageEase } from '../../theme/pageMotion';
@@ -18,6 +18,9 @@ import { useSidebarMenu } from '../../hooks/useSidebarMenu';
 import { sidebar as sidebarTheme } from '../../theme';
 import { useCompanyRuntime } from '../../features/organization/CompanyRuntime';
 import { resolvePublicAssetUrl } from '../../config/company-settings.config';
+import SidebarProfileDock from './SidebarProfileDock';
+import SidebarMonthlyTarget from './SidebarMonthlyTarget';
+import { ROLES } from '../../config/roles';
 
 const submenuEase = pageEase;
 const submenuSpring = { type: 'spring', stiffness: 400, damping: 34, mass: 0.82 };
@@ -58,32 +61,34 @@ const accordionVariants = {
     height: 0,
     opacity: 0,
     transition: {
-      height: { duration: 0.26, ease: [0.4, 0, 0.2, 1] },
-      opacity: { duration: 0.14 },
+      height: { duration: 0.22, ease: [0.4, 0, 0.2, 1] },
+      opacity: { duration: 0.12, ease: 'easeOut' },
     },
   },
   visible: {
     height: 'auto',
     opacity: 1,
     transition: {
-      height: { duration: 0.34, ease: submenuEase },
-      opacity: { duration: 0.22, delay: 0.06 },
+      height: { duration: 0.28, ease: [0, 0, 0.2, 1] },
+      opacity: { duration: 0.18, delay: 0.05, ease: 'easeOut' },
     },
   },
   exit: {
     height: 0,
     opacity: 0,
     transition: {
-      height: { duration: 0.24, ease: [0.4, 0, 0.2, 1] },
-      opacity: { duration: 0.1 },
+      height: { duration: 0.22, ease: [0.4, 0, 0.2, 1] },
+      opacity: { duration: 0.1, ease: 'easeIn' },
     },
   },
 };
 
+const ACCORDION_SWITCH_MS = 230;
+
 const submenuListVariants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.045, delayChildren: 0.07 } },
-  exit: { transition: { staggerChildren: 0.03, staggerDirection: -1 } },
+  visible: { transition: { staggerChildren: 0.035, delayChildren: 0.05 } },
+  exit: { transition: { staggerChildren: 0, staggerDirection: -1 } },
 };
 
 const submenuChildVariants = {
@@ -151,7 +156,7 @@ function getItemStyles({
 
   let shell = 'sidebar-nav-item relative flex items-center gap-2.5 w-full font-medium transition-colors duration-200 ease-out';
   if (isChild) {
-    shell += ` px-3 h-9 text-[13px] rounded-lg mx-0.5${depth > 1 ? ' ml-2' : ''}`;
+    shell += ` px-2.5 h-9 text-[13px] rounded-lg${depth > 1 ? ' ml-1' : ''}`;
   } else {
     shell += ' px-3 h-10 text-sm rounded-lg';
   }
@@ -234,7 +239,7 @@ function NavItemContent({
       {showChevron ? (
         <motion.span
           animate={{ rotate: expanded ? 180 : 0 }}
-          transition={submenuSpring}
+          transition={{ duration: 0.22, ease: submenuEase }}
           className="relative z-10 flex items-center justify-center shrink-0"
         >
           <FiChevronDown
@@ -291,7 +296,7 @@ function CollapsedFlyout({ label, children, items }) {
   const [pos, setPos] = useState({ top: 0, left: 0, maxHeight: 420 });
   const timer = useRef(null);
   const triggerRef = useRef(null);
-  const activeNavPath = useContext(ActiveNavPathContext);
+  const activeNav = useContext(ActiveNavContext);
 
   const updatePosition = useCallback(() => {
     if (!triggerRef.current) return;
@@ -381,7 +386,7 @@ function CollapsedFlyout({ label, children, items }) {
                 >
                   {items.map((child) => {
                     const ChildIcon = child.icon;
-                    const isActive = child.path === activeNavPath;
+                    const isActive = child.id === activeNav.id;
                     return (
                       <motion.div key={child.id} variants={flyoutItemVariants}>
                         <NavLink
@@ -411,35 +416,51 @@ function CollapsedFlyout({ label, children, items }) {
 }
 
 /**
- * Only the most specific menu entry may light up. Without this, /admin/reception
- * (Dashboard) and /admin/reception/walk-ins both match and two items look selected.
+ * Only one menu row may be active. When several links share a route (e.g. Team & Access),
+ * prefer the shallowest (top-level) item.
  */
-function resolveActiveNavPath(items, pathname) {
+function flattenNavLinks(items = [], depth = 0) {
+  const links = [];
+  for (const item of items) {
+    if (item.path) links.push({ ...item, depth });
+    if (item.children?.length) links.push(...flattenNavLinks(item.children, depth + 1));
+  }
+  return links;
+}
+
+function resolveActiveNavLink(items, pathname) {
   let best = null;
-  for (const { path } of flattenNavLinks(items)) {
-    if (!path) continue;
-    if (pathname !== path && !pathname.startsWith(`${path}/`)) continue;
-    if (!best || path.length > best.length) best = path;
+  for (const link of flattenNavLinks(items)) {
+    if (!link.path) continue;
+    const linkPath = link.path.split('?')[0];
+    if (pathname !== linkPath && !pathname.startsWith(`${linkPath}/`)) continue;
+    if (
+      !best
+      || link.depth < best.depth
+      || (link.depth === best.depth && linkPath.length > best.path.split('?')[0].length)
+    ) {
+      best = link;
+    }
   }
   return best;
 }
 
-function subtreeHasPath(item, path) {
-  if (!path) return false;
-  if (item.path === path) return true;
-  return item.children?.some((child) => subtreeHasPath(child, path)) ?? false;
+function subtreeHasActiveItem(item, activeId) {
+  if (!activeId) return false;
+  if (item.id === activeId) return true;
+  return item.children?.some((child) => subtreeHasActiveItem(child, activeId)) ?? false;
 }
 
-const ActiveNavPathContext = createContext(null);
+const ActiveNavContext = createContext({ id: null, path: null });
 
 /** Group ids that must stay open so the active route is visible */
-function collectActiveAncestorIds(items, activePath) {
+function collectActiveAncestorIds(items, activeId) {
   const open = new Set();
 
   const walk = (list = []) => {
     let branchActive = false;
     for (const item of list) {
-      const selfActive = Boolean(item.path) && item.path === activePath;
+      const selfActive = item.id === activeId;
       const childActive = item.children?.length ? walk(item.children) : false;
       if (childActive && item.children?.length) open.add(item.id);
       if (selfActive || childActive) branchActive = true;
@@ -463,15 +484,6 @@ function collectDescendantGroupIds(item) {
   };
   walk(item.children);
   return ids;
-}
-
-function flattenNavLinks(items = []) {
-  const links = [];
-  for (const item of items) {
-    if (item.path) links.push(item);
-    if (item.children?.length) links.push(...flattenNavLinks(item.children));
-  }
-  return links;
 }
 
 function menuItemSearchText(item) {
@@ -519,6 +531,7 @@ function canViewNavItem(item, userPermissions, roleSlug) {
   if (item.id === 'master' && isMastersForcedHidden(roleSlug)) return false;
   if (String(item.id || '').startsWith('master-') && isMastersForcedHidden(roleSlug)) return false;
   if (item.id === 'reception' && isReceptionForcedHidden(roleSlug)) return false;
+  if (String(item.id || '').startsWith('teacher-') && roleSlug !== 'teacher') return false;
 
   const required = item.permissions || (item.permission ? [item.permission] : []);
   if (required.length && !hasAnyPermission(userPermissions, required)) return false;
@@ -542,7 +555,7 @@ function SidebarItem({
 }) {
   const permissions = useSelector(selectPermissions);
   const roleSlug = useSelector(selectUser)?.role?.slug;
-  const activeNavPath = useContext(ActiveNavPathContext);
+  const activeNav = useContext(ActiveNavContext);
   const Icon = item.icon;
   const hasChildren = item.children?.length > 0;
 
@@ -551,18 +564,18 @@ function SidebarItem({
   );
 
   const childActive = visibleChildren?.some(
-    (c) => subtreeHasPath(c, activeNavPath),
+    (c) => subtreeHasActiveItem(c, activeNav.id),
   ) ?? false;
 
-  const isSelfActive = Boolean(item.path) && item.path === activeNavPath;
+  const isSelfActive = item.id === activeNav.id;
   const canShowSubmenu = !compact && !isAnimating;
   const isOpen = forceExpand || openIds?.has(item.id);
   const groupOpen = canShowSubmenu && isOpen;
 
   const toggleGroup = useCallback(() => {
     if (compact || forceExpand) return;
-    onToggleGroup?.(item, siblingItems);
-  }, [compact, forceExpand, item, onToggleGroup, siblingItems]);
+    onToggleGroup?.(item, siblingItems, depth);
+  }, [compact, forceExpand, item, onToggleGroup, siblingItems, depth]);
 
   if (!canViewNavItem(item, permissions, roleSlug)) return null;
   if (hasChildren && !visibleChildren?.length) return null;
@@ -606,23 +619,13 @@ function SidebarItem({
     }
 
     return (
-      <motion.div
-        layout
-        initial={false}
-        animate={groupOpen ? 'open' : 'closed'}
-        variants={{
-          open: { marginBottom: 8 },
-          closed: { marginBottom: 0 },
-        }}
-        transition={{ duration: 0.28, ease: submenuEase }}
-        className={`rounded-xl border overflow-hidden transition-colors duration-300 ease-out
-          ${groupOpen
-            ? 'bg-sidebar-submenuBg border-sidebar-submenuLine'
-            : 'bg-transparent border-transparent'
-          }`}
+      <div
+        className={`rounded-xl border overflow-hidden transition-[background-color,border-color,box-shadow,margin] duration-300 ease-out
+          ${groupOpen ? 'mb-2 bg-sidebar-submenuBg border-sidebar-submenuLine shadow-sm' : 'mb-0.5 bg-transparent border-transparent'}
+        `}
       >
         {groupBtn}
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} mode="wait">
           {groupOpen && (
             <motion.div
               key={`submenu-${item.id}`}
@@ -636,8 +639,8 @@ function SidebarItem({
                 variants={submenuListVariants}
                 initial="hidden"
                 animate="visible"
-                exit="exit"
-                className="border-t border-sidebar-submenuLine/50 px-1.5 pb-1.5 pt-1 space-y-0.5"
+                exit="hidden"
+                className="sidebar-submenu-body border-t border-sidebar-submenuLine/50 px-2 pb-2 pt-1.5 space-y-0.5"
               >
                 {visibleChildren.map((child) => (
                   <motion.div key={child.id} variants={submenuChildVariants}>
@@ -658,7 +661,7 @@ function SidebarItem({
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
     );
   }
 
@@ -702,10 +705,14 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const collapsed = useSelector(selectSidebarCollapsed);
+  const currentUser = useSelector(selectUser);
+  const roleSlug = currentUser?.role?.slug || '';
+  const showMonthlyTarget = roleSlug === ROLES.COUNSELLOR || roleSlug === ROLES.TEAM_LEADER;
   const { company } = useCompanyRuntime();
   const menuConfig = useSidebarMenu();
   const [search, setSearch] = useState('');
   const [openIds, setOpenIds] = useState(() => new Set());
+  const [pendingOpenId, setPendingOpenId] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const width = collapsed ? sidebarTheme.collapsedWidth : sidebarTheme.width;
   const isExpanding = !collapsed && isAnimating;
@@ -713,38 +720,73 @@ export default function Sidebar() {
   const query = search.trim();
   const filteredConfig = query ? filterMenuTree(menuConfig, query) : menuConfig;
   const forceExpand = Boolean(query);
-  const activeNavPath = useMemo(
-    () => resolveActiveNavPath(menuConfig, location.pathname),
+  const activeNav = useMemo(
+    () => resolveActiveNavLink(menuConfig, location.pathname) || { id: null, path: null },
     [menuConfig, location.pathname],
   );
 
   useEffect(() => {
     if (collapsed || forceExpand) return;
-    setOpenIds(collectActiveAncestorIds(menuConfig, activeNavPath));
-  }, [activeNavPath, menuConfig, collapsed, forceExpand]);
+    setOpenIds(collectActiveAncestorIds(menuConfig, activeNav.id));
+    setPendingOpenId(null);
+  }, [activeNav.id, menuConfig, collapsed, forceExpand]);
+
+  useEffect(() => {
+    if (!pendingOpenId) return undefined;
+    const timer = window.setTimeout(() => {
+      setOpenIds((prev) => {
+        const next = new Set(prev);
+        next.add(pendingOpenId);
+        return next;
+      });
+      setPendingOpenId(null);
+    }, ACCORDION_SWITCH_MS);
+    return () => window.clearTimeout(timer);
+  }, [pendingOpenId]);
 
   const handleToggleGroup = useCallback((item, siblings = []) => {
+    let deferOpenId = null;
+    let clearPending = false;
+
     setOpenIds((prev) => {
       const next = new Set(prev);
-      if (next.has(item.id)) {
+
+      if (prev.has(item.id)) {
         next.delete(item.id);
         collectDescendantGroupIds(item).forEach((id) => next.delete(id));
+        clearPending = true;
         return next;
       }
+
+      const openSibling = siblings.some(
+        (sibling) => sibling.id !== item.id
+          && sibling.children?.length
+          && prev.has(sibling.id),
+      );
 
       for (const sibling of siblings) {
         if (sibling.id === item.id || !sibling.children?.length) continue;
         next.delete(sibling.id);
         collectDescendantGroupIds(sibling).forEach((id) => next.delete(id));
       }
+
+      if (openSibling) {
+        deferOpenId = item.id;
+        return next;
+      }
+
+      clearPending = true;
       next.add(item.id);
       return next;
     });
+
+    if (clearPending) setPendingOpenId(null);
+    else if (deferOpenId) setPendingOpenId(deferOpenId);
   }, []);
 
   const handleLogout = () => {
     dispatch(logoutUser());
-    navigate('/login');
+    navigate('/');
   };
 
   return (
@@ -832,7 +874,7 @@ export default function Sidebar() {
               No menu items match “{query}”
             </p>
           ) : (
-            <ActiveNavPathContext.Provider value={activeNavPath}>
+            <ActiveNavContext.Provider value={activeNav}>
               {filteredConfig.map((item) => (
                 <SidebarItem
                   key={item.id}
@@ -846,21 +888,15 @@ export default function Sidebar() {
                   forceExpand={forceExpand}
                 />
               ))}
-            </ActiveNavPathContext.Provider>
+            </ActiveNavContext.Provider>
           )}
         </nav>
 
-        <div className={`border-t border-sidebar-border shrink-0 ${collapsed ? 'p-2' : 'p-2'}`}>
-          <button
-            type="button"
-            onClick={handleLogout}
-            title="Logout"
-            className={`w-full flex items-center text-sm font-medium text-danger hover:bg-danger-soft transition-colors duration-200
-              ${collapsed ? 'justify-center h-10 rounded-xl' : 'gap-3 px-3 py-2.5 rounded-xl'}`}
-          >
-            <FiLogOut className={iconSize.md} strokeWidth={1.75} />
-            {!collapsed && <span>Logout</span>}
-          </button>
+        <div className="sidebar-footer shrink-0 mt-auto">
+          {showMonthlyTarget ? (
+            <SidebarMonthlyTarget collapsed={collapsed} />
+          ) : null}
+          <SidebarProfileDock collapsed={collapsed} onLogout={handleLogout} />
         </div>
       </aside>
 

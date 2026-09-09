@@ -50,7 +50,7 @@ export const FEATURE_REGISTRY = [
     key: 'reception.counsellor_availability',
     module: 'reception',
     name: 'Counsellor Availability',
-    description: 'Track counsellor presence for manual assignment recommendations',
+    description: 'System-derived counsellor availability for assignment recommendations',
     defaultEnabled: true,
     dependsOn: ['reception.register'],
     sortOrder: 10,

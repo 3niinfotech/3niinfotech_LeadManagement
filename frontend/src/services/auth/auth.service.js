@@ -2,7 +2,19 @@ import { API } from '../../config/api';
 import {
   apiDelete, apiGet, apiPost, apiPatch,
 } from '../../api/apiClient';
+import apiClient from '../../api/axios';
 import { STORAGE_KEYS } from '../../config/storageKeys';
+
+function withRefreshHeader(config = {}) {
+  const token = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+  return {
+    ...config,
+    headers: {
+      ...(config.headers || {}),
+      ...(token ? { 'x-refresh-token': token } : {}),
+    },
+  };
+}
 
 export const authService = {
   login: async ({ email, password, portal }) => {
@@ -76,6 +88,56 @@ export const authService = {
 
   changePassword: async (payload) => {
     const response = await apiPost(API.CHANGE_PASSWORD, payload);
+    return response.data;
+  },
+
+  forgotPassword: async (payload) => {
+    const response = await apiPost(API.FORGOT_PASSWORD, payload);
+    return response.data;
+  },
+
+  getSecurityOverview: async () => {
+    const response = await apiGet(API.SECURITY_OVERVIEW);
+    return response.data;
+  },
+
+  listSessions: async () => {
+    const response = await apiClient.get(API.SESSIONS, withRefreshHeader());
+    return response.data?.data ?? response.data;
+  },
+
+  revokeSession: async (id) => {
+    const response = await apiClient.delete(API.SESSION_BY_ID(id), withRefreshHeader());
+    return response.data?.data ?? response.data;
+  },
+
+  revokeOtherSessions: async () => {
+    const response = await apiClient.post(API.SESSIONS_REVOKE_OTHERS, {}, withRefreshHeader());
+    return response.data?.data ?? response.data;
+  },
+
+  listActivity: async (limit = 20) => {
+    const response = await apiGet(API.ACCOUNT_ACTIVITY, { limit });
+    return response.data;
+  },
+
+  listLoginHistory: async (limit = 20) => {
+    const response = await apiGet(API.LOGIN_HISTORY, { limit });
+    return response.data;
+  },
+
+  listApiTokens: async () => {
+    const response = await apiGet(API.API_TOKENS);
+    return response.data;
+  },
+
+  createApiToken: async (payload) => {
+    const response = await apiPost(API.API_TOKENS, payload);
+    return response.data;
+  },
+
+  revokeApiToken: async (id) => {
+    const response = await apiDelete(API.API_TOKEN_BY_ID(id));
     return response.data;
   },
 };

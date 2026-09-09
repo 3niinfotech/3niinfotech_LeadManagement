@@ -63,4 +63,26 @@ export const bulkAssignStudents = asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Students assigned');
 });
 
+export const getStudentDocuments = asyncHandler(async (req, res) => {
+  const data = await studentService.getDocuments(req.params.id, req.user);
+  sendSuccess(res, data);
+});
+
+export const uploadStudentDocument = asyncHandler(async (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: 'File required' });
+  const doc = await studentService.addDocument(
+    req.params.id,
+    req.file,
+    req.user.id,
+    req.body.category,
+    req,
+  );
+  sendSuccess(res, doc, 'Document uploaded', 201);
+});
+
+export const deleteStudentDocument = asyncHandler(async (req, res) => {
+  await studentService.removeDocument(req.params.id, req.params.docId, req.user.id, req);
+  sendSuccess(res, null, 'Document deleted');
+});
+
 export { authorize, PERMISSIONS };

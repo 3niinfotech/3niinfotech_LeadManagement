@@ -8,8 +8,8 @@ export const ROLE_DEFAULT_ROUTES = {
   operational_head: '/admin/dashboard',
   branch_manager: '/admin/dashboard',
   team_leader: '/admin/dashboard',
-  counsellor: '/admin/enquiries',
-  teacher: '/admin/dashboard',
+  counsellor: '/admin/dashboard',
+  teacher: '/admin/teacher/dashboard',
   receptionist: '/admin/reception',
   application_officer: '/admin/applications',
   visa_officer: '/admin/visas',
@@ -44,9 +44,14 @@ export const ROLE_NAV_LABELS = {
   },
   teacher: {
     dashboard: 'Dashboard',
-    batches: 'My Batches',
-    students: 'Students',
+    batches: 'My Classes',
+    students: 'My Students',
     calendar: 'Timetable',
+    'teacher-assignments': 'Assignments',
+    'teacher-tests': 'Tests',
+    'teacher-materials': 'Materials',
+    'teacher-performance': 'Performance',
+    'teacher-attendance': 'Attendance',
   },
   application_officer: {
     dashboard: 'Dashboard',
@@ -75,6 +80,19 @@ export const ROLE_NAV_PATHS = {
     dashboard: '/admin/reception',
     settings: '/admin/profile',
   },
+  counsellor: {
+    dashboard: '/admin/dashboard',
+  },
+  teacher: {
+    dashboard: '/admin/teacher/dashboard',
+    batches: '/admin/teacher/classes',
+    students: '/admin/teacher/students',
+    'teacher-assignments': '/admin/teacher/assignments',
+    'teacher-tests': '/admin/teacher/tests',
+    'teacher-materials': '/admin/teacher/materials',
+    'teacher-performance': '/admin/teacher/performance',
+    'teacher-attendance': '/admin/teacher/attendance',
+  },
 };
 
 export const ROLE_NAV_PERMISSION_OVERRIDES = {
@@ -85,8 +103,8 @@ export const ROLE_NAV_PERMISSION_OVERRIDES = {
 
 export const ROLE_WORKSPACE_META = {
   receptionist: { title: 'Reception', subtitle: "Today's appointments, visitors, and follow-ups" },
-  counsellor: { title: 'Counselling', subtitle: 'Your assigned enquiries, follow-ups, and demos' },
-  teacher: { title: 'Classes', subtitle: "Today's sessions and student attendance" },
+  counsellor: { title: 'My counselling desk', subtitle: 'Pipeline, follow-ups, demos, and appointments assigned to you' },
+  teacher: { title: 'Teacher workspace', subtitle: 'Your classes, students, and attendance' },
   application_officer: { title: 'Applications', subtitle: 'Assigned student applications' },
   visa_officer: { title: 'Visa cases', subtitle: 'Assigned visa files and follow-ups' },
   finance_manager: { title: 'Finance', subtitle: 'Invoices, collections, and revenue' },

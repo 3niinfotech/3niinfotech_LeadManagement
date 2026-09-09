@@ -11,6 +11,8 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import DataGrid from '../../../components/table/DataGrid';
 import { createAvatarColumn } from '../../../components/table/grid.columns';
+import { getDocumentUrl } from '../../enquiry/config/enquiryDocument.config';
+import { createCountryColumn } from '../../../components/table/countryColumn';
 import Badge from '../../../components/ui/Badge';
 import { TABLE_DENSITY } from '../../../config/constants';
 import { useStudentStatusOptions } from '../hooks/useStudentStatusOptions';
@@ -74,6 +76,7 @@ export default function StudentGrid({
     () => [
       createAvatarColumn({
         nameGetter: (row) => `${row?.firstName || ''} ${row?.lastName || ''}`.trim(),
+        srcGetter: (row) => getDocumentUrl(row?.photoUrl) || '',
       }),
       {
         field: 'studentName',
@@ -156,15 +159,12 @@ export default function StudentGrid({
           );
         },
       },
-      {
+      createCountryColumn({
         field: 'country',
         headerName: 'Target Country',
-        minWidth: 110,
+        minWidth: 130,
         flex: 0.9,
-        cellClass: `text-xs ${centerCell}`,
-        headerClass: centerHeader,
-        valueGetter: (p) => p.data?.country || '—',
-      },
+      }),
       {
         field: 'course',
         headerName: 'Course',

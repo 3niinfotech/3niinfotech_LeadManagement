@@ -1,0 +1,168 @@
+.crm-error-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem 2rem;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in srgb, var(--brand) 8%, transparent), transparent),
+    var(--bg-page);
+}
+
+.crm-error-page__wrap {
+  width: 100%;
+  max-width: 42rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.crm-error-page__card {
+  width: 100%;
+  max-width: 34rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.crm-error-page__illus {
+  width: 100%;
+  max-width: 18rem;
+  height: auto;
+  margin-bottom: 0.5rem;
+  user-select: none;
+  pointer-events: none;
+}
+
+.crm-error-page__title {
+  margin: 0.35rem 0 0;
+  font-size: 1.375rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.crm-error-page__subtitle {
+  margin: 0.5rem 0 0;
+  max-width: 26rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.crm-error-page__ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.crm-error-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.35rem;
+  width: 100%;
+}
+
+.crm-error-page__actions button {
+  min-width: 8.75rem;
+}
+
+.crm-error-dev {
+  width: 100%;
+  margin-top: 1.75rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 22%, var(--border));
+  border-radius: 0.65rem;
+  background: var(--bg-card);
+  overflow: hidden;
+  text-align: left;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.crm-error-dev__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--danger) 5%, var(--bg-card));
+}
+
+.crm-error-dev__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.crm-error-dev__copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.crm-error-dev__copy:hover {
+  background: var(--row-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.crm-error-dev__copy--done {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+}
+
+.crm-error-dev__body {
+  padding: 0.75rem 0.85rem 0.85rem;
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.crm-error-dev__message {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--danger) 85%, var(--text-primary));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  word-break: break-word;
+}
+
+.crm-error-dev__stack {
+  margin: 0.65rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

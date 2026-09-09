@@ -9,16 +9,24 @@ export const VISIT_PURPOSES = [
   'Other',
 ];
 
-export const PRESENCE_STATUS_OPTIONS = [
-  { value: 'AVAILABLE', label: 'Available', tone: 'success' },
-  { value: 'BUSY', label: 'Busy', tone: 'warning' },
-  { value: 'IN_COUNSELLING', label: 'In Counselling', tone: 'primary' },
-  { value: 'MEETING', label: 'Meeting', tone: 'secondary' },
-  { value: 'BREAK', label: 'Break', tone: 'secondary' },
-  { value: 'LUNCH', label: 'Lunch', tone: 'secondary' },
-  { value: 'DND', label: 'Do Not Disturb', tone: 'danger' },
-  { value: 'OFFLINE', label: 'Offline', tone: 'muted' },
-];
+/** System-derived availability labels (read-only, from backend engine) */
+export const AVAILABILITY_STATUS_DISPLAY = {
+  AVAILABLE: { label: 'Available', tone: 'success' },
+  TEMPORARILY_BUSY: { label: 'Temporarily Busy', tone: 'warning' },
+  ON_LEAVE: { label: 'On Leave', tone: 'danger' },
+  OUTSIDE_WORKING_HOURS: { label: 'Outside Working Hours', tone: 'caution' },
+  AT_CAPACITY: { label: 'At Capacity', tone: 'caution' },
+  INELIGIBLE: { label: 'Ineligible', tone: 'neutral' },
+  UNAVAILABLE: { label: 'Unavailable', tone: 'danger' },
+  OFFLINE: { label: 'Offline', tone: 'neutral' },
+};
+
+/** @deprecated Manual presence removed — use AVAILABILITY_STATUS_DISPLAY */
+export const PRESENCE_STATUS_OPTIONS = Object.entries(AVAILABILITY_STATUS_DISPLAY).map(([value, cfg]) => ({
+  value,
+  label: cfg.label,
+  tone: cfg.tone,
+}));
 
 export const OFFER_REJECT_REASONS = [
   'In another session',

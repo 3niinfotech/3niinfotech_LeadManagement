@@ -1,11 +1,11 @@
 import {
-  FiUserPlus, FiClock, FiUsers, FiCheckCircle, FiXCircle, FiCalendar,
+  FiUserPlus, FiAlertCircle, FiUsers, FiCheckCircle, FiXCircle, FiCalendar,
 } from 'react-icons/fi';
 import { buildSummaryStatItems } from '../../../components/ui/summaryStatBar.helpers';
 
 const SUMMARY_ICONS = {
   todayWalkIns: FiUserPlus,
-  waiting: FiClock,
+  unassigned: FiAlertCircle,
   inCounselling: FiUsers,
   completed: FiCheckCircle,
   cancelled: FiXCircle,
@@ -14,7 +14,7 @@ const SUMMARY_ICONS = {
 
 const SUMMARY_ITEMS = [
   { key: 'todayWalkIns', label: "Today's Walk-ins", tone: 'primary', filterValue: 'today' },
-  { key: 'waiting', label: 'Waiting', tone: 'warning', filterValue: 'WAITING' },
+  { key: 'unassigned', label: 'Unassigned', tone: 'danger', filterValue: 'unassigned' },
   { key: 'inCounselling', label: 'In Counselling', tone: 'info', filterValue: 'IN_COUNSELLING' },
   { key: 'completed', label: 'Completed', tone: 'success', filterValue: 'COMPLETED' },
   { key: 'cancelled', label: 'Cancelled', tone: 'danger', filterValue: 'CANCELLED' },

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { FiUserCheck, FiEye, FiTrash2 } from 'react-icons/fi';
 import DataGrid from '../../../components/table/DataGrid';
 import { createActionsColumn, createAvatarColumn } from '../../../components/table/grid.columns';
+import { createCountryColumn } from '../../../components/table/countryColumn';
 import WalkInStatusBadge from './WalkInStatusBadge';
 import WalkInPriorityBadge from './WalkInPriorityBadge';
 import { TABLE_DENSITY } from '../../../config/constants';
@@ -59,13 +60,12 @@ export default function WalkInGrid({
       cellClass: `tabular-nums text-text-secondary ${centerCell}`,
       headerClass: centerHeader,
     },
-    {
+    createCountryColumn({
       field: 'country',
       headerName: 'Country',
-      width: 108,
-      cellClass: `text-text-secondary ${centerCell}`,
-      headerClass: centerHeader,
-    },
+      width: 140,
+      valueGetter: (row) => row?.country || row?.interestedCountry || '',
+    }),
     {
       field: 'interestedCourse',
       headerName: 'Course',
@@ -114,7 +114,7 @@ export default function WalkInGrid({
       cellRenderer: (p) => {
         const row = p.data;
         if (!row) return null;
-        const needsAssign = row.status === 'WAITING' || row.status === 'WALK_IN' || !row.assignedToId;
+        const needsAssign = !row.assignedToId;
         return (
           <div className="crm-grid-actions" onClick={(e) => e.stopPropagation()}>
             {onAssign && needsAssign && (

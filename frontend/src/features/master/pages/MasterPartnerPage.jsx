@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiBriefcase, FiPlus, FiEye, FiEdit2, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
+import { FiBriefcase, FiPlus, FiEye, FiEdit2, FiToggleLeft, FiToggleRight, FiTrash2 } from 'react-icons/fi';
 import ModulePageCard from '../../../components/layout/ModulePageLayout';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import FormField from '../../../components/ui/FormField';
-import Drawer from '../../../components/ui/Drawer';
+import MasterFormShell from '../components/MasterFormShell';
+import MasterFormSection from '../components/MasterFormSection';
+import { masterFormSubtitle, masterSubmitLabel } from '../utils/masterFormLayout.util';
+import '../styles/master-form.theme.css';
 import DataGrid from '../../../components/table/DataGrid';
 import Pagination from '../../../components/ui/Pagination';
 import { createActionsColumn } from '../../../components/table/grid.columns';
+import { createCountryColumn } from '../../../components/table/countryColumn';
 import MasterListToolbar from '../components/MasterListToolbar';
 import { resolveMasterPage, buildMasterBreadcrumbs, getMasterTypeMeta } from '../../../config/master-registry.config';
 import { PERMISSIONS } from '../../../config/permissions';
@@ -20,6 +24,7 @@ import { organizationApi } from '../services/organizationApi.service';
 import { staffApi } from '../services/staffApi.service';
 import toastService from '../../../services/toast/toast.service';
 import alertService from '../../../services/alert/alert.service';
+import { buildDeleteConfirmText } from '../utils/masterUsage.util';
 
 const TYPE_OPTIONS = [
   { value: 'PARTNER', label: 'Partner' },
@@ -192,14 +197,51 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
     }
   };
 
+  const handleDelete = async (row) => {
+    const studentCount = row._count?.students ?? row.studentCount ?? 0;
+    const usage = studentCount > 0
+      ? { total: studentCount, dependencies: [{ label: 'students', count: studentCount }] }
+      : { total: 0, dependencies: [] };
+    const ok = await alertService.softDeleteConfirm({
+      title: `Delete ${defaultType === 'ASSOCIATE' ? 'Associate' : 'Partner'}`,
+      text: buildDeleteConfirmText(usage, row.name),
+      itemName: row.name,
+    });
+    if (!ok) return;
+    setActionId(row.id);
+    try {
+      await partnerApi.remove(row.id);
+      toastService.success(`${defaultType === 'ASSOCIATE' ? 'Associate' : 'Partner'} deleted`);
+      load();
+    } catch (err) {
+      toastService.error(getPartnerApiError(err, 'Delete failed'));
+    } finally {
+      setActionId(null);
+    }
+  };
+
   const columns = useMemo(() => [
     { field: 'code', headerName: 'Code', width: 140 },
     { field: 'name', headerName: 'Organization', flex: 1, minWidth: 160 },
     { field: 'type', headerName: 'Type', width: 120 },
     { field: 'email', headerName: 'Email', minWidth: 160 },
     { field: 'phone', headerName: 'Mobile', width: 130 },
-    { field: 'country', headerName: 'Country', width: 120 },
+    createCountryColumn({ field: 'country', headerName: 'Country', width: 140 }),
     { field: 'commission', headerName: 'Commission %', width: 120 },
+    {
+      field: '_count.students',
+      headerName: 'In use',
+      width: 80,
+      valueGetter: (p) => p.data?._count?.students ?? 0,
+      cellRenderer: (p) => {
+        const count = p.data?._count?.students ?? 0;
+        return (
+          <span className={`text-[11px] font-semibold ${count > 0 ? 'text-amber-700' : 'text-text-muted'}`}>
+            {count}
+          </span>
+        );
+      },
+    },
     {
       field: 'isActive',
       headerName: 'Status',
@@ -211,7 +253,7 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
       ),
     },
     createActionsColumn({
-      width: 120,
+      width: canManage ? 148 : 72,
       cellRenderer: (p) => {
         const row = p.data;
         const busy = actionId === row.id;
@@ -227,6 +269,9 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
                 </button>
                 <button type="button" className="crm-grid-action-btn" title="Toggle status" disabled={busy} onClick={() => handleStatus(row)}>
                   {row.isActive ? <FiToggleRight className="w-3.5 h-3.5 text-emerald-600" /> : <FiToggleLeft className="w-3.5 h-3.5" />}
+                </button>
+                <button type="button" className="crm-grid-action-btn crm-grid-action-btn--delete" title="Delete" disabled={busy} onClick={() => handleDelete(row)}>
+                  <FiTrash2 className="w-3.5 h-3.5" />
                 </button>
               </>
             )}
@@ -246,6 +291,17 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
 
   const readOnly = drawer.mode === 'view';
   const title = hubItem?.label || 'Partners';
+  const entityLabel = defaultType === 'ASSOCIATE' ? 'Associate' : 'Partner';
+  const drawerTitle = drawer.mode === 'add'
+    ? `Add ${entityLabel}`
+    : drawer.mode === 'edit'
+      ? `Edit ${entityLabel}`
+      : `${entityLabel} details`;
+  const drawerSubtitle = drawer.mode === 'view'
+    ? 'Read-only details'
+    : masterFormSubtitle(drawer.mode, entityLabel);
+  const saveLabel = masterSubmitLabel(drawer.mode, entityLabel, saving);
+  const closeDrawer = () => setDrawer({ open: false, mode: 'add', record: null });
 
   return (
     <>
@@ -293,98 +349,137 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
         </div>
       </ModulePageCard>
 
-      <Drawer
+      <MasterFormShell
         open={drawer.open}
-        onClose={() => setDrawer({ open: false, mode: 'add', record: null })}
-        title={drawer.mode === 'add' ? 'Add Partner' : drawer.mode === 'edit' ? 'Edit Partner' : 'Partner details'}
-        width="520px"
-        anchor="header"
+        onClose={closeDrawer}
+        title={drawerTitle}
+        subtitle={drawerSubtitle}
+        size="lg"
+        variant="form"
+        footer={
+          readOnly ? (
+            <Button variant="outline" size="sm" onClick={closeDrawer}>Close</Button>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={closeDrawer} disabled={saving}>Cancel</Button>
+              <Button size="sm" type="submit" form="crm-partner-form" loading={saving}>
+                {saveLabel}
+              </Button>
+            </>
+          )
+        }
       >
-        <div className="p-5 space-y-3">
-          <FormField label="Organization Name" required>
-            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} disabled={readOnly} />
-          </FormField>
-          <Select
-            label="Type"
-            value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}
-            options={TYPE_OPTIONS}
-            disabled={readOnly || Boolean(defaultType)}
-          />
-          <FormField label="Email">
-            <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} disabled={readOnly} />
-          </FormField>
-          <FormField label="Mobile">
-            <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} disabled={readOnly} />
-          </FormField>
-          <FormField label="Country">
-            <Select
-              value={form.country}
-              onChange={(e) => setForm({ ...form, country: e.target.value })}
-              options={countryOptions.map((o) => ({
-                value: o.label || o.name || o.value,
-                label: o.label || o.name || o.value,
-              }))}
-              placeholder="Select country"
-              disabled={readOnly}
-              allowClear
-              showSearch
-            />
-          </FormField>
-          <FormField label="Contact person">
-            <Input value={form.contactPerson} onChange={(e) => setForm({ ...form, contactPerson: e.target.value })} disabled={readOnly} />
-          </FormField>
-          <FormField label="Nationality">
-            <Input value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} disabled={readOnly} />
-          </FormField>
-          <FormField label="Currency">
-            <Select
-              value={form.currencyCode}
-              onChange={(e) => setForm({ ...form, currencyCode: e.target.value })}
-              options={currencyOptions.map((o) => ({
-                value: o.code || o.label,
-                label: (o.code ? `${o.code} — ` : '') + o.label,
-              }))}
-              placeholder="Select currency"
-              disabled={readOnly}
-              allowClear
-            />
-          </FormField>
-          <FormField label="Website">
-            <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} disabled={readOnly} />
-          </FormField>
-          <FormField label="Commission %">
-            <Input type="number" value={form.commission} onChange={(e) => setForm({ ...form, commission: e.target.value })} disabled={readOnly} />
-          </FormField>
-          <FormField label="Agreement Date">
-            <Input type="date" value={form.agreementDate} onChange={(e) => setForm({ ...form, agreementDate: e.target.value })} disabled={readOnly} />
-          </FormField>
-          <FormField label="Agreement Email">
-            <Input value={form.agreementEmail} onChange={(e) => setForm({ ...form, agreementEmail: e.target.value })} disabled={readOnly} />
-          </FormField>
-          <FormField label="Approval Date">
-            <Input type="date" value={form.approvalDate} onChange={(e) => setForm({ ...form, approvalDate: e.target.value })} disabled={readOnly} />
-          </FormField>
-          <Select
-            label="Branch"
-            value={form.branchId}
-            onChange={(e) => setForm({ ...form, branchId: e.target.value })}
-            options={branchOptions}
-            allowClear
-            disabled={readOnly}
-          />
-          <Select
-            label="Assigned Staff"
-            value={form.assignedToId}
-            onChange={(e) => setForm({ ...form, assignedToId: e.target.value })}
-            options={staffOptions}
-            allowClear
-            showSearch
-            disabled={readOnly}
-          />
-          <div className="pt-2 border-t border-border">
+        <form id="crm-partner-form" className="crm-master-form" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+          <MasterFormSection title="General Information">
+            <div className="crm-master-drawer-grid crm-master-drawer-grid--2col">
+              <div className="crm-master-drawer-grid__full">
+                <FormField label="Organization name" required>
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} disabled={readOnly} />
+                </FormField>
+              </div>
+              <Select
+                label="Type"
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
+                options={TYPE_OPTIONS}
+                disabled={readOnly || Boolean(defaultType)}
+              />
+              <FormField label="Commission %">
+                <Input type="number" value={form.commission} onChange={(e) => setForm({ ...form, commission: e.target.value })} disabled={readOnly} />
+              </FormField>
+            </div>
+          </MasterFormSection>
+
+          <MasterFormSection title="Contact Information">
+            <div className="crm-master-drawer-grid crm-master-drawer-grid--2col">
+              <FormField label="Email">
+                <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} disabled={readOnly} />
+              </FormField>
+              <FormField label="Mobile">
+                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} disabled={readOnly} />
+              </FormField>
+              <FormField label="Contact person">
+                <Input value={form.contactPerson} onChange={(e) => setForm({ ...form, contactPerson: e.target.value })} disabled={readOnly} />
+              </FormField>
+              <FormField label="Nationality">
+                <Input value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} disabled={readOnly} />
+              </FormField>
+              <FormField label="Country">
+                <Select
+                  value={form.country}
+                  onChange={(e) => setForm({ ...form, country: e.target.value })}
+                  options={countryOptions.map((o) => ({
+                    value: o.label || o.name || o.value,
+                    label: o.label || o.name || o.value,
+                  }))}
+                  placeholder="Select country"
+                  disabled={readOnly}
+                  allowClear
+                  showSearch
+                />
+              </FormField>
+              <FormField label="Currency">
+                <Select
+                  value={form.currencyCode}
+                  onChange={(e) => setForm({ ...form, currencyCode: e.target.value })}
+                  options={currencyOptions.map((o) => ({
+                    value: o.code || o.label,
+                    label: (o.code ? `${o.code} — ` : '') + o.label,
+                  }))}
+                  placeholder="Select currency"
+                  disabled={readOnly}
+                  allowClear
+                />
+              </FormField>
+              <div className="crm-master-drawer-grid__full">
+                <FormField label="Website">
+                  <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} disabled={readOnly} />
+                </FormField>
+              </div>
+            </div>
+          </MasterFormSection>
+
+          <MasterFormSection title="Agreement">
+            <div className="crm-master-drawer-grid crm-master-drawer-grid--2col">
+              <FormField label="Agreement date">
+                <Input type="date" value={form.agreementDate} onChange={(e) => setForm({ ...form, agreementDate: e.target.value })} disabled={readOnly} />
+              </FormField>
+              <FormField label="Approval date">
+                <Input type="date" value={form.approvalDate} onChange={(e) => setForm({ ...form, approvalDate: e.target.value })} disabled={readOnly} />
+              </FormField>
+              <div className="crm-master-drawer-grid__full">
+                <FormField label="Agreement email">
+                  <Input value={form.agreementEmail} onChange={(e) => setForm({ ...form, agreementEmail: e.target.value })} disabled={readOnly} />
+                </FormField>
+              </div>
+            </div>
+          </MasterFormSection>
+
+          <MasterFormSection title="Assignment">
+            <div className="crm-master-drawer-grid crm-master-drawer-grid--2col">
+              <Select
+                label="Branch"
+                value={form.branchId}
+                onChange={(e) => setForm({ ...form, branchId: e.target.value })}
+                options={branchOptions}
+                allowClear
+                showSearch
+                disabled={readOnly}
+              />
+              <Select
+                label="Assigned staff"
+                value={form.assignedToId}
+                onChange={(e) => setForm({ ...form, assignedToId: e.target.value })}
+                options={staffOptions}
+                allowClear
+                showSearch
+                disabled={readOnly}
+              />
+            </div>
+          </MasterFormSection>
+
+          <MasterFormSection title="Commission Rules">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold text-text">Commission rules</p>
               {!readOnly && (
                 <Button
                   size="sm"
@@ -401,7 +496,7 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
               )}
             </div>
             {(form.commissionRules || []).map((rule, index) => (
-              <div key={index} className="grid grid-cols-2 gap-2 mb-2 p-2 rounded border border-border">
+              <div key={index} className="crm-master-drawer-grid crm-master-drawer-grid--2col mb-2 p-2.5 rounded-md border border-border bg-row-hover/30">
                 <Input placeholder="Country" value={rule.country || ''} onChange={(e) => {
                   const next = [...form.commissionRules];
                   next[index] = { ...next[index], country: e.target.value };
@@ -428,21 +523,17 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
                   setForm({ ...form, commissionRules: next });
                 }} disabled={readOnly} />
                 {!readOnly && (
-                  <Button size="sm" variant="ghost" onClick={() => {
-                    setForm({ ...form, commissionRules: form.commissionRules.filter((_, i) => i !== index) });
-                  }}>Remove</Button>
+                  <div className="crm-master-drawer-grid__full">
+                    <Button size="sm" variant="ghost" onClick={() => {
+                      setForm({ ...form, commissionRules: form.commissionRules.filter((_, i) => i !== index) });
+                    }}>Remove rule</Button>
+                  </div>
                 )}
               </div>
             ))}
-          </div>
-          {!readOnly && (
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setDrawer({ open: false, mode: 'add', record: null })}>Cancel</Button>
-              <Button loading={saving} onClick={handleSave}>Save</Button>
-            </div>
-          )}
-        </div>
-      </Drawer>
+          </MasterFormSection>
+        </form>
+      </MasterFormShell>
     </>
   );
 }

@@ -437,4 +437,121 @@ export const reportsService = {
 
     throw new AppError('Unknown export kind', 400);
   },
+
+  /**
+   * Executive overview — real aggregates only.
+   * Soft-fails per domain so one permission miss does not blank the page.
+   */
+  getOverview: async (query, user) => {
+    const enquiry = await reportsService.getEnquiryReports(query, user).catch(() => null);
+
+    const safe = async (fn) => {
+      try {
+        return await fn();
+      } catch {
+        return null;
+      }
+    };
+
+    const [students, applications, visas, invoices, classAtt] = await Promise.all([
+      safe(async () => {
+        const { studentService } = await import('../student/student.service.js');
+        return studentService.getSummary(query, user);
+      }),
+      safe(async () => {
+        const { applicationService } = await import('../application/application.service.js');
+        return applicationService.getSummary(query, user);
+      }),
+      safe(async () => {
+        const { visaService } = await import('../visa/visa.service.js');
+        return visaService.getSummary(query, user);
+      }),
+      safe(async () => {
+        const { invoiceService } = await import('../invoice/invoice.service.js');
+        return invoiceService.getSummary(query, user);
+      }),
+      safe(async () => {
+        const { attendanceService } = await import('../attendance/attendance.service.js');
+        return attendanceService.classReport(query, user);
+      }),
+    ]);
+
+    const kpis = {
+      enquiries: enquiry?.conversion?.total ?? null,
+      converted: enquiry?.conversion?.converted ?? null,
+      conversionRate: enquiry?.conversion?.rate ?? null,
+      followupsDue: enquiry?.followUp?.dueToday ?? null,
+      followupsOverdue: enquiry?.followUp?.overdue ?? null,
+      demos: enquiry?.demo?.total ?? null,
+      students: students?.total ?? null,
+      applications: applications?.total ?? null,
+      visas: visas?.total ?? null,
+      invoicesPaid: invoices?.paid ?? null,
+      outstanding: invoices?.outstanding ?? null,
+      overdueInvoices: invoices?.overdue ?? null,
+      attendancePresent: classAtt?.totals?.present ?? null,
+      attendanceAbsent: classAtt?.totals?.absent ?? null,
+    };
+
+    const needsAttention = [
+      {
+        id: 'overdue-followups',
+        label: 'Overdue follow-ups',
+        count: enquiry?.followUp?.overdue ?? 0,
+        href: '/admin/calendar',
+        description: 'Follow-ups past due date',
+      },
+      {
+        id: 'followups-today',
+        label: 'Follow-ups due today',
+        count: enquiry?.followUp?.dueToday ?? 0,
+        href: '/admin/calendar',
+        description: 'Scheduled for today',
+      },
+      {
+        id: 'pending-applications',
+        label: 'Applications in review',
+        count: applications?.inReview ?? 0,
+        href: '/admin/applications',
+        description: 'Need status movement',
+      },
+      {
+        id: 'pending-visas',
+        label: 'Pending visa cases',
+        count: visas?.pending ?? 0,
+        href: '/admin/visas',
+        description: 'Awaiting progress',
+      },
+      {
+        id: 'outstanding-fees',
+        label: 'Outstanding fees',
+        count: invoices?.outstanding ?? 0,
+        href: '/admin/fees?tab=outstanding',
+        description: 'Unpaid / partial invoice totals',
+        isAmount: true,
+      },
+      {
+        id: 'overdue-invoices',
+        label: 'Overdue invoices',
+        count: invoices?.overdue ?? 0,
+        href: '/admin/fees',
+        description: 'Past due billing',
+      },
+    ].filter((item) => Number(item.count) > 0);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      kpis,
+      needsAttention,
+      conversion: enquiry?.conversion || null,
+      source: enquiry?.source || null,
+      demo: enquiry?.demo || null,
+      followUp: enquiry?.followUp || null,
+      applications,
+      visas,
+      invoices,
+      students,
+      attendance: classAtt,
+    };
+  },
 };

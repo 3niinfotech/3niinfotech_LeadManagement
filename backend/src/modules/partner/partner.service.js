@@ -79,11 +79,11 @@ export const partnerService = {
     const { agreementDate, agreementEmail, contactPerson, nationality, currencyCode, approvalDate, branchId, assignedToId, commissionRules, ...rest } = data;
     const record = await partnerRepository.create({
       ...rest,
+      companyId,
       email: rest.email || null,
       code,
       type: rest.type || 'PARTNER',
       metadata: {
-        companyId,
         agreementDate: agreementDate || null,
         agreementEmail: agreementEmail || null,
         contactPerson: contactPerson || null,
@@ -107,7 +107,6 @@ export const partnerService = {
     assertAgentOwns(existing, user);
     const { agreementDate, agreementEmail, contactPerson, nationality, currencyCode, approvalDate, branchId, assignedToId, commissionRules, ...rest } = data;
     const metadata = mergeMetadata(existing.metadata, {
-      companyId,
       ...(agreementDate !== undefined ? { agreementDate } : {}),
       ...(agreementEmail !== undefined ? { agreementEmail } : {}),
       ...(contactPerson !== undefined ? { contactPerson } : {}),
@@ -120,6 +119,7 @@ export const partnerService = {
     });
     const record = await partnerRepository.update(id, {
       ...rest,
+      companyId: existing.companyId || companyId,
       email: rest.email === '' ? null : rest.email,
       metadata,
       updatedBy: user.id,
@@ -136,5 +136,25 @@ export const partnerService = {
     const record = await partnerRepository.update(id, { isActive, updatedBy: user.id });
     await auditLog({ userId: user.id, action: 'UPDATE', entityType: 'Partner', entityId: id, oldData: existing, newData: record, req });
     return record;
+  },
+
+  remove: async (id, user, req) => {
+    const companyId = requireCompany(user);
+    const existing = await partnerRepository.findById(id, companyId);
+    if (!existing) throw new AppError('Partner not found', 404);
+    assertAgentOwns(existing, user);
+
+    const studentCount = await partnerRepository.countStudents(id, companyId);
+    if (studentCount > 0) {
+      throw new AppError(
+        `Partner cannot be deleted because ${studentCount} student(s) are linked. Deactivate instead.`,
+        409,
+        { dependencies: [{ label: 'students', count: studentCount }] },
+      );
+    }
+
+    await partnerRepository.softDelete(id, user.id);
+    await auditLog({ userId: user.id, action: 'DELETE', entityType: 'Partner', entityId: id, oldData: existing, req });
+    return { id, deleted: true };
   },
 };

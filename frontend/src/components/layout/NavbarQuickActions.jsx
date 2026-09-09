@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom';
 import { useSelector } from 'react-redux';
 import { HEADER_ACTIONS, HEADER_ACTION_TONES } from '../../config/headerActions.config';
 import { hasAnyPermission } from '../../config/permissions';
-import { REMINDER_ITEMS, ANNOUNCEMENTS, TASK_PREVIEW } from '../../config/headerMock.data';
 import { selectUnreadCount } from '../../modules/notification/redux/notificationSlice';
+import { selectReminderBadge, selectReminderFeed } from '../../modules/reminder/redux/reminderSlice';
 import { selectPermissions } from '../../redux/slices/authSlice';
+import { useAnnouncementCount } from '../../hooks/useAnnouncementCount';
 import { iconSize } from '../../theme/icons';
 import HeaderActionPopover from './HeaderActionPopover';
 import NotificationPanel, { NotificationHeaderActions } from './header-panels/NotificationPanel';
@@ -22,16 +23,16 @@ const PANEL_MAP = {
   task: TaskPanel,
 };
 
-function getBadgeCount(key, unreadNotifications) {
+function getBadgeCount(key, unreadNotifications, reminderBadge, reminderFeed, announcementCount) {
   switch (key) {
     case 'reminder':
-      return REMINDER_ITEMS.filter((r) => r.isToday).length;
+      return reminderBadge || 0;
     case 'notification':
       return unreadNotifications || 0;
     case 'announcement':
-      return ANNOUNCEMENTS.length;
+      return announcementCount || 0;
     case 'task':
-      return TASK_PREVIEW.filter((t) => t.status === 'Pending').length;
+      return (reminderFeed?.counts?.overdue || 0) + (reminderFeed?.counts?.dueToday || 0);
     default:
       return 0;
   }
@@ -114,6 +115,9 @@ function QuickActionButton({ action, badge, isActive, onClick, buttonRef }) {
 
 export default function NavbarQuickActions() {
   const unreadCount = useSelector(selectUnreadCount);
+  const reminderBadge = useSelector(selectReminderBadge);
+  const reminderFeed = useSelector(selectReminderFeed);
+  const announcementCount = useAnnouncementCount();
   const permissions = useSelector(selectPermissions);
   const [activeAction, setActiveAction] = useState(null);
   const buttonRefs = useRef({});
@@ -130,11 +134,17 @@ export default function NavbarQuickActions() {
     () =>
       HEADER_ACTIONS.reduce((acc, action) => {
         if (action.badgeKey) {
-          acc[action.id] = getBadgeCount(action.badgeKey, unreadCount);
+          acc[action.id] = getBadgeCount(
+            action.badgeKey,
+            unreadCount,
+            reminderBadge,
+            reminderFeed,
+            announcementCount,
+          );
         }
         return acc;
       }, {}),
-    [unreadCount],
+    [unreadCount, reminderBadge, reminderFeed, announcementCount],
   );
 
   const handleClick = (actionId) => {

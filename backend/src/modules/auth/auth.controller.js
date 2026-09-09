@@ -5,6 +5,7 @@ import {
   refreshSchema,
   updateProfileSchema,
   changePasswordSchema,
+  forgotPasswordSchema,
 } from './auth.service.js';
 import {
   registrationService,
@@ -44,7 +45,7 @@ export const login = asyncHandler(async (req, res) => {
 export const refresh = asyncHandler(async (req, res) => {
   const token = req.body.refreshToken || req.cookies?.refreshToken;
   refreshSchema.parse({ refreshToken: token });
-  const result = await authService.refresh(token);
+  const result = await authService.refresh(token, req);
   if (result.accessToken) {
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
@@ -101,6 +102,60 @@ export const changePassword = asyncHandler(async (req, res) => {
   res.clearCookie('refreshToken');
   res.clearCookie('accessToken');
   sendSuccess(res, { requiresRelogin: true }, 'Password changed. Please sign in again.');
+});
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const data = forgotPasswordSchema.parse(req.body);
+  const result = await authService.forgotPassword(data, req);
+  sendSuccess(res, result, result.message || 'Password reset successfully');
+});
+
+export const getSecurityOverview = asyncHandler(async (req, res) => {
+  const data = await authService.getSecurityOverview(req.user.id);
+  sendSuccess(res, data);
+});
+
+export const listSessions = asyncHandler(async (req, res) => {
+  const current = req.body?.refreshToken || req.cookies?.refreshToken || req.headers['x-refresh-token'];
+  const data = await authService.listSessions(req.user.id, current);
+  sendSuccess(res, data);
+});
+
+export const revokeSession = asyncHandler(async (req, res) => {
+  const current = req.body?.refreshToken || req.cookies?.refreshToken || req.headers['x-refresh-token'];
+  const data = await authService.revokeSession(req.user.id, req.params.id, current, req);
+  sendSuccess(res, data, 'Session revoked');
+});
+
+export const revokeOtherSessions = asyncHandler(async (req, res) => {
+  const current = req.body?.refreshToken || req.cookies?.refreshToken || req.headers['x-refresh-token'];
+  const data = await authService.revokeOtherSessions(req.user.id, current, req);
+  sendSuccess(res, data, 'Other sessions revoked');
+});
+
+export const listActivity = asyncHandler(async (req, res) => {
+  const data = await authService.listActivity(req.user.id, req.query.limit);
+  sendSuccess(res, data);
+});
+
+export const listLoginHistory = asyncHandler(async (req, res) => {
+  const data = await authService.listLoginHistory(req.user.id, req.query.limit);
+  sendSuccess(res, data);
+});
+
+export const listApiTokens = asyncHandler(async (req, res) => {
+  const data = await authService.listApiTokens(req.user.id);
+  sendSuccess(res, data);
+});
+
+export const createApiToken = asyncHandler(async (req, res) => {
+  const data = await authService.createApiToken(req.user.id, req.body || {}, req);
+  sendSuccess(res, data, 'API token created', 201);
+});
+
+export const revokeApiToken = asyncHandler(async (req, res) => {
+  const data = await authService.revokeApiToken(req.user.id, req.params.id, req);
+  sendSuccess(res, data, 'API token revoked');
 });
 
 export const getRegistrationBranches = asyncHandler(async (req, res) => {

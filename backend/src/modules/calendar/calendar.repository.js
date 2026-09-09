@@ -497,7 +497,7 @@ export const calendarRepository = {
 
   getStudentAppointmentById: (id) => prisma.appointment.findFirst({
     where: { id, ...softDeleteWhere },
-    include: { student: { select: { id: true, deletedAt: true } } },
+    include: { student: { select: { id: true, userId: true, deletedAt: true } } },
   }),
 
   updateEnquiryFollowup: (id, data) => prisma.enquiryFollowup.update({ where: { id }, data }),

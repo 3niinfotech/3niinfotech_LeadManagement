@@ -67,6 +67,10 @@ export const PERMISSIONS = {
   ROLES_EXPORT: 'roles.export',
   ROLES_CLONE: 'roles.clone',
 
+  ROLE_APPLICATION_VIEW: 'role_application.view',
+  ROLE_APPLICATION_REVIEW: 'role_application.review',
+  ROLE_APPLICATION_APPROVE: 'role_application.approve',
+
   SETTINGS_VIEW: 'settings:view',
   SETTINGS_UPDATE: 'settings:update',
 

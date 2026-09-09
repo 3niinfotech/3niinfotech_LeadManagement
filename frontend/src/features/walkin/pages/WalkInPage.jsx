@@ -1,4 +1,4 @@
-import { useState, useMemo, Suspense, useCallback } from 'react';
+import { useState, useMemo, Suspense, useCallback, useEffect } from 'react';
 import '../styles/walkin.css';
 import { useDispatch, useSelector } from 'react-redux';
 import toastService from '../../../services/toast/toast.service';
@@ -40,7 +40,7 @@ const POLL_MS = 30000;
 
 const VIEW_EMPTY = {
   today: { title: 'No visitors today', description: 'Register a walk-in to see them here.' },
-  waiting: { title: 'No one waiting', description: 'Waiting visitors who need a counsellor appear here.' },
+  unassigned: { title: 'All assigned', description: 'Visitors without a counsellor will show here if auto-assign needs a manual pick.' },
   in_counselling: { title: 'No one with counsellor', description: 'Visitors in counselling show in this tab.' },
   completed: { title: 'None done yet', description: 'Completed visits today appear here.' },
   all: { title: 'No visitors', description: 'Registered walk-ins appear in this list.' },
@@ -51,7 +51,10 @@ export default function WalkInPage() {
   const {
     filtersOpen, activeView, columnDensity, drawerOpen,
   } = useSelector(selectWalkInUi);
-  const { queryParams, search, setSearch, applyFilters, resetFilters, selectSummaryCard } = useWalkInFilters();
+  const {
+    queryParams, search, setSearch, applyFilters, resetFilters, selectSummaryCard,
+    branchLocked, canViewAllBranches, filters,
+  } = useWalkInFilters();
   const { openDrawer } = useWalkInDrawer();
   const { can } = usePermissions();
   const canCreate = can(PERMISSIONS.WALKIN_CREATE);
@@ -60,6 +63,13 @@ export default function WalkInPage() {
   const [filterDraft, setFilterDraft] = useState({});
   const [focusFormSignal, setFocusFormSignal] = useState(0);
   const [assignLead, setAssignLead] = useState(null);
+
+  useEffect(() => {
+    setFilterDraft((prev) => ({
+      ...prev,
+      branchId: filters.branchId || undefined,
+    }));
+  }, [filters.branchId]);
 
   const { data: listResult, isLoading, isFetching, refetch } = useGetWalkInsQuery(queryParams, {
     pollingInterval: POLL_MS,
@@ -78,7 +88,7 @@ export default function WalkInPage() {
   const gridFetching = isFetching && rows.length > 0;
 
   const metrics = useMemo(() => computeReceptionMetrics(rows, summary), [rows, summary]);
-  const kpiItems = useMemo(() => buildReceptionKpiItems(metrics, summary), [metrics, summary]);
+  const kpiItems = useMemo(() => buildReceptionKpiItems(metrics), [metrics]);
   const emptyCopy = VIEW_EMPTY[activeView] || VIEW_EMPTY.all;
 
   const handleRefresh = useCallback(() => {
@@ -93,7 +103,7 @@ export default function WalkInPage() {
       const assignee = lead?.assignedTo
         ? `${lead.assignedTo.firstName || ''} ${lead.assignedTo.lastName || ''}`.trim()
         : 'counsellor';
-      toastService.success(`Registered & assigned to ${assignee} · ${lead.leadCode}`);
+      toastService.success(`Registered & assigned to ${assignee} · ${lead.leadCode}. Counsellor notified.`);
       handleRefresh();
       dispatch(setWalkInActiveView('today'));
       if (lead?.id) dispatch(openWalkInDrawer({ id: lead.id }));
@@ -125,7 +135,7 @@ export default function WalkInPage() {
     if (!assignLead?.id || !counsellorId) return;
     try {
       await updateWalkIn({ id: assignLead.id, assignedToId: counsellorId }).unwrap();
-      toastService.success('Counsellor assigned');
+      toastService.success('Counsellor assigned — notification sent');
       setAssignLead(null);
       handleRefresh();
     } catch (e) {
@@ -179,8 +189,14 @@ export default function WalkInPage() {
                 counsellors={counsellors}
                 onChange={setFilterDraft}
                 onSearch={() => applyFilters(filterDraft)}
-                onReset={() => { setFilterDraft({}); resetFilters(); }}
+                onReset={() => {
+                  const next = branchLocked ? { branchId: filters.branchId } : {};
+                  setFilterDraft(next);
+                  resetFilters();
+                }}
                 onClose={() => dispatch(toggleWalkInFilters())}
+                branchLocked={branchLocked}
+                canViewAllBranches={canViewAllBranches}
               />
 
               <div className="crm-reception-grid-wrap">

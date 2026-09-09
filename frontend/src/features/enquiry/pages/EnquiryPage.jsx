@@ -29,19 +29,31 @@ import { useEnquiryFilters } from '../hooks/useEnquiryFilters';
 import { useEnquiryNav } from '../hooks/useEnquiryNav';
 import { closeWalkInDrawer } from '../../walkin/redux/walkinUiSlice';
 import { DEMO_DRIVEN_ENQUIRY_STATUSES } from '../config/enquiryDemo.config';
+import { selectUser } from '../../../redux/slices/authSlice';
+import { ROLES } from '../../../config/roles';
 
 export default function EnquiryPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const user = useSelector(selectUser);
   const { can } = usePermissions();
+  const isCounsellor = user?.role?.slug === ROLES.COUNSELLOR;
+  const hideReceptionActions = isCounsellor;
   const { filtersOpen, activeView, activeSummaryFilter, importModalOpen, columnDensity, selectedRowIds } = useSelector(selectEnquiryUi);
-  const { queryParams, search, setSearch, applyFilters, resetFilters, selectSummaryCard } = useEnquiryFilters();
-  const { openEnquiry } = useEnquiryNav();
+  const { queryParams, search, setSearch, applyFilters, resetFilters, selectSummaryCard, branchLocked, canViewAllBranches, filters } = useEnquiryFilters();
+  const { openEnquiry, openStudent } = useEnquiryNav();
   const [filterDraft, setFilterDraft] = useState({});
   const [bulkAction, setBulkAction] = useState(null);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+
+  useEffect(() => {
+    setFilterDraft((prev) => ({
+      ...prev,
+      branchId: filters.branchId || undefined,
+    }));
+  }, [filters.branchId]);
 
   const canUpdate = can(PERMISSIONS.ENQUIRIES_UPDATE);
   const canDelete = can(PERMISSIONS.ENQUIRIES_DELETE);
@@ -208,11 +220,13 @@ export default function EnquiryPage() {
       <div className="h-full min-h-0 flex flex-col">
       <ModulePageCard
         title="Manage Enquiry"
-        subtitle="Follow-up, counselling & convert · walk-ins stay on Reception until Interested"
+        subtitle={hideReceptionActions
+          ? 'Follow-up, counselling & convert assigned leads'
+          : 'Follow-up, counselling & convert · walk-ins stay on Reception until Interested'}
         icon={FiInbox}
         iconColor="primary"
         breadcrumbs={[{ label: 'Dashboard', path: ROUTES.DASHBOARD }, { label: 'Manage Enquiry' }]}
-        actions={canCreate ? (
+        actions={!hideReceptionActions && canCreate ? (
           <PermissionGate permissions={[PERMISSIONS.ENQUIRIES_CREATE, PERMISSIONS.WALKIN_CREATE]}>
             <Button variant="primary" size="sm" icon={FiUserPlus} onClick={() => navigate(ROUTES.WALK_INS)}>
               Register at Reception
@@ -255,8 +269,14 @@ export default function EnquiryPage() {
             values={filterDraft}
             onChange={setFilterDraft}
             onSearch={() => applyFilters(filterDraft)}
-            onReset={() => { setFilterDraft({}); resetFilters(); }}
+            onReset={() => {
+              const next = branchLocked ? { branchId: filters.branchId } : {};
+              setFilterDraft(next);
+              resetFilters();
+            }}
             onClose={() => dispatch(toggleFilters())}
+            branchLocked={branchLocked}
+            canViewAllBranches={canViewAllBranches}
           />
         </ModulePageCard.Filters>
 
@@ -273,7 +293,7 @@ export default function EnquiryPage() {
             onPriorityChange={canUpdate ? handlePriorityChange : undefined}
             onTagsChange={canUpdate ? handleTagsChange : undefined}
             onSelectionChanged={(selected) => dispatch(setSelectedRowIds((selected || []).map((r) => r.id)))}
-            onRegisterVisitor={() => navigate(ROUTES.WALK_INS)}
+            onRegisterVisitor={hideReceptionActions ? undefined : () => navigate(ROUTES.WALK_INS)}
           />
         </ModulePageCard.Table>
       </ModulePageCard>
@@ -294,7 +314,7 @@ export default function EnquiryPage() {
           }}
           onOpenEnquiry={(id) => openEnquiry(id)}
           onOpenStudent={(student) => {
-            toastService.info(`Open student ${student.studentCode}`);
+            if (student?.id) openStudent(student.id);
           }}
         />
       )}

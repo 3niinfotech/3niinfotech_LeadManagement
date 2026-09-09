@@ -1,0 +1,1586 @@
+/**
+ * Academic batches — availability-inspired clean UI
+ */
+
+/* ── Toolbar ── */
+.crm-batch-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.crm-batch-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 0;
+}
+
+/* Embedded DataGrid inside batch detail panels */
+.crm-batch-panel__body--flush {
+  padding: 0;
+}
+
+.crm-batch-embedded-grid {
+  border-top: none !important;
+}
+
+.crm-batch-embedded-grid .crm-batch-bar {
+  width: 4.5rem;
+  margin: 0 auto;
+}
+
+/* ── Metric tile (shared) ── */
+.crm-batch-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-page) 45%, var(--bg-card));
+}
+
+.crm-batch-metric__label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.crm-batch-metric__value {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-batch-metric__sub {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Detail layout ── */
+.crm-batch-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  padding-bottom: 1.5rem;
+}
+
+.crm-batch-detail-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .crm-batch-detail-grid {
+    grid-template-columns: 1.15fr 0.85fr;
+    align-items: start;
+  }
+}
+
+.crm-batch-panel {
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.crm-batch-panel__head {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-page) 40%, var(--bg-card));
+}
+
+.crm-batch-panel__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.crm-batch-panel__desc {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.crm-batch-panel__body {
+  padding: 0.875rem 1rem;
+}
+
+/* ── Detail hero ── */
+.crm-batch-hero-wrap {
+  margin-bottom: 0.25rem;
+}
+
+.crm-batch-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.crm-batch-hero--success {
+  border-color: color-mix(in srgb, var(--success, #10b981) 28%, var(--border));
+  background: color-mix(in srgb, var(--success, #10b981) 5%, var(--bg-card));
+}
+
+.crm-batch-hero--warning {
+  border-color: color-mix(in srgb, var(--warning, #f59e0b) 28%, var(--border));
+  background: color-mix(in srgb, var(--warning, #f59e0b) 5%, var(--bg-card));
+}
+
+.crm-batch-hero--danger {
+  border-color: color-mix(in srgb, var(--danger, #ef4444) 28%, var(--border));
+  background: color-mix(in srgb, var(--danger, #ef4444) 5%, var(--bg-card));
+}
+
+.crm-batch-hero--neutral {
+  background: color-mix(in srgb, var(--bg-page) 40%, var(--bg-card));
+}
+
+.crm-batch-hero__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+}
+
+.crm-batch-hero__dot--success { background: #10b981; }
+.crm-batch-hero__dot--warning { background: #f59e0b; }
+.crm-batch-hero__dot--danger { background: #ef4444; }
+.crm-batch-hero__dot--neutral { background: var(--text-muted); }
+
+.crm-batch-hero__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.crm-batch-hero__detail {
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.crm-batch-hero-capacity {
+  padding: 0.75rem 0 0.25rem;
+}
+
+.crm-batch-hero-capacity--inline {
+  width: 7rem;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.crm-batch-hero-capacity--inline .crm-batch-hero-capacity__track {
+  margin-top: 0;
+  height: 6px;
+}
+
+.crm-batch-hero-capacity__track {
+  height: 4px;
+  margin-top: 0.375rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--border) 80%, var(--bg-page));
+  overflow: hidden;
+}
+
+.crm-batch-hero-capacity__fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.25s ease;
+}
+
+.crm-batch-hero-capacity__fill--success { background: #10b981; }
+.crm-batch-hero-capacity__fill--warning { background: #f59e0b; }
+.crm-batch-hero-capacity__fill--danger { background: #ef4444; }
+.crm-batch-hero-capacity__fill--neutral { background: var(--brand); }
+
+.crm-batch-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
+  padding-top: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .crm-batch-hero-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ── Week timetable visual ── */
+.crm-batch-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+
+.crm-batch-week__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 3.25rem;
+  padding: 0.375rem 0.25rem;
+  border-radius: 0.5rem;
+  border: 1px dashed color-mix(in srgb, var(--border) 90%, transparent);
+  background: color-mix(in srgb, var(--bg-page) 40%, var(--bg-card));
+  text-align: center;
+}
+
+.crm-batch-week__cell--active {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--brand) 25%, var(--border));
+  background: var(--brand-soft);
+}
+
+.crm-batch-week__day {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.crm-batch-week__cell--active .crm-batch-week__day { color: var(--brand); }
+
+.crm-batch-week__time {
+  font-size: 0.625rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand);
+  line-height: 1.2;
+}
+
+.crm-batch-week__empty {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ── Slot list (compact fallback) ── */
+.crm-batch-slot-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.crm-batch-slot-list > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  font-size: 0.8125rem;
+  background: var(--bg-card);
+}
+
+.crm-batch-slot-list__day {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.crm-batch-slot-list__time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--brand);
+  background: var(--brand-soft);
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+/* ── Students table ── */
+.crm-batch-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  background: var(--bg-card);
+  max-width: 100%;
+}
+
+.crm-batch-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.crm-batch-table th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--bg-page) 55%, transparent);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.crm-batch-table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+}
+
+.crm-batch-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--bg-page) 35%, transparent);
+}
+
+.crm-batch-table tbody tr:last-child td { border-bottom: 0; }
+
+.crm-batch-table__name {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.crm-batch-table__code {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.crm-batch-table__num {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.crm-batch-bar {
+  width: 4.5rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 70%, transparent);
+  overflow: hidden;
+}
+
+.crm-batch-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand);
+  transition: width 0.2s ease;
+}
+
+.crm-batch-bar__fill--danger { background: var(--danger, #ef4444); }
+
+/* ── Session list v2 ── */
+.crm-batch-session-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.crm-batch-session-v2 {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--bg-card);
+}
+
+.crm-batch-session-v2__btn {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.crm-batch-session-v2__btn--primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.crm-batch-session-v2__time {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 4.5rem;
+}
+
+.crm-batch-session-v2__date {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.crm-batch-session-v2__clock {
+  font-size: 0.75rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand);
+}
+
+.crm-batch-session-v2__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.crm-batch-session-v2__room {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+/* ── Forms ── */
+.crm-batch-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.crm-batch-enroll { max-width: 28rem; }
+
+.crm-batch-slot-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .crm-batch-slot-form {
+    grid-template-columns: 1fr 1fr 1fr auto;
+    align-items: end;
+  }
+}
+
+.crm-batch-search-hit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 28rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, var(--bg-page) 30%, var(--bg-card));
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+
+.crm-batch-search-hit:hover {
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--border));
+}
+
+.crm-batch-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--bg-page) 40%, var(--bg-card));
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+/* ── Take attendance ── */
+.crm-attendance-page {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.crm-attendance-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--bg-card);
+}
+
+.crm-attendance-strip__status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.crm-attendance-strip__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+}
+
+.crm-attendance-strip__dot--open { background: #10b981; }
+.crm-attendance-strip__dot--locked { background: #f59e0b; }
+
+.crm-attendance-strip__label {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.crm-attendance-strip__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.crm-attendance-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 3.25rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-page) 40%, var(--bg-card));
+}
+
+.crm-attendance-pill__value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.crm-attendance-pill__label {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.crm-attendance-pill--success .crm-attendance-pill__value { color: #059669; }
+.crm-attendance-pill--danger .crm-attendance-pill__value { color: #dc2626; }
+.crm-attendance-pill--warning .crm-attendance-pill__value { color: #d97706; }
+.crm-attendance-pill--info .crm-attendance-pill__value { color: var(--brand); }
+
+.crm-attendance-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--bg-card);
+}
+
+.crm-attendance-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.crm-attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.crm-attendance-table th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--bg-page) 55%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.crm-attendance-table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.crm-attendance-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--bg-page) 30%, transparent);
+}
+
+.crm-attendance-table tbody tr:last-child td { border-bottom: 0; }
+
+.crm-attendance-table__name {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.crm-attendance-table__code {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+/* ── Take attendance v2 (advanced) ── */
+.crm-attendance-page--v2 {
+  padding: 0.75rem 1rem 1.25rem;
+  gap: 0.875rem;
+}
+
+/* Fill ModulePageCard body so only the roster scrolls */
+.crm-attendance-page--daily {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  padding: 0.625rem 0.875rem 0.75rem;
+  gap: 0.5rem;
+}
+
+.crm-att-sticky {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.crm-att-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--bg-card);
+}
+
+.crm-att-hero--compact .crm-att-hero__top {
+  padding: 0.4rem 0.75rem;
+}
+
+.crm-att-hero--compact .crm-att-hero__body {
+  padding: 0.625rem 0.875rem;
+  gap: 0.75rem;
+}
+
+.crm-att-hero--compact .crm-att-hero__title {
+  font-size: 1rem;
+}
+
+.crm-att-hero--compact .crm-att-hero__subtitle {
+  font-size: 0.75rem;
+}
+
+.crm-att-hero--compact .crm-att-hero__meta {
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.crm-att-hero--compact .crm-att-hero__ring {
+  width: 3.25rem;
+  height: 3.25rem;
+}
+
+.crm-att-hero--compact .crm-att-hero__ring-label strong {
+  font-size: 0.75rem;
+}
+
+.crm-att-banner--compact {
+  padding: 0.45rem 0.75rem;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.crm-att-banner--compact .crm-att-banner__title {
+  font-size: 0.75rem;
+}
+
+.crm-att-banner--compact .crm-att-banner__text {
+  margin-top: 0;
+  font-size: 0.6875rem;
+  line-height: 1.3;
+}
+
+.crm-att-toolbar__hint {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0 0.25rem;
+  white-space: nowrap;
+}
+
+.crm-att-hero {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.crm-att-hero--open {
+  border-color: color-mix(in srgb, var(--success) 25%, var(--border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--success) 6%, var(--bg-card)) 0%, var(--bg-card) 55%);
+}
+
+.crm-att-hero--locked {
+  border-color: color-mix(in srgb, var(--warning) 28%, var(--border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--warning) 7%, var(--bg-card)) 0%, var(--bg-card) 55%);
+}
+
+.crm-att-hero__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-page) 45%, transparent);
+}
+
+.crm-att-hero__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  transition: color 0.12s;
+}
+
+.crm-att-hero__back:hover { color: var(--brand); }
+
+.crm-att-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.crm-att-hero__badge--open {
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
+}
+
+.crm-att-hero__badge--locked {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border: 1px solid color-mix(in srgb, var(--warning) 25%, transparent);
+}
+
+.crm-att-hero__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.125rem;
+}
+
+.crm-att-hero__title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.crm-att-hero__subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.crm-att-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.625rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.crm-att-hero__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.crm-att-hero__ring {
+  position: relative;
+  width: 4.5rem;
+  height: 4.5rem;
+  shrink: 0;
+}
+
+.crm-att-hero__svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.crm-att-hero__track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--border) 80%, transparent);
+  stroke-width: 5;
+}
+
+.crm-att-hero__progress {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.35s ease;
+}
+
+.crm-att-hero__ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5625rem;
+  color: var(--text-muted);
+  line-height: 1.1;
+}
+
+.crm-att-hero__ring-label strong {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--brand);
+}
+
+.crm-att-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+
+.crm-att-metrics--simple {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.crm-att-metric {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--bg-card);
+  padding: 0.5rem 0.375rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.crm-att-metric:hover {
+  border-color: color-mix(in srgb, var(--brand) 20%, var(--border));
+  background: color-mix(in srgb, var(--brand) 4%, var(--bg-card));
+}
+
+.crm-att-metric--active {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
+  background: var(--brand-soft);
+}
+
+.crm-att-metric__value {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.crm-att-metric__label {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.crm-att-metric--success .crm-att-metric__value { color: var(--success); }
+.crm-att-metric--danger .crm-att-metric__value { color: var(--danger); }
+.crm-att-metric--warning .crm-att-metric__value { color: var(--warning); }
+.crm-att-metric--info .crm-att-metric__value { color: var(--brand); }
+.crm-att-metric--muted .crm-att-metric__value { color: var(--text-muted); }
+
+.crm-att-banner {
+  display: flex;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
+  background: color-mix(in srgb, var(--warning) 8%, var(--bg-card));
+  color: var(--warning);
+}
+
+.crm-att-banner__title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.crm-att-banner__text {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.crm-att-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--bg-card);
+}
+
+.crm-att-toolbar__search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--bg-page);
+}
+
+.crm-att-toolbar__search input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.crm-att-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.crm-att-toolbar__refresh {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--bg-page);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.crm-att-toolbar__refresh:hover:not(:disabled) {
+  background: var(--row-hover);
+  color: var(--brand);
+}
+
+.crm-att-dirty-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0 0.25rem;
+}
+
+.crm-att-roster {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.crm-att-student {
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--bg-card);
+  padding: 0.875rem 1rem;
+  transition: border-color 0.12s;
+}
+
+.crm-att-student:hover {
+  border-color: color-mix(in srgb, var(--brand) 18%, var(--border));
+}
+
+.crm-att-student--changed {
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--border));
+  background: color-mix(in srgb, var(--brand) 3%, var(--bg-card));
+}
+
+.crm-att-student--unmarked {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--text-muted) 35%, var(--border));
+}
+
+.crm-att-student__main {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.crm-att-student__avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  shrink: 0;
+}
+
+.crm-att-student__name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.crm-att-student__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.crm-att-student__code {
+  margin-top: 0.125rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  font-family: ui-monospace, monospace;
+}
+
+.crm-att-student__marked {
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.crm-att-student__saved {
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.crm-att-student__saved--success { background: var(--success-soft); color: var(--success); }
+.crm-att-student__saved--danger { background: var(--danger-soft); color: var(--danger); }
+.crm-att-student__saved--warning { background: var(--warning-soft); color: var(--warning); }
+.crm-att-student__saved--info { background: var(--brand-soft); color: var(--brand); }
+.crm-att-student__saved--neutral { background: var(--bg-page); color: var(--text-muted); }
+.crm-att-student__saved--brand { background: var(--brand-soft); color: var(--brand); }
+
+.crm-att-student__dirty {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--brand-soft);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+.crm-att-student__actions {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.crm-att-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.crm-att-chip {
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg-page);
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.08s;
+}
+
+.crm-att-chip:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--brand) 22%, var(--border));
+}
+
+.crm-att-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.crm-att-chip--success.crm-att-chip--active { background: var(--success-soft); border-color: var(--success); color: var(--success); }
+.crm-att-chip--danger.crm-att-chip--active { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+.crm-att-chip--warning.crm-att-chip--active { background: var(--warning-soft); border-color: var(--warning); color: var(--warning); }
+.crm-att-chip--info.crm-att-chip--active { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+.crm-att-chip--neutral.crm-att-chip--active { background: var(--bg-page); border-color: var(--text-muted); color: var(--text-primary); }
+.crm-att-chip--brand.crm-att-chip--active { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+
+.crm-att-student__correct {
+  margin-top: 0.625rem;
+}
+
+.crm-att-correct-link {
+  font-size: 0.6875rem;
+  font-weight: 650;
+  color: var(--brand);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.crm-att-correct-link:hover { text-decoration: underline; }
+
+.crm-att-correct-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.crm-att-correct-input {
+  flex: 1;
+  min-width: 180px;
+  height: 2rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+.crm-att-correct-btn {
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg-page);
+  font-size: 0.75rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.crm-att-correct-btn--primary {
+  background: var(--brand-soft);
+  border-color: color-mix(in srgb, var(--brand) 25%, var(--border));
+  color: var(--brand);
+}
+
+.crm-att-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: 0.875rem;
+  background: color-mix(in srgb, var(--bg-page) 40%, var(--bg-card));
+}
+
+/* ─── Daily P/A teacher table ─── */
+.crm-att-pa-table-wrap {
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  min-height: 100%;
+}
+
+.crm-att-pa-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8125rem;
+}
+
+.crm-att-pa-table thead {
+  background: color-mix(in srgb, var(--bg-page) 72%, var(--bg-card));
+  text-align: left;
+}
+
+.crm-att-pa-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.55rem 0.875rem;
+  font-weight: 700;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-page) 78%, var(--bg-card));
+}
+
+.crm-att-pa-row td {
+  padding: 0.55rem 0.875rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.crm-att-pa-row:last-child td {
+  border-bottom: none;
+}
+
+.crm-att-pa-row:hover td {
+  background: color-mix(in srgb, var(--bg-page) 35%, transparent);
+}
+
+.crm-att-pa-row--unmarked td {
+  background: color-mix(in srgb, var(--warning-soft) 28%, transparent);
+}
+
+.crm-att-pa-row--changed td {
+  background: color-mix(in srgb, var(--brand-soft) 22%, transparent);
+}
+
+.crm-att-pa-row__student {
+  min-width: 12rem;
+}
+
+.crm-att-pa-row__identity {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.crm-att-pa-row__avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.55rem;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.crm-att-pa-row__copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.crm-att-pa-row__name {
+  display: block;
+  font-weight: 650;
+  color: var(--text-primary);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-att-pa-row__code {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.crm-att-pa-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+}
+
+.crm-att-pa-btn {
+  min-width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.crm-att-pa-btn:hover:not(:disabled) {
+  background: var(--bg-card);
+}
+
+.crm-att-pa-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.crm-att-pa-btn--p.crm-att-pa-btn--active {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.crm-att-pa-btn--a.crm-att-pa-btn--active {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.crm-att-pa-row__marked {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.crm-att-pa-row__unsaved {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.crm-att-toolbar--daily {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+}
+
+.crm-att-toolbar--daily .crm-att-toolbar__actions {
+  flex-wrap: wrap;
+}
+
+.crm-att-toolbar--daily .crm-att-toolbar__search {
+  height: 2rem;
+  max-width: 280px;
+}
+
+.crm-attendance-page--daily .crm-att-metrics {
+  gap: 0.3rem;
+}
+
+.crm-attendance-page--daily .crm-att-metric {
+  padding: 0.4rem 0.3rem;
+  border-radius: 0.625rem;
+}
+
+.crm-attendance-page--daily .crm-att-metric__value {
+  font-size: 0.9375rem;
+}
+
+.crm-att-scroll .crm-att-empty {
+  margin: 1rem;
+  border: 0;
+  background: transparent;
+}
+
+/* ─── Student portal attendance (view-only) ─── */
+.crm-stu-att-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.crm-stu-att-stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--bg-card);
+}
+
+.crm-stu-att-stat--primary {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
+  background: color-mix(in srgb, var(--brand-soft) 40%, var(--bg-card));
+}
+
+.crm-stu-att-stat__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--text-muted);
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+}
+
+.crm-stu-att-stat__icon--p { color: var(--success); }
+.crm-stu-att-stat__icon--a { color: var(--danger); }
+
+.crm-stu-att-stat__label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.crm-stu-att-stat__value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.crm-stu-att-alert {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, var(--border));
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 0.875rem;
+}
+
+.crm-stu-att-panel {
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.crm-stu-att-panel__head {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.crm-stu-att-panel__title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+}
+
+.crm-stu-att-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.crm-stu-att-table thead {
+  background: color-mix(in srgb, var(--bg-page) 55%, var(--bg-card));
+  text-align: left;
+}
+
+.crm-stu-att-table th,
+.crm-stu-att-table td {
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.crm-stu-att-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.crm-stu-att-table__empty {
+  padding: 2rem 1rem !important;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.crm-stu-att-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.crm-stu-att-badge--p {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.crm-stu-att-badge--a {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+@media (max-width: 900px) {
+  .crm-stu-att-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .crm-att-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .crm-att-metrics--simple { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .crm-stu-att-stats { grid-template-columns: 1fr; }
+  .crm-att-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .crm-att-metrics--simple { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .crm-att-scroll { overflow-x: auto; }
+  .crm-att-pa-table { min-width: 520px; }
+  .crm-att-hero__body { flex-direction: column; align-items: flex-start; }
+  .crm-att-toolbar { flex-direction: column; align-items: stretch; }
+  .crm-att-toolbar__search { max-width: none; }
+  .crm-batch-inline { grid-template-columns: 1fr; }
+  .crm-batch-week { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .crm-batch-session-v2 {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .crm-batch-session-v2__btn { justify-self: start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crm-batch-bar__fill,
+  .crm-batch-hero-capacity__fill {
+    transition: none;
+  }
+}

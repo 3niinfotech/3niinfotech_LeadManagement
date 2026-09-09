@@ -47,15 +47,20 @@ export default function EnquiryTimelineItem({ entry }) {
   return (
     <article className="crm-timeline-item">
       <div className={`crm-timeline-item__icon ${TONE_CLASS[meta.tone] || TONE_CLASS.secondary}`}>
-        <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
+        <Icon className="w-3 h-3" strokeWidth={2.5} />
       </div>
       <div className="crm-timeline-item__body">
         <div className="crm-timeline-item__head">
           <h4 className="crm-timeline-item__title">{title}</h4>
           <time className="crm-timeline-item__time" dateTime={entry.createdAt}>{time}</time>
         </div>
-        {detail && <p className="crm-timeline-item__detail">{detail}</p>}
-        <p className="crm-timeline-item__actor">{actor}</p>
+        {(detail || actor) && (
+          <p className="crm-timeline-item__meta">
+            {detail && <span className="crm-timeline-item__detail">{detail}</span>}
+            {detail && actor && <span className="crm-timeline-item__dot" aria-hidden>·</span>}
+            {actor && <span className="crm-timeline-item__actor">{actor}</span>}
+          </p>
+        )}
       </div>
     </article>
   );

@@ -1,6 +1,6 @@
 export const WALKIN_STATUSES = [
   { value: 'WALK_IN', label: 'New Walk-in', tone: 'primary' },
-  { value: 'WAITING', label: 'Waiting', tone: 'warning' },
+  { value: 'WAITING', label: 'Registered', tone: 'warning' },
   { value: 'IN_COUNSELLING', label: 'In Counselling', tone: 'info' },
   { value: 'COMPLETED', label: 'Completed', tone: 'success' },
   { value: 'CANCELLED', label: 'Cancelled', tone: 'danger' },
@@ -33,7 +33,6 @@ export const WALKIN_PROFILE_TABS = [
 
 export const WALKIN_VIEW_TABS = [
   { id: 'today', label: 'Today' },
-  { id: 'waiting', label: 'Waiting' },
   { id: 'in_counselling', label: 'With counsellor' },
   { id: 'completed', label: 'Done' },
   { id: 'all', label: 'All' },

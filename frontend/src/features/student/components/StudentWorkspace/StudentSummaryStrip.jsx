@@ -1,15 +1,18 @@
 import { Link } from 'react-router-dom';
 import Badge from '../../../../components/ui/Badge';
+import CountryFlagLabel from '../../../../components/ui/CountryFlagLabel';
 import { STUDENT_STATUSES } from '../../../../config/constants';
 import { ROUTES } from '../../../../config/routes';
 import { useStudentStatusOptions } from '../../hooks/useStudentStatusOptions';
 
-function MetaItem({ label, value }) {
+function MetaItem({ label, value, country = false }) {
   if (!value) return null;
   return (
     <div className="crm-enquiry-summary__item">
       <span className="crm-enquiry-summary__label">{label}</span>
-      <span className="crm-enquiry-summary__value font-medium">{value}</span>
+      <span className="crm-enquiry-summary__value font-medium">
+        {country ? <CountryFlagLabel country={value} size="sm" /> : value}
+      </span>
     </div>
   );
 }
@@ -41,7 +44,7 @@ export default function StudentSummaryStrip({ student }) {
         )}
       </div>
       <div className="crm-enquiry-summary__meta">
-        <MetaItem label="Country" value={student.country} />
+        <MetaItem label="Country" value={student.country} country />
         <MetaItem label="Course" value={student.course} />
         <MetaItem label="University" value={student.university} />
         <MetaItem label="Intake" value={student.intake} />

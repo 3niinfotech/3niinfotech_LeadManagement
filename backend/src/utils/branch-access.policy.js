@@ -1,4 +1,4 @@
-import { hasAnyPermission } from '../modules/rbac/rbac.util.js';
+import { hasPermission } from '../modules/rbac/rbac.util.js';
 
 /** Platform operator — no company on account (rare; full access) */
 export function isPlatformGlobalUser(user) {
@@ -8,7 +8,7 @@ export function isPlatformGlobalUser(user) {
 /**
  * Pure policy: which branches may this user read/write?
  * - ALL: platform global
- * - COMPANY: every branch in their company (COMPANY/GLOBAL scope or branch.switch / branch.view_multiple)
+ * - COMPANY: every branch in their company (COMPANY/GLOBAL scope OR both branch.switch + branch.view_multiple)
  * - LIST: only explicit branch ids (home branch + optional allowedBranchIds)
  * - NONE: no branch access
  */
@@ -18,7 +18,9 @@ export function resolveBranchAccessPolicy(user) {
 
   const scope = user.dataScope || user.role?.dataScope || 'OWN';
   const perms = user.permissions || [];
-  const canMulti = hasAnyPermission(perms, ['branch.switch', 'branch.view_multiple']);
+  // Require BOTH permissions for multi-branch ops (matches navbar switcher gate)
+  const canMulti = hasPermission(perms, 'branch.switch')
+    && hasPermission(perms, 'branch.view_multiple');
 
   if (scope === 'GLOBAL' || scope === 'COMPANY' || canMulti) {
     return { mode: 'COMPANY', branchIds: null };

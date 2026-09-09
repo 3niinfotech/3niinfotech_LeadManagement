@@ -26,6 +26,8 @@ export const masterApi = {
 
   remove: (entity, id) => apiDelete(masterPath(entity, `/${id}`)),
 
+  getUsage: (entity, id) => apiGet(masterPath(entity, `/${id}/usage`)),
+
   bulkStatus: (entity, ids, isActive) =>
     apiPost(masterPath(entity, '/bulk/status'), { ids, isActive }),
 

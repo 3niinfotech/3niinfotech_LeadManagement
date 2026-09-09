@@ -1,5 +1,6 @@
 import prisma from '../../config/database.js';
 import { softDeleteWhere, buildPagination, parsePagination, parseSort } from '../../utils/response.util.js';
+import { attachStudentPhotoUrl } from '../../utils/studentPhoto.util.js';
 
 const buildSearchWhere = (search, fields) => {
   if (!search) return {};
@@ -80,6 +81,34 @@ export const studentRepository = {
           branch: { select: { id: true, name: true, code: true } },
           assignedTo: { select: { id: true, firstName: true, lastName: true, email: true } },
           partner: { select: { id: true, name: true } },
+          documents: {
+            where: { ...softDeleteWhere, category: 'PHOTO' },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              filePath: true,
+              mimeType: true,
+              fileName: true,
+            },
+          },
+          enquiry: {
+            select: {
+              id: true,
+              metadata: true,
+              documents: {
+                where: { category: 'PHOTO' },
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+                select: {
+                  id: true,
+                  filePath: true,
+                  mimeType: true,
+                  fileName: true,
+                },
+              },
+            },
+          },
           _count: {
             select: {
               applications: { where: softDeleteWhere },
@@ -93,7 +122,17 @@ export const studentRepository = {
       prisma.student.count({ where }),
     ]);
 
-    return { data, pagination: buildPagination(page, limit, total) };
+    const rows = data.map((row) => {
+      const withPhoto = attachStudentPhotoUrl(row);
+      const { documents, enquiry, ...rest } = withPhoto;
+      return {
+        ...rest,
+        photoUrl: withPhoto.photoUrl || null,
+        enquiryId: enquiry?.id || null,
+      };
+    });
+
+    return { data: rows, pagination: buildPagination(page, limit, total) };
   },
 
   getSummaryCounts: async (scopeWhere = {}) => {
@@ -130,9 +169,43 @@ export const studentRepository = {
         partner: true,
         applications: { where: softDeleteWhere },
         visas: { where: softDeleteWhere },
-        documents: { where: softDeleteWhere },
+        documents: { where: softDeleteWhere, orderBy: { createdAt: 'desc' } },
         notes: { where: softDeleteWhere, include: { user: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { createdAt: 'desc' } },
         activities: { orderBy: { createdAt: 'desc' }, take: 50 },
+        enquiry: {
+          include: {
+            assignedTo: { select: { id: true, firstName: true, lastName: true, email: true } },
+            branch: { select: { id: true, name: true } },
+            lead: { select: { id: true, leadCode: true, source: true, walkInAt: true, status: true } },
+            followups: {
+              orderBy: { followupAt: 'desc' },
+              include: { user: { select: { id: true, firstName: true, lastName: true } } },
+            },
+            demos: {
+              orderBy: { demoDate: 'desc' },
+              include: {
+                user: { select: { id: true, firstName: true, lastName: true } },
+                faculty: { select: { id: true, name: true } },
+              },
+            },
+            documents: { orderBy: { createdAt: 'desc' } },
+            notes: {
+              orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
+              include: { user: { select: { id: true, firstName: true, lastName: true } } },
+            },
+            communications: {
+              orderBy: { sentAt: 'desc' },
+              take: 30,
+              include: { user: { select: { id: true, firstName: true, lastName: true } } },
+            },
+            auditLogs: {
+              orderBy: { createdAt: 'desc' },
+              take: 30,
+              include: { user: { select: { id: true, firstName: true, lastName: true } } },
+            },
+          },
+        },
+        lead: { select: { id: true, leadCode: true, source: true, walkInAt: true, status: true } },
       },
     }),
 

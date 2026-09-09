@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import DataGrid from '../../../components/table/DataGrid';
 import { createActionsColumn, createAvatarColumn, GridRowActions } from '../../../components/table/grid.columns';
+import { createCountryColumn } from '../../../components/table/countryColumn';
 import EnquiryStatusPill from './EnquiryStatusPill';
 import EnquiryPriorityBadge from './EnquiryPriorityBadge';
 import EnquiryTagChips from './EnquiryTagChips';
@@ -67,13 +68,7 @@ export default function EnquiryGrid({
       cellClass: `text-text-secondary crm-grid-cell--truncate ${centerCell}`,
       headerClass: centerHeader,
     },
-    {
-      field: 'interestedCountry',
-      headerName: 'Country',
-      width: 108,
-      cellClass: `text-text-secondary ${centerCell}`,
-      headerClass: centerHeader,
-    },
+    createCountryColumn({ field: 'interestedCountry', headerName: 'Country', width: 140, minWidth: 120 }),
     {
       field: 'priority',
       headerName: 'Priority',
@@ -236,8 +231,10 @@ export default function EnquiryGrid({
       paginationPageSize={25}
       height="100%"
       emptyTitle="No enquiries yet"
-      emptyDescription="Assigned visitors appear here after Reception assigns you. Open a row to counsel, update status, then convert."
-      emptyActionLabel="Open Reception"
+      emptyDescription={onRegisterVisitor
+        ? 'Assigned visitors appear here after Reception assigns you. Open a row to counsel, update status, then convert.'
+        : 'Your assigned enquiries appear here. Open a row to counsel, follow up, and convert.'}
+      emptyActionLabel={onRegisterVisitor ? 'Open Reception' : undefined}
       onEmptyAction={onRegisterVisitor}
       getRowId={(p) => p.data.id}
       rowClassRules={rowClassRules}

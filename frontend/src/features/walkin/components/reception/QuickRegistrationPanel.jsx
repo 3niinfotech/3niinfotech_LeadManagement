@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSelector } from 'react-redux';
-import { FiSave, FiRotateCcw, FiBookmark, FiRefreshCw, FiUserPlus } from 'react-icons/fi';
+import { FiSave, FiRotateCcw, FiBookmark, FiRefreshCw, FiUserPlus, FiCheck, FiEdit3, FiZap } from 'react-icons/fi';
 import IconBox from '../../../../components/ui/IconBox';
 import Input from '../../../../components/ui/Input';
 import Select from '../../../../components/ui/Select';
 import Textarea from '../../../../components/ui/Textarea';
 import Button from '../../../../components/ui/Button';
+import Modal from '../../../../components/ui/Modal';
 import { walkInFormSchema } from '../../schemas/walkinSchema';
 import { WALKIN_SOURCES } from '../../config/walkin.constants';
 import { selectUser } from '../../../../redux/slices/authSlice';
@@ -16,7 +17,9 @@ import {
   useRecommendCounsellorsQuery,
 } from '../../redux/walkinApiSlice';
 import { useWalkInDuplicateCheck } from '../../hooks/useWalkInDuplicateCheck';
+import useCourseCounsellorAutoAssign from '../../hooks/useCourseCounsellorAutoAssign';
 import { useRelationalMasterOptions } from '../../../master/hooks/useRelationalMasterOptions';
+import { pairMasterOptions } from '../../../master/utils/masterFieldDisplay.utils';
 import DuplicateDetectionPanel from './DuplicateDetectionPanel';
 import CounsellorRecommendPanel from './CounsellorRecommendPanel';
 import toastService from '../../../../services/toast/toast.service';
@@ -39,15 +42,8 @@ const defaultValues = {
   notes: '',
 };
 
-function masterSelectOptions(rows = [], labelKey = 'name') {
-  return (rows || [])
-    .map((r) => {
-      const label = r[labelKey] || r.name || r.label || r.code;
-      const value = r.name || r.code || r.id;
-      if (!label || !value) return null;
-      return { value: String(value), label: String(label) };
-    })
-    .filter(Boolean);
+function masterSelectOptions(rows = [], { disambiguate = false } = {}) {
+  return pairMasterOptions(rows, { disambiguate });
 }
 
 function withOther(options) {
@@ -65,6 +61,7 @@ export default function QuickRegistrationPanel({
   const [countryMode, setCountryMode] = useState('');
   const [courseMode, setCourseMode] = useState('');
   const [purposeMode, setPurposeMode] = useState('');
+  const [manualMode, setManualMode] = useState(false);
   const { data: branchesData } = useGetWalkInBranchesQuery();
   const branches = branchesData ?? [];
   const defaultBranchId = user?.branchId || branches[0]?.id || '';
@@ -74,7 +71,7 @@ export default function QuickRegistrationPanel({
   const { options: purposeRows, loading: purposesLoading } = useRelationalMasterOptions('visit-purpose');
 
   const countryOptions = useMemo(() => withOther(masterSelectOptions(countryRows)), [countryRows]);
-  const courseOptions = useMemo(() => withOther(masterSelectOptions(courseRows)), [courseRows]);
+  const courseOptions = useMemo(() => withOther(masterSelectOptions(courseRows, { disambiguate: true })), [courseRows]);
   const purposeOptions = useMemo(() => withOther(masterSelectOptions(purposeRows)), [purposeRows]);
 
   const {
@@ -97,6 +94,33 @@ export default function QuickRegistrationPanel({
   const interestedCourse = watch('interestedCourse');
   const assignedToId = watch('assignedToId');
   const { match, hasDuplicate } = useWalkInDuplicateCheck({ phone, branchId, enabled: Boolean(branchId) });
+
+  const handleCounsellorAssign = useCallback((id) => {
+    setValue('assignedToId', id, { shouldValidate: true });
+  }, [setValue]);
+
+  const {
+    autoHint,
+    mappingWarning,
+    assignmentSource,
+    resolving: courseResolving,
+    confirmOpen,
+    pendingCourse,
+    enableManualOverride,
+    handleManualSelect,
+    handleConfirmUpdate,
+    handleConfirmKeep,
+    reset: resetCourseAssign,
+    isCourseMapped,
+  } = useCourseCounsellorAutoAssign({
+    courseLabel: interestedCourse,
+    branchId,
+    assignedToId,
+    onAssign: handleCounsellorAssign,
+    manualMode,
+    setManualMode,
+    enabled: Boolean(branchId),
+  });
 
   const {
     data: recommendations = [],
@@ -125,6 +149,8 @@ export default function QuickRegistrationPanel({
     (r) => r.availability?.key === 'AVAILABLE',
   ).length;
 
+  const selectedCounsellor = recommendations.find((r) => r.id === assignedToId);
+
   useEffect(() => {
     reset({ ...defaultValues, branchId: defaultBranchId });
     try {
@@ -147,13 +173,29 @@ export default function QuickRegistrationPanel({
     if (focusSignal) phoneRef.current?.focus();
   }, [focusSignal]);
 
+  // Fallback to availability engine when course mapping is absent or has no match
   useEffect(() => {
-    if (assignedToId || !recommendations?.length) return;
+    if (manualMode || assignedToId || courseResolving) return;
+    const course = interestedCourse?.trim() || '';
+    if (course && isCourseMapped) return;
+    if (course && !mappingWarning && !autoHint) return;
+    if (!recommendations?.length) return;
+
     const top = recommendations.find((r) => r.recommended)
       || recommendations.find((r) => r.availability?.key === 'AVAILABLE')
       || recommendations[0];
     if (top?.id) setValue('assignedToId', top.id, { shouldValidate: true });
-  }, [recommendations, assignedToId, setValue]);
+  }, [
+    recommendations,
+    assignedToId,
+    setValue,
+    manualMode,
+    courseResolving,
+    isCourseMapped,
+    interestedCourse,
+    mappingWarning,
+    autoHint,
+  ]);
 
   const saveDraft = () => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(watch()));
@@ -166,30 +208,44 @@ export default function QuickRegistrationPanel({
     setCountryMode('');
     setCourseMode('');
     setPurposeMode('');
+    setManualMode(false);
+    resetCourseAssign();
     phoneRef.current?.focus();
   };
 
   const submit = (data) => {
     if (hasDuplicate && match) return;
-    if (!data.assignedToId) {
-      toastService.info('Select a counsellor');
+
+    const course = data.interestedCourse?.trim() || '';
+    const counsellorId = data.assignedToId || '';
+
+    if (!counsellorId && !course) {
+      toastService.info('Select a course or counsellor');
       return;
     }
+    if (!counsellorId && course && mappingWarning) {
+      toastService.info('No default counsellor for this course — pick one manually');
+      return;
+    }
+
     onSubmit({
       fullName: data.fullName,
       phone: data.phone,
       email: data.email || null,
       city: data.city || null,
       interestedCountry: data.interestedCountry || null,
-      interestedCourse: data.interestedCourse || null,
+      interestedCourse: course || null,
       visitPurpose: data.visitPurpose || 'Study Abroad Enquiry',
       source: data.source,
       branchId: data.branchId || defaultBranchId,
       notes: data.notes || null,
       priority: 'NORMAL',
-      assignedToId: data.assignedToId,
+      assignedToId: counsellorId || undefined,
+      manualCounsellorOverride: manualMode && Boolean(counsellorId),
     });
     localStorage.removeItem(DRAFT_KEY);
+    setManualMode(false);
+    resetCourseAssign();
   };
 
   const bindMasterSelect = (mode, setMode, fieldName) => ({
@@ -206,6 +262,9 @@ export default function QuickRegistrationPanel({
     },
   });
 
+  const assignError = errors.assignedToId?.message
+    || (recommendError ? (recommendErr?.data?.message || 'Could not load counsellors') : null);
+
   return (
     <div className="crm-reception-register" id="reception-registration-form">
       <header className="crm-reception-register__head">
@@ -214,7 +273,7 @@ export default function QuickRegistrationPanel({
           <div className="min-w-0">
             <h3 className="crm-reception-register__title">Register visitor</h3>
             <p className="crm-reception-register__sub">
-              Mobile first — duplicates are checked automatically before you save.
+              Mobile first — course picks the default counsellor automatically.
             </p>
           </div>
         </div>
@@ -335,23 +394,67 @@ export default function QuickRegistrationPanel({
                   type="button"
                   className="crm-reception-counsellor__refresh"
                   onClick={() => refetchCounsellors()}
-                  title="Refresh"
+                  title="Refresh availability"
                 >
-                  <FiRefreshCw className={recommending ? 'animate-spin' : ''} size={14} />
+                  <FiRefreshCw className={recommending || courseResolving ? 'animate-spin' : ''} size={14} />
                 </button>
               </div>
+
+              {(autoHint || courseResolving) && (
+                <div className={`crm-reception-course-assign ${courseResolving ? 'is-loading' : 'is-mapped'}`}>
+                  <FiZap size={14} aria-hidden />
+                  <span>
+                    {courseResolving
+                      ? 'Matching counsellor for course…'
+                      : autoHint}
+                  </span>
+                </div>
+              )}
+
+              {mappingWarning && !assignedToId && (
+                <div className="crm-reception-course-assign is-warning">
+                  <span>{mappingWarning}</span>
+                </div>
+              )}
+
+              {assignedToId && selectedCounsellor && (
+                <div className="crm-reception-course-assign is-selected">
+                  <FiCheck size={14} aria-hidden />
+                  <span>
+                    <strong>
+                      {`${selectedCounsellor.firstName || ''} ${selectedCounsellor.lastName || ''}`.trim()}
+                    </strong>
+                    {assignmentSource === 'COURSE_MAPPING' && !manualMode && (
+                      <span className="crm-reception-course-assign__tag">Course default</span>
+                    )}
+                    {manualMode && (
+                      <span className="crm-reception-course-assign__tag is-manual">Manual</span>
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {!manualMode && isCourseMapped && (
+                <button
+                  type="button"
+                  className="crm-reception-course-assign__change"
+                  onClick={enableManualOverride}
+                >
+                  <FiEdit3 size={12} aria-hidden />
+                  Change counsellor
+                </button>
+              )}
+
               <CounsellorRecommendPanel
                 recommendations={recommendations}
                 loading={recommendLoading && !recommendations.length}
                 selectedId={assignedToId}
-                onSelect={(id) => setValue('assignedToId', id, { shouldValidate: true })}
+                onSelect={(id) => {
+                  handleCounsellorAssign(id);
+                  handleManualSelect();
+                }}
                 onRefresh={() => refetchCounsellors()}
-                error={
-                  errors.assignedToId?.message
-                  || (recommendError
-                    ? (recommendErr?.data?.message || 'Could not load counsellors')
-                    : null)
-                }
+                error={assignError}
               />
             </div>
             <input type="hidden" {...register('assignedToId')} />
@@ -359,7 +462,7 @@ export default function QuickRegistrationPanel({
         </div>
 
         <div className="crm-reception-register__footer">
-          <Button type="submit" icon={FiSave} loading={loading} disabled={hasDuplicate}>
+          <Button type="submit" icon={FiSave} loading={loading} disabled={hasDuplicate || courseResolving}>
             Create &amp; Assign
           </Button>
           <Button type="button" variant="outline" icon={FiBookmark} onClick={saveDraft}>
@@ -370,6 +473,21 @@ export default function QuickRegistrationPanel({
           </Button>
         </div>
       </form>
+
+      <Modal
+        open={confirmOpen}
+        onClose={handleConfirmKeep}
+        title="Update counsellor?"
+        size="sm"
+      >
+        <p className="text-sm text-gray-600 mb-4">
+          Course changed to <strong>{pendingCourse}</strong>. Apply the default counsellor for this course?
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={handleConfirmKeep}>Keep current</Button>
+          <Button onClick={handleConfirmUpdate}>Update counsellor</Button>
+        </div>
+      </Modal>
     </div>
   );
 }

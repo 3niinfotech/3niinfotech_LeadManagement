@@ -1,0 +1,193 @@
+/* Applications module — detail modal + dense presentation */
+
+.visa-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.visa-detail__hero {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--border));
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--brand) 8%, transparent) 0%,
+      color-mix(in srgb, var(--bg-surface, var(--bg-card)) 92%, transparent) 55%
+    );
+}
+
+.visa-detail__hero-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.visa-detail__hero-name {
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.visa-detail__hero-meta {
+  margin-top: 0.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.visa-detail__hero-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 0.75rem;
+}
+
+.visa-detail__hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.visa-detail__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 550;
+  color: var(--text-muted);
+  background: var(--bg-surface, var(--bg-card));
+  border: 1px solid var(--border);
+}
+
+.visa-detail__chip--success {
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.visa-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+@media (min-width: 640px) {
+  .visa-detail__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.visa-detail-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.25rem;
+  min-height: 4.25rem;
+  padding: 0.7rem 0.65rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-surface, var(--bg-card)) 70%, transparent);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.visa-detail-tile:hover {
+  border-color: color-mix(in srgb, var(--brand) 28%, var(--border));
+  background: color-mix(in srgb, var(--brand) 4%, var(--bg-card));
+}
+
+.visa-detail-tile__label {
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.visa-detail-tile__value {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.visa-detail__docs {
+  border-radius: 0.875rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-surface, var(--bg-card)) 65%, transparent);
+  padding: 0.875rem 1rem;
+}
+
+.visa-detail__docs-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--text-primary);
+  margin-bottom: 0.65rem;
+}
+
+.visa-detail__docs-count {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.visa-detail__docs-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.4rem;
+}
+
+@media (min-width: 640px) {
+  .visa-detail__docs-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.visa-detail__doc-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, var(--text-muted));
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.5rem;
+  background: var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.visa-detail__chip--danger {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+

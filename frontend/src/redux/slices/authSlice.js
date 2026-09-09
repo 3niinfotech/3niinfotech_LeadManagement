@@ -65,6 +65,18 @@ const authSlice = createSlice({
     updateUserPreferences: (state, action) => {
       if (state.user) state.user.preferences = action.payload;
     },
+    patchAuthUser: (state, action) => {
+      const patch = action.payload;
+      if (!patch?.id || !state.user || state.user.id !== patch.id) return;
+      state.user = {
+        ...state.user,
+        ...patch,
+        role: patch.role ?? state.user.role,
+        branch: patch.branch ?? state.user.branch,
+        company: patch.company ?? state.user.company,
+      };
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(state.user));
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -89,7 +101,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearAuthError, updateUserPreferences } = authSlice.actions;
+export const { clearAuthError, updateUserPreferences, patchAuthUser } = authSlice.actions;
 export default authSlice.reducer;
 
 export const selectUser = (state) => state.auth.user;

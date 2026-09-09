@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiMail, FiLock, FiUser, FiPhone } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiMail, FiLock, FiUser, FiPhone, FiCheck } from 'react-icons/fi';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Select from '../../components/ui/Select';
+import AuthShell from '../../components/auth/AuthShell';
 import toastService from '../../services/toast/toast.service';
 import { authService } from '../../services/auth/auth.service';
+import { PORTALS } from '../../config/portal.config';
+import { ROUTES } from '../../config/routes';
 
 const schema = z.object({
   companyCode: z.string().min(1, 'Company code is required'),
@@ -16,9 +19,15 @@ const schema = z.object({
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   email: z.string().email(),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(1, 'Password is required').max(128),
   phone: z.string().max(20).optional(),
 });
+
+const BENEFITS = [
+  'Track applications & visa progress',
+  'Access classes, attendance & assignments',
+  'View fees, receipts & documents',
+];
 
 export default function StudentRegisterPage() {
   const navigate = useNavigate();
@@ -58,7 +67,7 @@ export default function StudentRegisterPage() {
     try {
       await authService.registerStudent(data);
       toastService.action.success('Account created. Please sign in.');
-      navigate('/login/student');
+      navigate(ROUTES.LOGIN_STUDENT);
     } catch (err) {
       toastService.action.error(err.response?.data?.message || 'Registration failed');
     } finally {
@@ -67,36 +76,67 @@ export default function StudentRegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-8">
-      <div className="w-full max-w-lg">
-        <Link to="/login/student" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-primary-600 mb-6">
-          <FiArrowLeft /> Back to sign in
-        </Link>
-        <div className="bg-card-bg rounded-lg shadow-card p-8 border border-card-border">
-          <h1 className="text-2xl font-semibold text-text mb-1">Student Registration</h1>
-          <p className="text-sm text-text-secondary mb-6">Create your student portal account</p>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Input label="Company Code" error={errors.companyCode?.message} {...register('companyCode')} />
-            <Select
-              label="Branch"
-              loading={loadingBranches}
-              error={errors.branchId?.message}
-              options={branches.map((b) => ({ value: b.id, label: `${b.name}${b.city ? ` — ${b.city}` : ''}` }))}
-              placeholder="Select branch"
-              {...register('branchId')}
-              onChange={(e) => setValue('branchId', e.target.value, { shouldValidate: true })}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="First Name" icon={FiUser} error={errors.firstName?.message} {...register('firstName')} />
-              <Input label="Last Name" error={errors.lastName?.message} {...register('lastName')} />
-            </div>
-            <Input label="Email" type="email" icon={FiMail} error={errors.email?.message} {...register('email')} />
-            <Input label="Phone" icon={FiPhone} error={errors.phone?.message} {...register('phone')} />
-            <Input label="Password" type="password" icon={FiLock} error={errors.password?.message} {...register('password')} />
-            <Button type="submit" loading={submitting} className="w-full" size="lg">Create Account</Button>
-          </form>
+    <AuthShell
+      portal={PORTALS.STUDENT}
+      variant="hero"
+      minimal
+      title="Create your account"
+      subtitle="Student registration"
+      wide
+      backTo={{ label: 'Back to website', href: ROUTES.LANDING }}
+      footerLinks={[
+        {
+          key: 'login',
+          text: 'Already registered?',
+          href: ROUTES.LOGIN_STUDENT,
+          linkLabel: 'Sign in',
+        },
+      ]}
+    >
+      <ul className="auth-register-benefits">
+        {BENEFITS.map((item) => (
+          <li key={item}><FiCheck size={13} aria-hidden />{item}</li>
+        ))}
+      </ul>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="auth-login-form auth-register-form">
+        <div className="auth-register-form__section">
+          <p className="auth-register-form__label">Institute</p>
+          <Input label="Company code" error={errors.companyCode?.message} {...register('companyCode')} />
+          <Select
+            label="Branch"
+            loading={loadingBranches}
+            error={errors.branchId?.message}
+            options={branches.map((b) => ({ value: b.id, label: `${b.name}${b.city ? ` — ${b.city}` : ''}` }))}
+            placeholder="Select your branch"
+            {...register('branchId')}
+            onChange={(e) => setValue('branchId', e.target.value, { shouldValidate: true })}
+          />
         </div>
-      </div>
-    </div>
+
+        <div className="auth-register-form__section">
+          <p className="auth-register-form__label">Your details</p>
+          <div className="auth-register-form__row">
+            <Input label="First name" icon={FiUser} error={errors.firstName?.message} {...register('firstName')} />
+            <Input label="Last name" error={errors.lastName?.message} {...register('lastName')} />
+          </div>
+          <Input label="Email" type="email" icon={FiMail} error={errors.email?.message} autoComplete="email" {...register('email')} />
+          <Input label="Phone" icon={FiPhone} error={errors.phone?.message} autoComplete="tel" {...register('phone')} />
+          <Input
+            label="Password"
+            type="password"
+            icon={FiLock}
+            error={errors.password?.message}
+            autoComplete="new-password"
+            hint="At least 8 characters"
+            {...register('password')}
+          />
+        </div>
+
+        <Button type="submit" loading={submitting} className="auth-login-form__submit w-full" size="lg">
+          Create Student Account
+        </Button>
+      </form>
+    </AuthShell>
   );
 }

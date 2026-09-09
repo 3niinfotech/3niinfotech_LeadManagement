@@ -18,6 +18,7 @@ export default function CalendarHeader({
   onSearchChange,
   onToggleFilters,
   filtersOpen,
+  activeFilterCount = 0,
   onRefresh,
   refreshing,
   onAddFollowup,
@@ -27,7 +28,7 @@ export default function CalendarHeader({
   const viewOptions = CALENDAR_VIEW_OPTIONS.map((v) => ({ id: v.id, label: v.label }));
 
   return (
-    <div className="flex flex-col gap-3 px-4 py-3 border-b border-border bg-card-bg">
+    <div className="crm-calendar-toolbar">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <Button variant="outline" size="sm" onClick={onToday}>Today</Button>
@@ -54,6 +55,11 @@ export default function CalendarHeader({
             aria-pressed={filtersOpen}
           >
             Filters
+            {activeFilterCount > 0 && (
+              <span className="ml-1.5 inline-flex min-w-[1.125rem] h-[1.125rem] items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white px-1">
+                {activeFilterCount}
+              </span>
+            )}
           </Button>
           <Button
             variant="outline"

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { DEFAULT_PAGE_SIZE } from '../../../config/constants';
 import {
@@ -6,6 +6,7 @@ import {
   setDemoSummaryFilter,
   setActiveDemoView,
 } from '../redux/demoUiSlice';
+import { useViewingBranchFilter } from '../../../hooks/useViewingBranchFilter';
 
 export function useDemoFilters() {
   const dispatch = useDispatch();
@@ -14,6 +15,20 @@ export function useDemoFilters() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(DEFAULT_PAGE_SIZE || 25);
+  const {
+    branchId: viewingBranchId,
+    branchLocked,
+    canViewAllBranches,
+  } = useViewingBranchFilter();
+
+  useEffect(() => {
+    setFilters((prev) => {
+      const nextId = viewingBranchId || undefined;
+      if ((prev.branchId || undefined) === nextId) return prev;
+      return { ...prev, branchId: nextId };
+    });
+    setPage(1);
+  }, [viewingBranchId]);
 
   const queryParams = useMemo(() => {
     let sessionStatus = filters.sessionStatus || undefined;
@@ -21,14 +36,13 @@ export function useDemoFilters() {
     let result = filters.result || undefined;
     let view = activeView === 'all' ? undefined : activeView;
 
-    // Handle Summary Filter overrides
     if (activeSummaryFilter === '__today') {
       view = 'today';
     } else if (activeSummaryFilter === '__scheduled') {
       sessionStatus = 'SCHEDULED';
       view = undefined;
     } else if (activeSummaryFilter === '__attended') {
-      attendance = 'ATTENDED';
+      attendance = 'PRESENT';
       view = undefined;
     } else if (activeSummaryFilter === '__converted') {
       result = 'CONVERTED';
@@ -36,11 +50,18 @@ export function useDemoFilters() {
     } else if (activeSummaryFilter === '__missed') {
       attendance = 'ABSENT';
       view = undefined;
+    } else if (activeSummaryFilter === '__notMarked') {
+      attendance = 'NOT_MARKED';
+      view = undefined;
     } else if (activeSummaryFilter === '__pendingOutcome') {
-      attendance = 'ATTENDED';
+      attendance = 'PRESENT';
       result = 'PENDING';
       view = undefined;
     }
+
+    const effectiveBranchId = branchLocked
+      ? (viewingBranchId || undefined)
+      : (filters.branchId || viewingBranchId || undefined);
 
     return {
       page,
@@ -51,25 +72,28 @@ export function useDemoFilters() {
       result,
       search: search || undefined,
       facultyId: filters.facultyId || undefined,
-      branchId: filters.branchId || undefined,
+      branchId: effectiveBranchId,
       course: filters.course || filters.className || undefined,
       from: filters.from || undefined,
       to: filters.to || undefined,
     };
-  }, [page, pageSize, activeView, activeSummaryFilter, search, filters]);
+  }, [page, pageSize, activeView, activeSummaryFilter, search, filters, branchLocked, viewingBranchId]);
 
   const applyFilters = useCallback((next) => {
-    setFilters(next);
+    const patched = branchLocked
+      ? { ...next, branchId: viewingBranchId || undefined }
+      : next;
+    setFilters(patched);
     setPage(1);
-  }, []);
+  }, [branchLocked, viewingBranchId]);
 
   const resetFilters = useCallback(() => {
-    setFilters({});
+    setFilters(branchLocked ? { branchId: viewingBranchId || undefined } : {});
     setSearch('');
     setPage(1);
     dispatch(setDemoSummaryFilter(null));
     dispatch(setActiveDemoView('all'));
-  }, [dispatch]);
+  }, [dispatch, branchLocked, viewingBranchId]);
 
   const selectSummaryCard = useCallback((filterValue) => {
     if (filterValue == null) {
@@ -98,5 +122,7 @@ export function useDemoFilters() {
     selectSummaryCard,
     activeView,
     activeSummaryFilter,
+    branchLocked,
+    canViewAllBranches,
   };
 }

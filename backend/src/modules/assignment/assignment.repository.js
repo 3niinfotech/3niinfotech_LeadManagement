@@ -136,6 +136,49 @@ export const assignmentRepository = {
 
   logAudit: (data) => prisma.assignmentAuditLog.create({ data }),
 
+  logEnquiryAssignment: (data) => prisma.enquiryAssignmentLog.create({ data }),
+
+  getEnquiryAssignmentHistory: (enquiryId) => prisma.enquiryAssignmentLog.findMany({
+    where: { enquiryId },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  }),
+
+  listUnassignedEnquiries: async ({ scopeWhere, page = 1, limit = 25, priority, branchId }) => {
+    const where = {
+      deletedAt: null,
+      assignedToId: null,
+      status: { notIn: ['LOST', 'CONVERTED', 'DROPPED'] },
+      ...(branchId ? { branchId } : {}),
+      ...(priority ? { priority } : {}),
+      ...(scopeWhere || {}),
+    };
+    const [items, total] = await Promise.all([
+      prisma.enquiry.findMany({
+        where,
+        orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          enquiryCode: true,
+          firstName: true,
+          lastName: true,
+          mobile: true,
+          interestedCountry: true,
+          interestedCourse: true,
+          priority: true,
+          status: true,
+          branchId: true,
+          createdAt: true,
+          branch: { select: { id: true, name: true, code: true } },
+        },
+      }),
+      prisma.enquiry.count({ where }),
+    ]);
+    return { items, total, page, limit };
+  },
+
   updateLead: (id, data) => prisma.lead.update({
     where: { id },
     data,

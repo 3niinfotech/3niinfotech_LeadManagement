@@ -101,7 +101,8 @@ export default function OverviewTab({ lead, onOpenEnquiry }) {
   if (!lead) return null;
 
   const meta = lead.metadata && typeof lead.metadata === 'object' ? lead.metadata : {};
-  const counsellor = fullName(lead.assignedTo);
+  const counsellor = fullName(lead.assignedTo)
+    || (lead.assignedToId ? 'Assigned' : '');
   const openVisit = lead.status !== 'COMPLETED' && lead.status !== 'CANCELLED';
 
   return (
@@ -120,7 +121,7 @@ export default function OverviewTab({ lead, onOpenEnquiry }) {
           icon={FiUserCheck}
           label="Counsellor"
           value={counsellor || 'Not assigned'}
-          tone={counsellor ? 'success' : 'warning'}
+          tone={lead.assignedToId ? 'success' : 'warning'}
         />
         <FactCard icon={FiCompass} label="Source" value={lead.source} />
       </div>

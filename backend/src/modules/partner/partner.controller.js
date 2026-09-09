@@ -30,3 +30,8 @@ export const updatePartnerStatus = asyncHandler(async (req, res) => {
   const record = await partnerService.updateStatus(req.params.id, isActive, req.user, req);
   sendSuccess(res, record, 'Partner status updated');
 });
+
+export const deletePartner = asyncHandler(async (req, res) => {
+  const result = await partnerService.remove(req.params.id, req.user, req);
+  sendSuccess(res, result, 'Partner deleted');
+});

@@ -14,5 +14,6 @@ router.get('/:id', view, partnerController.getPartner);
 router.post('/', manage, partnerController.createPartner);
 router.put('/:id', manage, partnerController.updatePartner);
 router.patch('/:id/status', manage, partnerController.updatePartnerStatus);
+router.delete('/:id', manage, partnerController.deletePartner);
 
 export default router;

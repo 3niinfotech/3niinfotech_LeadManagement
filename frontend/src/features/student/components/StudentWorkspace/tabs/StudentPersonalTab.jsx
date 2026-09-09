@@ -5,39 +5,50 @@ import FormSection from '../../../../../components/ui/FormSection';
 import FormSelectField from '../../../../enquiry/components/EnquiryDrawer/FormSelectField';
 import { useEnquiryFormOptions } from '../../../../enquiry/hooks/useEnquiryFormOptions';
 
+const GRID = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-3 gap-y-3';
+
 export default function StudentPersonalTab({ register, control, errors }) {
   const { getOptions } = useEnquiryFormOptions();
 
   return (
-    <FormSection title="Personal Details" description="Identity, contact, and passport information.">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3.5">
+    <FormSection
+      title="Personal Details"
+      description="Identity, contact, and passport — same master record for the full journey."
+      className="crm-personal-details"
+    >
+      <div className={GRID}>
         <Input
           label="First Name"
           required
           {...register('firstName')}
           error={errors.firstName?.message}
+          placeholder="First name"
         />
         <Input
           label="Last Name"
           required
           {...register('lastName')}
           error={errors.lastName?.message}
+          placeholder="Last name"
         />
         <Input
           label="Email"
           type="email"
           {...register('email')}
           error={errors.email?.message}
+          placeholder="email@example.com"
         />
         <Input
           label="Phone"
           {...register('phone')}
           error={errors.phone?.message}
+          placeholder="Mobile number"
         />
         <Input
           label="Passport No"
           {...register('passportNo')}
           error={errors.passportNo?.message}
+          placeholder="Passport number"
         />
         <Controller
           name="dateOfBirth"
@@ -68,11 +79,20 @@ export default function StudentPersonalTab({ register, control, errors }) {
           errors={errors}
           placeholder="Select nationality"
         />
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-2 xl:col-span-3">
           <Input
             label="Address"
             {...register('address')}
             error={errors.address?.message}
+            placeholder="Street, city, state"
+          />
+        </div>
+        <div className="sm:col-span-2 xl:col-span-3">
+          <Input
+            label="Emergency contact"
+            {...register('emergencyContact')}
+            error={errors.emergencyContact?.message}
+            placeholder="Name / number"
           />
         </div>
       </div>
