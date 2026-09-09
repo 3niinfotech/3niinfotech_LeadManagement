@@ -491,7 +491,7 @@ async function getCounsellorDesk(user, enquiryWhere) {
           { lead: mergeScope(user) },
         ],
       },
-      take: 15,
+      take: 6,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -659,18 +659,38 @@ async function getCounsellorDesk(user, enquiryWhere) {
       countryAcc[g.country] = (countryAcc[g.country] || 0) + (g._count?._all || 1);
     }
   }
+  const totalCountrySum = Object.values(countryAcc).reduce((a, b) => a + b, 0) || totalAssignedStudentsCount || 1;
   let topCountries = Object.entries(countryAcc)
-    .map(([country, count]) => ({ country, count }))
+    .map(([country, count]) => ({
+      country,
+      count,
+      percent: Math.max(1, Math.round((count / totalCountrySum) * 100)),
+    }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 6);
+    .slice(0, 5);
 
   if (!topCountries.length && totalAssignedStudentsCount > 0) {
     topCountries = [
-      { country: 'Canada', count: Math.ceil(totalAssignedStudentsCount * 0.5) },
-      { country: 'Australia', count: Math.floor(totalAssignedStudentsCount * 0.3) },
-      { country: 'United Kingdom', count: Math.max(1, totalAssignedStudentsCount - (Math.ceil(totalAssignedStudentsCount * 0.5) + Math.floor(totalAssignedStudentsCount * 0.3))) },
+      { country: 'Canada', count: Math.ceil(totalAssignedStudentsCount * 0.5), percent: 50 },
+      { country: 'Australia', count: Math.floor(totalAssignedStudentsCount * 0.3), percent: 30 },
+      { country: 'United Kingdom', count: Math.max(1, totalAssignedStudentsCount - (Math.ceil(totalAssignedStudentsCount * 0.5) + Math.floor(totalAssignedStudentsCount * 0.3))), percent: 20 },
     ];
   }
+
+  const formatActivityAction = (action, desc) => {
+    const d = (desc || '').trim();
+    if (d && d.length > 3 && !d.includes('_')) return d;
+    const raw = String(action || desc || 'UPDATED').toUpperCase();
+    if (raw.includes('CONVERT')) return 'Converted to Student';
+    if (raw.includes('WALK_IN')) return 'Walk-in Registered';
+    if (raw.includes('ENQUIRY_CREATE') || raw.includes('LEAD_CREATE')) return 'Enquiry Registered';
+    if (raw.includes('APPLY') || raw.includes('APPLICATION')) return 'Application Submitted';
+    if (raw.includes('VISA')) return 'Visa Status Updated';
+    if (raw.includes('FOLLOWUP') || raw.includes('FOLLOW_UP')) return 'Follow-up Logged';
+    if (raw.includes('UPDATE')) return 'Profile Updated';
+    if (raw.includes('CREATE')) return 'Record Created';
+    return raw.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  };
 
   const followUpsDue = followupsToday.length + followupsOverdue.length;
   const tasks = workQueue.slice(0, 6).map((item) => ({
@@ -784,16 +804,29 @@ async function getCounsellorDesk(user, enquiryWhere) {
     ].filter(Boolean),
     tasks,
     myPipeline,
-    recentActivities: recentActivityRows.length > 0 ? recentActivityRows.map((row) => ({
-      id: row.id,
-      title: `${row.student ? `${row.student.firstName} ${row.student.lastName}` : row.lead ? `${row.lead.firstName} ${row.lead.lastName}` : 'Student'} — ${row.action || row.description || 'updated'}`,
-      at: row.createdAt,
-      enquiryId: row.student?.id || row.lead?.id,
-      code: row.student?.studentCode,
-    })) : [
+    recentActivities: recentActivityRows.length > 0 ? recentActivityRows.map((row) => {
+      const personName = row.student
+        ? `${row.student.firstName || ''} ${row.student.lastName || ''}`.trim()
+        : row.lead
+          ? `${row.lead.firstName || ''} ${row.lead.lastName || ''}`.trim()
+          : 'Student';
+      const cleanPersonName = personName.replace(/\s+null\b/i, '').trim() || 'Student';
+      const actionText = formatActivityAction(row.action, row.description);
+      return {
+        id: row.id,
+        title: `${cleanPersonName} — ${actionText}`,
+        person: cleanPersonName,
+        action: actionText,
+        at: row.createdAt,
+        enquiryId: row.student?.id || row.lead?.id,
+        code: row.student?.studentCode,
+      };
+    }) : [
       {
         id: 'act-1',
         title: 'Vijay Patel — Converted to Student',
+        person: 'Vijay Patel',
+        action: 'Converted to Student',
         at: new Date().toISOString(),
       },
     ],

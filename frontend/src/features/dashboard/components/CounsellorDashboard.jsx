@@ -238,26 +238,28 @@ export default function CounsellorDashboard() {
           <header className="crm-cdash-card__head">
             <h2>Students by Stage</h2>
           </header>
-          <ReportDonutChart
-            data={charts.studentsByStage || []}
-            nameKey="label"
-            valueKey="count"
-            height={200}
-            innerRadius={48}
-            outerRadius={74}
-            centerLabel="Total"
-            centerValue={String(stageTotal)}
-            hideLegend
-          />
-          <ul className="crm-cdash-legend">
-            {(charts.studentsByStage || []).map((row, i) => (
-              <li key={row.label}>
-                <i className={`tone-${i % 5}`} />
-                <span>{row.label}</span>
-                <strong>{row.count}</strong>
-              </li>
-            ))}
-          </ul>
+          <div className="crm-cdash-stage-wrap">
+            <ReportDonutChart
+              data={charts.studentsByStage || []}
+              nameKey="label"
+              valueKey="count"
+              height={160}
+              innerRadius={42}
+              outerRadius={68}
+              centerLabel="Total"
+              centerValue={String(stageTotal)}
+              hideLegend
+            />
+            <ul className="crm-cdash-legend">
+              {(charts.studentsByStage || []).map((row, i) => (
+                <li key={row.label}>
+                  <i className={`tone-${i % 5}`} />
+                  <span>{row.label}</span>
+                  <strong>{row.count}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
         </article>
 
         <article className="crm-cdash-card">
@@ -310,7 +312,11 @@ export default function CounsellorDashboard() {
       <section className="crm-cdash-row crm-cdash-row--pipeline">
         <article className="crm-cdash-card crm-cdash-card--table">
           <header className="crm-cdash-card__head">
-            <h2>My Students</h2>
+            <h2>
+              My Students
+              <span className="crm-cdash-badge">{filteredPipeline.length}</span>
+            </h2>
+            <Link to={ROUTES.STUDENTS} className="crm-cdash-link">View All Students</Link>
           </header>
           <div className="crm-cdash-tabs" role="tablist">
             {[
@@ -345,7 +351,7 @@ export default function CounsellorDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPipeline.slice(0, 8).map((row) => {
+                  {filteredPipeline.slice(0, 6).map((row) => {
                     const stage = row.stage || row.status;
                     const tone = STAGE_TONES[stage] || 'blue';
                     const initial = (row.name || '?').charAt(0).toUpperCase();
@@ -395,10 +401,11 @@ export default function CounsellorDashboard() {
         <article className="crm-cdash-card">
           <header className="crm-cdash-card__head">
             <h2>Recent Activities</h2>
+            <span className="crm-cdash-chip">Top {Math.min(activities.length, 5)}</span>
           </header>
           {activities.length ? (
             <ul className="crm-cdash-activity">
-              {activities.map((item) => (
+              {activities.slice(0, 5).map((item) => (
                 <li key={item.id}>
                   <button
                     type="button"
@@ -424,14 +431,27 @@ export default function CounsellorDashboard() {
             <span className="crm-cdash-chip">This Month</span>
           </header>
           {(charts.topCountries || []).length ? (
-            <ReportBarChart
-              data={charts.topCountries}
-              xKey="country"
-              yKey="count"
-              height={240}
-              layout="horizontal"
-              colorful
-            />
+            <div className="crm-cdash-countries">
+              {charts.topCountries.slice(0, 5).map((c, i) => (
+                <div key={c.country} className="crm-cdash-country-row">
+                  <div className="crm-cdash-country-head">
+                    <div className="crm-cdash-country-name">
+                      <CountryFlagLabel country={c.country} />
+                    </div>
+                    <div className="crm-cdash-country-meta">
+                      <strong>{c.count} {c.count === 1 ? 'student' : 'students'}</strong>
+                      <span>({c.percent || Math.round((c.count / (metrics.myStudents || 1)) * 100)}%)</span>
+                    </div>
+                  </div>
+                  <div className="crm-cdash-country-track">
+                    <div
+                      className={`crm-cdash-country-bar crm-cdash-country-bar--${i % 5}`}
+                      style={{ width: `${Math.min(100, Math.max(15, c.percent || (c.count * 20)))}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <PortalEmpty title="No country data" description="Interested countries appear as you add enquiries." />
           )}
