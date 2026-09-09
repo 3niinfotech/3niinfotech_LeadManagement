@@ -2,11 +2,10 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
-  FiUsers, FiInbox, FiFileText, FiAward, FiDollarSign, FiCalendar,
-  FiDownload, FiRefreshCw, FiArrowUpRight, FiArrowDownRight, FiPlus,
-  FiAlertTriangle, FiCheckCircle, FiClock, FiShield, FiKey, FiSettings,
-  FiBarChart2, FiGitBranch, FiUserPlus, FiChevronRight, FiDatabase,
-  FiServer, FiHardDrive, FiMail, FiCheck, FiActivity,
+  FiUsers, FiInbox, FiFileText, FiAward, FiDollarSign,
+  FiRefreshCw, FiArrowUpRight, FiArrowDownRight,
+  FiClock, FiShield, FiKey, FiSettings,
+  FiBarChart2, FiGitBranch, FiUserPlus, FiChevronRight,
 } from 'react-icons/fi';
 import {
   ResponsiveContainer,
@@ -24,10 +23,7 @@ import {
 } from 'recharts';
 import Button from '../../../components/ui/Button';
 import Avatar from '../../../components/ui/Avatar';
-import ReportFiltersBar from '../../reports/components/ReportFiltersBar';
 import { useDashboardData } from '../hooks/useDashboardData';
-import { usePermissions } from '../../../hooks/usePermissions';
-import { PERMISSIONS } from '../../../config/permissions';
 import { ROUTES } from '../../../config/routes';
 import { selectUser } from '../../../redux/slices/authSlice';
 import '../../reports/styles/reports.css';
@@ -104,6 +100,13 @@ function CustomBarTooltip({ active, payload, label }) {
   return null;
 }
 
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good Morning';
+  if (h < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
 function DashboardSkeleton() {
   return (
     <div className="crm-dash">
@@ -124,8 +127,8 @@ function DashboardSkeleton() {
 
 export default function AdminDashboard() {
   const user = useSelector(selectUser);
-  const { can } = usePermissions();
-  const { data, loading, refreshing, error, reload, lastUpdated, filters } = useDashboardData('this_month');
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.name || 'Administrator';
+  const { data, loading, error, reload, lastUpdated } = useDashboardData('this_month');
 
   const [enquiryTimeframe, setEnquiryTimeframe] = useState('month');
   const [revenueTimeframe, setRevenueTimeframe] = useState('year');
@@ -185,11 +188,11 @@ export default function AdminDashboard() {
   return (
     <div className="crm-dash">
       {/* ─────────────────────────────────────────────────────────
-          HEADER / TOP BAR
+          HEADER / HERO GREETING BAR
           ───────────────────────────────────────────────────────── */}
       <header className="crm-dash__hero">
         <div className="crm-dash__hero-copy">
-          <h1>Admin Dashboard</h1>
+          <h1>{greeting()}, {fullName} 👋</h1>
           <p>Real-time CRM metrics, branch breakdown, and performance analytics</p>
         </div>
         <div className="crm-dash__hero-meta">
@@ -202,47 +205,8 @@ export default function AdminDashboard() {
               </span>
             )}
           </span>
-          <span className="crm-dash__date-pill">
-            <FiCalendar />
-            {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            icon={FiDownload}
-            onClick={() => { window.location.href = ROUTES.REPORTS_EXPORT; }}
-          >
-            Export
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            icon={FiRefreshCw}
-            loading={refreshing}
-            onClick={reload}
-          >
-            Refresh
-          </Button>
         </div>
       </header>
-
-      {/* Date & Branch Filters Bar */}
-      <div className="crm-dash__filters">
-        <ReportFiltersBar
-          preset={filters.preset}
-          onPresetChange={filters.setPreset}
-          customFrom={filters.customFrom}
-          customTo={filters.customTo}
-          onCustomFrom={filters.setCustomFrom}
-          onCustomTo={filters.setCustomTo}
-          branchId={filters.branchId}
-          onBranchChange={filters.setBranchId}
-          branchLocked={filters.branchLocked}
-          canViewAllBranches={filters.canViewAllBranches}
-          onRefresh={() => { filters.refresh(); reload(); }}
-          refreshLoading={loading || refreshing}
-        />
-      </div>
 
       {error && (
         <div className="crm-dash__error">

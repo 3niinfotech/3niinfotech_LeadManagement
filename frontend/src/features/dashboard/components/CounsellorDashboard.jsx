@@ -158,9 +158,6 @@ export default function CounsellorDashboard() {
               </span>
             )}
           </span>
-          <Button size="sm" variant="outline" icon={FiRefreshCw} loading={loading || refreshing} onClick={reload}>
-            Refresh
-          </Button>
           <Button size="sm" icon={FiPlus} onClick={() => navigate(ROUTES.ENQUIRY_CREATE)}>
             Add enquiry
           </Button>
