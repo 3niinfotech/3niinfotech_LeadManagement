@@ -102,7 +102,7 @@ function Kpi({ label, value, hint, tone, icon: Icon, onClick }) {
 export default function CounsellorDashboard() {
   const navigate = useNavigate();
   const user = useSelector(selectUser);
-  const { data, loading, error, reload } = useDashboardData('this_month');
+  const { data, loading, refreshing, error, reload, lastUpdated } = useDashboardData('this_month');
   const [stageTab, setStageTab] = useState('ALL');
 
   const desk = data?.counsellorDesk || null;
@@ -149,7 +149,16 @@ export default function CounsellorDashboard() {
           </p>
         </div>
         <div className="crm-cdash-toolbar__actions">
-          <Button size="sm" variant="outline" icon={FiRefreshCw} loading={loading} onClick={reload}>
+          <span className="crm-cdash-live-pill" title="Live real-time data sync active">
+            <span className="crm-cdash-live-dot" />
+            Live Desk
+            {lastUpdated && (
+              <span className="crm-cdash-live-time">
+                · {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            )}
+          </span>
+          <Button size="sm" variant="outline" icon={FiRefreshCw} loading={loading || refreshing} onClick={reload}>
             Refresh
           </Button>
           <Button size="sm" icon={FiPlus} onClick={() => navigate(ROUTES.ENQUIRY_CREATE)}>

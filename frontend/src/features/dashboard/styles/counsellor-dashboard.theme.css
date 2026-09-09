@@ -29,7 +29,51 @@
 .crm-cdash-toolbar__actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.crm-cdash-live-pill {
+  display: inline-flex;
+  align-items: center;
   gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #059669;
+  background: color-mix(in srgb, #059669 10%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, #059669 25%, var(--border));
+}
+
+.crm-cdash-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: crm-pulse-live 2s infinite;
+}
+
+.crm-cdash-live-time {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+@keyframes crm-pulse-live {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
 }
 
 .crm-cdash-kpis {

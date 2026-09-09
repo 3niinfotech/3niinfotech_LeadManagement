@@ -68,3 +68,19 @@ export const getIO = () => ioInstance;
 export const emitNotification = (io, userId, notification) => {
   io.to(`user:${userId}`).emit('notification', notification);
 };
+
+export const emitDashboardUpdate = ({ companyId, branchId, userId, entity, action } = {}) => {
+  if (!ioInstance) return;
+  const payload = { entity, action, timestamp: new Date().toISOString() };
+  if (userId) {
+    ioInstance.to(`user:${userId}`).emit('dashboard:update', payload);
+  }
+  if (branchId) {
+    ioInstance.to(`branch:${branchId}`).emit('dashboard:update', payload);
+  }
+  if (companyId) {
+    ioInstance.to(`company:${companyId}`).emit('dashboard:update', payload);
+  } else {
+    ioInstance.emit('dashboard:update', payload);
+  }
+};

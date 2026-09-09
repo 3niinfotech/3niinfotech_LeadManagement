@@ -116,23 +116,44 @@ function ActivityList({ items = [] }) {
 export default function StudentDashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setError('');
+    } else {
+      setRefreshing(true);
+    }
     try {
       const res = await apiGet(API.PORTAL_STUDENT_DASHBOARD);
-      setData(res.data || null);
-    } catch {
-      setData(null);
-      setError('Unable to load your dashboard. Please try again.');
+      if (res?.data) {
+        setData(res.data);
+        setError('');
+      }
+    } catch (e) {
+      if (!silent || !data) {
+        setData(null);
+        setError(e?.message || 'Unable to load your dashboard. Please try again.');
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, []);
+  }, [data]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(false); }, [load]);
+
+  useEffect(() => {
+    const handleSync = () => load(true);
+    window.addEventListener('crm-dashboard-update', handleSync);
+    window.addEventListener('crm-announcements-new', handleSync);
+    return () => {
+      window.removeEventListener('crm-dashboard-update', handleSync);
+      window.removeEventListener('crm-announcements-new', handleSync);
+    };
+  }, [load]);
 
   const kpis = data?.kpis;
   const progress = data?.progressTrack;

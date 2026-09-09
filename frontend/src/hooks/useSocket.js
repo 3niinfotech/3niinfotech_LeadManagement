@@ -100,13 +100,19 @@ export function useSocket() {
       }
     });
 
-    socket.on('assignment', () => {
+    socket.on('dashboard:update', (data) => {
+      window.dispatchEvent(new CustomEvent('crm-dashboard-update', { detail: data }));
+    });
+
+    socket.on('assignment', (payload) => {
       dispatch(fetchNotifications({ limit: 30 }));
       dispatch(fetchReminderSummary());
+      window.dispatchEvent(new CustomEvent('crm-dashboard-update', { detail: payload }));
     });
 
     socket.on('announcement:published', () => {
       window.dispatchEvent(new Event('crm-announcements-new'));
+      window.dispatchEvent(new Event('crm-dashboard-update'));
       dispatch(fetchNotifications({ limit: 30 }));
     });
 

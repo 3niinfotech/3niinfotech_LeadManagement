@@ -67,7 +67,6 @@ export default function PersonalDetailsTab({
             {...register('alternateNo')}
             error={errors.alternateNo?.message}
             placeholder="Alternate or emergency contact"
-            placeholder="Optional"
           />
           {showPassport ? (
             <Input
