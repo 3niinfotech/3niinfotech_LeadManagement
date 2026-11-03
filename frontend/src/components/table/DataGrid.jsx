@@ -91,51 +91,12 @@ export default function DataGrid({
 
   const handleGridReady = useCallback((params) => {
     setGridApi(params.api);
-    params.api?.checkGridSize?.();
     onGridReady?.(params);
   }, [onGridReady]);
 
-  const handleFirstDataRendered = useCallback((params) => {
-    params.api?.checkGridSize?.();
-  }, []);
-
   const handleRowDataUpdated = useCallback((params) => {
-    params.api?.checkGridSize?.();
+    params.api?.redrawRows?.();
   }, []);
-
-  // Continuous container resize sync eliminates virtualization layout jumps ("jhatke")
-  useEffect(() => {
-    if (!gridApi) return;
-    const domNode = containerRef.current
-      || gridRef.current?.eGui?.closest?.('.crm-grid-shell')
-      || gridRef.current?.eGui;
-    if (!domNode || typeof ResizeObserver === 'undefined') return;
-
-    let rafId = null;
-    const ro = new ResizeObserver(() => {
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        if (gridApi && !gridApi.isDestroyed?.()) {
-          gridApi.checkGridSize?.();
-        }
-      });
-    });
-
-    ro.observe(domNode);
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      ro.disconnect();
-    };
-  }, [gridApi]);
-
-  // Immediately recalculate viewport rows whenever loading ends or data arrives
-  useEffect(() => {
-    if (!gridApi || gridApi.isDestroyed?.()) return;
-    const rafId = requestAnimationFrame(() => {
-      gridApi.checkGridSize?.();
-    });
-    return () => cancelAnimationFrame(rafId);
-  }, [gridApi, loading, rowData.length]);
 
   const resolvedRowSelection = useMemo(() => {
     if (!rowSelection) return undefined;
@@ -161,8 +122,8 @@ export default function DataGrid({
   return (
     <div
       ref={containerRef}
-      className={`crm-grid-shell relative flex flex-col w-full overflow-hidden ${fitContent ? '' : 'flex-1 min-h-0 h-full'} ${className}`}
-      style={fitContent ? undefined : { height }}
+      className={`crm-grid-shell relative flex flex-col w-full overflow-hidden ${fitContent ? '' : 'flex-1 min-h-0'} ${className}`}
+      style={fitContent ? undefined : { flex: '1 1 0%', minHeight: 0, height: '100%' }}
     >
       {/* Seamless loading overlay prevents destroying the grid DOM on fetch */}
       {loading && !rowData.length && (
@@ -188,12 +149,13 @@ export default function DataGrid({
         </div>
       ) : (
         <div
-          className={`ag-theme-crm w-full h-full overflow-hidden ${fitContent ? '' : 'flex-1 min-h-0'}`}
-          style={fitContent ? { height: fittedHeight } : undefined}
+          className={`ag-theme-crm w-full overflow-hidden ${fitContent ? '' : 'flex-1 min-h-0'}`}
+          style={fitContent ? { height: fittedHeight } : { width: '100%', height: '100%', flex: '1 1 0%', minHeight: 0 }}
         >
           <AgGridReact
             ref={gridRef}
             theme="legacy"
+            containerStyle={{ width: '100%', height: '100%' }}
             columnDefs={columns}
             rowData={rowData}
             defaultColDef={defaultColDef}
@@ -211,7 +173,6 @@ export default function DataGrid({
             paginationPageSize={paginationPageSize}
             suppressPaginationPanel
             onGridReady={handleGridReady}
-            onFirstDataRendered={handleFirstDataRendered}
             onRowDataUpdated={handleRowDataUpdated}
             domLayout="normal"
             suppressDragLeaveHidesColumns
@@ -222,8 +183,7 @@ export default function DataGrid({
             suppressColumnMoveAnimation
             alwaysShowHorizontalScroll={false}
             suppressHorizontalScroll={false}
-            suppressScrollOnNewData
-            debounceVerticalScrollbarUpdate
+            rowBuffer={100}
           />
         </div>
       )}
