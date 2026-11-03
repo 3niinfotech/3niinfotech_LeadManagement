@@ -12,8 +12,8 @@ import { PORTALS } from '../../config/portal.config';
 import { ROUTES } from '../../config/routes';
 
 const schema = z.object({
-  email: z.string().email('Invalid email address'),
-  newPassword: z.string().min(1, 'New password is required').max(128),
+  email: z.string().email('Please enter a valid student email address'),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters').max(128),
   confirmPassword: z.string().min(1, 'Confirm your new password'),
 }).superRefine((data, ctx) => {
   if (data.newPassword !== data.confirmPassword) {
@@ -26,33 +26,30 @@ export default function StudentForgotPasswordPage() {
   const [searchParams] = useSearchParams();
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const emailFromQuery = searchParams.get('email') || 'aarav.patel@gmail.com';
+  const emailFromQuery = searchParams.get('email') || '';
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       email: emailFromQuery,
-      newPassword: '123',
-      confirmPassword: '123',
+      newPassword: '',
+      confirmPassword: '',
     },
   });
 
   const onSubmit = async (data) => {
     setSubmitting(true);
     try {
-      const result = await authService.forgotPassword({
+      await authService.forgotPassword({
         email: data.email,
         portal: PORTALS.STUDENT,
         newPassword: data.newPassword,
         confirmPassword: data.confirmPassword,
       });
-      const hint = result?.temporaryPassword
-        ? ` Password is now "${result.temporaryPassword}".`
-        : '';
-      toastService.action.success(`Password updated everywhere.${hint} Sign in again.`);
+      toastService.action.success('Password updated successfully. Please sign in with your new password.');
       navigate(`${ROUTES.LOGIN_STUDENT}?email=${encodeURIComponent(data.email)}`);
     } catch (err) {
-      toastService.action.error(err.response?.data?.message || 'Could not reset password');
+      toastService.action.error(err.response?.data?.message || 'Could not reset password. Please check your email.');
     } finally {
       setSubmitting(false);
     }
@@ -63,25 +60,23 @@ export default function StudentForgotPasswordPage() {
       portal={PORTALS.STUDENT}
       variant="hero"
       minimal
-      title="Reset password"
-      subtitle="Sets a new password on your student login (all sessions sign out)"
+      title="Reset Student Password"
+      subtitle="Enter your registered email and choose a new secure password"
       backTo={{ label: 'Back to sign in', href: ROUTES.LOGIN_STUDENT }}
       footerLinks={[
-        { key: 'login', href: ROUTES.LOGIN_STUDENT, linkLabel: 'Back to sign in' },
+        { key: 'login', text: 'Remembered your password?', href: ROUTES.LOGIN_STUDENT, linkLabel: 'Sign in' },
       ]}
     >
-      <p className="auth-login-form__hint">
-        For testing, default password is <strong>123</strong>. Reset updates your single account password everywhere.
-      </p>
       <form onSubmit={handleSubmit(onSubmit)} className="auth-login-form" noValidate>
         <div className="auth-login-form__field">
-          <label className="auth-login-form__label" htmlFor="forgot-email">Email</label>
+          <label className="auth-login-form__label" htmlFor="forgot-email">Student Email</label>
           <div className="auth-login-form__input-wrap">
             <IconMail className="auth-login-form__icon" />
             <input
               id="forgot-email"
               type="email"
               className="auth-login-form__input"
+              placeholder="e.g. aarav.patel@gmail.com"
               autoComplete="email"
               {...register('email')}
             />
@@ -92,13 +87,14 @@ export default function StudentForgotPasswordPage() {
         </div>
 
         <div className="auth-login-form__field">
-          <label className="auth-login-form__label" htmlFor="forgot-password">New password</label>
+          <label className="auth-login-form__label" htmlFor="forgot-password">New Password</label>
           <div className="auth-login-form__input-wrap">
             <IconLock className="auth-login-form__icon" />
             <input
               id="forgot-password"
               type={showPassword ? 'text' : 'password'}
               className="auth-login-form__input auth-login-form__input--password"
+              placeholder="Enter at least 6 characters"
               autoComplete="new-password"
               {...register('newPassword')}
             />
@@ -121,13 +117,14 @@ export default function StudentForgotPasswordPage() {
         </div>
 
         <div className="auth-login-form__field">
-          <label className="auth-login-form__label" htmlFor="forgot-confirm">Confirm password</label>
+          <label className="auth-login-form__label" htmlFor="forgot-confirm">Confirm New Password</label>
           <div className="auth-login-form__input-wrap">
             <IconLock className="auth-login-form__icon" />
             <input
               id="forgot-confirm"
               type={showPassword ? 'text' : 'password'}
               className="auth-login-form__input"
+              placeholder="Re-enter your new password"
               autoComplete="new-password"
               {...register('confirmPassword')}
             />
@@ -138,12 +135,8 @@ export default function StudentForgotPasswordPage() {
         </div>
 
         <Button type="submit" loading={submitting} className="auth-login-form__submit w-full" size="lg">
-          Reset password
+          Update Password
         </Button>
-
-        <p className="auth-login-form__footer-note">
-          Remembered it? <Link to={ROUTES.LOGIN_STUDENT}>Sign in</Link>
-        </p>
       </form>
     </AuthShell>
   );

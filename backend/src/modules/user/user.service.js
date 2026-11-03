@@ -56,6 +56,10 @@ export const userService = {
     const { page, limit, skip } = parsePagination(query);
     const companyId = requester.role?.slug === 'super_admin' ? query.companyId : requester.companyId;
 
+    const excludeRoleSlugs = query.staffOnly === 'false' || query.includePortal === 'true'
+      ? undefined
+      : ['student_portal', 'partner'];
+
     const { users, total } = await userRepository.findMany({
       skip,
       limit,
@@ -64,6 +68,7 @@ export const userService = {
       branchId: query.branchId || undefined,
       status: query.status || undefined,
       companyId: companyId || undefined,
+      excludeRoleSlugs,
     });
 
     return {

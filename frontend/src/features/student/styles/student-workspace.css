@@ -1550,26 +1550,32 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.75rem;
 }
 
 .crm-student-doc-tile {
   display: flex;
-  align-items: flex-start;
-  gap: 0.625rem;
-  padding: 0.625rem 0.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
   border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   background: color-mix(in srgb, var(--bg-page) 30%, var(--bg-card));
   min-width: 0;
-  transition: border-color 0.12s ease;
+  transition: all 0.15s ease;
+}
+
+.crm-student-doc-tile:hover {
+  border-color: color-mix(in srgb, var(--brand) 28%, var(--border));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .crm-student-doc-tile__actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
   flex-shrink: 0;
 }
 
@@ -1680,13 +1686,20 @@
 
 .crm-sov-strip {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.45rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  width: 100%;
 }
 
-@media (min-width: 720px) {
+@media (max-width: 900px) {
   .crm-sov-strip {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 540px) {
+  .crm-sov-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1844,10 +1857,10 @@
 
 .crm-sov-field {
   display: grid;
-  grid-template-columns: 7rem minmax(0, 1fr);
-  gap: 0.65rem;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: 0.75rem;
   align-items: baseline;
-  padding: 0.45rem 0;
+  padding: 0.48rem 0;
   border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
 }
 
@@ -1858,15 +1871,15 @@
 
 .crm-sov-field dt {
   margin: 0;
-  font-size: 0.6875rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 650;
   color: var(--text-muted);
 }
 
 .crm-sov-field dd {
   margin: 0;
   font-size: 0.8125rem;
-  font-weight: 650;
+  font-weight: 700;
   color: var(--text-primary);
   line-height: 1.35;
   word-break: break-word;
@@ -1880,12 +1893,12 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1.25rem;
-  padding: 0.55rem 0.65rem;
-  margin-bottom: 0.15rem;
-  border-radius: 0.55rem;
-  background: color-mix(in srgb, var(--bg-page) 70%, var(--bg-card));
-  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  gap: 1rem 2rem;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.25rem;
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, var(--brand) 4%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--brand) 15%, var(--border));
 }
 
 .crm-sov-lead__id {

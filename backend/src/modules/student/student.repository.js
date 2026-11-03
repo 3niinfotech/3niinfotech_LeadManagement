@@ -165,11 +165,15 @@ export const studentRepository = {
       where: { id, ...softDeleteWhere },
       include: {
         branch: true,
-        assignedTo: { select: { id: true, firstName: true, lastName: true, email: true } },
+        assignedTo: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
         partner: true,
-        applications: { where: softDeleteWhere },
-        visas: { where: softDeleteWhere },
+        applications: { where: softDeleteWhere, orderBy: { createdAt: 'desc' } },
+        visas: { where: softDeleteWhere, orderBy: { createdAt: 'desc' } },
         documents: { where: softDeleteWhere, orderBy: { createdAt: 'desc' } },
+        invoices: { where: softDeleteWhere, orderBy: { createdAt: 'desc' } },
+        admissionPayments: { orderBy: { createdAt: 'desc' } },
+        batchEnrollments: { where: { isActive: true }, include: { batch: true } },
+        appointments: { where: softDeleteWhere, orderBy: { startAt: 'desc' } },
         notes: { where: softDeleteWhere, include: { user: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { createdAt: 'desc' } },
         activities: { orderBy: { createdAt: 'desc' }, take: 50 },
         enquiry: {

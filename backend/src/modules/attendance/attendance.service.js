@@ -29,6 +29,7 @@ import {
 } from './attendance.rules.js';
 import { STUDENT_ROLE_SLUGS } from '../../config/portal.config.js';
 import { CLASS_ATTENDANCE_STATUSES } from './attendance.constants.js';
+import { ensureStudentPortalUser, getStudentDefaultPassword } from '../auth/student-portal-account.util.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -133,6 +134,51 @@ async function maybeAlertLowOrConsecutive({ student, session, settings, user }) 
       link: `/admin/students/${student.id}/attendance`,
       metadata: { kind: 'CONSECUTIVE_ABSENCE', studentId: student.id, consecutive },
     });
+  }
+}
+
+async function notifyStudentAttendance(studentId, session, status) {
+  try {
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { id: true, userId: true, email: true, firstName: true, lastName: true },
+    });
+    if (!student) return;
+    let userId = student.userId;
+    if (!userId && student.email) {
+      try {
+        const u = await ensureStudentPortalUser(student, { plainPassword: getStudentDefaultPassword() });
+        userId = u?.id;
+      } catch {}
+    }
+    if (!userId) return;
+
+    const batchName = session.batch?.name || 'Class Session';
+    let type = 'INFO';
+    let label = 'Recorded';
+    if (status === 'PRESENT') {
+      type = 'SUCCESS';
+      label = 'Present';
+    } else if (status === 'LATE') {
+      type = 'WARNING';
+      label = 'Late Arrival';
+    } else if (status === 'ABSENT') {
+      type = 'ALERT';
+      label = 'Absent';
+    } else if (status === 'EXCUSED') {
+      type = 'INFO';
+      label = 'Excused Leave';
+    }
+
+    await notifyUser(userId, {
+      type,
+      title: `Attendance Marked: ${label}`,
+      message: `Your attendance for ${batchName} has been recorded as ${label}.`,
+      link: '/student/classes',
+      metadata: { event: 'ATTENDANCE_MARKED', sessionId: session.id, status },
+    });
+  } catch (err) {
+    // Non-blocking notification dispatch
   }
 }
 
@@ -388,7 +434,7 @@ export const attendanceService = {
         },
       },
       window,
-      canMark: canMarkAttendance(user) && !window.locked,
+      canMark: canMarkAttendance(user),
       canCorrect: canCorrectAttendance(user),
       settings,
       roster,
@@ -404,7 +450,8 @@ export const attendanceService = {
 
     const settings = await companySettings(user);
     const window = attendanceWindowState(session.startAt, session.endAt, settings);
-    if (window.locked) {
+    const allowOverride = Boolean(payload.force || payload.overrideWindow || user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'super_admin');
+    if (window.locked && !allowOverride) {
       throw new AppError(
         window.state === 'NOT_OPEN'
           ? 'Attendance is not open yet'
@@ -472,6 +519,11 @@ export const attendanceService = {
       newData: { count: saved.length, markAllPresent: Boolean(payload.markAllPresent) }, req,
     });
 
+    // Notify each marked student in real time
+    Promise.all(
+      saved.map((row) => notifyStudentAttendance(row.studentId, session, row.status)),
+    ).catch(() => {});
+
     const suggestedLate = entries
       .filter((e) => suggestLateStatus(session.startAt, settings, now, e.status) === 'LATE' && e.status === 'PRESENT')
       .map((e) => e.studentId);
@@ -532,6 +584,8 @@ export const attendanceService = {
       await maybeAlertLowOrConsecutive({ student, session, settings, user });
     }
 
+    notifyStudentAttendance(payload.studentId, session, row.status).catch(() => {});
+
     return attendanceService.getSessionAttendance(id, user);
   },
 
@@ -589,12 +643,39 @@ export const attendanceService = {
       percent: dailyAttendancePercent(bucket.present, bucket.total),
     }));
 
+    const studentRecord = await prisma.student.findUnique({
+      where: { id: student.id },
+      include: {
+        branch: { select: { id: true, name: true } },
+        enrollments: {
+          where: { isActive: true },
+          include: {
+            batch: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                courseName: true,
+                room: true,
+                instructor: { select: { id: true, firstName: true, lastName: true } },
+                timetableSlots: { where: { isActive: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
     return {
       student: {
         id: student.id,
         studentCode: student.studentCode,
         firstName: student.firstName,
         lastName: student.lastName,
+        email: student.email,
+        phone: student.phone,
+        branch: studentRecord?.branch || null,
+        enrollments: studentRecord?.enrollments || [],
       },
       totals: { total, present, absent, late, excused, leave, percent },
       lowAttendance: isLowAttendance(percent, settings) && total > 0,
@@ -603,9 +684,10 @@ export const attendanceService = {
       history: rows.map((row) => ({
         id: row.id,
         date: row.session?.startAt,
-        course: row.session?.batch?.courseName,
-        batch: row.session?.batch?.name,
+        course: row.session?.batch?.courseName || null,
+        batch: row.session?.batch?.name || null,
         batchId: row.session?.batch?.id,
+        room: row.session?.room || row.session?.batch?.room || null,
         sessionTime: row.session ? `${row.session.startAt} – ${row.session.endAt}` : null,
         startAt: row.session?.startAt,
         endAt: row.session?.endAt,

@@ -36,6 +36,22 @@ export const documentService = {
     const record = await documentRepository.create({ ...data, createdBy: userId });
     await prisma.activity.create({ data: { userId, action: 'CREATE', entityType: 'Document', entityId: record.id, description: `Document ${record.name} uploaded` } });
     await auditLog({ userId, action: 'CREATE', entityType: 'Document', entityId: record.id, newData: record, req });
+    if (String(record.category || '').toUpperCase() === 'PHOTO' && record.filePath && record.studentId) {
+      try {
+        const student = await prisma.student.findUnique({
+          where: { id: record.studentId },
+          select: { id: true, userId: true, metadata: true },
+        });
+        if (student) {
+          const meta = (student.metadata && typeof student.metadata === 'object') ? { ...student.metadata } : {};
+          meta.photoUrl = record.filePath;
+          await prisma.student.update({ where: { id: student.id }, data: { metadata: meta } });
+          if (student.userId) {
+            await prisma.user.update({ where: { id: student.userId }, data: { avatar: record.filePath } });
+          }
+        }
+      } catch {}
+    }
     return record;
   },
 
@@ -46,6 +62,23 @@ export const documentService = {
     const record = await documentRepository.update(id, data);
     await prisma.activity.create({ data: { userId, action: 'UPDATE', entityType: 'Document', entityId: id, description: 'Document updated' } });
     await auditLog({ userId, action: 'UPDATE', entityType: 'Document', entityId: id, oldData: existing, newData: record, req });
+
+    if (String(record.category || '').toUpperCase() === 'PHOTO' && record.filePath && record.studentId) {
+      try {
+        const student = await prisma.student.findUnique({
+          where: { id: record.studentId },
+          select: { id: true, userId: true, metadata: true },
+        });
+        if (student) {
+          const meta = (student.metadata && typeof student.metadata === 'object') ? { ...student.metadata } : {};
+          meta.photoUrl = record.filePath;
+          await prisma.student.update({ where: { id: student.id }, data: { metadata: meta } });
+          if (student.userId) {
+            await prisma.user.update({ where: { id: student.userId }, data: { avatar: record.filePath } });
+          }
+        }
+      } catch {}
+    }
 
     const oldMeta = existing.metadata && typeof existing.metadata === 'object' ? existing.metadata : {};
     const newMeta = record.metadata && typeof record.metadata === 'object' ? record.metadata : {};

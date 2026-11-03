@@ -60,7 +60,15 @@ export default function DataGrid({
     headerClass: 'crm-grid-header-cell crm-grid-header-cell--center',
     tooltipValueGetter: (p) => {
       const v = p.valueFormatted ?? p.value;
-      return v != null && v !== '' ? String(v) : null;
+      if (v == null || v === '') return null;
+      if (typeof v === 'object') {
+        if (typeof v.name === 'string') return v.name;
+        if (v.firstName || v.lastName) return `${v.firstName || ''} ${v.lastName || ''}`.trim();
+        if (typeof v.title === 'string') return v.title;
+        if (typeof v.label === 'string') return v.label;
+        return null;
+      }
+      return String(v);
     },
   }), []);
 

@@ -27,13 +27,17 @@ const workloadSelect = {
 };
 
 export const userRepository = {
-  findMany: async ({ skip, limit, search, roleSlug, branchId, status, companyId }) => {
+  findMany: async ({ skip, limit, search, roleSlug, branchId, status, companyId, excludeRoleSlugs }) => {
     const where = {
       ...softDeleteWhere,
       ...(companyId ? { companyId } : {}),
       ...(branchId ? { branchId } : {}),
       ...(status ? { status } : {}),
-      ...(roleSlug ? { role: { slug: roleSlug } } : {}),
+      ...(roleSlug
+        ? { role: { slug: roleSlug } }
+        : excludeRoleSlugs?.length
+          ? { role: { slug: { notIn: excludeRoleSlugs } } }
+          : {}),
       ...(search
         ? {
             OR: [
@@ -82,6 +86,9 @@ export const userRepository = {
 
   getTeamSummary: async (companyId) => {
     const roles = await prisma.role.findMany({
+      where: {
+        slug: { notIn: ['student_portal', 'partner'] },
+      },
       orderBy: { name: 'asc' },
       select: {
         id: true,

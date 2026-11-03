@@ -89,18 +89,30 @@ export function ReportSectionChips({ items, activeId, basePath }) {
   );
 }
 
-export function ReportEmpty({ message = 'No data available for selected filters.' }) {
-  return <div className="crm-report-empty">{message}</div>;
+export function ReportEmpty({ message = 'No data available for selected filters.', icon: Icon = FiBarChart2 }) {
+  return (
+    <div className="crm-report-empty">
+      <div className="crm-report-empty__icon-wrap">
+        <Icon className="w-5 h-5" />
+      </div>
+      <p className="crm-report-empty__title">No data available</p>
+      <p className="crm-report-empty__msg">{message}</p>
+    </div>
+  );
 }
 
 export function ReportError({ message = 'Unable to load report.', onRetry }) {
   return (
     <div className="crm-report-empty crm-report-empty--error">
-      <p>{message}</p>
+      <div className="crm-report-empty__icon-wrap crm-report-empty__icon-wrap--error">
+        <FiBarChart2 className="w-5 h-5" />
+      </div>
+      <p className="crm-report-empty__title">Unable to load report</p>
+      <p className="crm-report-empty__msg">{message}</p>
       {onRetry && (
-        <button type="button" className="crm-rlink mt-2" onClick={onRetry}>
-          Retry
-        </button>
+        <Button size="sm" variant="outline" className="mt-3" onClick={onRetry}>
+          Try Again
+        </Button>
       )}
     </div>
   );

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FiAward, FiBook, FiClock, FiCopy, FiDollarSign, FiEdit2, FiFileText,
   FiGlobe, FiGrid, FiHome, FiPlus, FiRefreshCw, FiSearch, FiShield,
-  FiTrash2, FiUser, FiUsers,
+  FiTrash2, FiUser, FiUsers, FiCheck,
 } from 'react-icons/fi';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
@@ -239,7 +239,15 @@ export default function RolesAccessPanel({ focusRoleId = null, onRolesLoaded }) 
 
   const openCreate = () => {
     setFormMode('create');
-    setForm(emptyForm);
+    setForm({
+      name: '',
+      description: '',
+      dataScope: 'OWN',
+      parentRoleId: '',
+      templateRoleId: '',
+      permissionKeys: [],
+      isActive: true,
+    });
     setFormOpen(true);
   };
 
@@ -248,9 +256,11 @@ export default function RolesAccessPanel({ focusRoleId = null, onRolesLoaded }) 
     setForm({
       name: role.name,
       description: role.description || '',
-      dataScope: role.dataScope,
+      dataScope: role.dataScope || 'OWN',
+      parentRoleId: role.parentRoleId || '',
+      templateRoleId: '',
       permissionKeys: role.permissions || [],
-      isActive: role.isActive,
+      isActive: role.isActive !== false,
     });
     setSelectedId(role.id);
     setDetailTab('details');
@@ -265,23 +275,32 @@ export default function RolesAccessPanel({ focusRoleId = null, onRolesLoaded }) 
     setSaving(true);
     try {
       if (formMode === 'create') {
+        let initialKeys = [];
+        if (form.templateRoleId) {
+          const tRole = roles.find((r) => r.id === form.templateRoleId);
+          if (tRole?.permissions?.length) {
+            initialKeys = tRole.permissions;
+          }
+        }
         const created = await rbacService.createRole({
           name: form.name.trim(),
-          description: form.description.trim(),
-          dataScope: form.dataScope,
-          permissionKeys: [],
-          isActive: true,
+          description: form.description?.trim() || null,
+          dataScope: form.dataScope || 'OWN',
+          parentRoleId: form.parentRoleId || undefined,
+          permissionKeys: initialKeys,
+          isActive: form.isActive !== false,
         });
-        toastService.success('Role created');
+        toastService.success(`Role "${created.name}" created successfully`);
         setSelectedId(created.id);
         bumpLog();
       } else if (selected) {
         await rbacService.updateRole(selected.id, {
           name: form.name.trim(),
-          description: form.description.trim(),
+          description: form.description?.trim() || null,
           dataScope: form.dataScope,
+          parentRoleId: form.parentRoleId || undefined,
           permissionKeys: keys,
-          isActive: form.isActive,
+          isActive: form.isActive !== false,
         });
         toastService.success('Role updated');
         bumpLog();
@@ -588,34 +607,186 @@ export default function RolesAccessPanel({ focusRoleId = null, onRolesLoaded }) 
       <Drawer
         open={formOpen}
         onClose={() => setFormOpen(false)}
-        title={formMode === 'create' ? 'Create role' : 'Edit role'}
-        subtitle={formMode === 'create' ? 'Set name and data access — then choose permissions' : 'Update role information'}
-        size="sm"
+        title={formMode === 'create' ? 'Create New Role' : 'Edit Role Settings'}
+        subtitle={formMode === 'create' ? 'Configure role identity, data scope boundary & initial permissions' : 'Update role information, data scope, and hierarchy'}
+        size="md"
         dense
         footer={(
-          <>
-            <Button variant="outline" size="sm" onClick={() => setFormOpen(false)} disabled={saving}>Cancel</Button>
-            <Button size="sm" onClick={handleSaveRole} loading={saving}>
-              {formMode === 'create' ? 'Create role' : 'Save changes'}
+          <div className="flex items-center justify-between w-full gap-3">
+            <Button variant="outline" size="sm" onClick={() => setFormOpen(false)} disabled={saving}>
+              Cancel
             </Button>
-          </>
+            <Button size="sm" onClick={handleSaveRole} loading={saving} icon={formMode === 'create' ? FiPlus : FiCheck}>
+              {formMode === 'create' ? 'Create Role' : 'Save Changes'}
+            </Button>
+          </div>
         )}
       >
-        <div className="space-y-4">
-          <FormField label="Role name" required>
-            <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Senior Counsellor" />
-          </FormField>
-          <FormField label="Description">
-            <Input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="What does this role do?" />
-          </FormField>
-          <FormField label="Who can they see?">
-            <Select
-              value={form.dataScope}
-              onChange={(e) => setForm((f) => ({ ...f, dataScope: e.target.value }))}
-              options={DATA_SCOPES.map((s) => ({ value: s.value, label: s.label }))}
-              allowClear={false}
-            />
-          </FormField>
+        <div className="p-4 space-y-5">
+          {/* Section 1: Role Identity */}
+          <div className="space-y-3.5 pb-4 border-b border-slate-200 dark:border-slate-700/80">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 flex items-center justify-center text-[11px] font-bold">1</span>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Role Identity</h4>
+            </div>
+
+            <FormField label="Role Name" required hint="Display name for this role across the CRM">
+              <Input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="e.g. Senior Academic Counsellor, Head Faculty"
+              />
+            </FormField>
+
+            <FormField label="Description" hint="Explain the duties and operational scope of this role">
+              <textarea
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand resize-none"
+                rows={2}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="What responsibilities and actions does this staff role perform?"
+              />
+            </FormField>
+          </div>
+
+          {/* Section 2: Data Access Scope */}
+          <div className="space-y-3 pb-4 border-b border-slate-200 dark:border-slate-700/80">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 flex items-center justify-center text-[11px] font-bold">2</span>
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Data Access Scope (Who can they see?)</h4>
+                <p className="text-[11px] text-slate-500">Defines records boundary for enquiries, leads, and students</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2">
+              {DATA_SCOPES.filter((s) => s.value !== 'GLOBAL' || form.dataScope === 'GLOBAL').map((scope) => {
+                const isSelected = form.dataScope === scope.value;
+                return (
+                  <button
+                    key={scope.value}
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, dataScope: scope.value }))}
+                    className={`flex items-start gap-3 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-brand bg-brand-soft/40 dark:bg-brand-soft/20 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full mt-0.5 flex items-center justify-center border transition-all ${
+                      isSelected ? 'border-brand bg-brand text-white' : 'border-slate-300 dark:border-slate-600'
+                    }`}>
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                        <span>{scope.label}</span>
+                        <span className="text-[10px] font-mono font-medium text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.2 rounded">{scope.value}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{scope.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 3: Permission Template (Create mode only) */}
+          {formMode === 'create' && (
+            <div className="space-y-3 pb-4 border-b border-slate-200 dark:border-slate-700/80">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 flex items-center justify-center text-[11px] font-bold">3</span>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Permission Template</h4>
+                  <p className="text-[11px] text-slate-500">Fast-track setup by copying permissions from an existing role</p>
+                </div>
+              </div>
+
+              <FormField label="Start with template" hint="Choose an existing role to inherit permissions from">
+                <Select
+                  value={form.templateRoleId}
+                  onChange={(e) => setForm((f) => ({ ...f, templateRoleId: e.target.value }))}
+                  options={[
+                    { value: '', label: 'Start from scratch (Zero permissions)' },
+                    ...roles.map((r) => ({
+                      value: r.id,
+                      label: `Clone: ${r.name} (${r.permissions?.length || 0} permissions)`,
+                    })),
+                  ]}
+                  allowClear={false}
+                />
+              </FormField>
+            </div>
+          )}
+
+          {/* Section 4: Hierarchy & Status */}
+          <div className="space-y-3.5 pb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 flex items-center justify-center text-[11px] font-bold">{formMode === 'create' ? '4' : '3'}</span>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Hierarchy & Status</h4>
+            </div>
+
+            <FormField label="Reports To / Parent Role (Optional)" hint="Defines organizational reporting and escalation structure">
+              <Select
+                value={form.parentRoleId || ''}
+                onChange={(e) => setForm((f) => ({ ...f, parentRoleId: e.target.value }))}
+                options={[
+                  { value: '', label: 'No parent role (Direct Top-Level)' },
+                  ...roles.filter((r) => formMode === 'create' || r.id !== selected?.id).map((r) => ({
+                    value: r.id,
+                    label: r.name,
+                  })),
+                ]}
+                allowClear={false}
+              />
+            </FormField>
+
+            <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40">
+              <div>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Role Status</span>
+                <p className="text-[11px] text-slate-500">Allow assigning this role to staff members</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isActive !== false}
+                  onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand"></div>
+              </label>
+            </div>
+          </div>
+
+          {/* Live Preview Card */}
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">Live Role Preview</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300 border border-blue-100 dark:border-blue-900/60 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                  <FiShield size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    {form.name.trim() || 'Role Name Preview'}
+                  </div>
+                  <div className="text-[11px] text-slate-500 truncate max-w-[220px]">
+                    {form.description?.trim() || 'No description entered'}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  {DATA_SCOPES.find((s) => s.value === form.dataScope)?.label || form.dataScope}
+                </span>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  form.isActive !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {form.isActive !== false ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </Drawer>
     </div>

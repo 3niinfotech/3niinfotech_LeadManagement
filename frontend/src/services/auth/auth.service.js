@@ -77,12 +77,18 @@ export const authService = {
     form.append('file', file);
     const response = await apiPost(API.PROFILE_AVATAR, form);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
+    try {
+      window.dispatchEvent(new CustomEvent('auth:user-updated', { detail: response.data }));
+    } catch { /* ignore */ }
     return response.data;
   },
 
   removeAvatar: async () => {
     const response = await apiDelete(API.PROFILE_AVATAR);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
+    try {
+      window.dispatchEvent(new CustomEvent('auth:user-updated', { detail: response.data }));
+    } catch { /* ignore */ }
     return response.data;
   },
 

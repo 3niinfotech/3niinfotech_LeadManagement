@@ -3,6 +3,7 @@ import LandingHeader from '../../features/landing/components/LandingHeader';
 import LandingHero, { LandingTrustStrip } from '../../features/landing/components/LandingHero';
 import {
   LandingAnalytics,
+  LandingContactSection,
   LandingDestinations,
   LandingFinalCta,
   LandingFooter,
@@ -37,7 +38,14 @@ export default function LandingPage() {
     }
     meta.content = description;
 
-    window.scrollTo(0, 0);
+    if (window.location.hash) {
+      const el = document.querySelector(window.location.hash);
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 120);
+      }
+    } else {
+      window.scrollTo(0, 0);
+    }
   }, []);
 
   return (
@@ -57,6 +65,7 @@ export default function LandingPage() {
         <LandingSecurity />
         <LandingRolePanels />
         <LandingDestinations />
+        <LandingContactSection />
         <LandingFinalCta />
       </main>
       <LandingFooter companyName={LANDING_BRAND.name} />

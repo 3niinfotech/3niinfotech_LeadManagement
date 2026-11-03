@@ -22,7 +22,6 @@ import {
   FiUser,
 } from 'react-icons/fi';
 import PageShell from '../../components/layout/PageShell';
-import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
@@ -251,6 +250,7 @@ export default function ProfilePage() {
     setAvatarUploading(true);
     try {
       await dispatch(uploadProfileAvatar(file)).unwrap();
+      await dispatch(fetchProfile());
       setAvatarFile(null);
       toastService.success('Profile photo updated');
       loadSecurity();
@@ -266,6 +266,7 @@ export default function ProfilePage() {
     setAvatarRemoving(true);
     try {
       await dispatch(removeProfileAvatar()).unwrap();
+      await dispatch(fetchProfile());
       setAvatarPreview(false);
       toastService.success('Profile photo removed');
     } catch (err) {
@@ -362,18 +363,6 @@ export default function ProfilePage() {
 
   return (
     <PageShell className="!space-y-2 crm-profile-shell">
-      <PageHeader
-        title="My Profile"
-        subtitle="Account, workspace, and security"
-        icon={FiUser}
-        iconColor="brand"
-        className="!mb-0 [&>div]:!pt-1.5 [&>div]:!pb-2 [&_h1]:!text-[15px] [&_p]:!text-[12px] [&_p]:!mt-0.5"
-        breadcrumbs={[
-          { label: 'Dashboard', path: user?.defaultRoute || ROUTES.DASHBOARD },
-          { label: 'Profile' },
-        ]}
-      />
-
       <div className="crm-my-profile">
         <nav className="crm-my-profile-tabs" aria-label="Profile sections">
           {TABS.map(({ id, label, icon: Icon }) => (
@@ -392,213 +381,240 @@ export default function ProfilePage() {
         {tab === 'account' && (
           <>
             <section className="crm-my-profile-hero-card">
-              <div className="crm-my-profile-hero">
-                <div className="crm-my-profile-hero__photo">
-                  <div className="crm-my-profile-hero__avatar">
-                    {avatarUrl ? (
-                      <Avatar
-                        name={fullName}
-                        src={avatarUrl}
-                        size="lg"
-                        className="!h-[4.5rem] !w-[4.5rem] !rounded-2xl text-base"
-                      />
-                    ) : (
-                      <div className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-accent text-base font-bold text-white shadow-sm">
-                        {initials}
-                      </div>
-                    )}
+              <div className="crm-my-profile-hero-main">
+                <div className="crm-my-profile-avatar-wrap">
+                  <div
+                    className="crm-my-profile-avatar-box group"
+                    onClick={() => (avatarUrl ? setAvatarPreview(true) : fileInputRef.current?.click())}
+                    title={avatarUrl ? 'Click to view / manage photo' : 'Click to upload photo'}
+                  >
+                    <Avatar
+                      name={fullName}
+                      src={avatarUrl}
+                      size="xl"
+                      className="!w-[4.25rem] !h-[4.25rem] !rounded-2xl text-base ring-1 ring-slate-200/80 dark:ring-slate-700 shadow-xs transition-transform group-hover:scale-[1.02]"
+                    />
+                    <div className="crm-my-profile-avatar-overlay">
+                      <FiCamera className="w-4 h-4 text-white" />
+                    </div>
                     <span className="crm-my-profile-hero__online" title="Online" />
                   </div>
-                  <button
-                    type="button"
-                    className="crm-my-profile-hero__photo-btn"
-                    onClick={() => (avatarUrl ? setAvatarPreview(true) : fileInputRef.current?.click())}
-                  >
-                    <FiCamera className="h-3.5 w-3.5" />
-                    Change photo
-                  </button>
                   <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={chooseAvatar} />
                 </div>
 
-                <div className="crm-my-profile-hero__body">
-                  <div className="crm-my-profile-hero__top">
-                    <div className="crm-my-profile-hero__identity">
-                      <h2 className="crm-my-profile-hero__name">{fullName}</h2>
-                      <RoleBadge slug={user?.role?.slug} name={user?.role?.name} size="sm" />
-                    </div>
-                    <div className="crm-my-profile-hero__actions">
-                      <span className="crm-my-profile-pill crm-my-profile-pill--success">
-                        {user?.status || 'ACTIVE'}
+                <div className="crm-my-profile-identity-info">
+                  <div className="crm-my-profile-identity-head">
+                    <h2 className="crm-my-profile-hero__name">{fullName}</h2>
+                    <RoleBadge slug={user?.role?.slug} name={user?.role?.name} size="sm" />
+                    <span className="crm-my-profile-pill crm-my-profile-pill--success">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                      {user?.status || 'ACTIVE'}
+                    </span>
+                  </div>
+
+                  <div className="crm-my-profile-identity-row">
+                    {user?.email && (
+                      <a href={'mailto:' + user.email} className="crm-my-profile-meta-link" title="Send Email">
+                        <FiMail />
+                        <span>{user.email}</span>
+                      </a>
+                    )}
+                    {user?.phone && (
+                      <a href={'tel:' + user.phone} className="crm-my-profile-meta-link" title="Call Phone">
+                        <FiPhone />
+                        <span>{user.phone}</span>
+                      </a>
+                    )}
+                    <span className="crm-my-profile-meta-badge">
+                      <FiBriefcase />
+                      <span>{user?.department || prefs.departmentLabel || 'Academics'}</span>
+                    </span>
+                    {user?.employeeCode && (
+                      <span className="crm-my-profile-meta-badge font-mono text-[11px]">
+                        <span>ID: {user.employeeCode}</span>
                       </span>
-                      <Button size="sm" variant="outline-primary" icon={FiEdit2} onClick={() => setEditOpen(true)}>
-                        Edit Profile
-                      </Button>
-                    </div>
+                    )}
                   </div>
 
-                  <div className="crm-my-profile-hero__chips">
-                    <div className="crm-my-profile-chip" title={user?.email || ''}>
-                      <FiMail />
-                      <div>
-                        <span>Email</span>
-                        <strong>{user?.email || '—'}</strong>
-                      </div>
-                    </div>
-                    <div className="crm-my-profile-chip" title={user?.phone || ''}>
-                      <FiPhone />
-                      <div>
-                        <span>Phone</span>
-                        <strong>{user?.phone || '—'}</strong>
-                      </div>
-                    </div>
-                    <div className="crm-my-profile-chip">
-                      <FiShield />
-                      <div>
-                        <span>Role</span>
-                        <strong>{user?.role?.name || '—'}</strong>
-                      </div>
-                    </div>
-                    <div className="crm-my-profile-chip">
-                      <FiBriefcase />
-                      <div>
-                        <span>Employee ID</span>
-                        <strong>{user?.employeeCode || '—'}</strong>
-                      </div>
-                    </div>
-                    <div className="crm-my-profile-chip">
-                      <FiGrid />
-                      <div>
-                        <span>Department</span>
-                        <strong>{user?.department || prefs.departmentLabel || '—'}</strong>
-                      </div>
-                    </div>
-                    <div className="crm-my-profile-chip" title={user?.branch?.name || 'All branches'}>
-                      <FiMapPin />
-                      <div>
-                        <span>Branch</span>
-                        <strong>{user?.branch?.name || 'All branches'}</strong>
-                      </div>
-                    </div>
+                  <div className="crm-my-profile-meta-sub">
+                    <span>Last login: <strong>{fmtDate(user?.lastLoginAt || overview?.lastLoginAt)}</strong></span>
+                    <span>•</span>
+                    <span>Company: <strong>{user?.company?.name || 'Platform'}</strong></span>
+                    <span>•</span>
+                    <span>Password: <strong>{fmtDate(user?.passwordChangedAt || overview?.passwordChangedAt, false)}</strong></span>
                   </div>
+                </div>
 
-                  <div className="crm-my-profile-hero__meta">
-                    <span className="crm-my-profile-meta-item">
-                      <FiMonitor />
-                      <em>Last login</em>
-                      <strong>{fmtDate(user?.lastLoginAt || overview?.lastLoginAt)}</strong>
-                    </span>
-                    <span className="crm-my-profile-meta-item">
-                      <FiLock />
-                      <em>Password</em>
-                      <strong>{fmtDate(user?.passwordChangedAt || overview?.passwordChangedAt, false)}</strong>
-                    </span>
-                    <span className="crm-my-profile-meta-item">
-                      <FiBriefcase />
-                      <em>Company</em>
-                      <strong>{user?.company?.name || 'Platform'}</strong>
-                    </span>
-                  </div>
+                <div className="crm-my-profile-hero__actions">
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    icon={FiCamera}
+                    onClick={() => (avatarUrl ? setAvatarPreview(true) : fileInputRef.current?.click())}
+                    className="shadow-xs font-semibold"
+                  >
+                    {avatarUrl ? 'Photo Options' : 'Upload Photo'}
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    icon={FiLock}
+                    onClick={() => setPasswordOpen(true)}
+                    className="shadow-xs font-semibold"
+                  >
+                    Change Password
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="primary"
+                    icon={FiEdit2}
+                    onClick={() => setEditOpen(true)}
+                    className="shadow-xs font-bold"
+                  >
+                    Edit Profile
+                  </Button>
                 </div>
               </div>
             </section>
 
             <div className="crm-my-profile-grid-2">
-              <section className="crm-my-profile-card">
-                <div className="crm-my-profile-card__head">
-                  <div>
-                    <h3 className="crm-my-profile-card__title">Workspace Shortcuts</h3>
-                    <p className="crm-my-profile-card__sub">Most used modules</p>
-                  </div>
-                  <Button size="sm" variant="outline" icon={FiGrid} onClick={() => setShortcutsOpen(true)}>Manage</Button>
-                </div>
-                <div className="crm-my-profile-shortcuts">
-                  {shortcuts.slice(0, 9).map((item) => (
-                    <ShortcutTile key={item.id} item={item} onClick={openShortcut} />
-                  ))}
-                  <button type="button" className="crm-my-profile-shortcut crm-my-profile-shortcut--add" onClick={() => setShortcutsOpen(true)}>
-                    <span className="crm-my-profile-shortcut__icon" aria-hidden><FiPlus className="h-4 w-4" /></span>
-                    <span className="crm-my-profile-shortcut__label">Add Shortcut</span>
-                  </button>
-                </div>
-              </section>
-
-              <section className="crm-my-profile-card">
-                <div className="crm-my-profile-card__head">
-                  <div>
-                    <h3 className="crm-my-profile-card__title">Security</h3>
-                    <p className="crm-my-profile-card__sub">Password and access</p>
-                  </div>
-                </div>
-                <div className="crm-my-profile-secure-list">
-                  <div className="crm-my-profile-secure-row">
-                    <span className="crm-my-profile-secure-icon"><FiLock className="h-4 w-4" /></span>
-                    <div className="crm-my-profile-secure-copy">
-                      <strong>Password</strong>
-                      <span>Last changed {fmtDate(user?.passwordChangedAt || overview?.passwordChangedAt, false)}</span>
+              <div className="crm-my-profile-col">
+                <section className="crm-my-profile-card">
+                  <div className="crm-my-profile-card__head">
+                    <div>
+                      <h3 className="crm-my-profile-card__title flex items-center gap-2"><FiGrid className="text-blue-600" /> Workspace Shortcuts</h3>
+                      <p className="crm-my-profile-card__sub">Quick access to frequent modules</p>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => setPasswordOpen(true)}>Change Password</Button>
+                    <Button size="xs" variant="outline" icon={FiGrid} onClick={() => setShortcutsOpen(true)}>Manage</Button>
                   </div>
-                  <div className="crm-my-profile-secure-row">
-                    <span className="crm-my-profile-secure-icon"><FiShield className="h-4 w-4" /></span>
-                    <div className="crm-my-profile-secure-copy">
-                      <strong>Two-Factor Authentication</strong>
-                      <span>Add an extra layer of security</span>
-                    </div>
-                    <button type="button" onClick={toggleTwoFactor} className="crm-my-profile-pill crm-my-profile-pill--success">
-                      {prefs.twoFactorEnabled || overview?.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                  <div className="crm-my-profile-shortcuts">
+                    {shortcuts.slice(0, 8).map((item) => (
+                      <ShortcutTile key={item.id} item={item} onClick={openShortcut} />
+                    ))}
+                    <button type="button" className="crm-my-profile-shortcut crm-my-profile-shortcut--add" onClick={() => setShortcutsOpen(true)}>
+                      <span className="crm-my-profile-shortcut__icon" aria-hidden><FiPlus className="h-4 w-4" /></span>
+                      <span className="crm-my-profile-shortcut__label">Add Shortcut</span>
                     </button>
                   </div>
-                  <div className="crm-my-profile-secure-row">
-                    <span className="crm-my-profile-secure-icon"><FiMonitor className="h-4 w-4" /></span>
-                    <div className="crm-my-profile-secure-copy">
-                      <strong>Active Sessions</strong>
-                      <span>{overview?.activeSessions ?? '—'} active sessions</span>
-                    </div>
-                    <Button size="sm" variant="outline" onClick={openSessions}>View Sessions</Button>
-                  </div>
-                  <div className="crm-my-profile-secure-row">
-                    <span className="crm-my-profile-secure-icon"><FiKey className="h-4 w-4" /></span>
-                    <div className="crm-my-profile-secure-copy">
-                      <strong>API Access Tokens</strong>
-                      <span>Manage your API keys</span>
-                    </div>
-                    <Button size="sm" variant="outline" onClick={openTokens}>Manage Tokens</Button>
-                  </div>
-                </div>
-              </section>
-            </div>
+                </section>
 
-            <section className="crm-my-profile-card">
-                <div className="crm-my-profile-card__head">
-                  <div>
-                    <h3 className="crm-my-profile-card__title">Recent Account Activity</h3>
-                    <p className="crm-my-profile-card__sub">Latest account actions</p>
-                  </div>
-                  <Button size="sm" variant="outline" onClick={() => { setHistoryOpen(true); setTab('security'); }}>View All</Button>
-                </div>
-              <div className="crm-my-profile-activity">
-                {!activity.length && (
-                  <p className="crm-my-profile-empty">{loadingSecurity ? 'Loading activity…' : 'No recent activity yet. Sign in and updates appear here.'}</p>
-                )}
-                {activity.slice(0, 5).map((row) => {
-                  const Icon = activityIcon(row.tone);
-                  return (
-                    <div key={row.id} className="crm-my-profile-activity__row">
-                      <span className={`crm-my-profile-activity__icon crm-my-profile-activity__icon--${row.tone || 'neutral'}`}>
-                        <Icon className="h-3.5 w-3.5" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="crm-my-profile-activity__title">{row.title}</p>
-                        <p className="crm-my-profile-activity__meta">
-                          {[row.browser, row.deviceLabel, row.ipAddress].filter(Boolean).join(' · ') || '—'}
-                        </p>
-                      </div>
-                      <span className="crm-my-profile-activity__time">{fmtDate(row.createdAt)}</span>
+                <section className="crm-my-profile-card">
+                  <div className="crm-my-profile-card__head">
+                    <div>
+                      <h3 className="crm-my-profile-card__title flex items-center gap-2"><FiMonitor className="text-sky-600" /> Workspace Environment</h3>
+                      <p className="crm-my-profile-card__sub">Preferences & active session details</p>
                     </div>
-                  );
-                })}
+                    <Button size="xs" variant="outline" onClick={() => setTab('workspace')}>Configure</Button>
+                  </div>
+                  <div className="crm-my-profile-env-list">
+                    <div className="crm-my-profile-env-row">
+                      <span className="crm-my-profile-env-icon"><FiLogIn /></span>
+                      <div className="crm-my-profile-env-content">
+                        <strong>Default Landing Page</strong>
+                        <span>{prefs.landingPage || user?.defaultRoute || 'Dashboard'}</span>
+                      </div>
+                    </div>
+                    <div className="crm-my-profile-env-row">
+                      <span className="crm-my-profile-env-icon"><FiMapPin /></span>
+                      <div className="crm-my-profile-env-content">
+                        <strong>Campus Center</strong>
+                        <span>{user?.branch?.name && !user.branch.name.includes('Head Office') ? user.branch.name : user?.company?.name || 'Main Campus'}</span>
+                      </div>
+                    </div>
+                    <div className="crm-my-profile-env-row">
+                      <span className="crm-my-profile-env-icon"><FiGrid /></span>
+                      <div className="crm-my-profile-env-content">
+                        <strong>Appearance & Density</strong>
+                        <span>{prefs.theme === 'dark' || theme === 'dark' ? 'Dark' : 'Light'} Mode · {prefs.compactMode ? 'Compact Density' : 'Comfortable Density'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
               </div>
-            </section>
+
+              <div className="crm-my-profile-col">
+                <section className="crm-my-profile-card">
+                  <div className="crm-my-profile-card__head">
+                    <div>
+                      <h3 className="crm-my-profile-card__title flex items-center gap-2"><FiShield className="text-indigo-600" /> Security & Access</h3>
+                      <p className="crm-my-profile-card__sub">Password and credentials</p>
+                    </div>
+                  </div>
+                  <div className="crm-my-profile-secure-list">
+                    <div className="crm-my-profile-secure-row">
+                      <span className="crm-my-profile-secure-icon"><FiLock className="h-4 w-4" /></span>
+                      <div className="crm-my-profile-secure-copy">
+                        <strong>Password</strong>
+                        <span>Last changed {fmtDate(user?.passwordChangedAt || overview?.passwordChangedAt, false)}</span>
+                      </div>
+                      <Button size="xs" variant="outline" onClick={() => setPasswordOpen(true)}>Change Password</Button>
+                    </div>
+                    <div className="crm-my-profile-secure-row">
+                      <span className="crm-my-profile-secure-icon"><FiShield className="h-4 w-4" /></span>
+                      <div className="crm-my-profile-secure-copy">
+                        <strong>Two-Factor Authentication</strong>
+                        <span>Add an extra layer of security</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={toggleTwoFactor}
+                        className={`crm-my-profile-pill ${prefs.twoFactorEnabled || overview?.twoFactorEnabled ? 'crm-my-profile-pill--success' : 'crm-my-profile-pill--neutral'}`}
+                      >
+                        {prefs.twoFactorEnabled || overview?.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                      </button>
+                    </div>
+                    <div className="crm-my-profile-secure-row">
+                      <span className="crm-my-profile-secure-icon"><FiMonitor className="h-4 w-4" /></span>
+                      <div className="crm-my-profile-secure-copy">
+                        <strong>Active Sessions</strong>
+                        <span>{overview?.activeSessions ?? '—'} active sessions</span>
+                      </div>
+                      <Button size="xs" variant="outline" onClick={openSessions}>View Sessions</Button>
+                    </div>
+                    <div className="crm-my-profile-secure-row">
+                      <span className="crm-my-profile-secure-icon"><FiKey className="h-4 w-4" /></span>
+                      <div className="crm-my-profile-secure-copy">
+                        <strong>API Access Tokens</strong>
+                        <span>Manage your API keys</span>
+                      </div>
+                      <Button size="xs" variant="outline" onClick={openTokens}>Manage Tokens</Button>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="crm-my-profile-card">
+                  <div className="crm-my-profile-card__head">
+                    <div>
+                      <h3 className="crm-my-profile-card__title flex items-center gap-2"><FiClock className="text-emerald-600" /> Recent Account Activity</h3>
+                      <p className="crm-my-profile-card__sub">Latest security actions</p>
+                    </div>
+                    <Button size="xs" variant="outline" onClick={() => { setHistoryOpen(true); setTab('security'); }}>View All</Button>
+                  </div>
+                  <div className="crm-my-profile-activity">
+                    {!activity.length && (
+                      <p className="crm-my-profile-empty">{loadingSecurity ? 'Loading activity…' : 'No recent activity yet. Sign in and updates appear here.'}</p>
+                    )}
+                    {activity.slice(0, 4).map((row) => {
+                      const Icon = activityIcon(row.tone);
+                      return (
+                        <div key={row.id} className="crm-my-profile-activity__row">
+                          <span className={`crm-my-profile-activity__icon crm-my-profile-activity__icon--${row.tone || 'neutral'}`}>
+                            <Icon className="h-3 w-3" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="crm-my-profile-activity__title">{row.title}</p>
+                            <p className="crm-my-profile-activity__meta">
+                              {[row.browser, row.deviceLabel, row.ipAddress].filter(Boolean).join(' · ') || '—'}
+                            </p>
+                          </div>
+                          <span className="crm-my-profile-activity__time">{fmtDate(row.createdAt)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              </div>
+            </div>
           </>
         )}
 
@@ -629,7 +645,7 @@ export default function ProfilePage() {
                     <h3 className="crm-my-profile-card__title">Recent Modules</h3>
                     <p className="crm-my-profile-card__sub">Recently opened</p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => setShortcutsOpen(true)}>View All</Button>
+                  <Button size="xs" variant="outline" onClick={() => setShortcutsOpen(true)}>View All</Button>
                 </div>
                 <div className="crm-my-profile-recent">
                   {!recentModules.length && <p className="crm-my-profile-empty">Open a shortcut to build your recent list.</p>}
@@ -775,34 +791,38 @@ export default function ProfilePage() {
                   <div className="crm-my-profile-secure-row">
                     <span className="crm-my-profile-secure-icon"><FiLock /></span>
                     <div className="crm-my-profile-secure-copy"><strong>Password</strong><span>Update your account password</span></div>
-                    <Button size="sm" variant="outline" onClick={() => setPasswordOpen(true)}>Change Password</Button>
+                    <Button size="xs" variant="outline" onClick={() => setPasswordOpen(true)}>Change Password</Button>
                   </div>
                   <div className="crm-my-profile-secure-row">
                     <span className="crm-my-profile-secure-icon"><FiShield /></span>
                     <div className="crm-my-profile-secure-copy"><strong>Two-Factor Authentication</strong><span>Extra login protection</span></div>
-                    <button type="button" className="crm-my-profile-pill crm-my-profile-pill--success" onClick={toggleTwoFactor}>
-                      {prefs.twoFactorEnabled || overview?.twoFactorEnabled ? 'Enabled' : 'Enable'}
+                    <button
+                      type="button"
+                      className={`crm-my-profile-pill ${prefs.twoFactorEnabled || overview?.twoFactorEnabled ? 'crm-my-profile-pill--success' : 'crm-my-profile-pill--neutral'}`}
+                      onClick={toggleTwoFactor}
+                    >
+                      {prefs.twoFactorEnabled || overview?.twoFactorEnabled ? 'Enabled' : 'Disabled'}
                     </button>
                   </div>
                   <div className="crm-my-profile-secure-row">
                     <span className="crm-my-profile-secure-icon"><FiMonitor /></span>
                     <div className="crm-my-profile-secure-copy"><strong>Active Sessions</strong><span>Devices signed in now</span></div>
-                    <Button size="sm" variant="outline" onClick={openSessions}>View Sessions</Button>
+                    <Button size="xs" variant="outline" onClick={openSessions}>View Sessions</Button>
                   </div>
                   <div className="crm-my-profile-secure-row">
                     <span className="crm-my-profile-secure-icon"><FiKey /></span>
                     <div className="crm-my-profile-secure-copy"><strong>API Access Tokens</strong><span>Integration keys</span></div>
-                    <Button size="sm" variant="outline" onClick={openTokens}>Manage Tokens</Button>
+                    <Button size="xs" variant="outline" onClick={openTokens}>Manage Tokens</Button>
                   </div>
                   <div className="crm-my-profile-secure-row">
                     <span className="crm-my-profile-secure-icon"><FiClock /></span>
                     <div className="crm-my-profile-secure-copy"><strong>Login History</strong><span>Recent sign-ins</span></div>
-                    <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)}>View History</Button>
+                    <Button size="xs" variant="outline" onClick={() => setHistoryOpen(true)}>View History</Button>
                   </div>
                   <div className="crm-my-profile-secure-row">
                     <span className="crm-my-profile-secure-icon"><FiMonitor /></span>
                     <div className="crm-my-profile-secure-copy"><strong>Trusted Devices</strong><span>Linked session devices</span></div>
-                    <Button size="sm" variant="outline" onClick={openSessions}>Manage Devices</Button>
+                    <Button size="xs" variant="outline" onClick={openSessions}>Manage Devices</Button>
                   </div>
                 </div>
               </section>
@@ -836,7 +856,7 @@ export default function ProfilePage() {
                     <h3 className="crm-my-profile-card__title">Recent Login Activity</h3>
                     <p className="crm-my-profile-card__sub">Sign-in history</p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)}>View All</Button>
+                  <Button size="xs" variant="outline" onClick={() => setHistoryOpen(true)}>View All</Button>
                 </div>
               <div className="overflow-x-auto">
                 <table className="crm-my-profile-table">

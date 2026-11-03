@@ -2,6 +2,7 @@ import prisma from '../../config/database.js';
 import { AppError, parsePagination } from '../../utils/response.util.js';
 import { STUDENT_ROLE_SLUGS } from '../../config/portal.config.js';
 import { notifyUser } from '../notification/notification.dispatcher.js';
+import { ensureStudentPortalUser, getStudentDefaultPassword } from '../auth/student-portal-account.util.js';
 import {
   assertBatchForClassroom,
   assertStudentInTeacherBatches,
@@ -41,13 +42,22 @@ function canManageClassroom(user) {
 
 async function notifyBatchStudents(batchId, payload) {
   const enrollments = await prisma.batchEnrollment.findMany({
-    where: { batchId, isActive: true, student: { userId: { not: null }, deletedAt: null } },
-    include: { student: { select: { userId: true } } },
+    where: { batchId, isActive: true, student: { deletedAt: null } },
+    include: { student: { select: { id: true, userId: true, email: true, firstName: true, lastName: true } } },
   });
   await Promise.all(
-    enrollments
-      .filter((e) => e.student?.userId)
-      .map((e) => notifyUser(e.student.userId, payload)),
+    enrollments.map(async (e) => {
+      let userId = e.student?.userId;
+      if (!userId && e.student?.email) {
+        try {
+          const user = await ensureStudentPortalUser(e.student, { plainPassword: getStudentDefaultPassword() });
+          userId = user?.id;
+        } catch {}
+      }
+      if (userId) {
+        await notifyUser(userId, payload);
+      }
+    }),
   );
 }
 
@@ -394,8 +404,9 @@ export const classroomService = {
 
   updateTest: async (id, body, user) => {
     if (!canManageClassroom(user)) throw new AppError('Forbidden', 403);
-    await classroomService.getTest(id, user);
-    return prisma.classTest.update({
+    const existing = await classroomService.getTest(id, user);
+    const nextStatus = body.status ?? existing.status;
+    const updated = await prisma.classTest.update({
       where: { id },
       data: {
         name: body.name ?? undefined,
@@ -407,11 +418,21 @@ export const classroomService = {
         totalMarks: body.totalMarks ?? undefined,
         passingMarks: body.passingMarks !== undefined ? body.passingMarks : undefined,
         instructions: body.instructions !== undefined ? body.instructions : undefined,
-        status: body.status ?? undefined,
+        status: nextStatus,
         resultsPublished: body.resultsPublished ?? undefined,
       },
       include: testInclude,
     });
+    if (nextStatus === 'PUBLISHED' && existing.status !== 'PUBLISHED') {
+      await notifyBatchStudents(updated.batchId, {
+        type: 'REMINDER',
+        title: 'Upcoming Examination Scheduled',
+        message: `${updated.name} (Max Marks: ${updated.totalMarks ?? 100})`,
+        link: '/student/tests',
+        metadata: { event: 'CLASS_TEST_PUBLISHED', testId: updated.id },
+      });
+    }
+    return updated;
   },
 
   deleteTest: async (id, user) => {
@@ -468,18 +489,27 @@ export const classroomService = {
       });
       const withUsers = await prisma.classTestResult.findMany({
         where: { testId, published: true },
-        include: { student: { select: { userId: true } } },
+        include: { student: { select: { id: true, userId: true, email: true, firstName: true, lastName: true } } },
       });
       await Promise.all(
-        withUsers
-          .filter((r) => r.student?.userId)
-          .map((r) => notifyUser(r.student.userId, {
-            type: 'SUCCESS',
-            title: 'Test result published',
-            message: `${test.name}: ${r.marks ?? '—'} / ${test.totalMarks}`,
-            link: '/student/tests',
-            metadata: { event: 'CLASS_TEST_RESULT', testId },
-          })),
+        withUsers.map(async (r) => {
+          let userId = r.student?.userId;
+          if (!userId && r.student?.email) {
+            try {
+              const u = await ensureStudentPortalUser(r.student, { plainPassword: getStudentDefaultPassword() });
+              userId = u?.id;
+            } catch {}
+          }
+          if (userId) {
+            await notifyUser(userId, {
+              type: 'SUCCESS',
+              title: 'Examination Result Published',
+              message: `${test.name}: Scored ${r.marks ?? '—'} / ${test.totalMarks}${r.grade ? ` (Grade: ${r.grade})` : ''}`,
+              link: '/student/tests',
+              metadata: { event: 'CLASS_TEST_RESULT', testId, marks: r.marks, grade: r.grade },
+            });
+          }
+        }),
       );
     }
 
@@ -546,8 +576,8 @@ export const classroomService = {
     if (published) {
       await notifyBatchStudents(batch.id, {
         type: 'INFO',
-        title: 'New study material',
-        message: row.title,
+        title: 'New Study Material Uploaded',
+        message: `${row.title}${row.category ? ` · ${row.category}` : ''}`,
         link: '/student/materials',
         metadata: { event: 'STUDY_MATERIAL_PUBLISHED', materialId: row.id },
       });
@@ -559,7 +589,7 @@ export const classroomService = {
     if (!canManageClassroom(user)) throw new AppError('Forbidden', 403);
     const existing = await classroomService.getMaterial(id, user);
     const nextStatus = body.status || existing.status;
-    return prisma.studyMaterial.update({
+    const updated = await prisma.studyMaterial.update({
       where: { id },
       data: {
         title: body.title ?? undefined,
@@ -573,6 +603,16 @@ export const classroomService = {
       },
       include: materialInclude,
     });
+    if (nextStatus === 'PUBLISHED' && existing.status !== 'PUBLISHED') {
+      await notifyBatchStudents(updated.batchId, {
+        type: 'INFO',
+        title: 'New Study Material Published',
+        message: `${updated.title}${updated.category ? ` · ${updated.category}` : ''}`,
+        link: '/student/materials',
+        metadata: { event: 'STUDY_MATERIAL_PUBLISHED', materialId: updated.id },
+      });
+    }
+    return updated;
   },
 
   deleteMaterial: async (id, user) => {

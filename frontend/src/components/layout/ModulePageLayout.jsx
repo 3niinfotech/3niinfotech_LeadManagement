@@ -21,21 +21,26 @@ function ModulePageCardRoot({
   actions,
   children,
   className = '',
+  hideHeader = false,
+  scroll = 'auto',
 }) {
+  const scrollClass = scroll === 'contain' || scroll === 'hidden' ? 'overflow-hidden' : 'overflow-y-auto';
   return (
     <div className={`module-page-root flex flex-col h-full min-h-0 ${className}`}>
       <div className="flex flex-col flex-1 min-h-0 bg-card-bg border border-card-border rounded-xl shadow-card overflow-hidden">
-        <ModulePageHeader
-          title={title}
-          subtitle={subtitle}
-          icon={icon}
-          iconColor={iconColor}
-          breadcrumbs={breadcrumbs}
-          actions={actions}
-          embedded
-        />
+        {!hideHeader && Boolean(title || actions) && (
+          <ModulePageHeader
+            title={title}
+            subtitle={subtitle}
+            icon={icon}
+            iconColor={iconColor}
+            breadcrumbs={breadcrumbs}
+            actions={actions}
+            embedded
+          />
+        )}
 
-        <div className="module-page-body flex flex-col flex-1 min-h-0 overflow-hidden">{children}</div>
+        <div className={`module-page-body flex flex-col flex-1 min-h-0 ${scrollClass}`}>{children}</div>
       </div>
     </div>
   );

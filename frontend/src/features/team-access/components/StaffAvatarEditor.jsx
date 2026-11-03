@@ -63,32 +63,40 @@ export default function StaffAvatarEditor({
 
   return (
     <>
-      <div className={`crm-staff-avatar crm-staff-avatar--${size}`}>
-        <Avatar name={name} src={avatarUrl} size={size} className="crm-staff-avatar__img ring-4 ring-white shadow-md" />
+      <div className="crm-staff-avatar-wrapper relative inline-flex flex-shrink-0">
+        <Avatar
+          name={name}
+          src={avatarUrl}
+          size={size}
+          className="ring-4 ring-white dark:ring-slate-800 shadow-md transition-transform duration-200"
+        />
+
         {canEdit && (
-          <div className="crm-staff-avatar__actions">
+          <div className="crm-staff-avatar-actions absolute -bottom-1 -right-1 flex items-center gap-1 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xs p-1 rounded-full shadow-md border border-slate-200/80 dark:border-slate-700 z-10">
             <button
               type="button"
-              className="crm-staff-avatar__btn"
-              title="Change photo"
+              className="crm-avatar-action-btn crm-avatar-action-btn--upload w-7 h-7 rounded-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-xs cursor-pointer"
+              title="Upload / Change photo"
               onClick={() => fileRef.current?.click()}
               disabled={uploading || removing}
             >
-              <FiCamera size={14} />
+              <FiCamera size={13} />
             </button>
+
             {avatar && (
               <button
                 type="button"
-                className="crm-staff-avatar__btn crm-staff-avatar__btn--danger"
+                className="crm-avatar-action-btn crm-avatar-action-btn--remove w-7 h-7 rounded-full flex items-center justify-center bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 dark:hover:bg-rose-900/60 transition-all shadow-xs cursor-pointer"
                 title="Remove photo"
                 onClick={handleRemove}
                 disabled={uploading || removing}
               >
-                <FiTrash2 size={13} />
+                <FiTrash2 size={12} />
               </button>
             )}
           </div>
         )}
+
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={pickFile} />
       </div>
 

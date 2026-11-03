@@ -226,13 +226,16 @@ export default function EnquiryPage() {
         icon={FiInbox}
         iconColor="primary"
         breadcrumbs={[{ label: 'Dashboard', path: ROUTES.DASHBOARD }, { label: 'Manage Enquiry' }]}
-        actions={!hideReceptionActions && canCreate ? (
-          <PermissionGate permissions={[PERMISSIONS.ENQUIRIES_CREATE, PERMISSIONS.WALKIN_CREATE]}>
-            <Button variant="primary" size="sm" icon={FiUserPlus} onClick={() => navigate(ROUTES.WALK_INS)}>
-              Register at Reception
-            </Button>
-          </PermissionGate>
-        ) : null}
+        actions={(
+          <Button
+            variant="primary"
+            size="sm"
+            icon={FiUserPlus}
+            onClick={() => setRegisterOpen(true)}
+          >
+            + Add Enquiry
+          </Button>
+        )}
       >
         <ModulePageCard.Stats
           items={statItems}

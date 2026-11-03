@@ -1,68 +1,82 @@
 /**
- * Enterprise master form modal — compact (simple) or structured (complex).
+ * Enterprise master form modal — adaptive layout with balanced padding & clean spacing.
  */
 .crm-master-form-modal.crm-modal-panel {
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgb(15 23 42 / 12%);
+  border-radius: 1rem;
+  box-shadow: 0 20px 48px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px var(--border);
+  height: auto !important;
+  max-height: min(90vh, 840px);
 }
 
 .crm-master-form-modal.crm-modal-panel--compact {
-  max-width: min(96vw, 420px) !important;
+  max-width: min(96vw, 440px) !important;
 }
 
 .crm-master-form-modal.crm-modal-panel--form {
-  max-width: min(96vw, 720px) !important;
-}
-
-.crm-master-form-modal.crm-modal-panel--form[style*="1120"] {
-  max-width: min(96vw, 960px) !important;
+  max-width: min(96vw, 680px) !important;
+  height: auto !important;
 }
 
 .crm-master-form-modal .crm-modal-header {
-  padding: 0.75rem 1rem;
+  padding: 1.125rem 1.25rem 0.875rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
 }
 
 .crm-master-form-modal .crm-modal-title {
-  font-size: 0.9375rem;
+  font-size: 1.0625rem;
+  font-weight: 750;
+  color: var(--text-primary);
+  line-height: 1.25;
 }
 
 .crm-master-form-modal .crm-modal-subtitle {
-  font-size: 0.6875rem;
-  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
 }
 
 .crm-master-form-modal .crm-modal-footer {
-  padding: 0.625rem 1rem;
+  padding: 0.875rem 1.25rem;
   background: var(--bg-card);
+  border-top: 1px solid var(--border);
 }
 
 .crm-master-form-modal .crm-modal-body {
   padding: 0;
+  overflow: visible;
 }
 
 .crm-master-form-modal .crm-master-form-scroll {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  max-height: min(72vh, 680px);
-  padding: 0.875rem 1rem;
+  max-height: min(72vh, 640px);
+  padding: 1.125rem 1.25rem;
 }
 
 .crm-master-form-modal.crm-modal-panel--compact .crm-master-form-scroll {
   max-height: none;
-  padding: 0.875rem 1rem;
+  padding: 1.125rem 1.25rem;
 }
 
-.crm-master-form-modal.crm-modal-panel--form .crm-master-form-scroll {
-  flex: 1;
+.crm-master-form-modal .crm-form-modal-layout {
+  display: flex;
+  flex-direction: column;
+  height: auto;
   min-height: 0;
-  max-height: none;
+}
+
+.crm-master-form-modal .crm-form-panel {
+  flex: none;
+  height: auto;
+  min-height: 0;
 }
 
 .crm-master-form-error {
-  margin: 0 1rem 0;
-  padding: 0.5rem 0.625rem;
-  border-radius: 6px;
+  margin: 0.75rem 1.25rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
   border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
   background: color-mix(in srgb, var(--danger-soft, #fef2f2) 80%, var(--bg-card));
   color: var(--danger);
@@ -70,26 +84,7 @@
   line-height: 1.4;
 }
 
-.crm-master-form-modal.crm-modal-panel--form .crm-form-modal-layout {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
-
-.crm-master-form-modal.crm-modal-panel--form .crm-form-panel {
-  flex: 1;
-  min-height: 0;
-  position: relative;
-}
-
-.crm-master-form-modal.crm-modal-panel--form .crm-form-panel__layer {
-  position: relative;
-  inset: auto;
-  max-height: min(68vh, 620px);
-}
-
-/* Form grid — shared with drawer legacy class names */
+/* Form grid */
 .crm-master-drawer-form,
 .crm-master-form {
   display: flex;
@@ -101,7 +96,7 @@
 .crm-master-form-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.75rem;
+  gap: 0.875rem;
 }
 
 .crm-master-drawer-grid--2col,
@@ -113,7 +108,7 @@
   .crm-master-drawer-grid--2col,
   .crm-master-form-grid--2col {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.625rem 0.875rem;
+    gap: 0.75rem 0.875rem;
   }
 }
 
@@ -126,7 +121,7 @@
 .crm-master-form-grid--switches {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.5rem;
+  gap: 0.625rem;
 }
 
 @media (min-width: 480px) {
@@ -139,21 +134,21 @@
 .crm-master-form-section {
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
+  gap: 0.75rem;
 }
 
 .crm-master-form-section--titled + .crm-master-form-section--titled,
 .crm-master-form-section--titled:not(:first-child) {
-  margin-top: 1rem;
-  padding-top: 0.875rem;
-  border-top: 1px solid var(--border);
+  margin-top: 1.125rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
 
 .crm-master-form-section__title {
-  margin: 0 0 0.125rem;
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  margin: 0 0 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
   line-height: 1.3;
@@ -169,24 +164,112 @@
 .crm-master-form-hint {
   grid-column: 1 / -1;
   margin: 0;
-  padding: 0.4375rem 0.5625rem;
-  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg-page) 50%, var(--bg-card));
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   line-height: 1.45;
+}
+
+/* Master Switch Field Card */
+.crm-master-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.crm-master-switch:hover {
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--border));
+  background: color-mix(in srgb, var(--brand) 2%, var(--bg-card));
+}
+
+.crm-master-switch--error {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+}
+
+.crm-master-switch__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.crm-master-switch__control-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.crm-master-switch__control {
+  position: relative;
+  width: 2.25rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-page) 70%, var(--bg-card));
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  padding: 0;
+}
+
+.crm-master-switch__control:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.crm-master-switch__control.is-on {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+.crm-master-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.crm-master-switch__control.is-on .crm-master-switch__thumb {
+  transform: translateX(0.9rem);
+}
+
+.crm-master-switch__state {
+  min-width: 3.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.crm-master-switch__state.is-on {
+  color: var(--brand);
+}
+
+.crm-master-switch__error {
+  margin: 0.25rem 0 0;
+  font-size: 0.6875rem;
+  color: var(--danger);
 }
 
 @media (max-width: 479px) {
   .crm-master-form-modal.crm-modal-panel {
     max-width: 100% !important;
     margin: 0.5rem;
-    max-height: calc(100dvh - 1rem);
-  }
-
-  .crm-master-form-modal.crm-modal-panel--form {
-    height: calc(100dvh - 1rem);
     max-height: calc(100dvh - 1rem);
   }
 }

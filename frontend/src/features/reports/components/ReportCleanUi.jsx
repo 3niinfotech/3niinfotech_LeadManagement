@@ -110,18 +110,19 @@ export function ReportMetricCard({
           </div>
           {hint ? <p className="crm-rcard__hint">{hint}</p> : null}
         </div>
+        {to ? <span className="crm-rcard__link-arrow"><FiArrowUpRight className="w-3.5 h-3.5" /></span> : null}
       </div>
     </>
   );
 
   if (to) {
     return (
-      <Link to={to} className={`crm-rcard crm-rcard--pro crm-rcard--${tone} crm-rcard--link`}>
+      <Link to={to} className={`crm-rcard crm-rcard--${tone} crm-rcard--link`}>
         {body}
       </Link>
     );
   }
-  return <div className={`crm-rcard crm-rcard--pro crm-rcard--${tone}`}>{body}</div>;
+  return <div className={`crm-rcard crm-rcard--${tone}`}>{body}</div>;
 }
 
 export function ReportMetricGrid({ children, cols = 5 }) {

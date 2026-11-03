@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiArrowRight, FiCheck, FiLock, FiRefreshCw, FiUserPlus, FiUsers } from 'react-icons/fi';
+import { FiArrowRight, FiCheck, FiLock, FiRefreshCw, FiSend, FiUsers } from 'react-icons/fi';
 import { pageEase } from '../../../theme/pageMotion';
 import { ROUTES } from '../../../config/routes';
 
@@ -11,55 +11,80 @@ function ProductPreview() {
         <span className="landing-product-shell__dot" />
         <span className="landing-product-shell__dot" />
         <span className="landing-product-shell__dot" />
-        <span className="landing-product-shell__url">app / enquiries / pipeline</span>
+        <span className="landing-product-shell__url">app / education-crm / live-overview</span>
       </div>
       <div className="landing-product-grid">
         <div className="landing-mock-card">
-          <p className="landing-mock-card__label">Enquiry pipeline</p>
+          <p className="landing-mock-card__label">Active Student Pipeline</p>
           <div className="landing-mock-pipeline">
             <div className="landing-mock-row">
-              <strong>Mehul Trivedi</strong>
-              <span className="landing-mock-badge landing-mock-badge--blue">Follow-up</span>
+              <div>
+                <strong>Aarav Patel</strong>
+                <span className="block text-[10px] text-slate-500">Univ. of Toronto · Canada</span>
+              </div>
+              <span className="landing-mock-badge landing-mock-badge--green">Offer Letter</span>
             </div>
             <div className="landing-mock-row">
-              <strong>Priya Sharma</strong>
-              <span className="landing-mock-badge landing-mock-badge--green">Demo booked</span>
+              <div>
+                <strong>Priya Sharma</strong>
+                <span className="block text-[10px] text-slate-500">Imperial College · UK</span>
+              </div>
+              <span className="landing-mock-badge landing-mock-badge--blue">CAS Issued</span>
             </div>
             <div className="landing-mock-row">
-              <strong>Aarav Patel</strong>
-              <span className="landing-mock-badge landing-mock-badge--amber">Documents</span>
+              <div>
+                <strong>Rohan Mehta</strong>
+                <span className="block text-[10px] text-slate-500">Univ. of Melbourne · Australia</span>
+              </div>
+              <span className="landing-mock-badge landing-mock-badge--amber">Visa In Review</span>
             </div>
           </div>
         </div>
         <div className="landing-mock-card">
-          <p className="landing-mock-card__label">Visa progress</p>
+          <p className="landing-mock-card__label">Visa Success &amp; Compliance</p>
           <div className="landing-mock-pipeline">
             <div className="landing-mock-row">
-              <strong>UK — Tier 4</strong>
-              <span className="landing-mock-badge landing-mock-badge--slate">Biometrics</span>
+              <div>
+                <strong>Canada — SDS Stream</strong>
+                <span className="block text-[10px] text-slate-500">Biometrics &amp; Medical</span>
+              </div>
+              <span className="landing-mock-badge landing-mock-badge--green">Granted 100%</span>
             </div>
             <div className="landing-mock-row">
-              <strong>Canada — Study</strong>
-              <span className="landing-mock-badge landing-mock-badge--green">Approved</span>
+              <div>
+                <strong>United Kingdom — Tier 4</strong>
+                <span className="block text-[10px] text-slate-500">Priority Processing</span>
+              </div>
+              <span className="landing-mock-badge landing-mock-badge--blue">Approved</span>
+            </div>
+            <div className="landing-mock-row">
+              <div>
+                <strong>Australia — Subclass 500</strong>
+                <span className="block text-[10px] text-slate-500">GTE Assessment</span>
+              </div>
+              <span className="landing-mock-badge landing-mock-badge--slate">Verified</span>
             </div>
           </div>
         </div>
         <div className="landing-mock-card">
-          <p className="landing-mock-card__label">Analytics snapshot</p>
+          <div className="flex items-center justify-between">
+            <p className="landing-mock-card__label">Admissions Growth</p>
+            <span className="text-[10px] font-bold text-emerald-600">+34.8% YoY</span>
+          </div>
           <div className="landing-mock-chart">
-            <span style={{ height: '35%' }} />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
+            <span style={{ height: '38%' }} title="Jan" />
+            <span style={{ height: '52%' }} title="Feb" />
+            <span style={{ height: '76%' }} title="Mar" />
+            <span style={{ height: '64%' }} title="Apr" />
+            <span style={{ height: '88%' }} title="May" />
+            <span style={{ height: '96%', background: '#2563eb' }} title="Jun" />
           </div>
         </div>
         <div className="landing-mock-card">
-          <p className="landing-mock-card__label">Follow-up reminder</p>
+          <p className="landing-mock-card__label">Real-time CRM Sync</p>
           <div className="landing-mock-reminder">
-            <FiRefreshCw size={12} />
-            <span>Counselling call due today · Assigned to branch team</span>
+            <FiRefreshCw size={13} className="text-blue-600 shrink-0" />
+            <span>Website inquiries automatically sync to Enquiry Pipeline in real time</span>
           </div>
         </div>
       </div>
@@ -88,10 +113,10 @@ export default function LandingHero() {
               Student Login
               <FiArrowRight size={15} />
             </Link>
-            <Link to={ROUTES.REGISTER_STUDENT} className="landing-btn landing-btn--student">
-              <FiUserPlus size={15} />
-              Create Account
-            </Link>
+            <a href="#contact" className="landing-btn landing-btn--student">
+              <FiSend size={15} />
+              Enquire Now
+            </a>
             <a href="#workspaces" className="landing-btn landing-btn--secondary">Staff &amp; Agent Portals</a>
           </div>
           <div className="landing-trust-row">

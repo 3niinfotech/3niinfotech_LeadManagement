@@ -39,13 +39,6 @@ export function BatchDetailHero({ batch, summary, slots, sessionCount, instructo
           </div>
         )}
       </div>
-
-      <div className="crm-batch-hero-grid">
-        <BatchMetric label="Students" value={String(students)} />
-        <BatchMetric label="Sessions" value={String(sessionCount)} />
-        <BatchMetric label="Weekly slots" value={String(slots)} />
-        <BatchMetric label="Faculty" value={instructorName || 'Unassigned'} />
-      </div>
     </div>
   );
 }

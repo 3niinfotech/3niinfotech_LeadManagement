@@ -10,7 +10,7 @@
     "sync:theme": "node scripts/sync-theme-css.mjs",
     "predev": "npm run sync:theme",
     "prebuild": "npm run sync:theme",
-    "dev": "vite --host",
+    "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview"
   },

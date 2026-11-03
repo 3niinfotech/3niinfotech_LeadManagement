@@ -22,6 +22,8 @@ import {
 import { ROUTES } from '../../config/routes';
 import RouteProgress from '../ui/RouteProgress';
 import PortalHeader from './PortalHeader';
+import { useCompanyRuntime } from '../../features/organization/CompanyRuntime';
+import { resolvePublicAssetUrl } from '../../config/company-settings.config';
 import './portal.theme.css';
 
 const MOBILE_BREAK = 1024;
@@ -44,10 +46,12 @@ function useMediaQuery(query) {
 }
 
 function isNavActive(pathname, to) {
+  const cleanPath = (pathname || '').split('?')[0].split('#')[0].replace(/\/+$/, '') || '/';
+  const cleanTo = (to || '').split('?')[0].split('#')[0].replace(/\/+$/, '') || '/';
   if (to === ROUTES.STUDENT_DASHBOARD || to === ROUTES.TEACHER_DASHBOARD) {
-    return pathname === to;
+    return cleanPath === cleanTo;
   }
-  return pathname === to || pathname.startsWith(`${to}/`);
+  return cleanPath === cleanTo || (cleanTo !== '/' && cleanPath.startsWith(`${cleanTo}/`));
 }
 
 export default function PortalShell({
@@ -114,8 +118,28 @@ export default function PortalShell({
     return () => window.removeEventListener('keydown', onKey);
   }, [isDesktop, mobileOpen, moreOpen]);
 
-  const companyName = user?.company?.name || 'VisaERP';
-  const companyInitial = companyName.charAt(0).toUpperCase();
+  const { company } = useCompanyRuntime() || {};
+  const activeCompany = company || user?.company;
+  const companyName = (activeCompany?.name || user?.company?.name || 'VisaERP').trim();
+  const companyLogo = activeCompany?.logo || user?.company?.logo || '';
+  const companyInitial = companyName.charAt(0).toUpperCase() || 'C';
+
+  const [directLogo, setDirectLogo] = useState('');
+  const [logoFailed, setLogoFailed] = useState(false);
+
+  useEffect(() => {
+    if (!companyLogo) {
+      import('../../features/master/services/organizationApi.service')
+        .then((m) => m.organizationApi.getCompany())
+        .then((res) => {
+          if (res?.logo) setDirectLogo(res.logo);
+        })
+        .catch(() => {});
+    }
+  }, [companyLogo]);
+
+  const finalLogo = companyLogo || directLogo;
+  const logoUrl = finalLogo ? resolvePublicAssetUrl(finalLogo) : '';
 
   const sidebarClass = [
     'crm-portal-sidebar',
@@ -164,9 +188,18 @@ export default function PortalShell({
         aria-hidden={!isDesktop && !mobileOpen ? 'true' : undefined}
       >
         <div className="crm-portal-sidebar__brand">
-          <div className="crm-portal-sidebar__logo" aria-hidden>{companyInitial}</div>
+          <div className="crm-portal-sidebar__logo" aria-hidden>
+            {logoUrl && !logoFailed ? (
+              <img
+                src={logoUrl}
+                alt={companyName}
+                onError={() => setLogoFailed(true)}
+              />
+            ) : (
+              <span>{companyInitial}</span>
+            )}
+          </div>
           <div className="crm-portal-sidebar__brand-copy">
-            <div className="crm-portal-sidebar__portal-label">{portalLabel}</div>
             <div className="crm-portal-sidebar__company">{companyName}</div>
           </div>
           {!isDesktop && (
@@ -235,7 +268,6 @@ export default function PortalShell({
       <div className={mainClass}>
         <PortalHeader
           title={currentPageTitle}
-          subtitle={user?.branch?.name}
           user={user}
           profileTo={profileTo}
           notifyTo={notifyTo}

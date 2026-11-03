@@ -231,9 +231,11 @@ export default function StudentWorkspace({
             emptyMessage="No applications yet — add one from the Applications module."
             columns={[
               { key: 'university', label: 'University' },
-              { key: 'course', label: 'Course' },
-              { key: 'status', label: 'Status' },
-              { key: 'submittedAt', label: 'Submitted', format: formatDate },
+              { key: 'course', label: 'Program / Course' },
+              { key: 'intake', label: 'Target Intake' },
+              { key: 'applicationNo', label: 'App Reference #' },
+              { key: 'status', label: 'Admission Status' },
+              { key: 'submittedAt', label: 'Submitted Date', format: formatDate },
             ]}
             rows={student?.applications || []}
           />
@@ -241,13 +243,14 @@ export default function StudentWorkspace({
         {activeTab === 'visa' && (
           <StudentRecordListTab
             title="Visa"
-            description="Visa filing status and embassy updates."
+            description="Visa filing status, SDS stream, and embassy tracking."
             emptyMessage="No visa cases yet."
             columns={[
-              { key: 'country', label: 'Country' },
-              { key: 'visaType', label: 'Type' },
-              { key: 'status', label: 'Status' },
-              { key: 'submittedAt', label: 'Submitted', format: formatDate },
+              { key: 'country', label: 'Destination Country' },
+              { key: 'visaType', label: 'Permit Stream' },
+              { key: 'applicationNo', label: 'File / IRCC #' },
+              { key: 'status', label: 'Embassy Status' },
+              { key: 'submittedAt', label: 'Filing Date', format: formatDate },
             ]}
             rows={student?.visas || []}
           />

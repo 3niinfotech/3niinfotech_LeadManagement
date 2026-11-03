@@ -81,10 +81,8 @@ export function useSocket() {
       const prefs = getNotificationPrefs();
       deliverNotificationAlert(notification, prefs);
 
-      if (!prefs.muted && prefs.toast && notification.title) {
-        toastService.fromNotification(notification, {
-          duration: isReminderNotification(notification) ? 10000 : undefined,
-        });
+      if (!prefs.muted && prefs.toast && notification.title && !isReminderNotification(notification)) {
+        toastService.fromNotification(notification);
       }
 
       if (!prefs.muted && isReminderNotification(notification)) {

@@ -29,12 +29,17 @@ function parseOptions(options, children) {
     }));
 }
 
-function toAntValue(value, mode) {
+function toAntValue(value, mode, antOptions = []) {
   if (mode === 'multiple' || mode === 'tags') {
     if (Array.isArray(value)) return value;
     return value ? [value] : [];
   }
-  if (value === '' || value == null) return undefined;
+  if (value == null) return undefined;
+  if (value === '') {
+    const hasEmptyOption = antOptions.some((o) => o?.value === '');
+    if (hasEmptyOption) return '';
+    return undefined;
+  }
   return value;
 }
 
@@ -163,7 +168,7 @@ const Select = forwardRef(function Select({
       size={sizeConfig.antSize}
       placeholder={placeholder}
       options={antOptions}
-      value={toAntValue(value, mode)}
+      value={toAntValue(value, mode, antOptions)}
       onChange={handleChange}
       onClear={onClear}
       disabled={disabled}
@@ -183,7 +188,8 @@ const Select = forwardRef(function Select({
       placement="bottomLeft"
       popupMatchSelectWidth
       getPopupContainer={getPopupContainer ?? defaultPopupContainer}
-      styles={{ popup: { zIndex: 1400 } }}
+      dropdownStyle={{ zIndex: 99999999 }}
+      styles={{ popup: { root: { zIndex: 99999999 } } }}
     />
   );
 

@@ -429,11 +429,7 @@
   min-height: 100%;
 }
 
-.auth-portal-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-  border-color: color-mix(in srgb, var(--auth-accent, #2563eb) 35%, #e2e8f0);
-}
+
 
 .auth-portal-card__icon {
   width: 2.75rem;

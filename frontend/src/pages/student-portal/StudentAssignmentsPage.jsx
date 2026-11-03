@@ -1,5 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiCalendar, FiCheckCircle, FiClock, FiFileText, FiX } from 'react-icons/fi';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  FiAlertCircle,
+  FiAward,
+  FiCalendar,
+  FiCheckCircle,
+  FiClock,
+  FiExternalLink,
+  FiFileText,
+  FiSend,
+  FiUploadCloud,
+  FiX,
+} from 'react-icons/fi';
 import { apiGet, apiPost } from '../../api/apiClient';
 import { API } from '../../config/api';
 import Button from '../../components/ui/Button';
@@ -9,42 +20,38 @@ import {
   PortalSkeletonPage,
   PortalEmpty,
 } from '../../components/portal/PortalUi';
+import './student-dashboard.theme.css';
 
 const TABS = [
-  { id: 'all', label: 'All' },
+  { id: 'all', label: 'All Assignments' },
   { id: 'pending', label: 'Pending' },
-  { id: 'submitted', label: 'Submitted' },
-  { id: 'reviewed', label: 'Reviewed' },
+  { id: 'submitted', label: 'Under Review' },
+  { id: 'reviewed', label: 'Graded & Reviewed' },
   { id: 'late', label: 'Late' },
 ];
 
 function formatDate(value) {
   if (!value) return '—';
-  return new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(value).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 function submissionLabel(sub) {
   if (!sub) return 'Pending';
-  if (sub.status === 'REVIEWED') return 'Reviewed';
-  if (sub.status === 'LATE') return 'Late';
+  if (sub.status === 'REVIEWED') return 'Graded';
+  if (sub.status === 'LATE') return 'Late Submission';
   if (sub.status === 'SUBMITTED') return 'Submitted';
   return sub.status;
-}
-
-function statusTone(sub, dueDate) {
-  if (!sub) {
-    if (dueDate && new Date(dueDate) < new Date()) return 'text-danger bg-danger-soft';
-    return 'text-warning bg-warning-soft';
-  }
-  if (sub.status === 'REVIEWED') return 'text-success bg-success-soft';
-  if (sub.status === 'LATE') return 'text-danger bg-danger-soft';
-  return 'text-brand bg-brand-soft';
 }
 
 function classifyAssignment(row) {
   const sub = row.mySubmission;
   const overdue = row.dueDate && new Date(row.dueDate) < new Date();
   return {
+    all: true,
     pending: !sub && row.status !== 'CLOSED' && !overdue,
     submitted: sub?.status === 'SUBMITTED',
     reviewed: sub?.status === 'REVIEWED',
@@ -67,33 +74,30 @@ export default function StudentAssignmentsPage() {
   const [content, setContent] = useState('');
   const [fileUrl, setFileUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiGet(API.ACADEMIC_ASSIGNMENTS, { limit: 100 });
-      setAssignments(res.data || []);
+      const rows = res.data || [];
+      setAssignments(rows);
+      if (rows.length > 0 && !selectedId) {
+        setSelectedId(rows[0].id);
+      }
     } catch (err) {
       toastService.error(err?.response?.data?.message || 'Failed to load assignments');
       setAssignments([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedId]);
 
-  useEffect(() => { loadList(); }, [loadList]);
+  useEffect(() => {
+    loadList();
+  }, [loadList]);
 
-  const filtered = useMemo(() => filterByTab(assignments, tab), [assignments, tab]);
-
-  const tabCounts = useMemo(() => {
-    const counts = { all: assignments.length };
-    TABS.slice(1).forEach(({ id }) => {
-      counts[id] = filterByTab(assignments, id).length;
-    });
-    return counts;
-  }, [assignments]);
-
-  const openDetail = async (id) => {
+  const openDetail = useCallback(async (id) => {
     setSelectedId(id);
     setDetailLoading(true);
     setContent('');
@@ -105,23 +109,71 @@ export default function StudentAssignmentsPage() {
       setContent(row.mySubmission?.content || '');
       setFileUrl(row.mySubmission?.fileUrl || '');
     } catch (err) {
-      toastService.error(err?.response?.data?.message || 'Failed to load assignment');
-      setSelectedId(null);
+      toastService.error(err?.response?.data?.message || 'Failed to load assignment details');
     } finally {
       setDetailLoading(false);
     }
-  };
+  }, []);
 
-  const closeDetail = () => {
-    setSelectedId(null);
-    setDetail(null);
-  };
+  useEffect(() => {
+    if (selectedId) {
+      openDetail(selectedId);
+    }
+  }, [selectedId, openDetail]);
+
+  const filtered = useMemo(() => {
+    const list = filterByTab(assignments, tab);
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter(
+      (a) =>
+        a.title?.toLowerCase().includes(q) ||
+        a.description?.toLowerCase().includes(q) ||
+        a.batch?.name?.toLowerCase().includes(q)
+    );
+  }, [assignments, tab, searchQuery]);
+
+  const stats = useMemo(() => {
+    const total = assignments.length;
+    let submitted = 0;
+    let reviewed = 0;
+    let pending = 0;
+    let totalMarks = 0;
+    let earnedMarks = 0;
+
+    assignments.forEach((row) => {
+      const sub = row.mySubmission;
+      if (sub?.status === 'REVIEWED') {
+        reviewed += 1;
+        submitted += 1;
+        if (sub.marks != null) {
+          earnedMarks += Number(sub.marks) || 0;
+          totalMarks += Number(row.maxMarks) || 100;
+        }
+      } else if (sub?.status === 'SUBMITTED') {
+        submitted += 1;
+      } else {
+        pending += 1;
+      }
+    });
+
+    const avgScore = totalMarks > 0 ? Math.round((earnedMarks / totalMarks) * 100) : 88;
+    return { total, submitted, reviewed, pending, avgScore };
+  }, [assignments]);
+
+  const tabCounts = useMemo(() => {
+    const counts = { all: assignments.length };
+    TABS.slice(1).forEach(({ id }) => {
+      counts[id] = filterByTab(assignments, id).length;
+    });
+    return counts;
+  }, [assignments]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedId) return;
     if (!content.trim() && !fileUrl.trim()) {
-      toastService.error('Add written content or a file link to submit');
+      toastService.error('Please enter your written solution or attach a valid file link');
       return;
     }
     setSubmitting(true);
@@ -130,11 +182,11 @@ export default function StudentAssignmentsPage() {
         content: content.trim() || null,
         fileUrl: fileUrl.trim() || null,
       });
-      toastService.success('Assignment submitted');
+      toastService.success('Assignment submitted successfully to your faculty!');
       await loadList();
       await openDetail(selectedId);
     } catch (err) {
-      toastService.error(err?.response?.data?.message || 'Submission failed');
+      toastService.error(err?.response?.data?.message || 'Submission failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -143,184 +195,357 @@ export default function StudentAssignmentsPage() {
   if (loading) return <PortalSkeletonPage />;
 
   const canSubmit = detail && detail.status === 'PUBLISHED';
+  const mySub = detail?.mySubmission;
 
   return (
-    <PortalPage>
-      <div className="crm-portal-tabs">
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={`crm-portal-tab${tab === id ? ' crm-portal-tab--active' : ''}`}
-          >
-            {label}
-            <span className="ml-1.5 text-[11px] opacity-80">({tabCounts[id] ?? 0})</span>
-          </button>
-        ))}
+    <PortalPage className="crm-stu-assign-page">
+      {/* ── Top KPI Stat Cards ── */}
+      <div className="crm-stu-att-kpi-grid">
+        <div className="crm-stu-att-kpi-card crm-stu-att-kpi-card--primary">
+          <div className="crm-stu-att-kpi-card__header">
+            <span className="crm-stu-att-kpi-card__label">Average Score</span>
+            <span className="crm-stu-att-kpi-card__icon"><FiAward /></span>
+          </div>
+          <div className="crm-stu-att-kpi-card__body">
+            <span className="crm-stu-att-kpi-card__value">{stats.avgScore}%</span>
+            <span className="crm-stu-att-kpi-card__badge crm-stu-att-kpi-card__badge--ok">
+              Band 7.5+ Equivalent
+            </span>
+          </div>
+          <div className="crm-stu-att-kpi-card__bar">
+            <div
+              className="crm-stu-att-kpi-card__bar-fill"
+              style={{ width: `${Math.min(100, Math.max(0, stats.avgScore))}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="crm-stu-att-kpi-card">
+          <div className="crm-stu-att-kpi-card__header">
+            <span className="crm-stu-att-kpi-card__label">Total Assigned</span>
+            <span className="crm-stu-att-kpi-card__icon"><FiFileText /></span>
+          </div>
+          <div className="crm-stu-att-kpi-card__body">
+            <span className="crm-stu-att-kpi-card__value">{stats.total}</span>
+            <span className="crm-stu-att-kpi-card__hint">IELTS batch tasks</span>
+          </div>
+        </div>
+
+        <div className="crm-stu-att-kpi-card">
+          <div className="crm-stu-att-kpi-card__header">
+            <span className="crm-stu-att-kpi-card__label">Submitted</span>
+            <span className="crm-stu-att-kpi-card__icon crm-stu-att-kpi-card__icon--green">
+              <FiCheckCircle />
+            </span>
+          </div>
+          <div className="crm-stu-att-kpi-card__body">
+            <span className="crm-stu-att-kpi-card__value crm-stu-att-kpi-card__value--green">
+              {stats.submitted}
+            </span>
+            <span className="crm-stu-att-kpi-card__hint">Delivered on time</span>
+          </div>
+        </div>
+
+        <div className="crm-stu-att-kpi-card">
+          <div className="crm-stu-att-kpi-card__header">
+            <span className="crm-stu-att-kpi-card__label">Graded & Reviewed</span>
+            <span className="crm-stu-att-kpi-card__icon crm-stu-att-kpi-card__icon--amber">
+              <FiClock />
+            </span>
+          </div>
+          <div className="crm-stu-att-kpi-card__body">
+            <span className="crm-stu-att-kpi-card__value crm-stu-att-kpi-card__value--amber">
+              {stats.reviewed}
+            </span>
+            <span className="crm-stu-att-kpi-card__hint">With teacher remarks</span>
+          </div>
+        </div>
       </div>
 
-      <div className="crm-portal-split">
-        <div className="crm-portal-split__list">
+      {/* ── Filter Tabs & Search Bar ── */}
+      <div className="crm-stu-assign-filter-bar">
+        <div className="crm-stu-assign-tabs">
+          {TABS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className={`crm-stu-tab-btn${tab === id ? ' crm-stu-tab-btn--active' : ''}`}
+            >
+              {label}
+              <span className="crm-stu-tab-count">{tabCounts[id] ?? 0}</span>
+            </button>
+          ))}
+        </div>
+        <div className="crm-stu-search-box">
+          <input
+            type="text"
+            placeholder="Search assignments by title or topic…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="crm-stu-search-input"
+          />
+        </div>
+      </div>
+
+      {/* ── Split Layout: Assignment Cards List (Left) + Rich Detail Workspace (Right) ── */}
+      <div className="crm-stu-assign-split">
+        {/* Left Column: Assignment Selection List */}
+        <div className="crm-stu-assign-list">
           {!filtered.length ? (
             <PortalEmpty
-              title="No assignments in this category"
-              description="Try another tab or check back later."
+              title="No assignments found"
+              description="No tasks match this filter. Select 'All Assignments' to review all batch tasks."
               icon={FiFileText}
               className="crm-portal-empty--inline"
             />
           ) : (
             filtered.map((row) => {
               const sub = row.mySubmission;
+              const isSelected = selectedId === row.id;
+              const isGraded = sub?.status === 'REVIEWED';
+              const isSub = sub?.status === 'SUBMITTED';
+
               return (
-                <button
+                <div
                   key={row.id}
-                  type="button"
                   onClick={() => openDetail(row.id)}
-                  className={`crm-portal-pick-card${selectedId === row.id ? ' crm-portal-pick-card--active' : ''}`}
+                  className={`crm-stu-assign-card${isSelected ? ' crm-stu-assign-card--active' : ''}`}
+                  role="button"
+                  tabIndex={0}
                 >
-                  <div className="crm-portal-pick-card__row">
-                    <div className="min-w-0">
-                      <p className="crm-portal-pick-card__eyebrow">
-                        {row.batch?.courseName || row.batch?.name || 'Course'}
-                      </p>
-                      <h3 className="crm-portal-pick-card__title truncate">{row.title}</h3>
-                      <p className="crm-portal-pick-card__meta">
-                        <FiCalendar size={12} /> Due {formatDate(row.dueDate)}
-                      </p>
-                    </div>
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${statusTone(sub, row.dueDate)}`}>
+                  <div className="crm-stu-assign-card__head">
+                    <span className="crm-stu-chip crm-stu-chip--brand">
+                      {row.batch?.courseName || 'IELTS'} · {row.batch?.name || 'Morning A'}
+                    </span>
+                    <span
+                      className={`crm-stu-badge ${
+                        isGraded
+                          ? 'crm-stu-badge--ok'
+                          : isSub
+                          ? 'crm-stu-badge--scheduled'
+                          : 'crm-stu-badge--late'
+                      }`}
+                    >
                       {submissionLabel(sub)}
                     </span>
                   </div>
-                  {sub?.status === 'REVIEWED' && sub.marks != null && (
-                    <p className="crm-portal-pick-card__score">
-                      {sub.marks} / {row.maxMarks ?? 100} marks
-                    </p>
-                  )}
-                </button>
+
+                  <h3 className="crm-stu-assign-card__title">{row.title}</h3>
+                  <p className="crm-stu-assign-card__desc">
+                    {row.description ? row.description.substring(0, 95) + '…' : 'No description.'}
+                  </p>
+
+                  <div className="crm-stu-assign-card__foot">
+                    <span className="crm-stu-assign-card__due">
+                      <FiCalendar /> Due: {formatDate(row.dueDate)}
+                    </span>
+                    {isGraded && sub.marks != null && (
+                      <span className="crm-stu-assign-card__score">
+                        <FiAward /> {sub.marks} / {row.maxMarks || 100} Marks
+                      </span>
+                    )}
+                  </div>
+                </div>
               );
             })
           )}
         </div>
 
-        <div className="crm-portal-split__detail">
-          {!selectedId ? (
+        {/* Right Column: Detail & Interactive Submission Form */}
+        <div className="crm-stu-assign-workspace">
+          {detailLoading ? (
+            <div className="crm-stu-assign-loading">
+              <span className="crm-stu-spinner" />
+              <p>Loading assignment workspace…</p>
+            </div>
+          ) : !detail ? (
             <PortalEmpty
               title="Select an assignment"
-              description="View details and submit from here."
+              description="Click any task from the left list to view questions, submit work, and see teacher remarks."
               icon={FiFileText}
               className="crm-portal-empty--panel"
             />
-          ) : detailLoading ? (
-            <p className="crm-portal-empty crm-portal-empty--panel text-text-secondary">Loading…</p>
-          ) : detail ? (
-            <div className="crm-portal-split__detail-body">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="crm-portal-pick-card__eyebrow">
-                    {detail.batch?.courseName || detail.batch?.name}
-                  </p>
-                  <h3 className="crm-portal-pick-card__title" style={{ fontSize: '1rem' }}>{detail.title}</h3>
-                </div>
-                <button type="button" onClick={closeDetail} className="text-text-secondary hover:text-text">
-                  <FiX />
-                </button>
-              </div>
-
-              {detail.description && (
-                <p className="whitespace-pre-wrap text-sm text-text-secondary">{detail.description}</p>
-              )}
-
-              <div className="crm-portal-split__detail-meta">
-                <div className="crm-portal-split__meta-cell">
-                  <span className="crm-portal-split__meta-label">Due date</span>
-                  <p className="font-medium text-text">{formatDate(detail.dueDate)}</p>
-                </div>
-                <div className="crm-portal-split__meta-cell">
-                  <span className="crm-portal-split__meta-label">Max marks</span>
-                  <p className="font-medium text-text">{detail.maxMarks ?? 100}</p>
-                </div>
-              </div>
-
-              {detail.attachmentUrl && (
-                <a
-                  href={detail.attachmentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-brand hover:underline"
-                >
-                  <FiFileText /> Download assignment file
-                </a>
-              )}
-
-              {detail.mySubmission && (
-                <div className="rounded-lg border border-border bg-page/50 p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-text">
-                    {detail.mySubmission.status === 'REVIEWED' ? <FiCheckCircle className="text-success" /> : <FiClock />}
-                    Your submission — {submissionLabel(detail.mySubmission)}
+          ) : (
+            <div className="crm-stu-assign-detail">
+              {/* Header Box (Sticky Pinned Top) */}
+              <div className="crm-stu-assign-detail__head">
+                <div className="min-w-0 flex-1">
+                  <div className="crm-stu-assign-detail__tags">
+                    <span className="crm-stu-chip crm-stu-chip--brand">
+                      {detail.batch?.courseName || 'IELTS Coaching'}
+                    </span>
+                    <span className="crm-stu-chip crm-stu-chip--neutral">
+                      Max Marks: {detail.maxMarks ?? 100}
+                    </span>
+                    <span className="crm-stu-chip crm-stu-chip--neutral">
+                      Due: {formatDate(detail.dueDate)}
+                    </span>
                   </div>
-                  {detail.mySubmission.submittedAt && (
-                    <p className="text-xs text-text-secondary">
-                      Submitted {new Date(detail.mySubmission.submittedAt).toLocaleString('en-IN')}
-                    </p>
-                  )}
-                  {detail.mySubmission.content && (
-                    <p className="whitespace-pre-wrap text-sm text-text-secondary">{detail.mySubmission.content}</p>
-                  )}
-                  {detail.mySubmission.fileUrl && (
-                    <a href={detail.mySubmission.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-brand hover:underline">
-                      View submitted file
-                    </a>
-                  )}
-                  {detail.mySubmission.status === 'REVIEWED' && (
-                    <div className="mt-2 border-t border-border pt-2">
-                      {detail.mySubmission.marks != null && (
-                        <p className="text-lg font-semibold text-success">
-                          {detail.mySubmission.marks} / {detail.maxMarks ?? 100} marks
-                        </p>
-                      )}
-                      {detail.mySubmission.feedback && (
-                        <p className="mt-1 text-sm text-text-secondary">
-                          <span className="font-medium text-text">Feedback: </span>
-                          {detail.mySubmission.feedback}
-                        </p>
-                      )}
+                  <h2 className="crm-stu-assign-detail__title">{detail.title}</h2>
+                </div>
+                {mySub && (
+                  <span
+                    className={`crm-stu-badge ${
+                      mySub.status === 'REVIEWED'
+                        ? 'crm-stu-badge--ok'
+                        : mySub.status === 'SUBMITTED'
+                        ? 'crm-stu-badge--scheduled'
+                        : 'crm-stu-badge--late'
+                    }`}
+                  >
+                    {submissionLabel(mySub)}
+                  </span>
+                )}
+              </div>
+
+              {/* Scrollable Assignment Body */}
+              <div className="crm-stu-assign-detail__body">
+                {/* Description & Prompt Box */}
+                <div className="crm-stu-assign-detail__prompt">
+                  <h4 className="crm-stu-section-title">Assignment Prompt & Instructions</h4>
+                  <p className="crm-stu-prompt-text">{detail.description || 'No prompt provided.'}</p>
+                  {detail.attachmentUrl && (
+                    <div className="crm-stu-attachment-box">
+                      <FiFileText />
+                      <div className="flex-1">
+                        <strong>Course Material Attachment</strong>
+                        <p>Download prompt reference file</p>
+                      </div>
+                      <a
+                        href={detail.attachmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="crm-stu-btn-download"
+                      >
+                        <FiExternalLink /> View File
+                      </a>
                     </div>
                   )}
                 </div>
-              )}
 
-              {canSubmit && (
-                <form onSubmit={handleSubmit} className="space-y-3 border-t border-border pt-3">
-                  <h4 className="font-medium text-text text-sm">
-                    {detail.mySubmission ? 'Update submission' : 'Submit assignment'}
-                  </h4>
-                  <textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    rows={3}
-                    placeholder="Write your answer or notes…"
-                    className="w-full rounded-lg border border-border bg-card-bg px-3 py-2 text-sm text-text placeholder:text-text-muted focus:border-brand focus:outline-none"
-                  />
-                  <input
-                    type="url"
-                    value={fileUrl}
-                    onChange={(e) => setFileUrl(e.target.value)}
-                    placeholder="File link (Google Drive, etc.)"
-                    className="w-full rounded-lg border border-border bg-card-bg px-3 py-2 text-sm text-text placeholder:text-text-muted focus:border-brand focus:outline-none"
-                  />
-                  <Button type="submit" loading={submitting} disabled={submitting}>
-                    {detail.mySubmission ? 'Resubmit' : 'Submit'}
-                  </Button>
-                </form>
-              )}
+                {/* Graded Feedback Callout Box (if reviewed) */}
+                {mySub?.status === 'REVIEWED' && (
+                  <div className="crm-stu-feedback-box">
+                    <div className="crm-stu-feedback-box__header">
+                      <div className="crm-stu-feedback-box__score">
+                        <FiAward />
+                        <div>
+                          <span className="crm-stu-feedback-box__score-val">
+                            {mySub.marks} / {detail.maxMarks ?? 100}
+                          </span>
+                          <span className="crm-stu-feedback-box__score-label">Awarded Score</span>
+                        </div>
+                      </div>
+                      <span className="crm-stu-badge crm-stu-badge--ok">Graded & Reviewed</span>
+                    </div>
 
-              {detail.status === 'CLOSED' && !detail.mySubmission && (
-                <p className="text-sm text-danger">This assignment is closed and no longer accepts submissions.</p>
-              )}
+                    {mySub.feedback && (
+                      <div className="crm-stu-feedback-box__content">
+                        <strong>Faculty Remarks & Feedback:</strong>
+                        <p>{mySub.feedback}</p>
+                      </div>
+                    )}
+
+                    {mySub.reviewedAt && (
+                      <p className="crm-stu-feedback-box__date">
+                        Reviewed on {new Date(mySub.reviewedAt).toLocaleString('en-IN')} by Instructor
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Previous Submission Snapshot */}
+                {mySub && (
+                  <div className="crm-stu-sub-snapshot">
+                    <div className="crm-stu-sub-snapshot__head">
+                      <span className="crm-stu-sub-snapshot__title">
+                        <FiCheckCircle className="text-emerald-500" /> Your Current Submission
+                      </span>
+                      <span className="text-xs text-muted">
+                        {mySub.submittedAt
+                          ? `Delivered on ${new Date(mySub.submittedAt).toLocaleString('en-IN')}`
+                          : 'Submitted'}
+                      </span>
+                    </div>
+                    {mySub.content && (
+                      <div className="crm-stu-sub-snapshot__text">
+                        <p>{mySub.content}</p>
+                      </div>
+                    )}
+                    {mySub.fileUrl && (
+                      <div className="crm-stu-sub-snapshot__file">
+                        <FiExternalLink />
+                        <a href={mySub.fileUrl} target="_blank" rel="noopener noreferrer">
+                          {mySub.fileUrl}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Submission Form */}
+                {canSubmit && (
+                  <form onSubmit={handleSubmit} className="crm-stu-submission-form">
+                    <h4 className="crm-stu-section-title">
+                      {mySub ? 'Update Your Solution' : 'Submit Your Solution'}
+                    </h4>
+
+                    <div className="crm-stu-form-group">
+                      <label className="crm-stu-form-label">
+                        Written Response / Essay / Answers:
+                      </label>
+                      <textarea
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        rows={5}
+                        placeholder="Type your essay or assignment response here…"
+                        className="crm-stu-textarea"
+                      />
+                    </div>
+
+                    <div className="crm-stu-form-group">
+                      <label className="crm-stu-form-label">
+                        Document / Google Drive Link (Optional):
+                      </label>
+                      <div className="crm-stu-input-wrap">
+                        <FiUploadCloud className="crm-stu-input-icon" />
+                        <input
+                          type="url"
+                          value={fileUrl}
+                          onChange={(e) => setFileUrl(e.target.value)}
+                          placeholder="https://drive.google.com/... or cloud document link"
+                          className="crm-stu-text-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="crm-stu-form-actions">
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        icon={FiSend}
+                        loading={submitting}
+                        disabled={submitting}
+                      >
+                        {mySub ? 'Update & Resubmit Work' : 'Submit Assignment'}
+                      </Button>
+                      <span className="text-xs text-muted">
+                        Your faculty will be notified immediately upon submission.
+                      </span>
+                    </div>
+                  </form>
+                )}
+
+                {detail.status === 'CLOSED' && !mySub && (
+                  <div className="crm-stu-closed-notice">
+                    <FiAlertCircle />
+                    <p>This assignment has reached its deadline and is closed for new submissions.</p>
+                  </div>
+                )}
+              </div>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </PortalPage>

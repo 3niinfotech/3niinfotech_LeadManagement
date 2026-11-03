@@ -213,27 +213,10 @@ export default function CalendarPage() {
   const empty = !loading && !error && events.length === 0;
   const filteredEmpty = empty && (filters.search || filters.status || filters.assignedTo || activeFilterCount > 0);
 
-  const subtitle = useMemo(() => {
-    if (summary?.overdue) return `${summary.overdue} overdue · ${summary.today || 0} today`;
-    return 'Follow-ups, appointments & due dates in one place';
-  }, [summary]);
-
   return (
     <>
       <ModulePageCard
-        title="Calendar"
-        subtitle={subtitle}
-        icon={FiCalendar}
-        iconColor="primary"
-        breadcrumbs={[
-          {
-            label: 'Dashboard',
-            path: roleSlug === 'student_portal'
-              ? ROUTES.STUDENT_DASHBOARD
-              : roleSlug === 'partner' ? ROUTES.AGENT_DASHBOARD : ROUTES.DASHBOARD,
-          },
-          { label: 'Calendar' },
-        ]}
+        hideHeader
       >
         <ModulePageCard.Stats
           items={statItems}

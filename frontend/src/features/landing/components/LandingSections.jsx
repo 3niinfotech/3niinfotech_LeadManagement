@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { apiPost } from '../../../api/apiClient';
+import toastService from '../../../services/toast/toast.service';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ReactCountryFlag from 'react-country-flag';
@@ -21,6 +24,11 @@ import {
   FiUserCheck,
   FiUserPlus,
   FiUsers,
+  FiSend,
+  FiMapPin,
+  FiPhone,
+  FiMail,
+  FiClock,
 } from 'react-icons/fi';
 import {
   LANDING_ANALYTICS_METRICS,
@@ -105,7 +113,7 @@ export function LandingStudentPortal() {
               <span className="landing-eyebrow">Student portal</span>
               <h2 id="student-portal-title" className="landing-h2">Your Study Abroad Journey, One Login Away</h2>
               <p className="landing-lead">
-                New student? Create your account in minutes. Already registered? Sign in to access applications, classes, fees and documents.
+                Sign in to access applications, batch timetable, course documents, and visa milestones. Prospective students can submit an enquiry below.
               </p>
               <ul className="landing-student-portal__list">
                 {benefits.map((item) => (
@@ -117,10 +125,10 @@ export function LandingStudentPortal() {
                   Student Login
                   <FiArrowRight size={15} />
                 </Link>
-                <Link to={ROUTES.REGISTER_STUDENT} className="landing-btn landing-btn--student">
-                  <FiUserPlus size={15} />
-                  Register as Student
-                </Link>
+                <a href="#contact" className="landing-btn landing-btn--student">
+                  <FiSend size={15} />
+                  Enquire for Admission
+                </a>
               </div>
             </div>
             <div className="landing-student-portal__visual" aria-hidden>
@@ -463,6 +471,281 @@ export function LandingDestinations() {
               <span>{d.name}</span>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+export function LandingContactSection() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    mobile: '',
+    interestedCountry: 'Canada',
+    interestedCourse: '',
+    city: '',
+    message: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [refCode, setRefCode] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.email.trim() || !formData.mobile.trim()) {
+      toastService.error('Please enter your name, email, and mobile number.');
+      return;
+    }
+    if (formData.mobile.trim().length < 10) {
+      toastService.error('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await apiPost('/enquiries/public/contact', formData);
+      toastService.success(res?.message || 'Thank you! Your enquiry has been received.');
+      setRefCode(res?.data?.enquiryCode || '');
+      setSubmitted(true);
+    } catch (err) {
+      toastService.error(err?.response?.data?.message || 'Failed to submit enquiry. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section id="contact" className="landing-section landing-section--soft" aria-labelledby="contact-title">
+      <div className="landing-container">
+        <Reveal>
+          <span className="landing-eyebrow">Free Consultation &amp; Enquiry</span>
+          <h2 id="contact-title" className="landing-h2">Get in Touch with Our Education Experts</h2>
+          <p className="landing-lead">
+            Have questions about university admissions, course eligibility, fees, or visa processing? Submit your enquiry below and our certified advisors will guide you step by step.
+          </p>
+        </Reveal>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mt-8">
+          {/* Left Column: Interactive Enquiry Form */}
+          <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+            {submitted ? (
+              <div className="text-center py-8">
+                <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl font-bold mb-4">
+                  ✓
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Enquiry Received!</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 max-w-md mx-auto">
+                  Thank you, <strong>{formData.name}</strong>. Your enquiry has been successfully registered in our CRM pipeline.
+                </p>
+                {refCode && (
+                  <div className="inline-block bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-lg text-xs font-mono font-bold text-primary mt-4">
+                    Reference ID: {refCode}
+                  </div>
+                )}
+                <p className="text-xs text-slate-500 mt-3">
+                  Our counsellor will call or WhatsApp you on <strong>{formData.mobile}</strong> within 24 hours.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubmitted(false);
+                    setFormData({ name: '', email: '', mobile: '', interestedCountry: 'Canada', interestedCourse: '', city: '', message: '' });
+                  }}
+                  className="landing-btn landing-btn--primary mt-6"
+                >
+                  Submit Another Enquiry
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Aarav Patel"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Mobile Number *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="10-digit mobile number"
+                      value={formData.mobile}
+                      onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="student@example.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Preferred Country *
+                    </label>
+                    <select
+                      value={formData.interestedCountry}
+                      onChange={(e) => setFormData({ ...formData, interestedCountry: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                    >
+                      <option value="Canada">Canada</option>
+                      <option value="United Kingdom">United Kingdom (UK)</option>
+                      <option value="Australia">Australia</option>
+                      <option value="United States">United States (USA)</option>
+                      <option value="Germany">Germany</option>
+                      <option value="Ireland">Ireland</option>
+                      <option value="New Zealand">New Zealand</option>
+                      <option value="Other">Other Country</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Interested Course / Field
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Master's in CS / IELTS Coaching"
+                      value={formData.interestedCourse}
+                      onChange={(e) => setFormData({ ...formData, interestedCourse: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      City / Nearest Branch
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Surat / Ahmedabad"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Your Questions / Note (Optional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Tell us about your educational background, IELTS band score, or queries…"
+                    value={formData.message}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition resize-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="landing-btn landing-btn--primary w-full justify-center mt-2"
+                >
+                  <FiSend size={15} />
+                  {loading ? 'Submitting Enquiry…' : 'Submit Free Enquiry'}
+                </button>
+                <p className="text-[11px] text-slate-500 text-center mt-1">
+                  🔒 Your contact information is kept strictly confidential and only used for your study abroad guidance.
+                </p>
+              </form>
+            )}
+          </div>
+
+          {/* Right Column: Direct Contact & Careers Hub */}
+          <div className="lg:col-span-5 flex flex-col gap-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Official Contact Desks</h3>
+              <div className="flex flex-col gap-3.5 text-sm text-slate-600 dark:text-slate-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <FiMapPin size={16} />
+                  </div>
+                  <div>
+                    <strong className="block text-slate-900 dark:text-white text-xs font-bold uppercase tracking-wider">Head Office</strong>
+                    <span>A/120, Tirupati Society, Near Balaji Bungalows, Savaliya Circle, Yogi Chowk, Surat, Gujarat 395010</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <FiPhone size={16} />
+                  </div>
+                  <div>
+                    <strong className="block text-slate-900 dark:text-white text-xs font-bold uppercase tracking-wider">Direct Counselling Phone</strong>
+                    <a href="tel:+919825011111" className="hover:text-primary transition font-semibold">+91 98250 11111</a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <FiMail size={16} />
+                  </div>
+                  <div>
+                    <strong className="block text-slate-900 dark:text-white text-xs font-bold uppercase tracking-wider">Email Assistance</strong>
+                    <a href="mailto:support@3niinfotech.com" className="hover:text-primary transition font-semibold">support@3niinfotech.com</a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <FiClock size={16} />
+                  </div>
+                  <div>
+                    <strong className="block text-slate-900 dark:text-white text-xs font-bold uppercase tracking-wider">Office Hours</strong>
+                    <span>Monday – Saturday: 9:30 AM to 6:30 PM (IST)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Careers & Join Our Team Callout */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-6 shadow-sm border border-slate-700/60">
+              <span className="inline-block bg-primary/20 text-primary-light text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2">
+                We're Hiring
+              </span>
+              <h3 className="text-base font-bold text-white">Join Our Team (Careers)</h3>
+              <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                Passionate about education and visa consulting? Explore openings for counsellors, IELTS trainers, visa filing officers, and branch managers.
+              </p>
+              <Link
+                to="/apply"
+                className="inline-flex items-center gap-1.5 mt-4 text-xs font-bold text-blue-400 hover:text-blue-300 transition"
+              >
+                View Careers &amp; Apply Online <FiArrowRight size={13} />
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </section>

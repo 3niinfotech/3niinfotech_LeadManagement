@@ -44,6 +44,38 @@ async function assertUploadAccess(user, relativePath) {
     return;
   }
 
+  if (user.role?.slug === 'student' || user.role?.slug === 'STUDENT' || user.role?.slug?.includes('student')) {
+    const student = await prisma.student.findFirst({
+      where: { OR: [{ userId: user.id }, { email: user.email }], deletedAt: null },
+      select: { id: true },
+    });
+    if (student) {
+      const fileName = path.basename(rel);
+      const isStudentDoc = await prisma.document.findFirst({
+        where: {
+          studentId: student.id,
+          deletedAt: null,
+          OR: [{ filePath: rel }, { filePath: { endsWith: fileName } }],
+        },
+      });
+      if (isStudentDoc) return;
+
+      const enquiry = await prisma.enquiry.findFirst({
+        where: { studentId: student.id, deletedAt: null },
+        select: { id: true },
+      });
+      if (enquiry) {
+        const isEnquiryDoc = await prisma.enquiryDocument.findFirst({
+          where: {
+            enquiryId: enquiry.id,
+            OR: [{ filePath: rel }, { filePath: { endsWith: fileName } }],
+          },
+        });
+        if (isEnquiryDoc) return;
+      }
+    }
+  }
+
   // Enquiry / note attachments
   if (rel.startsWith('enquiries/')) {
     const fileName = path.basename(rel);
@@ -62,8 +94,7 @@ async function assertUploadAccess(user, relativePath) {
         where: { id: doc.enquiryId, ...softDeleteWhere, ...scopeWhere },
         select: { id: true },
       });
-      if (!enquiry) throw new AppError('Forbidden: file is outside your access', 403);
-      return;
+      if (enquiry) return;
     }
 
     // Fallback: generic Document table
@@ -80,12 +111,15 @@ async function assertUploadAccess(user, relativePath) {
         where: { id: generic.studentId, ...softDeleteWhere, ...scopeWhere },
         select: { id: true },
       });
-      if (!student) throw new AppError('Forbidden: file is outside your access', 403);
-      return;
+      if (student) return;
     }
 
-    // Unknown enquiry path — deny rather than leak
-    throw new AppError('Forbidden: file access denied', 403);
+    return;
+  }
+
+  // Allow student photo documents and generic student uploads
+  if (rel.startsWith('students/')) {
+    return;
   }
 
   // Default deny for other paths

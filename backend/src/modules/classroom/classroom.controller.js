@@ -23,12 +23,20 @@ export const getAssignment = asyncHandler(async (req, res) => {
 });
 
 export const createAssignment = asyncHandler(async (req, res) => {
-  const body = createAssignmentSchema.parse(req.body);
+  let data = { ...req.body };
+  if (req.file) {
+    data.attachmentUrl = `/uploads/students/${req.file.filename}`;
+  }
+  const body = createAssignmentSchema.parse(data);
   sendSuccess(res, await classroomService.createAssignment(body, req.user), 'Assignment created', 201);
 });
 
 export const updateAssignment = asyncHandler(async (req, res) => {
-  const body = updateAssignmentSchema.parse(req.body);
+  let data = { ...req.body };
+  if (req.file) {
+    data.attachmentUrl = `/uploads/students/${req.file.filename}`;
+  }
+  const body = updateAssignmentSchema.parse(data);
   sendSuccess(res, await classroomService.updateAssignment(req.params.id, body, req.user), 'Assignment updated');
 });
 
@@ -37,7 +45,11 @@ export const deleteAssignment = asyncHandler(async (req, res) => {
 });
 
 export const submitAssignment = asyncHandler(async (req, res) => {
-  const body = submitAssignmentSchema.parse(req.body);
+  let data = { ...req.body };
+  if (req.file) {
+    data.fileUrl = `/uploads/students/${req.file.filename}`;
+  }
+  const body = submitAssignmentSchema.parse(data);
   sendSuccess(res, await classroomService.submitAssignment(req.params.id, body, req.user), 'Submitted');
 });
 
@@ -88,12 +100,20 @@ export const getMaterial = asyncHandler(async (req, res) => {
 });
 
 export const createMaterial = asyncHandler(async (req, res) => {
-  const body = createMaterialSchema.parse(req.body);
+  let data = { ...req.body };
+  if (req.file) {
+    data.fileUrl = `/uploads/students/${req.file.filename}`;
+  }
+  const body = createMaterialSchema.parse(data);
   sendSuccess(res, await classroomService.createMaterial(body, req.user), 'Material created', 201);
 });
 
 export const updateMaterial = asyncHandler(async (req, res) => {
-  const body = updateMaterialSchema.parse(req.body);
+  let data = { ...req.body };
+  if (req.file) {
+    data.fileUrl = `/uploads/students/${req.file.filename}`;
+  }
+  const body = updateMaterialSchema.parse(data);
   sendSuccess(res, await classroomService.updateMaterial(req.params.id, body, req.user), 'Material updated');
 });
 

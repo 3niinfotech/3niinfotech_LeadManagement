@@ -2,15 +2,23 @@
  * Enterprise CRM modal theme — shared by all dialogs (enquiry, import, student, etc.)
  */
 .crm-modal-backdrop {
-  background: var(--overlay);
-  backdrop-filter: blur(8px);
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(15, 23, 42, 0.72) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  z-index: 0 !important;
 }
 
 .crm-modal-panel {
+  position: relative !important;
+  z-index: 10 !important;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 1.25rem;
-  box-shadow: var(--shadow-loader-card);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35) !important;
 }
 
 .crm-modal-header {

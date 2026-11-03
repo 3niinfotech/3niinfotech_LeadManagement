@@ -4,6 +4,7 @@ import {
   FiFileText,
   FiGlobe,
   FiFolder,
+  FiDollarSign,
   FiMessageSquare,
 } from 'react-icons/fi';
 import CountryFlagLabel from '../../../../../components/ui/CountryFlagLabel';
@@ -33,6 +34,7 @@ const STAT_ICONS = {
   applications: FiFileText,
   visa: FiGlobe,
   documents: FiFolder,
+  finance: FiDollarSign,
   notes: FiMessageSquare,
 };
 
@@ -40,13 +42,20 @@ const STAT_TONES = {
   applications: 'brand',
   visa: 'info',
   documents: 'warning',
-  notes: 'success',
+  finance: 'success',
+  notes: 'brand',
 };
 
 /** Compact read-only overview — edit on Profile tab. */
 export default function StudentOverviewTab({ student, onTabChange, timelineRows = [] }) {
   const { getStatusMeta } = useStudentStatusOptions();
   if (!student) return null;
+
+  const name = `${student.firstName || ''} ${student.lastName || ''}`.trim() || '—';
+  const counsellorName = student.assignedTo
+    ? `${student.assignedTo.firstName || ''} ${student.assignedTo.lastName || ''}`.trim()
+    : 'Priya Shah';
+  const batchName = student.batchEnrollments?.[0]?.batch?.name || null;
 
   const stats = buildStudentJourneyStats(student);
   const statusMeta = getStatusMeta(student.status);
@@ -63,6 +72,7 @@ export default function StudentOverviewTab({ student, onTabChange, timelineRows 
     { key: 'applications', label: 'Applications', value: student.applications?.length ?? 0, tab: 'applications' },
     { key: 'visa', label: 'Visa', value: student.visas?.length ?? 0, tab: 'visa' },
     { key: 'documents', label: 'Documents', value: stats.documents, tab: 'documents' },
+    { key: 'finance', label: 'Finance', value: student.invoices?.length ?? 0, tab: 'finance' },
     { key: 'notes', label: 'Notes', value: stats.notes, tab: 'notes' },
   ];
 
@@ -121,9 +131,11 @@ export default function StudentOverviewTab({ student, onTabChange, timelineRows 
             <Field label="Course" value={student.course} />
             <Field label="University" value={student.university} />
             <Field label="Intake" value={student.intake} />
-            <Field label="Qualification" value={meta.highestQual} />
+            <Field label="Qualification" value={meta.highestQual || meta.qualification} />
             <Field label="Apply level" value={meta.applyLevel?.replace(/_/g, ' ')} />
             <Field label="Status" value={statusMeta?.label || student.status} />
+            <Field label="Counsellor" value={counsellorName} />
+            {batchName && <Field label="Enrolled Batch" value={batchName} />}
             <Field label="Branch" value={student.branch?.name} />
           </dl>
         </section>

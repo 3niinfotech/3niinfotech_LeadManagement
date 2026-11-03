@@ -1,3 +1,7 @@
+import { z } from 'zod';
+import prisma from '../../config/database.js';
+import { AppError } from '../../utils/response.util.js';
+import { enquiryRepository } from './enquiry.repository.js';
 import { asyncHandler, sendSuccess, sendPaginated, parsePagination } from '../../utils/response.util.js';
 import { enquiryService } from './enquiry.service.js';
 import { enquiryConversionService } from './enquiryConversion.service.js';
@@ -318,4 +322,111 @@ export const convertToStudent = asyncHandler(async (req, res) => {
 
 export const conversionPreview = asyncHandler(async (req, res) => {
   sendSuccess(res, await enquiryConversionService.getConversionPreview(req.params.id, req.user));
+});
+
+export const submitPublicEnquiry = asyncHandler(async (req, res) => {
+  const schema = z.object({
+    name: z.string().min(1, 'Please enter your name').max(150),
+    email: z.string().email('Please enter a valid email address'),
+    mobile: z.string().min(10, 'Please enter a valid 10-digit mobile number').max(20),
+    interestedCountry: z.string().max(100).optional().nullable(),
+    interestedCourse: z.string().max(100).optional().nullable(),
+    city: z.string().max(100).optional().nullable(),
+    message: z.string().max(3000).optional().nullable(),
+    companyCode: z.string().optional().default('MAIN'),
+  });
+
+  const data = schema.parse(req.body);
+
+  // Resolve company
+  const company = (await prisma.company.findFirst({
+    where: { code: data.companyCode || 'MAIN', deletedAt: null },
+  })) || (await prisma.company.findFirst({ where: { deletedAt: null } }));
+
+  if (!company) throw new AppError('Organization context not found', 404);
+
+  // Resolve default branch
+  const branch = (await prisma.branch.findFirst({
+    where: { companyId: company.id, deletedAt: null, isActive: true },
+    orderBy: { createdAt: 'asc' },
+  })) || (await prisma.branch.findFirst({ where: { deletedAt: null } }));
+
+  if (!branch) throw new AppError('Active branch not found', 404);
+
+  const parts = data.name.trim().split(/\s+/);
+  const firstName = parts[0] || data.name.trim();
+  const lastName = parts.slice(1).join(' ') || '';
+
+  // Check if enquiry already exists with this email
+  let existing = await prisma.enquiry.findFirst({
+    where: {
+      email: data.email.toLowerCase().trim(),
+      deletedAt: null,
+    },
+  });
+
+  if (existing) {
+    const updated = await prisma.enquiry.update({
+      where: { id: existing.id },
+      data: {
+        mobile: data.mobile || existing.mobile,
+        interestedCountry: data.interestedCountry || existing.interestedCountry,
+        interestedCourse: data.interestedCourse || existing.interestedCourse,
+        remark: existing.remark
+          ? `${existing.remark}\n[Website Contact]: ${data.message || 'Follow-up requested from website contact form.'}`
+          : `[Website Contact]: ${data.message || 'Follow-up requested from website contact form.'}`,
+      },
+    });
+
+    await prisma.activity.create({
+      data: {
+        action: 'CONTACT_SUBMIT',
+        description: `Repeat website enquiry received from ${data.name} (${existing.enquiryCode})`,
+        metadata: { enquiryId: existing.id, email: data.email },
+      },
+    });
+
+    return sendSuccess(
+      res,
+      { enquiryCode: existing.enquiryCode },
+      'Thank you! Your enquiry has been received. Our counsellors will contact you shortly.',
+    );
+  }
+
+  // Create new enquiry
+  const enquiryCode = await enquiryRepository.generateCode(company.id);
+
+  const enquiry = await prisma.enquiry.create({
+    data: {
+      enquiryCode,
+      branchId: branch.id,
+      firstName,
+      lastName,
+      email: data.email.toLowerCase().trim(),
+      mobile: data.mobile.trim(),
+      interestedCountry: data.interestedCountry || null,
+      interestedCourse: data.interestedCourse || null,
+      source: 'Website Contact Form',
+      status: 'NEW',
+      priority: 'HIGH',
+      remark: data.message
+        ? `Website message: ${data.message}${data.city ? ` (City: ${data.city})` : ''}`
+        : `Website enquiry submitted${data.city ? ` (City: ${data.city})` : ''}`,
+    },
+  });
+
+  await prisma.activity.create({
+    data: {
+      action: 'CONTACT_SUBMIT',
+      description: `New website contact form enquiry created (${enquiryCode}) for ${data.name}`,
+      metadata: { enquiryId: enquiry.id, email: data.email, course: data.interestedCourse },
+    },
+  });
+
+  return sendSuccess(
+    res,
+    { enquiryCode },
+    'Thank you! Your enquiry has been received. Our certified counsellors will get in touch with you shortly.',
+    201,
+  );
 });

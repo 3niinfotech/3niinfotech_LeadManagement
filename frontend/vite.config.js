@@ -32,9 +32,9 @@ export default defineConfig({
     ],
   },
   server: {
-    host: true, // 0.0.0.0 — reachable as http://<LAN-IP>:3000
+    host: '0.0.0.0', // IPv4 (detects busy port on Windows instead of dual-stack :: bypass)
     port: 3000,
-    strictPort: true,
+    strictPort: false,
     proxy: {
       '/api': {
         target: backendTarget,

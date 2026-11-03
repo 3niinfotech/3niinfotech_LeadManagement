@@ -2,9 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
+  FiAlertCircle,
   FiArrowUpRight,
   FiCalendar,
+  FiCheck,
+  FiCheckSquare,
   FiClock,
+  FiFilter,
   FiRefreshCw,
   FiUser,
 } from 'react-icons/fi';
@@ -24,9 +28,6 @@ import {
   resolveTaskIconWrap,
   resolveTaskTypeMeta,
   snoozeToTomorrowIso,
-  FiCheck,
-  FiCheckSquare,
-  FiClock as FiClockIcon,
 } from '../../../features/tasks/utils/task.utils';
 import './tasks.theme.css';
 
@@ -113,39 +114,59 @@ export default function TaskPanel({ onClose }) {
   };
 
   return (
-    <div>
+    <div className="crm-task-panel">
+      {/* Hero Metric Header */}
       <div className="crm-task-panel__hero">
-        <p className="crm-task-panel__hero-title">
-          <strong className="text-text">{pendingCount}</strong>
-          {' '}
-          action items need attention
-        </p>
+        <div className="crm-task-panel__hero-head">
+          <div className="flex items-center gap-2">
+            <span className="crm-task-pulse-dot" />
+            <p className="crm-task-panel__hero-title">
+              <strong>{pendingCount}</strong> action items need attention
+            </p>
+          </div>
+          {scopeHint && (
+            <span className="crm-task-panel__scope">
+              <FiUser className="w-3 h-3 text-brand" />
+              {scopeHint}
+            </span>
+          )}
+        </div>
+
         <div className="crm-task-panel__metrics">
-          {(['overdue', 'today', 'upcoming']).map((key) => {
+          {[
+            { key: 'overdue', icon: FiAlertCircle, tone: 'danger' },
+            { key: 'today', icon: FiClock, tone: 'warning' },
+            { key: 'upcoming', icon: FiCalendar, tone: 'brand' },
+          ].map(({ key, icon: Icon, tone }) => {
             const meta = TASK_BUCKETS[key];
             const value = key === 'overdue'
               ? counts.overdue || 0
               : key === 'today'
                 ? counts.dueToday || 0
                 : counts.upcoming || 0;
+            const isActive = bucket === key;
             return (
               <button
                 key={key}
                 type="button"
-                className={`crm-task-metric crm-task-metric--${meta.tone} ${bucket === key ? 'crm-task-metric--active' : ''}`}
+                className={`crm-task-metric crm-task-metric--${tone} ${isActive ? 'crm-task-metric--active' : ''}`}
                 onClick={() => {
                   setBucket(key);
                   setTypeFilter('all');
                 }}
               >
-                <p className="crm-task-metric__value">{value}</p>
-                <p className="crm-task-metric__label">{meta.label}</p>
+                <div className="crm-task-metric__top">
+                  <span className="crm-task-metric__value">{value}</span>
+                  <Icon className="w-3.5 h-3.5 crm-task-metric__icon" />
+                </div>
+                <span className="crm-task-metric__label">{meta.label}</span>
               </button>
             );
           })}
         </div>
       </div>
 
+      {/* Filter Chips Toolbar */}
       <div className="crm-task-panel__toolbar">
         <div className="crm-task-panel__types">
           {typeOptions.map((type) => (
@@ -159,27 +180,25 @@ export default function TaskPanel({ onClose }) {
             </button>
           ))}
         </div>
-        {scopeHint && (
-          <span className="crm-task-panel__scope">
-            <FiUser className="w-3 h-3" />
-            {scopeHint}
-          </span>
-        )}
       </div>
 
+      {/* Task List */}
       <div className="crm-task-panel__list">
         {loading && !buckets.all.length ? (
-          <p className="py-10 text-center text-sm text-text-muted">Loading tasks…</p>
+          <div className="py-12 text-center text-sm text-text-muted">
+            <FiRefreshCw className="w-5 h-5 mx-auto mb-2 animate-spin text-brand" />
+            Loading live tasks…
+          </div>
         ) : tasks.length === 0 ? (
           <div className="crm-task-empty">
             <div className="crm-task-empty__icon">
               <FiCheckSquare className="w-6 h-6" />
             </div>
-            <p className="text-sm font-semibold text-text">
-              {bucket === 'overdue' ? 'No overdue tasks' : bucket === 'today' ? 'Nothing due today' : 'No upcoming tasks'}
+            <p className="crm-task-empty__title">
+              {bucket === 'overdue' ? 'No overdue tasks' : bucket === 'today' ? 'All caught up today!' : 'No upcoming tasks'}
             </p>
-            <p className="text-[12px] text-text-muted mt-1 leading-relaxed px-4">
-              Follow-ups, demos, classes and dues from your live calendar feed appear here.
+            <p className="crm-task-empty__subtitle">
+              Follow-ups, demos, batch schedules and reminders will appear here automatically.
             </p>
           </div>
         ) : (
@@ -196,12 +215,14 @@ export default function TaskPanel({ onClose }) {
         )}
       </div>
 
+      {/* Footer Quick Actions */}
       <div className="crm-task-panel__footer">
         <button
           type="button"
           className="crm-task-panel__footer-btn"
           onClick={reload}
           disabled={loading}
+          title="Reload tasks"
         >
           <FiRefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           Refresh
@@ -212,7 +233,7 @@ export default function TaskPanel({ onClose }) {
           className="crm-task-panel__footer-btn crm-task-panel__footer-btn--brand"
         >
           <FiCalendar className="w-3.5 h-3.5" />
-          Open calendar
+          Open Calendar
           <FiArrowUpRight className="w-3 h-3 opacity-70" />
         </Link>
       </div>
@@ -223,6 +244,7 @@ export default function TaskPanel({ onClose }) {
 function TaskCard({ task, busy, onClose, onComplete, onSnooze }) {
   const typeMeta = resolveTaskTypeMeta(task.type);
   const Icon = typeMeta.Icon;
+
   const cardClass = task.bucket === 'overdue'
     ? 'crm-task-card--overdue'
     : task.bucket === 'today'
@@ -235,85 +257,103 @@ function TaskCard({ task, busy, onClose, onComplete, onSnooze }) {
       ? 'crm-task-card__status--today'
       : 'crm-task-card__status--upcoming';
 
-  const inner = (
-    <>
+  const hasExtraActions = task.canComplete || task.canReschedule;
+
+  return (
+    <article className={`crm-task-card ${cardClass}`}>
       <div className="crm-task-card__main">
+        {/* Type Icon Badge */}
         <span className={`crm-task-card__icon ${resolveTaskIconWrap(typeMeta.tone)}`}>
           <Icon className="w-4 h-4" />
         </span>
+
+        {/* Content Body */}
         <div className="crm-task-card__body">
           <div className="crm-task-card__head">
-            <p className="crm-task-card__title">{task.title}</p>
-            <span className={`crm-task-card__status ${statusClass}`}>
-              {task.statusLabel}
-            </span>
+            {task.link ? (
+              <Link
+                to={task.link}
+                onClick={() => onClose?.()}
+                className="crm-task-card__title crm-task-card__title--link"
+                title={task.title}
+              >
+                {task.title}
+              </Link>
+            ) : (
+              <p className="crm-task-card__title" title={task.title}>
+                {task.title}
+              </p>
+            )}
+
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className={`crm-task-card__status ${statusClass}`}>
+                {task.statusLabel}
+              </span>
+              {task.link && (
+                <Link
+                  to={task.link}
+                  onClick={() => onClose?.()}
+                  className="crm-task-inline-open"
+                  title="Open details"
+                >
+                  <FiArrowUpRight className="w-3.5 h-3.5" />
+                </Link>
+              )}
+            </div>
           </div>
 
+          {/* Metadata Pills */}
           <div className="crm-task-card__meta">
             <span className={`crm-task-pill ${task.isHigh ? 'crm-task-pill--high' : 'crm-task-pill--medium'}`}>
               {task.priorityLabel}
             </span>
             <span className="crm-task-pill">
-              <FiClockIcon className="w-3 h-3" />
+              <FiClock className="w-3 h-3 text-muted-foreground" />
               {task.dueLabel}
             </span>
             <span className="crm-task-pill">
-              <FiUser className="w-3 h-3" />
+              <FiUser className="w-3 h-3 text-muted-foreground" />
               {task.assignedTo}
             </span>
-            <span className="crm-task-pill">{typeMeta.chip}</span>
+            <span className="crm-task-pill crm-task-pill--type">
+              {typeMeta.chip}
+            </span>
           </div>
 
+          {/* Description */}
           {task.description && (
             <p className="crm-task-card__desc">{task.description}</p>
           )}
+
+          {/* Actions: only render when actionable buttons exist */}
+          {hasExtraActions && (
+            <div className="crm-task-card__actions">
+              {task.canComplete && (
+                <button
+                  type="button"
+                  className="crm-task-action crm-task-action--success"
+                  disabled={busy}
+                  onClick={(e) => onComplete(task, e)}
+                >
+                  <FiCheck className="w-3 h-3" />
+                  Mark Done
+                </button>
+              )}
+              {task.canReschedule && (
+                <button
+                  type="button"
+                  className="crm-task-action crm-task-action--snooze"
+                  disabled={busy}
+                  onClick={(e) => onSnooze(task, e)}
+                >
+                  <FiClock className="w-3 h-3" />
+                  Snooze
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
-
-      <div className="crm-task-card__actions">
-        {task.canComplete && (
-          <button
-            type="button"
-            className="crm-task-action crm-task-action--success"
-            disabled={busy}
-            onClick={(e) => onComplete(task, e)}
-          >
-            <FiCheck className="w-3.5 h-3.5" />
-            Done
-          </button>
-        )}
-        {task.canReschedule && (
-          <button
-            type="button"
-            className="crm-task-action crm-task-action--primary"
-            disabled={busy}
-            onClick={(e) => onSnooze(task, e)}
-          >
-            <FiClock className="w-3.5 h-3.5" />
-            Snooze
-          </button>
-        )}
-        {task.link ? (
-          <Link
-            to={task.link}
-            onClick={() => onClose?.()}
-            className="crm-task-action"
-          >
-            Open
-            <FiArrowUpRight className="w-3 h-3" />
-          </Link>
-        ) : (
-          <button type="button" className="crm-task-action" disabled>
-            Open
-          </button>
-        )}
-      </div>
-    </>
-  );
-
-  return (
-    <article className={`crm-task-card ${cardClass}`}>
-      {inner}
     </article>
   );
 }

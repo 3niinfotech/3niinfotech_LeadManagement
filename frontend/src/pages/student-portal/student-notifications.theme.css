@@ -1,0 +1,199 @@
+/* =========================================================
+   Ultra-Modern Notifications & Activity Feed Theme
+   Consistent with Global CRM Design System
+   ========================================================= */
+
+.crm-notif-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem 1.75rem;
+  width: 100%;
+  background: var(--bg-page, #f8fafc);
+}
+
+/* ── Hero Banner ── */
+.crm-notif-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, var(--surface, #ffffff) 0%, var(--surface-2, #f8fafc) 100%);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.crm-notif-hero__left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.crm-notif-hero__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.crm-notif-hero__copy h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text, #0f172a);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.crm-notif-hero__copy p {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  line-height: 1.35;
+}
+
+.crm-notif-hero__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ── Search & Filter Bar ── */
+.crm-notif-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+}
+
+.crm-notif-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  background: var(--surface-2, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  width: 100%;
+  max-width: 320px;
+}
+
+.crm-notif-search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.8125rem;
+  color: var(--text, #0f172a);
+  width: 100%;
+}
+
+.crm-notif-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: none;
+}
+
+.crm-notif-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.crm-notif-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  background: var(--surface-2, #f1f5f9);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.crm-notif-pill:hover {
+  background: #e2e8f0;
+  color: var(--text, #0f172a);
+}
+
+.crm-notif-pill.is-active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+}
+
+.crm-notif-pill__badge {
+  font-size: 0.7rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+.crm-notif-pill.is-active .crm-notif-pill__badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* ── Notification Feed Item ── */
+.crm-notif-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.85rem 1.15rem;
+  background: var(--surface, #ffffff);
+  border-left: 3.5px solid transparent;
+  text-decoration: none;
+  transition: background-color 0.12s ease;
+  outline: none;
+}
+
+.crm-notif-card:hover {
+  background: var(--surface-2, #f8fafc);
+}
+
+.crm-notif-card.is-unread {
+  background: #eff6ff;
+  border-left-color: #2563eb;
+}
+
+.crm-notif-card.is-unread:hover {
+  background: #e0f2fe;
+}
+
+.crm-notif-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2563eb;
+  flex-shrink: 0;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+

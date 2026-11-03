@@ -39,8 +39,10 @@ export default function Modal({
     if (!open) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('crm-modal-open');
     return () => {
       document.body.style.overflow = prev;
+      document.body.classList.remove('crm-modal-open');
     };
   }, [open]);
 
@@ -49,7 +51,7 @@ export default function Modal({
   const content = (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[1250] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
           <motion.button
             type="button"
             aria-label="Close dialog"
@@ -57,7 +59,7 @@ export default function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="crm-modal-backdrop absolute inset-0 border-0 cursor-default"
+            className="crm-modal-backdrop fixed inset-0 border-0 cursor-default"
             onClick={onClose}
           />
           <motion.div

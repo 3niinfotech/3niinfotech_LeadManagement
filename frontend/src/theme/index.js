@@ -25,14 +25,14 @@ export const zIndex = {
 };
 
 export const sidebar = {
-  width: '280px',
-  collapsedWidth: '76px',
-  miniWidth: '76px',
-  headerHeight: '64px',
-  toggleTop: '64px',
-  toggleSize: '28px',
-  toggleEdgeOffset: '14px',
-  flyoutGap: 12,
+  width: '236px',
+  collapsedWidth: '68px',
+  miniWidth: '68px',
+  headerHeight: '60px',
+  toggleTop: '60px',
+  toggleSize: '26px',
+  toggleEdgeOffset: '13px',
+  flyoutGap: 10,
   flyoutHideDelay: 180,
 };
 

@@ -1,0 +1,498 @@
+/* =========================================================
+   Ultra-Modern Faculty Classes & Academic Batches Workspace
+   Pixel-Perfect, Spatially Balanced, High-Impact UI
+   ========================================================= */
+
+.crm-tclasses {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.25rem 0.25rem 1.25rem;
+  width: 100%;
+}
+
+/* ── Main Two-Column Faculty Layout (Harmonious Spatial Balance) ── */
+.crm-tclasses-main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .crm-tclasses-main-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+  }
+}
+
+/* ── Left Content: Batch Cards & Filter Controls ── */
+.crm-tclasses-batch-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.crm-tclasses-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  flex-wrap: wrap;
+}
+
+.crm-tclasses-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  background: var(--bg-surface, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  flex: 1;
+  min-width: 200px;
+  max-width: 340px;
+}
+
+.crm-tclasses-search-wrap svg {
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.crm-tclasses-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.8125rem;
+  color: var(--text-primary, #0f172a);
+  width: 100%;
+}
+
+.crm-tclasses-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.crm-tclasses-pill-btn {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.crm-tclasses-pill-btn:hover {
+  background: var(--row-hover, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+}
+
+.crm-tclasses-pill-btn.is-active {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.2);
+  font-weight: 700;
+}
+
+.crm-tclasses-view-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  background: var(--bg-surface, #f1f5f9);
+  border-radius: 6px;
+  padding: 0.125rem;
+}
+
+.crm-tclasses-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+}
+
+.crm-tclasses-view-btn.is-active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Modern Batch Card Grid ── */
+.crm-tclasses-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.crm-tbatch-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.crm-tbatch-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+}
+
+.crm-tbatch-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.08);
+}
+
+.crm-tbatch-card__head {
+  padding: 0.85rem 1rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.crm-tbatch-card__code-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.crm-tbatch-card__code {
+  font-family: monospace;
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: #1e293b;
+  background: #f1f5f9;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.crm-tbatch-card__course-tag {
+  font-size: 0.7rem;
+  font-weight: 750;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: #dbeafe;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.crm-tbatch-card__status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #d1fae5;
+}
+
+.crm-tbatch-card__body {
+  padding: 0 1rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.crm-tbatch-card__title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  color: var(--text-primary, #0f172a);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.crm-tbatch-card__meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.785rem;
+  color: var(--text-secondary, #475569);
+  background: var(--bg-surface, #f8fafc);
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border, #f1f5f9);
+}
+
+.crm-tbatch-card__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.crm-tbatch-card__meta-item svg {
+  color: #2563eb;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* Enrolled Students Stack */
+.crm-tbatch-card__roster-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.crm-tbatch-card__avatars {
+  display: flex;
+  align-items: center;
+}
+
+.crm-tbatch-card__avatar-pill {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-left: -5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+}
+
+.crm-tbatch-card__avatars .crm-tbatch-card__avatar-pill:first-child {
+  margin-left: 0;
+}
+
+.crm-tbatch-card__student-count {
+  font-size: 0.785rem;
+  font-weight: 750;
+  color: var(--text-primary, #0f172a);
+}
+
+.crm-tbatch-card__capacity {
+  font-size: 0.72rem;
+  color: var(--text-muted, #64748b);
+  font-weight: 600;
+}
+
+.crm-tbatch-card__foot {
+  padding: 0.65rem 1rem;
+  background: var(--bg-surface, #f8fafc);
+  border-top: 1px solid var(--border, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* ── Right Column: Today's Teaching Schedule & Faculty Tools ── */
+.crm-tclasses-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.crm-tside-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+}
+
+.crm-tside-card__head {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface, #f8fafc);
+}
+
+.crm-tside-card__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 750;
+  color: var(--text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.crm-tside-card__body {
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.crm-tside-session-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 8px;
+  background: var(--bg-surface, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+}
+
+.crm-tside-session-item__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  font-weight: 750;
+  color: #2563eb;
+}
+
+.crm-tside-session-item__name {
+  font-size: 0.875rem;
+  font-weight: 750;
+  color: var(--text-primary, #0f172a);
+  line-height: 1.25;
+}
+
+.crm-tside-session-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--text-muted, #64748b);
+  flex-wrap: wrap;
+}
+
+/* Quick Faculty Actions — Clean Horizontal Grid */
+.crm-tside-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.crm-tside-tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  background: var(--bg-surface, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  color: var(--text-primary, #1e293b);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 650;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.crm-tside-tool-btn:hover {
+  background: var(--row-hover, #f1f5f9);
+  border-color: var(--border-strong, #cbd5e1);
+  color: #2563eb;
+}
+
+.crm-tside-tool-btn svg {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* Enrolled Student Roster List */
+.crm-tclasses-roster-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.crm-tclasses-roster-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.65rem;
+  background: var(--bg-surface, #f8fafc);
+  border-radius: 6px;
+  border: 1px solid var(--border, #f1f5f9);
+  font-size: 0.785rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.crm-tclasses-roster-item:hover {
+  border-color: var(--border-strong, #cbd5e1);
+  background: var(--row-hover, #f1f5f9);
+}
+
+.crm-tclasses-roster-item__left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.crm-tclasses-roster-item__code {
+  font-family: monospace;
+  font-size: 0.6875rem;
+  color: var(--text-muted, #64748b);
+}
+
+/* Table View */
+.crm-tclasses-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  background: var(--bg-card, #ffffff);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border, #e2e8f0);
+}
+
+.crm-tclasses-table th {
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-surface, #f8fafc);
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  font-size: 0.7rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-muted, #64748b);
+  text-align: left;
+}
+
+.crm-tclasses-table td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--border, #f1f5f9);
+  color: var(--text-primary, #1e293b);
+  vertical-align: middle;
+}
+
+.crm-tclasses-table tbody tr:hover {
+  background: var(--row-hover, #f8fafc);
+}

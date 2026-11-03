@@ -60,6 +60,9 @@ const update = authorize(PERMISSIONS.ENQUIRIES_UPDATE);
 const remove = authorize(PERMISSIONS.ENQUIRIES_DELETE);
 const exportPerm = authorize(PERMISSIONS.ENQUIRIES_EXPORT);
 
+// Public contact / enquiry form
+router.post('/public/contact', enquiryController.submitPublicEnquiry);
+
 router.use(authenticate);
 
 router.get('/summary', view, enquiryController.getSummary);

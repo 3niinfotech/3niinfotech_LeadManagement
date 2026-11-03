@@ -4,7 +4,7 @@ import '../styles/master-form.theme.css';
 
 /**
  * Shared modal shell for master Add/Edit/View forms.
- * Simple masters: compact modal. Complex: structured scrollable form modal.
+ * Auto-sizes cleanly to content; never forces empty void space.
  */
 export default function MasterFormShell({
   open,
@@ -35,27 +35,6 @@ export default function MasterFormShell({
       </div>
     </>
   );
-
-  if (variant === 'form') {
-    return (
-      <Modal
-        open={open}
-        onClose={onClose}
-        title={title}
-        subtitle={subtitle}
-        size={size}
-        variant="form"
-        className="crm-master-form-modal"
-        footer={footer}
-      >
-        <div className="crm-form-modal-layout">
-          <div className="crm-form-panel">
-            {body}
-          </div>
-        </div>
-      </Modal>
-    );
-  }
 
   return (
     <Modal

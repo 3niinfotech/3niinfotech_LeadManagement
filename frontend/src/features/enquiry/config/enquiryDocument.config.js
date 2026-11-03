@@ -2,12 +2,15 @@ import { STORAGE_KEYS } from '../../../config/storageKeys';
 
 export const DOCUMENT_CATEGORIES = [
   { value: 'PASSPORT', label: 'Passport', icon: 'passport' },
+  { value: 'ACADEMIC', label: 'Academic', icon: 'certificate' },
   { value: 'TENTH', label: '10th', icon: 'certificate' },
   { value: 'TWELFTH', label: '12th', icon: 'certificate' },
   { value: 'DEGREE', label: 'Degree', icon: 'graduation' },
-  { value: 'RESUME', label: 'Resume', icon: 'file' },
+  { value: 'LANGUAGE_TEST', label: 'Language Test', icon: 'test' },
   { value: 'IELTS', label: 'IELTS', icon: 'test' },
   { value: 'PTE', label: 'PTE', icon: 'test' },
+  { value: 'FINANCIAL', label: 'Financial', icon: 'certificate' },
+  { value: 'RESUME', label: 'Resume', icon: 'file' },
   { value: 'SOP', label: 'SOP', icon: 'edit' },
   { value: 'LOR', label: 'LOR', icon: 'mail' },
   { value: 'PHOTO', label: 'Photo', icon: 'image' },

@@ -3,10 +3,12 @@ import {
   FiAlertCircle,
   FiArrowLeft,
   FiCheck,
+  FiCheckCircle,
   FiClock,
   FiLock,
   FiMapPin,
   FiUser,
+  FiZap,
 } from 'react-icons/fi';
 import { ROUTES } from '../../../config/routes';
 
@@ -307,31 +309,64 @@ export function AttendanceMetricBar({ counts, activeFilter, onFilter, simple = f
   );
 }
 
-export function AttendanceLockedBanner({ window, canCorrect, compact = false }) {
+export function AttendanceLockedBanner({ window, canCorrect, compact = false, onOverride, overridden = false }) {
   const state = String(window?.state || 'LOCKED').replace(/_/g, ' ').toLowerCase();
+
+  if (overridden) {
+    return (
+      <div className={`crm-att-banner crm-att-banner--overridden ${compact ? 'crm-att-banner--compact' : ''}`}>
+        <FiCheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+        <div className="flex-1 min-w-0">
+          <p className="crm-att-banner__title text-emerald-800">Teacher Override Active · Window Unlocked</p>
+          <p className="crm-att-banner__text text-emerald-700">
+            Window lock bypassed. You can record and save attendance for this session.
+          </p>
+        </div>
+        {onOverride && (
+          <button
+            type="button"
+            className="text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-colors shrink-0"
+            onClick={onOverride}
+          >
+            Relock
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={`crm-att-banner ${compact ? 'crm-att-banner--compact' : ''}`}>
-      <FiAlertCircle className="w-4 h-4 shrink-0" />
-      <div>
+      <FiAlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+      <div className="flex-1 min-w-0">
         <p className="crm-att-banner__title">Window {state}</p>
         {!compact && (
           <p className="crm-att-banner__text">
             {window?.state === 'NOT_OPEN'
-              ? 'Marking opens shortly before class starts.'
-              : 'The marking window has closed for this session.'}
-            {canCorrect ? ' Authorized staff can submit corrections with a reason.' : ''}
+              ? 'Marking opens shortly before class starts. Teachers can override to mark anytime.'
+              : 'The marking window has closed for this session. Teachers can override to record attendance.'}
+            {canCorrect ? ' Authorized staff can also submit corrections with a reason.' : ''}
           </p>
         )}
         {compact && (
           <p className="crm-att-banner__text">
             {window?.state === 'NOT_OPEN'
-              ? 'Marking opens before class starts.'
+              ? 'Marking opens before class starts. Override available to mark now.'
               : canCorrect
-                ? 'Marking closed — corrections need a reason.'
-                : 'Marking closed for this session.'}
+                ? 'Marking closed — override or correction available.'
+                : 'Marking closed for this session. Override to record.'}
           </p>
         )}
       </div>
+      {onOverride && (
+        <button
+          type="button"
+          className="text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition-colors shrink-0 flex items-center gap-1.5"
+          onClick={onOverride}
+        >
+          <FiZap className="w-3.5 h-3.5" /> Force Unlock & Mark
+        </button>
+      )}
     </div>
   );
 }

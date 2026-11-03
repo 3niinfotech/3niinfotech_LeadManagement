@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FiMenu, FiX } from 'react-icons/fi';
+import { FiMenu, FiX, FiSend } from 'react-icons/fi';
 import {
   LANDING_BRAND,
   LANDING_HEADER_LOGINS,
@@ -41,20 +41,34 @@ export default function LandingHeader({ companyName, logoUrl }) {
 
         <nav className="landing-nav" aria-label="Primary">
           {LANDING_NAV.map((item) => (
-            <a key={item.id} href={item.href}>{item.label}</a>
+            item.href.startsWith('/') ? (
+              <Link key={item.id} to={item.href}>{item.label}</Link>
+            ) : (
+              <a key={item.id} href={item.href}>{item.label}</a>
+            )
           ))}
         </nav>
 
         <div className="landing-header__actions">
-          {LANDING_HEADER_LOGINS.map((item) => (
-            item.variant === 'register' ? (
-              <Link key={item.id} to={item.href} className="landing-btn landing-btn--student landing-header__register">
+          {LANDING_HEADER_LOGINS.map((item) => {
+            if (item.variant === 'contact') {
+              return (
+                <a
+                  key={item.id}
+                  href={item.href}
+                  className="landing-btn landing-btn--student landing-header__register"
+                >
+                  <FiSend size={13} />
+                  {item.label}
+                </a>
+              );
+            }
+            return (
+              <Link key={item.id} to={item.href} className="landing-header__link">
                 {item.label}
               </Link>
-            ) : (
-              <Link key={item.id} to={item.href} className="landing-header__link">{item.label}</Link>
-            )
-          ))}
+            );
+          })}
         </div>
 
         <button
@@ -74,18 +88,37 @@ export default function LandingHeader({ companyName, logoUrl }) {
         className={`landing-mobile-nav ${menuOpen ? 'landing-mobile-nav--open' : ''}`}
       >
         {LANDING_NAV.map((item) => (
-          <a key={item.id} href={item.href} onClick={() => setMenuOpen(false)}>{item.label}</a>
-        ))}
-        <hr style={{ border: 0, borderTop: '1px solid var(--lp-line)', margin: '0.5rem 0' }} />
-        {LANDING_HEADER_LOGINS.map((item) => (
-          item.variant === 'register' ? (
-            <Link key={item.id} to={item.href} className="landing-btn landing-btn--student" onClick={() => setMenuOpen(false)}>
+          item.href.startsWith('/') ? (
+            <Link key={item.id} to={item.href} onClick={() => setMenuOpen(false)}>
               {item.label}
             </Link>
           ) : (
-            <Link key={item.id} to={item.href} onClick={() => setMenuOpen(false)}>{item.label}</Link>
+            <a key={item.id} href={item.href} onClick={() => setMenuOpen(false)}>
+              {item.label}
+            </a>
           )
         ))}
+        <hr style={{ border: 0, borderTop: '1px solid var(--lp-line)', margin: '0.5rem 0' }} />
+        {LANDING_HEADER_LOGINS.map((item) => {
+          if (item.variant === 'contact') {
+            return (
+              <a
+                key={item.id}
+                href={item.href}
+                className="landing-btn landing-btn--student"
+                onClick={() => setMenuOpen(false)}
+              >
+                <FiSend size={13} />
+                {item.label}
+              </a>
+            );
+          }
+          return (
+            <Link key={item.id} to={item.href} onClick={() => setMenuOpen(false)}>
+              {item.label}
+            </Link>
+          );
+        })}
       </div>
     </header>
   );

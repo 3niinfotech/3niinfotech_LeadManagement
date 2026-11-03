@@ -24,6 +24,15 @@ export const attendanceRepository = {
     include: {
       branch: { select: { id: true, name: true, code: true } },
       instructor: { select: userSelect },
+      timetableSlots: { where: { isActive: true } },
+      enrollments: {
+        where: { isActive: true },
+        include: {
+          student: {
+            select: { id: true, firstName: true, lastName: true, studentCode: true },
+          },
+        },
+      },
       _count: { select: { enrollments: { where: { isActive: true } }, sessions: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -133,7 +142,7 @@ export const attendanceRepository = {
     include: {
       session: {
         include: {
-          batch: { select: { id: true, name: true, code: true, courseName: true } },
+          batch: { select: { id: true, name: true, code: true, courseName: true, room: true } },
         },
       },
       markedBy: { select: userSelect },

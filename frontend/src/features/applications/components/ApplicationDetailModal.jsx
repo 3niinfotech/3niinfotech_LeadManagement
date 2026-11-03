@@ -12,6 +12,7 @@ import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import Avatar from '../../../components/ui/Avatar';
+import { resolveStudentPhotoUrl } from '../../student/config/studentDocument.config';
 import ContentLoader from '../../../components/ui/ContentLoader';
 import PermissionGate from '../../../components/common/PermissionGate';
 import { ROUTES } from '../../../config/routes';
@@ -193,7 +194,7 @@ export default function ApplicationDetailModal({
         <div className="app-detail">
           {/* Hero */}
           <div className="app-detail__hero">
-            <Avatar name={studentLabel} size="lg" />
+            <Avatar name={studentLabel} src={resolveStudentPhotoUrl(student)} size="lg" />
             <div className="app-detail__hero-body">
               <div className="app-detail__hero-name">{studentLabel}</div>
               <div className="app-detail__hero-meta">

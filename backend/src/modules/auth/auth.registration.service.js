@@ -9,6 +9,7 @@ import {
 } from '../../utils/tenant.util.js';
 import { authRepository } from './auth.repository.js';
 import { studentRepository } from '../student/student.repository.js';
+import { enquiryRepository } from '../enquiry/enquiry.repository.js';
 
 const isProd = process.env.NODE_ENV === 'production';
 const passwordField = z.string().min(
@@ -107,16 +108,56 @@ export const registrationService = {
         },
       });
 
+      // Automatically create or link Enquiry in the CRM so counsellors can immediately track this online student
+      let enquiry = await tx.enquiry.findFirst({
+        where: {
+          email: data.email.toLowerCase().trim(),
+          deletedAt: null,
+        },
+      });
+
+      if (enquiry) {
+        enquiry = await tx.enquiry.update({
+          where: { id: enquiry.id },
+          data: {
+            studentId: student.id,
+            mobile: data.phone || enquiry.mobile,
+            branchId: branch.id,
+            remark: enquiry.remark
+              ? `${enquiry.remark}\n[Online Registration] Student portal account registered.`
+              : 'Student registered via online website portal.',
+          },
+        });
+      } else {
+        const enquiryCode = await enquiryRepository.generateCode(company.id);
+        enquiry = await tx.enquiry.create({
+          data: {
+            enquiryCode,
+            branchId: branch.id,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email.toLowerCase().trim(),
+            mobile: data.phone || '0000000000',
+            source: 'Online Registration / Website Portal',
+            status: 'NEW',
+            priority: 'MEDIUM',
+            studentId: student.id,
+            createdBy: user.id,
+            remark: 'Online self-registration from student portal',
+          },
+        });
+      }
+
       await tx.activity.create({
         data: {
           userId: user.id,
           studentId: student.id,
           action: 'REGISTER',
-          description: `Student portal account registered (${studentCode})`,
+          description: `Student portal account registered (${studentCode}). Enquiry created/linked (${enquiry.enquiryCode}).`,
         },
       });
 
-      return { user, student };
+      return { user, student, enquiry };
     });
 
     await auditLog({
@@ -124,7 +165,7 @@ export const registrationService = {
       action: 'REGISTER',
       entityType: 'User',
       entityId: result.user.id,
-      newData: { portal: 'student', studentId: result.student.id },
+      newData: { portal: 'student', studentId: result.student.id, enquiryId: result.enquiry?.id },
       req,
     });
 

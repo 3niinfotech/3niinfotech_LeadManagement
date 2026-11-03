@@ -30,7 +30,32 @@ export default function SidebarMonthlyTarget({ collapsed = false }) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+
+    const handleUpdate = () => {
+      load();
+    };
+
+    window.addEventListener('crm-dashboard-update', handleUpdate);
+    window.addEventListener('crm-target-update', handleUpdate);
+    window.addEventListener('visibilitychange', handleUpdate);
+    window.addEventListener('focus', handleUpdate);
+
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        load();
+      }
+    }, 25000);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('crm-dashboard-update', handleUpdate);
+      window.removeEventListener('crm-target-update', handleUpdate);
+      window.removeEventListener('visibilitychange', handleUpdate);
+      window.removeEventListener('focus', handleUpdate);
+    };
+  }, [load]);
 
   const brand = useMemo(() => readCssVar('--brand', '#2563eb'), [target]);
   const track = useMemo(
@@ -83,12 +108,12 @@ export default function SidebarMonthlyTarget({ collapsed = false }) {
               dataKey="value"
               cx="50%"
               cy="50%"
-              innerRadius={34}
-              outerRadius={46}
+              innerRadius={28}
+              outerRadius={38}
               startAngle={90}
               endAngle={-270}
               stroke="none"
-              cornerRadius={4}
+              cornerRadius={3}
             >
               <Cell fill={brand} />
               <Cell fill={track} />

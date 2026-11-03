@@ -162,15 +162,17 @@ export function suggestedFollowupFromSettings(settings) {
   };
 }
 
+import { getDocumentUrl } from '../features/enquiry/config/enquiryDocument.config';
+
 export function resolvePublicAssetUrl(value) {
   if (!value) return '';
-  if (/^https?:\/\//i.test(value) || value.startsWith('data:')) return value;
+  if (/^https?:\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) return value;
   const normalized = String(value).replace(/\\/g, '/');
-  const relative = normalized.includes('uploads/')
-    ? `/${normalized.slice(normalized.indexOf('uploads/'))}`
-    : normalized.startsWith('/')
-      ? normalized
-      : `/${normalized}`;
+  if (normalized.includes('uploads/') || normalized.startsWith('enquiries/') || normalized.startsWith('students/')) {
+    const url = getDocumentUrl(normalized);
+    if (url) return url;
+  }
+  const relative = normalized.startsWith('/') ? normalized : `/${normalized}`;
   const apiBase = import.meta.env.VITE_API_URL || '/api';
   const origin = apiBase.replace(/\/api\/?$/, '');
   if (!origin) return relative;

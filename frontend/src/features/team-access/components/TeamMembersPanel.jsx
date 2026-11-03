@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   FiUsers, FiPlus, FiRefreshCw, FiSearch, FiPhone, FiHash, FiBriefcase,
+  FiBookOpen, FiShield, FiUserCheck, FiFilter, FiCheckCircle, FiUser,
 } from 'react-icons/fi';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
@@ -161,9 +162,17 @@ export default function TeamMembersPanel({
   );
 
   const roleFilterOptions = useMemo(
-    () => [{ value: 'all', label: 'All roles' }, ...roles.map((r) => ({ value: r.slug, label: r.name }))],
-    [roles],
+    () => [{ value: 'all', label: 'All roles' }, ...staffRoles.map((r) => ({ value: r.slug, label: r.name }))],
+    [staffRoles],
   );
+
+  const QUICK_ROLE_TABS = useMemo(() => [
+    { slug: 'all', label: 'All Staff', icon: FiUsers },
+    { slug: 'teacher', label: 'Teachers / Faculty', icon: FiBookOpen },
+    { slug: 'counsellor', label: 'Counsellors', icon: FiUser },
+    { slug: 'company_admin', label: 'Admins', icon: FiShield },
+    { slug: 'receptionist', label: 'Receptionists', icon: FiUserCheck },
+  ], []);
 
   const loadRoles = useCallback(async () => {
     try {
@@ -196,12 +205,13 @@ export default function TeamMembersPanel({
         staffApi.getTeamSummary().catch(() => null),
       ]);
 
-      const list = Array.isArray(listRes.data) ? listRes.data : [];
+      const rawList = Array.isArray(listRes.data) ? listRes.data : [];
+      const list = rawList.filter((r) => !NON_STAFF_ROLE_SLUGS.has(r.role?.slug));
       setRows(list);
       hasLoadedRef.current = true;
 
       const summaryActive = countTeamFromSummary(summaryRes);
-      const pageTotal = listRes.pagination?.total ?? list.length;
+      const pageTotal = list.length;
       const pageActive = list.filter((r) => r.status === 'ACTIVE').length;
 
       if (!hasFilters) {
@@ -408,9 +418,28 @@ export default function TeamMembersPanel({
 
   return (
     <div className="crm-team-access-panel">
+      {/* Quick Role Navigation Pills */}
+      <div className="crm-team-quick-roles" role="tablist" aria-label="Filter staff by category">
+        {QUICK_ROLE_TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = roleFilter === tab.slug;
+          return (
+            <button
+              key={tab.slug}
+              type="button"
+              className={`crm-team-quick-pill ${isActive ? 'crm-team-quick-pill--active' : ''}`}
+              onClick={() => setRoleFilter(tab.slug)}
+            >
+              <Icon size={14} className="crm-team-quick-pill__icon" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="crm-team-filter-bar">
         <div className="crm-team-filter-field">
-          <label>Search</label>
+          <label>Search Staff</label>
           <Input
             placeholder="Search name or email…"
             value={search}
@@ -426,7 +455,7 @@ export default function TeamMembersPanel({
           />
         </div>
         <div className="crm-team-filter-field">
-          <label>Role</label>
+          <label>Filter by Role</label>
           <Select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
@@ -436,7 +465,7 @@ export default function TeamMembersPanel({
           />
         </div>
         <div className="crm-team-filter-field">
-          <label>Branch</label>
+          <label>Campus / Branch</label>
           <Select
             value={branchFilter}
             onChange={(e) => setBranchFilter(e.target.value)}
@@ -447,7 +476,7 @@ export default function TeamMembersPanel({
           />
         </div>
         <div className="crm-team-filter-field">
-          <label>Status</label>
+          <label>Account Status</label>
           <Select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -460,7 +489,7 @@ export default function TeamMembersPanel({
         <div className="crm-team-filter-bar__actions">
           <Button variant="secondary" size="sm" icon={FiRefreshCw} loading={fetching} onClick={() => load(true)}>Refresh</Button>
           {canCreate && (
-            <Button size="sm" icon={FiPlus} onClick={() => openDrawer('add')}>Add member</Button>
+            <Button size="sm" icon={FiPlus} onClick={() => openDrawer('add')} className="crm-team-add-btn">Add member</Button>
           )}
         </div>
       </div>

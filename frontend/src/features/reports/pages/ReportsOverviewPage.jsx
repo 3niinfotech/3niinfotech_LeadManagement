@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   FiInbox, FiCheckCircle, FiPercent, FiPhone, FiMonitor, FiUsers,
   FiFileText, FiGlobe, FiDollarSign, FiAlertTriangle, FiClock,
+  FiTrendingUp, FiBarChart2, FiFilter, FiPieChart, FiArrowRight,
 } from 'react-icons/fi';
 import ContentLoader from '../../../components/ui/ContentLoader';
 import { apiGet } from '../../../api/apiClient';
@@ -135,12 +136,12 @@ export default function ReportsOverviewPage() {
             <ReportSectionCard title="Pipeline by stage" subtitle="Enquiry volume across funnel stages">
               {funnel.length
                 ? <ReportLineChart data={funnel} xKey="label" yKey="count" height={260} seriesLabel="Enquiries" color="#2563EB" />
-                : <ReportEmpty message="No pipeline data for this period." />}
+                : <ReportEmpty message="No pipeline data for this period." icon={FiTrendingUp} />}
             </ReportSectionCard>
             <ReportSectionCard title="Conversion by stage" subtitle="Same funnel as progressive series">
               {funnel.length
                 ? <ReportBarChart data={funnel} xKey="label" yKey="count" height={260} seriesLabel="Count" />
-                : <ReportEmpty message="No conversion series for this period." />}
+                : <ReportEmpty message="No conversion series for this period." icon={FiBarChart2} />}
             </ReportSectionCard>
           </div>
 
@@ -148,16 +149,24 @@ export default function ReportsOverviewPage() {
             <ReportSectionCard
               title="Lead pipeline"
               subtitle="Cone funnel by enquiry status"
-              action={<Link to={`${ROUTES.REPORTS}/leads/conversion`} className="crm-rlink">Open</Link>}
+              action={
+                <Link to={`${ROUTES.REPORTS}/leads/conversion`} className="crm-rlink">
+                  Open Report <FiArrowRight className="w-3.5 h-3.5 inline ml-1" />
+                </Link>
+              }
             >
               {funnel.length
                 ? <ReportFunnelChart data={funnel} nameKey="label" valueKey="count" height={280} />
-                : <ReportEmpty message="No funnel data." />}
+                : <ReportEmpty message="No funnel data for this period." icon={FiFilter} />}
             </ReportSectionCard>
             <ReportSectionCard
               title="Collection mix"
               subtitle="Paid vs outstanding vs overdue (live invoices)"
-              action={<Link to={`${ROUTES.REPORTS}/finance/collection`} className="crm-rlink">Open</Link>}
+              action={
+                <Link to={`${ROUTES.REPORTS}/finance/collection`} className="crm-rlink">
+                  Open Report <FiArrowRight className="w-3.5 h-3.5 inline ml-1" />
+                </Link>
+              }
             >
               {collectionMix.length
                 ? (
@@ -170,7 +179,7 @@ export default function ReportsOverviewPage() {
                     centerValue={fmt(k.invoicesPaid)}
                   />
                 )
-                : <ReportEmpty message="No finance mix for this period." />}
+                : <ReportEmpty message="No finance mix for this period." icon={FiPieChart} />}
             </ReportSectionCard>
           </div>
 

@@ -57,7 +57,11 @@ export default function AuthShell({
             <div className={`auth-shell__card auth-shell__card--hero${minimal ? ' auth-shell__card--minimal' : ''}`}>
               <header className={`auth-shell__card-head auth-shell__card-head--hero${minimal ? ' auth-shell__card-head--minimal' : ''}`}>
                 {minimal ? (
-                  <span className="auth-shell__hero-mark auth-shell__hero-mark--solo">3ni</span>
+                  <div className="auth-shell__minimal-header">
+                    <span className="auth-shell__hero-mark auth-shell__hero-mark--solo">3ni</span>
+                    {title && <h2 className="auth-shell__minimal-title">{title}</h2>}
+                    {subtitle && <p className="auth-shell__minimal-subtitle">{subtitle}</p>}
+                  </div>
                 ) : (
                   <>
                     <div className="auth-shell__hero-identity">
@@ -82,6 +86,7 @@ export default function AuthShell({
                 <footer className="auth-shell__links auth-shell__links--hero">
                   {footerLinks.map((row) => (
                     <p key={row.key || row.text} className="auth-shell__link-row">
+                      {row.text && <span className="auth-shell__link-prefix">{row.text} </span>}
                       {row.href ? (
                         <Link to={row.href}>{row.linkLabel}</Link>
                       ) : (

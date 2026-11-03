@@ -8,22 +8,28 @@ function isImageDocument(doc) {
 
 function isPhotoDoc(doc) {
   if (!doc) return false;
-  if (String(doc.category || '').toUpperCase() !== 'PHOTO') return false;
-  return isImageDocument(doc) || Boolean(doc.filePath);
+  const cat = String(doc.category || '').toUpperCase();
+  if (['PHOTO', 'PASSPORT_PHOTO', 'PHOTOGRAPH', 'PROFILE_PIC'].includes(cat)) return true;
+  const name = String(doc.name || doc.fileName || doc.filePath || '').toLowerCase();
+  if (name.includes('photo') || name.includes('profile') || name.includes('avatar') || name.includes('photograph')) {
+    return isImageDocument(doc) || Boolean(doc.filePath);
+  }
+  return isImageDocument(doc) && Boolean(doc.filePath);
 }
 
 /** Resolve profile photo URL from student record, documents, or linked enquiry. */
 export function resolveStudentPhotoUrl(student) {
   if (!student) return null;
 
-  const direct = getDocumentUrl(student.photoUrl || student.metadata?.photoUrl);
+  const directPath = student.photoUrl || student.avatar || student.metadata?.photoUrl || student.user?.avatar;
+  const direct = getDocumentUrl(directPath);
   if (direct) {
     const stamp = student.updatedAt || student.id || '';
     return `${direct}${direct.includes('?') ? '&' : '?'}v=${encodeURIComponent(String(stamp))}`;
   }
 
   const docs = Array.isArray(student.documents) ? student.documents : [];
-  const photos = docs.filter((d) => String(d.category || '').toUpperCase() === 'PHOTO');
+  const photos = docs.filter(isPhotoDoc);
   const photo = photos.find(isImageDocument) || photos[0];
   const fromDoc = getDocumentUrl(photo?.filePath || photo?.url || null);
   if (fromDoc) {
@@ -32,10 +38,14 @@ export function resolveStudentPhotoUrl(student) {
   }
 
   const enquiryDocs = Array.isArray(student.enquiry?.documents) ? student.enquiry.documents : [];
-  const enquiryPhotos = enquiryDocs.filter((d) => String(d.category || '').toUpperCase() === 'PHOTO');
+  const enquiryPhotos = enquiryDocs.filter(isPhotoDoc);
   const enquiryPhoto = enquiryPhotos.find(isImageDocument) || enquiryPhotos[0];
   const fromEnquiry = getDocumentUrl(enquiryPhoto?.filePath || student.enquiry?.photoUrl || null);
-  if (!fromEnquiry) return null;
-  const stamp = enquiryPhoto?.updatedAt || enquiryPhoto?.createdAt || enquiryPhoto?.id || '';
-  return `${fromEnquiry}${fromEnquiry.includes('?') ? '&' : '?'}v=${encodeURIComponent(String(stamp))}`;
+  if (fromEnquiry) {
+    const stamp = enquiryPhoto?.updatedAt || enquiryPhoto?.createdAt || enquiryPhoto?.id || '';
+    return `${fromEnquiry}${fromEnquiry.includes('?') ? '&' : '?'}v=${encodeURIComponent(String(stamp))}`;
+  }
+
+  return null;
 }
+

@@ -1,0 +1,456 @@
+/* =========================================================
+   Ultra-Modern Faculty Student Profile & Academic Workspace
+   Pixel-Perfect, Spatially Balanced, High-Impact UI
+   ========================================================= */
+
+.crm-tprofile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem 2rem;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-page, #f8fafc);
+}
+
+/* ── Hero Student Banner ── */
+.crm-tprofile-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.crm-tprofile-hero__left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.crm-tprofile-hero__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.crm-tprofile-hero__verified-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #10b981;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.crm-tprofile-hero__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.crm-tprofile-hero__name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.crm-tprofile-hero__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 750;
+  color: var(--text, #0f172a);
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.crm-tprofile-hero__code {
+  font-family: monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #1e293b;
+  background: #f1f5f9;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.crm-tprofile-hero__status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 750;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+}
+
+.crm-tprofile-hero__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary, #475569);
+  flex-wrap: wrap;
+}
+
+.crm-tprofile-hero__contact-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.crm-tprofile-hero__contact-item:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.crm-tprofile-hero__contact-item svg {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.crm-tprofile-hero__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ── Top 5 Academic KPI Cards ── */
+.crm-tprofile-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .crm-tprofile-kpi-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.crm-tprofile-kpi {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.75rem 0.95rem;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.crm-tprofile-kpi:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
+}
+
+.crm-tprofile-kpi__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.crm-tprofile-kpi__label {
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted, #64748b);
+}
+
+.crm-tprofile-kpi__val {
+  font-size: 1.35rem;
+  font-weight: 850;
+  color: var(--text, #0f172a);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0.2rem 0 0.15rem;
+}
+
+.crm-tprofile-kpi__sub {
+  font-size: 0.72rem;
+  color: var(--text-muted, #64748b);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ── Main Dual-Column Layout ── */
+.crm-tprofile-main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .crm-tprofile-main-grid {
+    grid-template-columns: minmax(0, 1.85fr) minmax(300px, 1.15fr);
+  }
+}
+
+/* ── Panel Styles ── */
+.crm-tprofile-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+}
+
+.crm-tprofile-panel__head {
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+}
+
+.crm-tprofile-panel__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 750;
+  color: var(--text, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.crm-tprofile-panel__body {
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+/* ── Remarks Box ── */
+.crm-tremarks-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  background: #f8fafc;
+  padding: 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.crm-tremarks-presets {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.crm-tpreset-btn {
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.crm-tpreset-btn:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #2563eb;
+}
+
+.crm-tremarks-textarea {
+  width: 100%;
+  min-height: 65px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.75rem;
+  outline: none;
+  resize: vertical;
+  line-height: 1.4;
+  transition: border-color 0.15s ease;
+}
+
+.crm-tremarks-textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.crm-tremarks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.crm-tremark-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.95rem;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+}
+
+.crm-tremark-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.crm-tremark-text {
+  font-size: 0.8125rem;
+  color: #0f172a;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.crm-tremark-meta {
+  font-size: 0.7rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ── Attendance History List ── */
+.crm-tatt-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.crm-tatt-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.65rem;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 6px;
+  gap: 0.65rem;
+  transition: all 0.15s ease;
+}
+
+.crm-tatt-history-item:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.crm-tatt-date-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  flex-shrink: 0;
+  line-height: 1.05;
+}
+
+.crm-tatt-date-box__day {
+  font-size: 0.85rem;
+  font-weight: 850;
+  color: #0f172a;
+}
+
+.crm-tatt-date-box__month {
+  font-size: 0.58rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  color: #2563eb;
+}
+
+.crm-tatt-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.crm-tatt-title {
+  font-size: 0.75rem;
+  font-weight: 750;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-tatt-sub {
+  font-size: 0.6875rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ── Sidebar Particulars ── */
+.crm-tpart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+}
+
+.crm-tpart-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.crm-tpart-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.crm-tpart-label {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.crm-tpart-val {
+  color: #0f172a;
+  font-weight: 700;
+  text-align: right;
+}
+

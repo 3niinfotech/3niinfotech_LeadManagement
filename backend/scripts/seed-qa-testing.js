@@ -194,7 +194,7 @@ async function main() {
         companyId: company.id,
         branchId: null,
         deletedAt: null,
-        courseLabel: { equals: row.courseLabel, mode: 'insensitive' },
+        courseLabel: row.courseLabel,
       },
     });
     if (!existing) {

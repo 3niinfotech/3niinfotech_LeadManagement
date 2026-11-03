@@ -46,8 +46,7 @@ export function useDashboardData(defaultPreset = 'this_month') {
       }
     } catch (e) {
       if (!isMountedRef.current) return;
-      if (!silent || !data) {
-        setData(null);
+      if (!silent) {
         setError(e?.message || 'Unable to load dashboard');
       }
     } finally {
@@ -56,7 +55,7 @@ export function useDashboardData(defaultPreset = 'this_month') {
         setRefreshing(false);
       }
     }
-  }, [filters.queryParams, data]);
+  }, [filters.queryParams]);
 
   // Initial & filter change load
   useEffect(() => {

@@ -76,16 +76,16 @@ export default function AuthLoginForm({ portal = PORTALS.ADMIN }) {
 
   const footerLinks = [];
   if (portal === PORTALS.STUDENT) {
-    footerLinks.push({ key: 'forgot', href: ROUTES.FORGOT_PASSWORD_STUDENT, linkLabel: 'Forgot password?' });
-    footerLinks.push({ key: 'register', href: ROUTES.REGISTER_STUDENT, linkLabel: 'Create account' });
-    footerLinks.push({ key: 'staff', href: '/login/admin', linkLabel: 'Staff login' });
+    footerLinks.push({ key: 'contact', text: 'New student seeking admission?', href: '/#contact', linkLabel: 'Submit an enquiry' });
+    footerLinks.push({ key: 'staff', text: 'Institute team?', href: '/login/admin', linkLabel: 'Staff login' });
   }
   if (portal === PORTALS.ADMIN) {
-    footerLinks.push({ key: 'student', href: '/login/student', linkLabel: 'Student portal' });
-    footerLinks.push({ key: 'apply', href: ROUTES.APPLY, linkLabel: 'Apply for staff role' });
+    footerLinks.push({ key: 'student', text: 'Are you a student?', href: '/login/student', linkLabel: 'Student portal' });
+    footerLinks.push({ key: 'apply', text: 'Looking to join our team?', href: ROUTES.APPLY, linkLabel: 'Careers & Openings' });
   }
   if (portal === PORTALS.AGENT) {
-    footerLinks.push({ key: 'staff', href: '/login/admin', linkLabel: 'Staff login' });
+    footerLinks.push({ key: 'contact', text: 'Partner with us?', href: '/#contact', linkLabel: 'Contact our team' });
+    footerLinks.push({ key: 'staff', text: 'Institute team?', href: '/login/admin', linkLabel: 'Staff login' });
   }
 
   return (
@@ -149,7 +149,7 @@ export default function AuthLoginForm({ portal = PORTALS.ADMIN }) {
           )}
           {portal === PORTALS.STUDENT && (
             <p className="auth-login-form__forgot">
-              <Link to={`${ROUTES.FORGOT_PASSWORD_STUDENT}?email=${encodeURIComponent(emailValue || 'aarav.patel@gmail.com')}`}>
+              <Link to={`${ROUTES.FORGOT_PASSWORD_STUDENT}${emailValue ? `?email=${encodeURIComponent(emailValue)}` : ''}`}>
                 Forgot password?
               </Link>
             </p>

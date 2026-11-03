@@ -35,7 +35,7 @@ export function getAntdTheme(isDark = false) {
       controlHeightLG: 40,
       controlHeightSM: 36,
       boxShadowSecondary: t['shadow-dropdown'],
-      zIndexPopupBase: 1400,
+      zIndexPopupBase: 99999999,
     },
     components: {
       Select: {

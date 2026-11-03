@@ -428,20 +428,41 @@ function flattenNavLinks(items = [], depth = 0) {
   return links;
 }
 
+function normalizeNavPath(p) {
+  if (!p) return '';
+  return p.split('?')[0].split('#')[0].replace(/\/+$/, '') || '/';
+}
+
 function resolveActiveNavLink(items, pathname) {
+  const cleanCurrent = normalizeNavPath(pathname);
+  if (!cleanCurrent) return null;
+
   let best = null;
+  let bestScore = -1;
+
   for (const link of flattenNavLinks(items)) {
     if (!link.path) continue;
-    const linkPath = link.path.split('?')[0];
-    if (pathname !== linkPath && !pathname.startsWith(`${linkPath}/`)) continue;
-    if (
-      !best
-      || link.depth < best.depth
-      || (link.depth === best.depth && linkPath.length > best.path.split('?')[0].length)
-    ) {
+    const cleanLink = normalizeNavPath(link.path);
+    if (!cleanLink) continue;
+
+    let score = -1;
+
+    // 1. Exact match (highest priority)
+    if (cleanCurrent === cleanLink) {
+      score = 100000 + cleanLink.length * 10 + link.depth;
+    }
+    // 2. Prefix match (only if cleanLink is not root '/')
+    else if (cleanLink !== '/' && cleanCurrent.startsWith(`${cleanLink}/`)) {
+      // Longest prefix match wins; deeper depth breaks ties
+      score = cleanLink.length * 100 + link.depth;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
       best = link;
     }
   }
+
   return best;
 }
 
@@ -727,7 +748,12 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (collapsed || forceExpand) return;
-    setOpenIds(collectActiveAncestorIds(menuConfig, activeNav.id));
+    const activeAncestors = collectActiveAncestorIds(menuConfig, activeNav.id);
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      activeAncestors.forEach((id) => next.add(id));
+      return next;
+    });
     setPendingOpenId(null);
   }, [activeNav.id, menuConfig, collapsed, forceExpand]);
 

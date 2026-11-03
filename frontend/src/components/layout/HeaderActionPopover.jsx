@@ -17,6 +17,7 @@ export default function HeaderActionPopover({
   children,
   width = 400,
   maxHeight = 520,
+  hideHeader = false,
 }) {
   const panelRef = useRef(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -88,13 +89,15 @@ export default function HeaderActionPopover({
             maxHeight: `min(${maxHeight}px, calc(100vh - ${pos.top + 16}px))`,
           }}
         >
-          <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border/70 shrink-0 bg-card-bg/95 backdrop-blur-sm">
-            <h2 className="text-[13px] font-semibold tracking-tight text-text">{title}</h2>
-            <div className="flex items-center gap-1">
-              {headerRight}
-              <IconButton icon={FiX} onClick={onClose} label="Close" size="sm" />
+          {!hideHeader && (
+            <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border/70 shrink-0 bg-card-bg/95 backdrop-blur-sm">
+              <h2 className="text-[13px] font-semibold tracking-tight text-text">{title}</h2>
+              <div className="flex items-center gap-1">
+                {headerRight}
+                <IconButton icon={FiX} onClick={onClose} label="Close" size="sm" />
+              </div>
             </div>
-          </div>
+          )}
           <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar overscroll-contain">
             {children}
           </div>

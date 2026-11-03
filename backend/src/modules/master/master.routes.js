@@ -11,6 +11,16 @@ const router = Router();
 const view = authorize(PERMISSIONS.MASTERS_VIEW);
 const manage = authorize(PERMISSIONS.MASTERS_MANAGE);
 
+/** Workflow routes used across CRM modules (Enquiries, Students, Visas, Applications) */
+const workflowView = authorize(
+  PERMISSIONS.MASTERS_VIEW,
+  PERMISSIONS.STUDENTS_VIEW,
+  PERMISSIONS.ENQUIRIES_VIEW,
+  PERMISSIONS.LEADS_VIEW,
+  PERMISSIONS.APPLICATIONS_VIEW,
+  PERMISSIONS.VISAS_VIEW
+);
+
 /** Legacy MasterItem options keep enquiry/walk-in permissions for compatibility. */
 const legacyView = authorize(PERMISSIONS.ENQUIRIES_VIEW, PERMISSIONS.MASTERS_VIEW);
 const legacyCreate = authorize(PERMISSIONS.ENQUIRIES_CREATE, PERMISSIONS.MASTERS_MANAGE);
@@ -36,16 +46,16 @@ function requireLegacyOrRelationalOptions(req, _res, next) {
 router.get('/hub/summary', view, masterController.hubSummary);
 
 // Application Status country-grouped summary (must be before /:entity/:id)
-router.get('/application-status-master/country-summary', view, masterController.applicationStatusCountrySummary);
-router.get('/application-status-master/workflow', view, masterController.applicationStatusWorkflow);
-router.get('/application-checklist/by-country', view, masterController.applicationChecklistByCountry);
+router.get('/application-status-master/country-summary', workflowView, masterController.applicationStatusCountrySummary);
+router.get('/application-status-master/workflow', workflowView, masterController.applicationStatusWorkflow);
+router.get('/application-checklist/by-country', workflowView, masterController.applicationChecklistByCountry);
 router.post('/application-checklist/bulk', manage, masterController.bulkCreateApplicationChecklist);
-router.get('/lead-status/workflow', view, masterController.leadStatusWorkflow);
-router.get('/visa-status-master/country-summary', view, masterController.visaStatusCountrySummary);
-router.get('/visa-status-master/workflow', view, masterController.visaStatusWorkflow);
-router.get('/visa-checklist/by-country', view, masterController.visaChecklistByCountry);
+router.get('/lead-status/workflow', workflowView, masterController.leadStatusWorkflow);
+router.get('/visa-status-master/country-summary', workflowView, masterController.visaStatusCountrySummary);
+router.get('/visa-status-master/workflow', workflowView, masterController.visaStatusWorkflow);
+router.get('/visa-checklist/by-country', workflowView, masterController.visaChecklistByCountry);
 router.post('/visa-checklist/bulk', manage, masterController.bulkCreateVisaChecklist);
-router.get('/student-status-master/workflow', view, masterController.studentStatusWorkflow);
+router.get('/student-status-master/workflow', workflowView, masterController.studentStatusWorkflow);
 
 // Legacy MasterItem management (applyLevel, tags, fee-type, etc.)
 router.get('/items/:category', (req, _res, next) => {

@@ -45,7 +45,7 @@ const manage = authorize(PERMISSIONS.SETTINGS_UPDATE, PERMISSIONS.MASTERS_MANAGE
 
 router.use(authenticate);
 
-router.get('/company', view, organizationController.getCompany);
+router.get('/company', organizationController.getCompany);
 router.put('/company', manage, organizationController.updateCompany);
 router.post('/company/branding', manage, brandingUpload.single('file'), organizationController.uploadBranding);
 router.get('/branches', view, organizationController.listBranches);

@@ -25,7 +25,6 @@ const WIDE_ENTITIES = new Set([
   'course', 'university', 'application-checklist', 'visa-checklist',
   'document-requirement', 'partner-agreement', 'partner-agreement-email',
   'email-template', 'sms-template', 'email-automation', 'invoice-config',
-  'visa-status-master', 'application-status-master', 'counsellor-skill',
 ]);
 
 function inferSectionId(field) {
@@ -82,15 +81,16 @@ export function resolveModalProps(layout = {}) {
     return { size: 'sm', variant: 'default', compact: true };
   }
   if (tier === 'complex') {
-    return { size: layout.size === 'xl' ? 'xl' : 'lg', variant: 'form', compact: false };
+    return { size: layout.size === 'xl' ? 'xl' : 'lg', variant: 'default', compact: false };
   }
-  return { size: layout.size === 'lg' ? 'lg' : 'md', variant: 'form', compact: false };
+  return { size: layout.size === 'lg' ? 'lg' : 'md', variant: 'default', compact: false };
 }
 
 function groupFieldsIntoSections(fields, useSections = true) {
   if (!fields.length) return [];
 
-  if (!useSections) {
+  // For compact forms with 6 or fewer fields, keep in a clean unified group without arbitrary headers
+  if (!useSections || fields.length <= 6) {
     return [{ id: 'all', title: null, fields }];
   }
 

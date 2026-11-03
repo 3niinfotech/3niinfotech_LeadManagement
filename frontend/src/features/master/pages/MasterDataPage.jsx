@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { z } from 'zod';
-import { FiDatabase, FiEye, FiEdit2, FiTrash2, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
+import { FiDatabase, FiEye, FiEdit2, FiTrash2, FiToggleLeft, FiToggleRight, FiUsers, FiExternalLink } from 'react-icons/fi';
 import * as FiIcons from 'react-icons/fi';
 import dayjs from 'dayjs';
 import ModulePageCard from '../../../components/layout/ModulePageLayout';
@@ -596,6 +596,31 @@ export default function MasterDataPage() {
           singularLabel={hubItem.aliasOf ? hubItem.label : entityConfig.singular}
           canManage={canManage}
         />
+
+        {slug === 'faculty' && (
+          <div className="mx-1 mb-3 p-3 rounded-xl border border-blue-200 bg-blue-50/70 dark:bg-blue-950/30 dark:border-blue-900/50 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+                <FiUsers className="w-4 h-4" />
+              </span>
+              <div>
+                <strong className="text-xs font-bold text-slate-900 dark:text-white block">
+                  Looking for Teacher &amp; Staff Login Accounts?
+                </strong>
+                <span className="text-[11.5px] text-slate-600 dark:text-slate-300">
+                  Manage teachers, login credentials, passwords, and batch instructors in <strong>Team &amp; Access</strong>.
+                </span>
+              </div>
+            </div>
+            <Link
+              to={ROUTES.USERS}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-xs"
+            >
+              <FiUsers className="w-3.5 h-3.5" />
+              Go to Team &amp; Access
+            </Link>
+          </div>
+        )}
 
         {slug === 'application-checklist' && canManage && (
           <div className="px-1 pb-2">

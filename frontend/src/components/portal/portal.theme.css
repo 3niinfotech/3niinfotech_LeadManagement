@@ -2,8 +2,12 @@
  * Unified Teacher + Student portal design system
  */
 
+html:has(.crm-portal-root),
 html:has(.crm-portal-root) body {
-  min-width: 0;
+  min-width: 0 !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
 }
 
 .crm-portal-root {
@@ -18,11 +22,12 @@ html:has(.crm-portal-root) body {
   --portal-panel-body-pad: 0.75rem;
   --portal-empty-pad: 1rem 0.75rem;
   --portal-radius: 0.55rem;
-  height: 100dvh;
-  min-height: 100dvh;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 100vh !important;
   min-width: 0;
   display: flex;
-  overflow: hidden;
+  overflow: hidden !important;
   background: var(--bg-page);
   color: var(--text-primary);
 }
@@ -33,6 +38,7 @@ html:has(.crm-portal-root) body {
 
 .crm-portal-root--teacher {
   --portal-accent: var(--brand);
+  --portal-content-pad: 0.5rem 0.65rem;
 }
 
 /* ── Sidebar ── */
@@ -76,16 +82,29 @@ html:has(.crm-portal-root) body {
 }
 
 .crm-portal-sidebar__logo {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 0.5rem;
-  background: var(--brand-soft);
+  background: #ffffff;
   color: var(--brand);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 800;
   flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.crm-portal-sidebar__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: #ffffff;
+  padding: 0.125rem;
+  border-radius: 0.375rem;
 }
 
 .crm-portal-sidebar__brand-copy {
@@ -93,21 +112,15 @@ html:has(.crm-portal-root) body {
   flex: 1;
 }
 
-.crm-portal-sidebar__portal-label {
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
 .crm-portal-sidebar__company {
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.25;
 }
 
 .crm-portal-sidebar--collapsed .crm-portal-sidebar__brand-copy {
@@ -159,7 +172,7 @@ html:has(.crm-portal-root) body {
 
 .crm-portal-sidebar__group-label {
   padding: 0 0.5rem 0.3rem;
-  font-size: 0.5625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -178,7 +191,7 @@ html:has(.crm-portal-root) body {
   padding: 0.4rem 0.55rem;
   margin-bottom: 0.05rem;
   border-radius: 0.45rem;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
@@ -253,7 +266,7 @@ html:has(.crm-portal-root) body {
   background: color-mix(in srgb, var(--bg-page) 40%, var(--bg-card));
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 650;
 }
 
@@ -355,12 +368,13 @@ html:has(.crm-portal-root) body {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
   margin-left: var(--portal-sidebar-w);
   transition: margin-left 0.2s ease;
-  overflow: hidden;
+  overflow: hidden !important;
 }
 
 .crm-portal-main--collapsed {
@@ -371,30 +385,46 @@ html:has(.crm-portal-root) body {
   margin-left: 0;
 }
 
+/* Forcefully hide and disable sidebar & header whenever any modal is open */
+body.crm-modal-open .crm-portal-sidebar,
+body.crm-modal-open .crm-portal-header,
+body.crm-modal-open .crm-portal-sidebar-rail,
+body.crm-modal-open .crm-portal-bottom-nav,
+body.crm-modal-open .crm-portal-layout__sidebar,
+body.crm-modal-open .crm-portal-layout__header,
+body.crm-modal-open header.crm-portal-header,
+body.crm-modal-open aside.crm-portal-sidebar {
+  pointer-events: none !important;
+  user-select: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
 .crm-portal-header {
-  position: sticky;
-  top: 0;
-  z-index: 1100;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1100 !important;
+  flex-shrink: 0 !important;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  min-height: calc(var(--portal-header-h) + 0.35rem);
-  padding: 0.45rem 1rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--bg-card) 92%, var(--brand-soft)) 0%,
-      var(--bg-navbar, var(--bg-card)) 100%
-    );
-  backdrop-filter: blur(8px);
+  height: 3.35rem;
+  min-height: 3.35rem;
+  padding: 0.35rem 1.15rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-navbar, var(--bg-card));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.025);
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .crm-portal-header__left {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.75rem;
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -403,21 +433,22 @@ html:has(.crm-portal-root) body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.125rem;
+  height: 2.125rem;
   border: 1px solid var(--border);
-  border-radius: 0.625rem;
+  border-radius: 0.55rem;
   background: var(--bg-card);
   color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;
-  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+  transition: all 0.15s ease;
 }
 
 .crm-portal-header__menu-btn:hover {
-  border-color: color-mix(in srgb, var(--brand) 25%, var(--border));
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--border));
   color: var(--brand);
   background: var(--brand-soft);
+  transform: translateY(-0.5px);
 }
 
 .crm-portal-header__menu-btn svg {
@@ -431,9 +462,9 @@ html:has(.crm-portal-root) body {
   justify-content: center;
   min-width: 0;
   flex: 1 1 auto;
-  gap: 0.1rem;
-  padding-left: 0.65rem;
-  border-left: 2px solid color-mix(in srgb, var(--brand) 55%, transparent);
+  gap: 0.08rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid color-mix(in srgb, var(--brand) 45%, transparent);
 }
 
 .crm-portal-header__title {
@@ -444,11 +475,30 @@ html:has(.crm-portal-root) body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.crm-portal-header__role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand);
+  border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent);
   line-height: 1.2;
 }
 
 .crm-portal-header__subtitle {
-  font-size: 0.6875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.725rem;
+  font-weight: 500;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -476,11 +526,35 @@ html:has(.crm-portal-root) body {
 .crm-portal-header__cluster {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.25rem;
   padding: 0.2rem;
-  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  border: 1px solid var(--border);
   border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--bg-card) 88%, var(--bg-page));
+  background: var(--surface-2, var(--bg-muted, color-mix(in srgb, var(--bg-card) 88%, var(--bg-page))));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.crm-portal-header__user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  height: 2.35rem;
+  padding: 0.2rem 0.65rem 0.2rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.025);
+}
+
+.crm-portal-header__user-pill:hover,
+.crm-portal-header__user-pill.is-active {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
+  background: color-mix(in srgb, var(--brand-soft) 28%, var(--bg-card));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 16%, transparent);
 }
 
 .crm-portal-header__icon-btn {
@@ -534,7 +608,7 @@ html:has(.crm-portal-root) body {
   border-radius: 999px;
   background: var(--danger);
   color: #fff;
-  font-size: 0.5625rem;
+  font-size: 0.75rem;
   font-weight: 800;
   display: grid;
   place-items: center;
@@ -553,12 +627,20 @@ html:has(.crm-portal-root) body {
   background: var(--bg-card);
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.12s ease, background 0.12s ease;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
 }
 
-.crm-portal-header__user:hover {
+.crm-portal-header__user:hover,
+.crm-portal-header__user--active {
   border-color: color-mix(in srgb, var(--brand) 25%, var(--border));
   background: color-mix(in srgb, var(--brand-soft) 35%, var(--bg-card));
+}
+
+.crm-portal-header__user--active {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 18%, transparent);
 }
 
 .crm-portal-header__avatar {
@@ -569,7 +651,7 @@ html:has(.crm-portal-root) body {
   border-radius: 999px;
   background: linear-gradient(145deg, var(--brand-soft), color-mix(in srgb, var(--brand) 18%, var(--bg-card)));
   color: var(--brand);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 800;
   flex-shrink: 0;
 }
@@ -618,7 +700,7 @@ html:has(.crm-portal-root) body {
 
 .crm-portal-ann-ticker__body strong {
   flex-shrink: 0;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -700,7 +782,7 @@ html:has(.crm-portal-root) body {
   .crm-portal-header__avatar {
     width: 1.65rem;
     height: 1.65rem;
-    font-size: 0.625rem;
+    font-size: 0.75rem;
   }
 
   /* Announcements stay on the megaphone — hide noisy ticker strip on phones */
@@ -750,6 +832,22 @@ html:has(.crm-portal-root) body {
   min-height: 0;
 }
 
+.crm-portal-content:has(.module-page-root),
+.crm-portal-content:has(.crm-page-shell) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.crm-portal-content:has(.module-page-root) > .crm-portal-content__inner,
+.crm-portal-content:has(.crm-page-shell) > .crm-portal-content__inner {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 /* ── Bottom nav (mobile) ── */
 .crm-portal-bottom-nav {
   position: fixed;
@@ -771,7 +869,7 @@ html:has(.crm-portal-root) body {
   justify-content: center;
   gap: 0.0625rem;
   padding: 0.3125rem 0.25rem;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
   text-decoration: none;
@@ -940,7 +1038,7 @@ button.crm-portal-stat:hover {
 }
 
 .crm-portal-stat__label {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
 }
@@ -954,7 +1052,7 @@ button.crm-portal-stat:hover {
 }
 
 .crm-portal-stat__hint {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -1045,7 +1143,7 @@ button.crm-portal-metric:hover {
 .crm-portal-metric--neutral .crm-portal-metric__icon { background: color-mix(in srgb, var(--bg-page) 55%, var(--bg-card)); color: var(--text-muted); }
 
 .crm-portal-metric__label {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -1061,7 +1159,7 @@ button.crm-portal-metric:hover {
 
 .crm-portal-metric__hint {
   margin-top: 0.15rem;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -1084,14 +1182,14 @@ button.crm-portal-metric:hover {
 }
 
 .crm-portal-panel__title {
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 650;
   color: var(--text-primary);
 }
 
 .crm-portal-panel__desc {
   margin-top: 0.1rem;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -1148,12 +1246,12 @@ button.crm-portal-list__item:hover {
 
 .crm-portal-list__meta {
   margin-top: 0.2rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
 .crm-portal-list__time {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
@@ -1195,7 +1293,7 @@ button.crm-portal-list__item:hover {
 
 .crm-portal-class-card__sub {
   margin-top: 0.15rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -1205,7 +1303,7 @@ button.crm-portal-list__item:hover {
   align-items: center;
   padding: 0.125rem 0.4375rem;
   border-radius: 0.25rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
@@ -1271,7 +1369,7 @@ button.crm-portal-list__item:hover {
 .crm-portal-empty__title,
 .crm-portal-error__title {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 650;
   color: var(--text-primary);
 }
@@ -1280,7 +1378,7 @@ button.crm-portal-list__item:hover {
 .crm-portal-error__desc {
   margin: 0;
   max-width: 22rem;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   line-height: 1.4;
 }
@@ -1353,7 +1451,7 @@ button.crm-portal-list__item:hover {
 
 .crm-portal-att-cal__head {
   text-align: center;
-  font-size: 0.5625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1372,7 +1470,7 @@ button.crm-portal-list__item:hover {
   border: 1px solid transparent;
   border-radius: 0.35rem;
   background: transparent;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
 }
 
 .crm-portal-att-cal__day--empty {
@@ -1438,7 +1536,7 @@ button.crm-portal-list__item:hover {
 }
 
 .crm-stu-att-strip__label {
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -1492,7 +1590,7 @@ button.crm-portal-list__item:hover {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 0.5rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -1516,7 +1614,7 @@ button.crm-portal-list__item:hover {
 }
 
 .crm-stu-att-batch span {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -1549,7 +1647,7 @@ button.crm-portal-list__item:hover {
 
 .crm-stu-att-list__meta {
   margin: 0.1rem 0 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -1613,7 +1711,7 @@ button.crm-portal-list__item:hover {
 
 .crm-portal-mobile-card__label {
   color: var(--text-muted);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
 }
 
 .crm-portal-table-wrap {
@@ -1664,7 +1762,7 @@ button.crm-portal-list__item:hover {
     content: attr(data-label);
     font-weight: 600;
     color: var(--text-muted);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
   }
 }
@@ -1682,7 +1780,7 @@ button.crm-portal-list__item:hover {
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
@@ -1761,7 +1859,7 @@ button.crm-portal-list__item:hover {
 }
 
 .crm-student-field__label {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -1981,7 +2079,7 @@ button.crm-portal-list__item:hover {
 .crm-student-appointment__meta,
 .crm-student-appointment__note {
   margin: 0.25rem 0 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -2027,7 +2125,7 @@ button.crm-portal-list__item:hover {
 
 .crm-stu-dash-links .crm-portal-quick-action {
   padding: 0.45rem 0.5rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   border-radius: 0.5rem;
   justify-content: center;
   background: color-mix(in srgb, var(--bg-card) 70%, var(--bg-page));
@@ -2218,7 +2316,7 @@ button.crm-portal-list__item:hover {
 
 .crm-student-journey__eyebrow {
   margin: 0;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2254,7 +2352,7 @@ button.crm-portal-list__item:hover {
 
 .crm-student-journey__next-label {
   display: block;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 750;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2278,7 +2376,7 @@ button.crm-portal-list__item:hover {
 .crm-student-journey__pct > span {
   display: block;
   text-align: right;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 750;
   color: var(--brand);
   margin-bottom: 0.2rem;
@@ -2314,7 +2412,7 @@ button.crm-portal-list__item:hover {
   padding: 0.22rem 0.5rem;
   border-radius: 999px;
   border: 1px solid var(--border);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
   background: color-mix(in srgb, var(--bg-page) 55%, var(--bg-card));
@@ -2373,7 +2471,7 @@ button.crm-portal-list__item:hover {
 
 .crm-student-primary-action__label {
   margin: 0;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--brand);
@@ -2426,7 +2524,7 @@ button.crm-portal-list__item:hover {
 
 .crm-student-actions__type {
   display: inline-block;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -2447,7 +2545,7 @@ button.crm-portal-list__item:hover {
 
 .crm-student-actions__desc {
   margin: 0.15rem 0 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2514,14 +2612,14 @@ button.crm-portal-list__item:hover {
 .crm-student-course-list__meta,
 .crm-student-course-list__next {
   margin: 0.125rem 0 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
 .crm-student-course-list__progress {
   min-width: 3.5rem;
   text-align: right;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--brand);
 }
@@ -2569,14 +2667,14 @@ button.crm-portal-list__item:hover {
 .crm-student-counsellor-card__role,
 .crm-student-counsellor-card__session {
   margin: 0.125rem 0 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
 .crm-student-field__locked {
   display: inline-block;
   margin-left: 0.375rem;
-  font-size: 0.5625rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -2607,7 +2705,7 @@ button.crm-portal-list__item:hover {
 
 .crm-student-calendar__day-label {
   margin: 0 0 0.35rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-secondary);
 }
@@ -2632,7 +2730,7 @@ button.crm-portal-list__item:hover {
 
 .crm-student-calendar__type {
   flex-shrink: 0;
-  font-size: 0.5625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   padding: 0.125rem 0.375rem;
@@ -2649,13 +2747,13 @@ button.crm-portal-list__item:hover {
 
 .crm-student-calendar__meta {
   margin: 0.125rem 0 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
 .crm-student-calendar__link {
   margin-left: auto;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--brand);
   text-decoration: none;
@@ -2687,7 +2785,7 @@ button.crm-portal-list__item:hover {
 }
 
 .crm-portal-table th {
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2830,7 +2928,7 @@ button.crm-portal-list__item:hover {
 
 .crm-student-expand-meta {
   margin: 0.1rem 0 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -2894,7 +2992,7 @@ button.crm-portal-list__item:hover {
 .crm-portal-split__meta-cell > span:first-child,
 .crm-portal-split__meta-cell .crm-portal-split__meta-label {
   display: block;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
   margin-bottom: 0.1rem;
@@ -2932,7 +3030,7 @@ button.crm-portal-list__item:hover {
 
 .crm-portal-pick-card__eyebrow {
   margin: 0;
-  font-size: 0.5625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2952,7 +3050,7 @@ button.crm-portal-list__item:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
 }
 
@@ -3014,7 +3112,7 @@ button.crm-portal-list__item:hover {
   align-items: center;
   gap: 0.35rem;
   margin-bottom: 0.4rem;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 650;
   color: var(--text-secondary);
 }
@@ -3046,7 +3144,7 @@ button.crm-portal-list__item:hover {
   border: 0;
   background: transparent;
   padding: 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--brand);
   cursor: pointer;
@@ -3096,7 +3194,7 @@ button.crm-portal-list__item:hover {
 
 .crm-portal-material-card__eyebrow {
   margin: 0;
-  font-size: 0.5625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -3112,7 +3210,7 @@ button.crm-portal-list__item:hover {
 
 .crm-portal-material-card__desc {
   margin: 0.2rem 0 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -3122,7 +3220,7 @@ button.crm-portal-list__item:hover {
 
 .crm-portal-material-card__meta {
   margin: 0.3rem 0 0;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -3131,7 +3229,7 @@ button.crm-portal-list__item:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 650;
   color: var(--brand);
   text-decoration: none;
@@ -3265,7 +3363,7 @@ button.crm-portal-list__item:hover {
   width: 1.35rem;
   height: 1.35rem;
   border-radius: 999px;
-  font-size: 0.5625rem;
+  font-size: 0.75rem;
   font-weight: 750;
   background: color-mix(in srgb, var(--bg-page) 70%, var(--bg-card));
   color: var(--text-muted);
@@ -3307,7 +3405,7 @@ button.crm-portal-list__item:hover {
 
 .crm-student-journey-timeline__label {
   margin: 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
   line-height: 1.3;
@@ -3324,7 +3422,7 @@ button.crm-portal-list__item:hover {
 
 .crm-student-journey-timeline__hint {
   margin: 0.1rem 0 0;
-  font-size: 0.5625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -3457,7 +3555,7 @@ button.crm-portal-list__item:hover {
 
 .crm-receipt__doc-label {
   margin: 0.15rem 0 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -3473,7 +3571,7 @@ button.crm-portal-list__item:hover {
   align-items: center;
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.05em;
 }
@@ -3510,7 +3608,7 @@ button.crm-portal-list__item:hover {
 
 .crm-receipt__amount-label {
   margin: 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -3539,7 +3637,7 @@ button.crm-portal-list__item:hover {
 
 .crm-receipt__field span {
   display: block;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -3571,7 +3669,7 @@ button.crm-portal-list__item:hover {
 
 .crm-receipt__foot p {
   margin: 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   line-height: 1.45;
 }
@@ -3592,30 +3690,30 @@ button.crm-portal-list__item:hover {
   }
 }
 
-/* -- Print: receipt only (hide chrome + page chrome) -- */
+/* -- Print: receipt & official voucher only (hide chrome + page chrome) -- */
 @media print {
   @page {
-    size: A4;
-    margin: 12mm;
+    size: A4 portrait;
+    margin: 8mm 10mm;
   }
 
   html,
   body {
-    background: #fff !important;
-    color: #111 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  body * {
-    visibility: hidden !important;
-  }
-
-  .crm-print-document,
-  .crm-print-document * {
-    visibility: visible !important;
-  }
-
+  /* Explicitly hide all UI chrome, sidebars, headers, toolbars, and non-printable elements */
   .crm-portal-sidebar,
   .crm-portal-sidebar-rail,
   .crm-portal-header,
@@ -3623,45 +3721,68 @@ button.crm-portal-list__item:hover {
   .crm-portal-overlay,
   .crm-portal-more-sheet,
   .crm-print-hide,
-  .crm-receipt-toolbar {
+  .crm-receipt-toolbar,
+  .crm-receipt-actions,
+  .crm-stu-att-kpi-grid,
+  .crm-receipt-list-col,
+  .crm-portal-ann-ticker,
+  header,
+  nav,
+  aside {
     display: none !important;
     visibility: hidden !important;
   }
 
+  /* Reset layout shells so they don't clip, scroll, or create extra blank pages */
+  #root,
   .crm-portal-root,
   .crm-portal-main,
   .crm-portal-content,
   .crm-portal-content__inner,
-  .crm-portal-page {
+  .crm-portal-page,
+  .crm-stu-page-container,
+  .crm-receipt-grid-container,
+  .crm-receipt-wrap,
+  .crm-receipt-preview-col {
     display: block !important;
     position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
-    background: transparent !important;
+    border: none !important;
     box-shadow: none !important;
+    background: transparent !important;
   }
 
-  .crm-receipt-wrap {
+  /* Pristine, clean official voucher for printing */
+  #receipt-print-area,
+  .crm-print-document,
+  .crm-print-document.crm-receipt,
+  .crm-official-voucher {
     display: block !important;
     visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 1.25rem 1.5rem !important;
+    border: 1.5px solid #0f172a !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
-  .crm-print-document.crm-receipt {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
-    border: 1px solid #d4d4d8 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    background: #fff !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
+  #receipt-print-area *,
+  .crm-print-document *,
+  .crm-official-voucher * {
+    visibility: visible !important;
   }
 
   .crm-receipt__head {
@@ -3765,7 +3886,7 @@ button.crm-portal-list__item:hover {
 }
 
 .crm-stu-profile__counsellor span {
-  font-size: 0.5625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -3832,7 +3953,7 @@ button.crm-portal-list__item:hover {
 .crm-student-field__editable-tag {
   display: inline-block;
   margin-left: 0.35rem;
-  font-size: 0.5625rem;
+  font-size: 0.75rem;
   font-weight: 650;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -3841,7 +3962,7 @@ button.crm-portal-list__item:hover {
 
 .crm-student-field__hint {
   margin: 0.2rem 0 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -3887,7 +4008,7 @@ button.crm-portal-list__item:hover {
 
 .crm-stu-profile__batch-meta {
   margin-top: 0.1rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4005,7 +4126,7 @@ button.crm-portal-list__item:hover {
 
 .crm-stu-cal .crm-student-calendar__day-label {
   margin: 0 0 0.35rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -4142,7 +4263,7 @@ button.crm-portal-list__item:hover {
 
 .crm-stu-notify__time {
   flex-shrink: 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -4201,7 +4322,7 @@ button.crm-portal-list__item:hover {
   display: block;
   margin-top: 0.1rem;
   font-style: normal;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -4241,7 +4362,7 @@ button.crm-portal-list__item:hover {
 
 .crm-stu-help__faq p {
   margin: 0.15rem 0 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   line-height: 1.4;
 }
@@ -4340,7 +4461,7 @@ a.crm-sdash-kpi:hover {
 }
 
 .crm-sdash-kpi__label {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -4355,7 +4476,7 @@ a.crm-sdash-kpi:hover {
 }
 
 .crm-sdash-kpi__hint {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 650;
 }
 
@@ -4464,7 +4585,7 @@ a.crm-sdash-kpi:hover {
   width: 1.65rem;
   height: 1.65rem;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 750;
   background: var(--bg-page);
   border: 2px solid var(--border);
@@ -4498,7 +4619,7 @@ a.crm-sdash-kpi:hover {
 }
 
 .crm-sdash-stepper__label {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 650;
   color: var(--text-muted);
   line-height: 1.25;
@@ -4519,7 +4640,7 @@ a.crm-sdash-kpi:hover {
   background: color-mix(in srgb, #16a34a 10%, var(--bg-card));
   border: 1px solid color-mix(in srgb, #16a34a 22%, var(--border));
   color: #166534;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
 }
 
@@ -4575,14 +4696,14 @@ a.crm-sdash-kpi:hover {
 
 .crm-sdash-activity__label {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 650;
   color: var(--text-primary);
 }
 
 .crm-sdash-activity__at {
   margin: 0.15rem 0 0;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -4616,7 +4737,7 @@ a.crm-sdash-kpi:hover {
 
 .crm-sdash-appt__with {
   margin: 0.15rem 0 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -4687,7 +4808,7 @@ a.crm-sdash-kpi:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem 0.9rem;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
 }
 
@@ -4780,7 +4901,7 @@ a.crm-sdash-kpi:hover {
 .crm-sdash-class__meta,
 .crm-sdash-class__time {
   margin: 0.15rem 0 0;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -4788,7 +4909,7 @@ a.crm-sdash-kpi:hover {
   flex-shrink: 0;
   padding: 0.18rem 0.45rem;
   border-radius: 999px;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -4805,7 +4926,7 @@ a.crm-sdash-kpi:hover {
 
 .crm-sdash-att__pct {
   margin: 0;
-  font-size: 1.85rem;
+  font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text-primary);
@@ -4855,7 +4976,7 @@ a.crm-sdash-kpi:hover {
 }
 
 .crm-sdash-att__stats span {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   font-weight: 600;
 }
@@ -4905,7 +5026,7 @@ a.crm-sdash-kpi:hover {
 .crm-sdash-update__title,
 .crm-sdash-msg__from {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -4914,7 +5035,7 @@ a.crm-sdash-kpi:hover {
 .crm-sdash-update__msg,
 .crm-sdash-msg__preview {
   margin: 0.12rem 0 0;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -4926,7 +5047,7 @@ a.crm-sdash-kpi:hover {
   margin-left: 0.35rem;
   font-style: normal;
   font-weight: 600;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -4938,7 +5059,7 @@ a.crm-sdash-kpi:hover {
   border-radius: 999px;
   background: #dc2626;
   color: #fff;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 700;
   display: grid;
   place-items: center;
@@ -4962,7 +5083,7 @@ a.crm-sdash-kpi:hover {
 .crm-sdash-update__time {
   margin-left: auto;
   flex-shrink: 0;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -5040,7 +5161,7 @@ a.crm-sdash-kpi:hover {
 
 .crm-sdash-journey__eyebrow {
   margin: 0 0 0.35rem;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 750;
   letter-spacing: 0.04em;
   text-transform: uppercase;

@@ -90,10 +90,30 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload?.message || action.payload || 'Login failed';
       })
-      .addCase(fetchProfile.fulfilled, (state, action) => { state.user = action.payload; })
-      .addCase(updateProfile.fulfilled, (state, action) => { state.user = action.payload; })
-      .addCase(uploadProfileAvatar.fulfilled, (state, action) => { state.user = action.payload; })
-      .addCase(removeProfileAvatar.fulfilled, (state, action) => { state.user = action.payload; })
+      .addCase(fetchProfile.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.user = { ...state.user, ...action.payload };
+          localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(state.user));
+        }
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.user = { ...state.user, ...action.payload };
+          localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(state.user));
+        }
+      })
+      .addCase(uploadProfileAvatar.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.user = { ...state.user, ...action.payload };
+          localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(state.user));
+        }
+      })
+      .addCase(removeProfileAvatar.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.user = { ...state.user, ...action.payload, avatar: null };
+          localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(state.user));
+        }
+      })
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
         state.isAuthenticated = false;

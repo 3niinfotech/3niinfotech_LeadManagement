@@ -107,7 +107,7 @@ const sanitizeUser = (user, portal) => {
       dataScope,
       permissions,
     },
-    company: user.company ? { id: user.company.id, name: user.company.name, code: user.company.code } : null,
+    company: user.company ? { id: user.company.id, name: user.company.name, code: user.company.code, logo: user.company.logo } : null,
     branch: user.branch ? { id: user.branch.id, name: user.branch.name, code: user.branch.code } : null,
     branchId: user.branchId || user.branch?.id || null,
     companyId: user.companyId || user.company?.id || null,
@@ -664,7 +664,7 @@ export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   // Strength is enforced on registration; login allows short DEV universal password (e.g. 123)
   password: z.string().min(1, 'Password is required'),
-  portal: z.enum([PORTALS.ADMIN, PORTALS.STUDENT, PORTALS.AGENT]).optional(),
+  portal: z.preprocess((val) => (typeof val === 'string' ? val.toLowerCase() : val), z.enum([PORTALS.ADMIN, PORTALS.STUDENT, PORTALS.AGENT])).optional(),
 });
 
 export const refreshSchema = z.object({
@@ -697,7 +697,7 @@ export const changePasswordSchema = z.object({
 
 export const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
-  portal: z.enum([PORTALS.ADMIN, PORTALS.STUDENT, PORTALS.AGENT]).optional().default(PORTALS.STUDENT),
+  portal: z.preprocess((val) => (typeof val === 'string' ? val.toLowerCase() : val), z.enum([PORTALS.ADMIN, PORTALS.STUDENT, PORTALS.AGENT])).optional().default(PORTALS.STUDENT),
   newPassword: z.string().max(128).optional().nullable(),
   confirmPassword: z.string().optional().nullable(),
 }).superRefine((data, ctx) => {

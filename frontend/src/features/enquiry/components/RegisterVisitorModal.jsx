@@ -91,16 +91,22 @@ export default function RegisterVisitorModal({
         visitPurpose: '',
         email: '',
         notes: '',
-        assignedToId: '',
-        branchId,
+        assignedToId: user?.role?.slug === 'counsellor' ? (user.id || user._id) : '',
+        branchId: branchId || '',
       });
       setIdentity(null);
       return;
     }
-    if (branchId) {
-      reset((current) => ({ ...current, branchId }));
-    }
-  }, [open, reset, branchId]);
+    reset({
+      fullName: '',
+      phone: '',
+      visitPurpose: '',
+      email: '',
+      notes: '',
+      assignedToId: user?.role?.slug === 'counsellor' ? (user.id || user._id) : '',
+      branchId: branchId || '',
+    });
+  }, [open, reset, branchId, user]);
 
   useEffect(() => {
     if (!branchId || debouncedPhone.length < 8) {
