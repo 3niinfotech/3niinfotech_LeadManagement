@@ -110,23 +110,23 @@ export default function NavbarProfileMenu({ open, onToggle, onClose }) {
         onClick={onToggle}
         aria-expanded={open}
         aria-haspopup="menu"
-        className={`group flex items-center gap-2 h-9 pl-1.5 pr-2.5 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20
+        className={`group flex items-center gap-2 h-9 pl-1.5 pr-2.5 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/20
           ${open
-            ? 'bg-primary/10 border-primary/30 shadow-xs'
-            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-primary/30 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-xs'
+            ? 'bg-brand/10 border-brand/40 shadow-xs'
+            : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs'
           }`}
       >
         <div className="relative shrink-0">
-          <Avatar name={avatarName} src={resolvePublicAssetUrl(user?.avatar)} size="sm" className="!w-7 !h-7 ring-1 ring-slate-200 dark:ring-slate-700" />
+          <Avatar name={avatarName} src={resolvePublicAssetUrl(user?.avatar)} size="sm" className="!w-6.5 !h-6.5 ring-1 ring-slate-200 dark:ring-slate-700" />
           <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-1.5 ring-white dark:ring-slate-900" />
         </div>
         <div className="hidden lg:block text-left min-w-0 max-w-[128px]">
-          <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-100 leading-tight truncate">{avatarName}</p>
+          <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-tight truncate">{avatarName}</p>
           <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight truncate">{branchName || 'Active'}</p>
         </div>
         <FiChevronDown
           className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200
-            ${open ? 'rotate-180 text-primary' : 'group-hover:text-slate-600'}`}
+            ${open ? 'rotate-180 text-brand' : 'group-hover:text-slate-600'}`}
         />
       </button>
 

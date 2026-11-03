@@ -121,24 +121,24 @@ export default function NavbarBranchSwitcher() {
         disabled={switching}
         title="Active branch — filters all CRM data for your role"
         className={`
-          inline-flex items-center gap-2 rounded-xl border bg-card-bg px-3 py-1.5
-          text-[12px] font-semibold text-text shadow-sm transition-all
-          hover:border-brand/30 hover:bg-brand-soft/40
+          h-9 inline-flex items-center gap-2 rounded-lg border bg-white dark:bg-slate-900 px-2.5
+          text-xs font-semibold text-slate-800 dark:text-slate-200 shadow-2xs transition-all
+          hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/80
           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/25
-          disabled:opacity-60 max-w-[220px] sm:max-w-[260px]
-          ${open ? 'border-brand/35 ring-1 ring-brand/15' : 'border-border/80'}
+          disabled:opacity-60 max-w-[200px] sm:max-w-[240px]
+          ${open ? 'border-brand/40 ring-1 ring-brand/20' : 'border-slate-200/80 dark:border-slate-800'}
         `}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={`Active branch: ${currentLabel}`}
       >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
-          <FiMapPin size={13} strokeWidth={2.2} />
+        <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-md bg-brand-soft text-brand">
+          <FiMapPin size={12} strokeWidth={2.2} />
         </span>
         <span className="truncate">{currentLabel}</span>
         <FiChevronDown
-          size={14}
-          className={`shrink-0 text-text-muted transition-transform ${open ? 'rotate-180' : ''}`}
+          size={13}
+          className={`shrink-0 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180 text-brand' : 'group-hover:text-slate-600'}`}
         />
       </button>
 

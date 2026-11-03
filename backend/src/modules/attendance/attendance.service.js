@@ -647,7 +647,7 @@ export const attendanceService = {
       where: { id: student.id },
       include: {
         branch: { select: { id: true, name: true } },
-        enrollments: {
+        batchEnrollments: {
           where: { isActive: true },
           include: {
             batch: {
@@ -675,7 +675,7 @@ export const attendanceService = {
         email: student.email,
         phone: student.phone,
         branch: studentRecord?.branch || null,
-        enrollments: studentRecord?.enrollments || [],
+        enrollments: studentRecord?.batchEnrollments || [],
       },
       totals: { total, present, absent, late, excused, leave, percent },
       lowAttendance: isLowAttendance(percent, settings) && total > 0,

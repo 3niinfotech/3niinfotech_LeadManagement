@@ -173,6 +173,9 @@ export default function PortalHeader({
               {fullscreen ? <FiMinimize /> : <FiMaximize />}
             </button>
 
+            {/* Subtle Divider */}
+            <span className="crm-portal-header__divider hidden sm:block" aria-hidden />
+
             {/* Announcements Popover Button */}
             <button
               ref={announceBtnRef}

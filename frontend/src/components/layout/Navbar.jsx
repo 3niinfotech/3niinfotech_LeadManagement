@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { navbar as navbarTheme } from '../../theme';
 import NavbarGlobalSearch from './NavbarGlobalSearch';
 import NavbarQuickActions from './NavbarQuickActions';
-import NavbarUtilities from './NavbarUtilities';
 import NavbarBranchSwitcher from './NavbarBranchSwitcher';
+import NavbarProfileMenu from './NavbarProfileMenu';
 
 export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -26,10 +26,10 @@ export default function Navbar() {
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 overflow-visible">
           <NavbarBranchSwitcher />
           <NavbarQuickActions />
-          <NavbarUtilities
-            profileOpen={profileOpen}
-            onProfileToggle={() => setProfileOpen((v) => !v)}
-            onProfileClose={() => setProfileOpen(false)}
+          <NavbarProfileMenu
+            open={profileOpen}
+            onToggle={() => setProfileOpen((v) => !v)}
+            onClose={() => setProfileOpen(false)}
           />
         </div>
       </div>

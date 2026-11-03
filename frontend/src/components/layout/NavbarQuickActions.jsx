@@ -1,13 +1,15 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { FiSun, FiMoon, FiMaximize, FiMinimize } from 'react-icons/fi';
 import { HEADER_ACTIONS, HEADER_ACTION_TONES } from '../../config/headerActions.config';
 import { hasAnyPermission } from '../../config/permissions';
+import { THEMES } from '../../config/constants';
+import { setTheme, selectTheme } from '../../redux/slices/uiSlice';
 import { selectUnreadCount } from '../../modules/notification/redux/notificationSlice';
 import { selectReminderBadge, selectReminderFeed } from '../../modules/reminder/redux/reminderSlice';
 import { selectPermissions } from '../../redux/slices/authSlice';
 import { useAnnouncementCount } from '../../hooks/useAnnouncementCount';
-import { iconSize } from '../../theme/icons';
 import HeaderActionPopover from './HeaderActionPopover';
 import NotificationPanel, { NotificationHeaderActions } from './header-panels/NotificationPanel';
 import ReminderPanel from './header-panels/ReminderPanel';
@@ -40,17 +42,14 @@ function getBadgeCount(key, unreadNotifications, reminderBadge, reminderFeed, an
 
 function CountBadge({ count, tone }) {
   const label = count > 9 ? '9+' : String(count);
-  const wide = label.length > 1;
 
   return (
     <span
       className={`
-        pointer-events-none absolute z-10 flex items-center justify-center
-        font-bold tabular-nums leading-none
-        ${wide ? 'min-w-[14px] h-3 px-0.5 text-[7px]' : 'w-3 h-3 text-[8px]'}
-        rounded-full ${tone.badge} ${tone.badgeText}
-        ring-1 ring-card-bg
-        -top-1 -right-1.5
+        pointer-events-none absolute -top-1 -right-1 z-10 flex items-center justify-center
+        min-w-[15px] h-[15px] px-1 text-[9px] font-bold leading-none tabular-nums
+        rounded-full text-white ${tone.badge || 'bg-brand'}
+        ring-2 ring-white dark:ring-slate-900 shadow-2xs
       `}
       aria-hidden
     >
@@ -89,19 +88,20 @@ function QuickActionButton({ action, badge, isActive, onClick, buttonRef }) {
       aria-pressed={isActive}
       className={`
         group relative flex items-center justify-center
-        w-9 h-9 rounded-lg transition-all duration-200 focus-ring
-        ${isActive ? tone.active : `text-text-muted ${tone.hover}`}
+        w-8 h-8 rounded-md transition-all duration-150 focus-ring
+        ${isActive
+          ? 'bg-brand-soft text-brand ring-1 ring-brand/20'
+          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+        }
       `}
     >
-      <span className="relative inline-flex items-center justify-center">
-        <Icon className={`${iconSize.sm} transition-transform duration-200 group-hover:scale-105`} />
-        {badge > 0 && <CountBadge count={badge} tone={tone} />}
-      </span>
+      <Icon className="w-4 h-4 transition-transform duration-150 group-hover:scale-105" />
+      {badge > 0 && <CountBadge count={badge} tone={tone} />}
 
       {tip && createPortal(
         <span
-          className="fixed z-[1500] px-2.5 py-1 rounded-md bg-text text-white text-[10px] font-medium whitespace-nowrap
-            shadow-lg border border-white/10 pointer-events-none -translate-x-1/2"
+          className="fixed z-[1500] px-2 py-0.5 rounded-md bg-slate-900 text-white text-[10px] font-medium whitespace-nowrap
+            shadow-md border border-white/10 pointer-events-none -translate-x-1/2"
           style={{ top: tip.top, left: tip.left }}
           role="tooltip"
         >
@@ -113,7 +113,50 @@ function QuickActionButton({ action, badge, isActive, onClick, buttonRef }) {
   );
 }
 
+function UtilityActionButton({ icon: Icon, label, onClick, active, className = '' }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className={`
+        flex items-center justify-center w-8 h-8 rounded-md transition-all duration-150 focus-ring
+        ${active
+          ? 'bg-brand-soft text-brand'
+          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+        } ${className}
+      `}
+    >
+      <Icon className="w-4 h-4" />
+    </button>
+  );
+}
+
 export default function NavbarQuickActions() {
+  const dispatch = useDispatch();
+  const theme = useSelector(selectTheme);
+  const isDark = theme === THEMES.DARK;
+  const [fullscreen, setFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onFsChange = () => setFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  const toggleTheme = () => {
+    dispatch(setTheme(isDark ? THEMES.LIGHT : THEMES.DARK));
+  };
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+    } else {
+      document.documentElement.requestFullscreen?.();
+    }
+  };
+
   const unreadCount = useSelector(selectUnreadCount);
   const reminderBadge = useSelector(selectReminderBadge);
   const reminderFeed = useSelector(selectReminderFeed);
@@ -163,9 +206,9 @@ export default function NavbarQuickActions() {
     <>
       <nav
         aria-label="Quick actions"
-        className="flex items-center h-11 rounded-xl border border-border/70 bg-card-bg/90 shadow-sm backdrop-blur-sm px-1.5 overflow-visible"
+        className="flex items-center h-9 rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs px-1 overflow-visible"
       >
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           {primaryActions.map((action) => (
             <QuickActionButton
               key={action.id}
@@ -182,8 +225,8 @@ export default function NavbarQuickActions() {
 
         {secondaryActions.length > 0 && (
           <>
-            <span className="w-px h-5 bg-border/60 mx-0.5" aria-hidden />
-            <div className="flex items-center gap-1">
+            <span className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1 shrink-0" aria-hidden />
+            <div className="flex items-center gap-0.5">
               {secondaryActions.map((action) => (
                 <QuickActionButton
                   key={action.id}
@@ -199,6 +242,22 @@ export default function NavbarQuickActions() {
             </div>
           </>
         )}
+
+        <span className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1 shrink-0" aria-hidden />
+
+        <div className="flex items-center gap-0.5">
+          <UtilityActionButton
+            icon={isDark ? FiSun : FiMoon}
+            label={isDark ? 'Light mode' : 'Dark mode'}
+            onClick={toggleTheme}
+          />
+          <UtilityActionButton
+            icon={fullscreen ? FiMinimize : FiMaximize}
+            label={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            onClick={toggleFullscreen}
+            className="hidden sm:flex"
+          />
+        </div>
       </nav>
 
       <HeaderActionPopover
