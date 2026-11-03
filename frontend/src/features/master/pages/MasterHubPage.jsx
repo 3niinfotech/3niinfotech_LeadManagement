@@ -4,11 +4,10 @@ import { FiDatabase, FiChevronRight, FiSearch } from 'react-icons/fi';
 import * as FiIcons from 'react-icons/fi';
 import ModulePageCard from '../../../components/layout/ModulePageLayout';
 import Card from '../../../components/ui/Card';
-import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { ROUTES } from '../../../config/routes';
 import { PERMISSIONS, hasAnyPermission } from '../../../config/permissions';
-import { MASTER_SECTIONS, searchMasterItems, getMasterTypeMeta } from '../../../config/master-registry.config';
+import { MASTER_SECTIONS, searchMasterItems } from '../../../config/master-registry.config';
 import { masterApi, getApiErrorMessage } from '../services/masterApi.service';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { isMastersForcedHidden } from '../../../config/access-policy';
@@ -17,78 +16,52 @@ function resolveIcon(name) {
   return FiIcons[name] || FiIcons.FiCircle;
 }
 
-function TypeBadge({ type }) {
-  const meta = getMasterTypeMeta(type);
-  const tone = {
-    simple: 'bg-slate-100 text-slate-700',
-    relational: 'bg-sky-50 text-sky-700',
-    workflow: 'bg-violet-50 text-violet-700',
-    module: 'bg-amber-50 text-amber-800',
-    config: 'bg-emerald-50 text-emerald-800',
-  }[type] || 'bg-slate-100 text-slate-700';
-  return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${tone}`}>
-      {meta.label}
-    </span>
-  );
-}
-
-function CountStrip({ summary, loading, isEngine }) {
-  if (!isEngine) {
-    return <p className="text-[11px] text-text-muted mt-2">Existing module / configuration</p>;
-  }
-  if (loading && !summary) {
-    return <p className="text-[11px] text-text-muted mt-2">Loading counts…</p>;
-  }
-  if (!summary) return null;
-  return (
-    <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-      <span className="rounded bg-surface-muted px-1.5 py-0.5 text-text-muted">
-        Records <strong className="text-text">{summary.total ?? 0}</strong>
-      </span>
-      <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-emerald-700">
-        Active <strong>{summary.active ?? 0}</strong>
-      </span>
-      {(summary.inactive ?? 0) > 0 && (
-        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">
-          Inactive <strong>{summary.inactive ?? 0}</strong>
-        </span>
-      )}
-    </div>
-  );
-}
-
 function MasterCard({ item, summary, loading }) {
   const Icon = resolveIcon(item.icon);
+
   return (
-    <Card className="p-4 h-full flex flex-col">
-      <div className="flex items-start gap-3 min-w-0">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Icon size={18} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-semibold text-text truncate">{item.label}</p>
-            <TypeBadge type={item.type} />
+    <Link
+      to={item.route}
+      className="group flex flex-col justify-between rounded-xl border border-border bg-card p-4 transition-all duration-150 hover:border-brand/40 hover:shadow-sm"
+    >
+      <div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
+              <Icon size={16} />
+            </span>
+            <h3 className="text-sm font-semibold text-text truncate group-hover:text-brand transition-colors">
+              {item.label}
+            </h3>
           </div>
-          <p className="text-[11px] font-medium text-primary mt-0.5">{item.sectionLabel || item.category}</p>
-          <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{item.description}</p>
-          {item.usedIn?.length > 0 && (
-            <p className="text-[11px] text-text-muted mt-2">
-              Used in: {item.usedIn.join(', ')}
-            </p>
-          )}
-          <CountStrip summary={summary} loading={loading} isEngine={item.engine} />
+          <FiChevronRight className="w-4 h-4 text-text-muted shrink-0 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
         </div>
+
+        {item.description && (
+          <p className="text-xs text-text-secondary mt-2 line-clamp-2 leading-relaxed">
+            {item.description}
+          </p>
+        )}
       </div>
-      <div className="mt-3 pt-3 border-t border-border">
-        <Link to={item.route} className="block">
-          <Button size="sm" variant="outline" className="w-full" icon={FiChevronRight}>
-            Open
-          </Button>
-        </Link>
+
+      <div className="mt-3.5 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11.5px] text-text-muted">
+        {loading && !summary ? (
+          <span className="text-[11px] text-text-muted">Loading…</span>
+        ) : item.engine && summary ? (
+          <span>
+            <strong className="font-semibold text-text">{summary.total ?? 0}</strong> records
+            {summary.active != null && summary.active !== summary.total && (
+              <span className="ml-1 text-emerald-600 font-medium">({summary.active} active)</span>
+            )}
+          </span>
+        ) : (
+          <span className="text-[11px] text-text-muted">System master</span>
+        )}
+        <span className="text-[11px] font-medium text-brand opacity-0 group-hover:opacity-100 transition-opacity">
+          Manage &rarr;
+        </span>
       </div>
-    </Card>
+    </Link>
   );
 }
 
@@ -169,7 +142,7 @@ export default function MasterHubPage() {
         { label: 'Masters' },
       ]}
     >
-      <div className="flex-1 min-h-0 overflow-auto p-4 space-y-6">
+      <div className="flex-1 min-h-0 overflow-auto p-4 space-y-5">
         <div className="max-w-xl">
           <Input
             value={search}
@@ -190,7 +163,7 @@ export default function MasterHubPage() {
               <a
                 key={section.id}
                 href={`#master-${section.id}`}
-                className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text hover:bg-row-hover hover:border-primary hover:text-primary"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text hover:border-brand/40 hover:bg-page transition-colors"
               >
                 {section.label}
               </a>
@@ -208,54 +181,25 @@ export default function MasterHubPage() {
               No masters match “{search}”
             </Card>
           ) : (
-            <div className="space-y-2">
-              {matchedItems.map((item) => {
-                const Icon = resolveIcon(item.icon);
-                const counts = item.engine ? summary?.[item.entity || item.id] : null;
-                return (
-                  <Link
-                    key={item.id}
-                    to={item.route}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-row-hover transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <Icon size={16} />
-                      </span>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-text truncate">{item.label}</p>
-                          <TypeBadge type={item.type} />
-                        </div>
-                        <p className="text-xs text-text-muted truncate">
-                          Admin / Masters / {item.sectionLabel} / {item.label}
-                        </p>
-                        {item.usedIn?.length > 0 && (
-                          <p className="text-[11px] text-text-muted truncate">Used in: {item.usedIn.join(', ')}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      {counts != null && (
-                        <span className="text-[11px] text-text-muted hidden sm:inline">
-                          {counts.total ?? 0} records
-                        </span>
-                      )}
-                      <FiChevronRight className="text-text-muted" />
-                    </div>
-                  </Link>
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+              {matchedItems.map((item) => (
+                <MasterCard
+                  key={item.id}
+                  item={item}
+                  summary={item.engine ? summary?.[item.entity || item.id] : null}
+                  loading={loading}
+                />
+              ))}
             </div>
           )
         ) : (
           visibleSections.map((section) => (
             <div key={section.id} id={`master-${section.id}`} className="scroll-mt-24">
               <div className="mb-3">
-                <h2 className="text-base font-semibold text-text">{section.label}</h2>
-                <p className="text-sm text-text-muted">{section.description}</p>
+                <h2 className="text-sm font-semibold text-text uppercase tracking-wider">{section.label}</h2>
+                <p className="text-xs text-text-muted">{section.description}</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
                 {section.items.map((item) => (
                   <MasterCard
                     key={item.id}
