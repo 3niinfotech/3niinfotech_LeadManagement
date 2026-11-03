@@ -327,7 +327,7 @@ export default function OrganizationBranchPage() {
         title={drawerTitle}
         subtitle={drawerSubtitle}
         size="md"
-        variant="form"
+        variant="default"
         footer={
           readOnly ? (
             <Button variant="outline" size="sm" onClick={closeDrawer}>Close</Button>

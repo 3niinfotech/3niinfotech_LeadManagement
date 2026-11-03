@@ -3,9 +3,9 @@
  */
 .crm-master-form-modal.crm-modal-panel {
   border-radius: 1rem;
-  box-shadow: 0 20px 48px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px var(--border);
+  box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--border);
   height: auto !important;
-  max-height: min(90vh, 840px);
+  max-height: min(90vh, 860px);
 }
 
 .crm-master-form-modal.crm-modal-panel--compact {
@@ -18,14 +18,14 @@
 }
 
 .crm-master-form-modal .crm-modal-header {
-  padding: 1.125rem 1.25rem 0.875rem;
+  padding: 1rem 1.25rem 0.8rem;
   border-bottom: 1px solid var(--border);
   background: var(--bg-card);
 }
 
 .crm-master-form-modal .crm-modal-title {
   font-size: 1.0625rem;
-  font-weight: 750;
+  font-weight: 700;
   color: var(--text-primary);
   line-height: 1.25;
 }
@@ -37,22 +37,43 @@
 }
 
 .crm-master-form-modal .crm-modal-footer {
-  padding: 0.875rem 1.25rem;
+  padding: 0.75rem 1.25rem;
   background: var(--bg-card);
   border-top: 1px solid var(--border);
 }
 
 .crm-master-form-modal .crm-modal-body {
   padding: 0;
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: min(78vh, 760px);
+  overscroll-behavior: contain;
+}
+
+.crm-master-form-modal .crm-modal-body::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.crm-master-form-modal .crm-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.crm-master-form-modal .crm-modal-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--border) 75%, transparent);
+  border-radius: 9999px;
+}
+
+.crm-master-form-modal .crm-modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .crm-master-form-modal .crm-master-form-scroll {
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  max-height: min(72vh, 640px);
   padding: 1.125rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  max-height: none;
 }
 
 .crm-master-form-modal.crm-modal-panel--compact .crm-master-form-scroll {
@@ -96,7 +117,8 @@
 .crm-master-form-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.875rem;
+  gap: 0.75rem 0.875rem;
+  align-items: end;
 }
 
 .crm-master-drawer-grid--2col,
@@ -115,6 +137,14 @@
 .crm-master-drawer-grid__full,
 .crm-master-form-grid__full {
   grid-column: 1 / -1;
+  width: 100%;
+}
+
+.crm-master-grid-switch-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 3.65rem;
 }
 
 .crm-master-drawer-grid--switches,
@@ -139,15 +169,15 @@
 
 .crm-master-form-section--titled + .crm-master-form-section--titled,
 .crm-master-form-section--titled:not(:first-child) {
-  margin-top: 1.125rem;
-  padding-top: 1rem;
-  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  margin-top: 0.875rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
 }
 
 .crm-master-form-section__title {
-  margin: 0 0 0.25rem;
+  margin: 0 0 0.35rem;
   font-size: 0.6875rem;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -179,9 +209,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  min-height: 2.75rem;
-  padding: 0.5rem 0.875rem;
-  border-radius: 0.75rem;
+  min-height: 2.375rem;
+  height: 2.375rem;
+  padding: 0 0.75rem;
+  border-radius: 0.5rem;
   border: 1px solid var(--border);
   background: var(--bg-card);
   transition: all 0.15s ease;

@@ -355,7 +355,7 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
         title={drawerTitle}
         subtitle={drawerSubtitle}
         size="lg"
-        variant="form"
+        variant="default"
         footer={
           readOnly ? (
             <Button variant="outline" size="sm" onClick={closeDrawer}>Close</Button>

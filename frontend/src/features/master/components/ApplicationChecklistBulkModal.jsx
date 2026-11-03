@@ -88,7 +88,7 @@ export default function ApplicationChecklistBulkModal({ open, onClose, onSuccess
       title="Add Checklist Rows"
       subtitle="Bulk create application checklist for a country"
       size="lg"
-      variant="form"
+      variant="default"
       error={submitError}
       footer={(
         <>

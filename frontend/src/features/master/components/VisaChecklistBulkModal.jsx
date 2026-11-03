@@ -86,7 +86,7 @@ export default function VisaChecklistBulkModal({ open, onClose, onSuccess }) {
       title="Add Visa Checklist Rows"
       subtitle="Bulk create document checklist for a country"
       size="lg"
-      variant="form"
+      variant="default"
       error={submitError}
       footer={(
         <>

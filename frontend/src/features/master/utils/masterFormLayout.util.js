@@ -89,8 +89,9 @@ export function resolveModalProps(layout = {}) {
 function groupFieldsIntoSections(fields, useSections = true) {
   if (!fields.length) return [];
 
-  // For compact forms with 6 or fewer fields, keep in a clean unified group without arbitrary headers
-  if (!useSections || fields.length <= 6) {
+  // Keep master forms with 10 or fewer fields in a single clean unified layout
+  // (eliminates cluttered multi-section uppercase headers & dividers for standard entities)
+  if (!useSections || fields.length <= 10) {
     return [{ id: 'all', title: null, fields }];
   }
 

@@ -19,10 +19,11 @@ import {
 } from '../utils/masterFormLayout.util';
 import '../styles/master-form.theme.css';
 
-const FULL_WIDTH_TYPES = new Set(['textarea', 'switch', 'options']);
+const FULL_WIDTH_TYPES = new Set(['textarea']);
 const FULL_WIDTH_NAMES = new Set([
-  'name', 'description', 'addressLine1', 'addressLine2', 'email', 'phone',
-  'variables', 'label', 'value',
+  'description', 'addressLine1', 'addressLine2', 'address',
+  'variables', 'message', 'body', 'content', 'htmlBody', 'smsBody', 'notes',
+  'template', 'emailTemplate', 'smsTemplate', 'rules',
 ]);
 
 function emptyDefaults(fields = [], fieldDefaults = {}) {
@@ -301,36 +302,18 @@ function SectionFields({
   watch,
   setValue,
 }) {
-  const switches = fields.filter((f) => f.type === 'switch');
-  const others = fields.filter((f) => f.type !== 'switch');
   const gridClass = columns === 2 ? 'crm-master-drawer-grid--2col' : '';
 
   return (
-    <>
-      {others.length > 0 && (
-        <div className={`crm-master-drawer-grid ${gridClass}`}>
-          {others.map((field) => (
-            <div
-              key={field.name}
-              className={isFullWidth(field, columns) ? 'crm-master-drawer-grid__full' : undefined}
-            >
-              <FieldControl
-                field={field}
-                control={control}
-                errors={errors}
-                disabled={disabled}
-                watch={watch}
-                setValue={setValue}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-      {switches.length > 0 && (
-        <div className={`crm-master-drawer-grid--switches ${others.length ? 'mt-3' : ''}`}>
-          {switches.map((field) => (
+    <div className={`crm-master-drawer-grid ${gridClass}`}>
+      {fields.map((field) => {
+        const full = isFullWidth(field, columns);
+        return (
+          <div
+            key={field.name}
+            className={`${full ? 'crm-master-drawer-grid__full' : ''} ${field.type === 'switch' ? 'crm-master-grid-switch-wrap' : ''}`.trim()}
+          >
             <FieldControl
-              key={field.name}
               field={field}
               control={control}
               errors={errors}
@@ -338,10 +321,10 @@ function SectionFields({
               watch={watch}
               setValue={setValue}
             />
-          ))}
-        </div>
-      )}
-    </>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

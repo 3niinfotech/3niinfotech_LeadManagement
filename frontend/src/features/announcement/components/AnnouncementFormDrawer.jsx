@@ -98,7 +98,7 @@ export default function AnnouncementFormDrawer({
       title={title}
       subtitle="Add title, message, upload images or files, and choose who should see it"
       size="lg"
-      variant="form"
+      variant="default"
       error={submitError}
       footer={(
         <>
