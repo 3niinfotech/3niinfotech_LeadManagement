@@ -84,11 +84,6 @@ export default function StudentCoursesPage() {
   }, [sessions, now]);
 
   const nextSession = upcomingSessions[0] || null;
-
-  if (loading) return <PortalSkeletonPage />;
-
-  const totals = academicData?.totals || {};
-  const attendancePercent = totals.percent ?? (totals.total ? Math.round((totals.present / totals.total) * 100) : 0);
   const primaryBatch = batches[0] || null;
 
   const timetable = useMemo(() => {
@@ -101,6 +96,11 @@ export default function StudentCoursesPage() {
       room: s.room || primaryBatch?.room || '—',
     }));
   }, [primaryBatch, batches]);
+
+  if (loading) return <PortalSkeletonPage />;
+
+  const totals = academicData?.totals || {};
+  const attendancePercent = totals.percent ?? (totals.total ? Math.round((totals.present / totals.total) * 100) : 0);
 
   return (
     <div className="crm-stu-page-container">
