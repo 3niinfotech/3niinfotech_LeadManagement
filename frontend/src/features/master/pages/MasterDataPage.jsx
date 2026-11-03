@@ -575,6 +575,7 @@ export default function MasterDataPage() {
       subtitle={`${getMasterTypeMeta(hubItem.type).label} · ${hubItem.aliasOf ? hubItem.description : entityConfig.description}${hubItem.usedIn?.length ? ` · Used in ${hubItem.usedIn.join(', ')}` : ''}`}
       icon={Icon}
       breadcrumbs={buildMasterBreadcrumbs(hubItem)}
+      scroll="contain"
       actions={null}
     >
       <div className="flex flex-col flex-1 min-h-0">
@@ -667,7 +668,7 @@ export default function MasterDataPage() {
           </div>
         ) : (
           <>
-            <ModulePageCard.Table className="min-h-[320px]">
+            <ModulePageCard.Table className="flex-1 min-h-0">
               <DataGrid
                 columns={columns}
                 rowData={list.rows}

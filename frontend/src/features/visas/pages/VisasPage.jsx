@@ -197,6 +197,7 @@ export default function VisasPage() {
           subtitle="Filings use Visa Status and Visa Checklist masters by country"
           icon={FiGlobe}
           iconColor="primary"
+          scroll="contain"
           breadcrumbs={[
             { label: 'Dashboard', path: ROUTES.DASHBOARD },
             { label: 'Visa Processing' },
@@ -254,7 +255,7 @@ export default function VisasPage() {
             />
           </ModulePageCard.Filters>
 
-          <ModulePageCard.Table className="min-h-[320px]">
+          <ModulePageCard.Table className="flex-1 min-h-0">
             <VisaGrid
               rows={rows}
               loading={gridLoading}

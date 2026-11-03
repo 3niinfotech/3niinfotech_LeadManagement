@@ -280,6 +280,7 @@ export default function OrganizationBranchPage() {
         subtitle={hubItem?.description}
         icon={FiMapPin}
         breadcrumbs={buildMasterBreadcrumbs(hubItem, hubItem?.label || 'Branch')}
+        scroll="contain"
         actions={
           canManage ? (
             <Button size="sm" icon={FiPlus} onClick={() => openDrawer('add')}>
@@ -300,7 +301,7 @@ export default function OrganizationBranchPage() {
             refreshing={fetching}
           />
 
-          <ModulePageCard.Table className="min-h-[320px]">
+          <ModulePageCard.Table className="flex-1 min-h-0">
             <DataGrid
               columns={columns}
               rowData={rows}

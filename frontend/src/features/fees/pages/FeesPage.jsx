@@ -181,6 +181,7 @@ export default function FeesPage() {
           subtitle="Invoices, dues, and collections"
           icon={FiDollarSign}
           iconColor="primary"
+          scroll="contain"
           breadcrumbs={[
             { label: 'Dashboard', path: ROUTES.DASHBOARD },
             { label: 'Fees' },
@@ -236,7 +237,7 @@ export default function FeesPage() {
             />
           </ModulePageCard.Filters>
 
-          <ModulePageCard.Table className="min-h-[320px]">
+          <ModulePageCard.Table className="flex-1 min-h-0">
             <FeesGrid
               rows={rows}
               loading={gridLoading}

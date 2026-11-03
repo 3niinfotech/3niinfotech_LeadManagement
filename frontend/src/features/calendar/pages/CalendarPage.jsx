@@ -217,6 +217,7 @@ export default function CalendarPage() {
     <>
       <ModulePageCard
         hideHeader
+        scroll="contain"
       >
         <ModulePageCard.Stats
           items={statItems}

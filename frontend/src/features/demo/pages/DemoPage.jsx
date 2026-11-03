@@ -224,6 +224,7 @@ export default function DemoPage() {
           subtitle="Scheduled trial classes, faculty assignment, student attendance & conversion outcomes"
           icon={FiMonitor}
           iconColor="primary"
+          scroll="contain"
           breadcrumbs={[
             { label: 'Dashboard', path: ROUTES.DASHBOARD },
             { label: 'Demo Management' },
@@ -294,7 +295,7 @@ export default function DemoPage() {
             />
           </ModulePageCard.Filters>
 
-          <ModulePageCard.Table className="min-h-[320px]">
+          <ModulePageCard.Table className="flex-1 min-h-0">
             <DemoGrid
               rows={rows}
               loading={gridLoading}

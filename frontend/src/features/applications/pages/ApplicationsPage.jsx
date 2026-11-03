@@ -200,6 +200,7 @@ export default function ApplicationsPage() {
           subtitle="Track applications, approvals, and student readiness"
           icon={FiClipboard}
           iconColor="primary"
+          scroll="contain"
           breadcrumbs={[
             { label: 'Dashboard', path: ROUTES.DASHBOARD },
             { label: 'Admissions' },
@@ -257,7 +258,7 @@ export default function ApplicationsPage() {
             />
           </ModulePageCard.Filters>
 
-          <ModulePageCard.Table className="min-h-[320px]">
+          <ModulePageCard.Table className="flex-1 min-h-0">
             <ApplicationGrid
               rows={rows}
               loading={gridLoading}

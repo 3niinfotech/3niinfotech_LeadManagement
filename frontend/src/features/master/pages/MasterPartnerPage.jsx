@@ -310,6 +310,7 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
         subtitle={`${getMasterTypeMeta(hubItem?.type).label} · ${hubItem?.description || ''}`}
         icon={FiBriefcase}
         breadcrumbs={buildMasterBreadcrumbs(hubItem, title)}
+        scroll="contain"
         actions={canManage ? (
           <Button size="sm" icon={FiPlus} onClick={() => openDrawer('add')}>Add {defaultType === 'ASSOCIATE' ? 'Associate' : 'Partner'}</Button>
         ) : null}
@@ -327,7 +328,7 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
             onRefresh={load}
             refreshing={loading}
           />
-          <ModulePageCard.Table className="min-h-[320px]">
+          <ModulePageCard.Table className="flex-1 min-h-0">
             <DataGrid
               columns={columns}
               rowData={rows}

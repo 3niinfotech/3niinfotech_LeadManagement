@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useRef, useState } from 'react';
+import { useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import EmptyState from '../ui/EmptyState';
@@ -41,6 +41,7 @@ export default function DataGrid({
   /** Footer is noise when everything already fits on one page */
   hideSinglePagePagination = false,
 }) {
+  const containerRef = useRef(null);
   const gridRef = useRef(null);
   const [gridApi, setGridApi] = useState(null);
   const globalDensity = useSelector(selectTableDensity);
@@ -90,8 +91,51 @@ export default function DataGrid({
 
   const handleGridReady = useCallback((params) => {
     setGridApi(params.api);
+    params.api?.checkGridSize?.();
     onGridReady?.(params);
   }, [onGridReady]);
+
+  const handleFirstDataRendered = useCallback((params) => {
+    params.api?.checkGridSize?.();
+  }, []);
+
+  const handleRowDataUpdated = useCallback((params) => {
+    params.api?.checkGridSize?.();
+  }, []);
+
+  // Continuous container resize sync eliminates virtualization layout jumps ("jhatke")
+  useEffect(() => {
+    if (!gridApi) return;
+    const domNode = containerRef.current
+      || gridRef.current?.eGui?.closest?.('.crm-grid-shell')
+      || gridRef.current?.eGui;
+    if (!domNode || typeof ResizeObserver === 'undefined') return;
+
+    let rafId = null;
+    const ro = new ResizeObserver(() => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        if (gridApi && !gridApi.isDestroyed?.()) {
+          gridApi.checkGridSize?.();
+        }
+      });
+    });
+
+    ro.observe(domNode);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      ro.disconnect();
+    };
+  }, [gridApi]);
+
+  // Immediately recalculate viewport rows whenever loading ends or data arrives
+  useEffect(() => {
+    if (!gridApi || gridApi.isDestroyed?.()) return;
+    const rafId = requestAnimationFrame(() => {
+      gridApi.checkGridSize?.();
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [gridApi, loading, rowData.length]);
 
   const resolvedRowSelection = useMemo(() => {
     if (!rowSelection) return undefined;
@@ -114,73 +158,77 @@ export default function DataGrid({
   const showPagination = pagination
     && (!hideSinglePagePagination || rowData.length > paginationPageSize);
 
-  if (loading && !rowData.length) {
-    return (
-      <div className={`relative w-full overflow-hidden border-t border-border ${fitContent ? '' : 'flex-1 min-h-[280px]'}`}>
-        <TableLoader
-          rows={fitContent ? Math.min(maxVisibleRows, 6) : 10}
-          columns={Math.min(columns?.length || 7, 8)}
-          height={fitContent ? undefined : '100%'}
-        />
-      </div>
-    );
-  }
-
-  if (!rowData.length && !fetching) {
-    return (
-      <div className={`flex items-center justify-center border-t border-border bg-card-bg ${fitContent ? 'min-h-[220px]' : 'flex-1 min-h-[320px]'}`}>
-        <EmptyState
-          title={emptyTitle}
-          description={emptyDescription}
-          actionLabel={emptyActionLabel}
-          onAction={onEmptyAction}
-        />
-      </div>
-    );
-  }
-
   return (
     <div
-      className={`crm-grid-shell relative flex flex-col w-full overflow-hidden ${fitContent ? '' : 'flex-1 min-h-[280px]'} ${className}`}
+      ref={containerRef}
+      className={`crm-grid-shell relative flex flex-col w-full overflow-hidden ${fitContent ? '' : 'flex-1 min-h-0 h-full'} ${className}`}
       style={fitContent ? undefined : { height }}
     >
+      {/* Seamless loading overlay prevents destroying the grid DOM on fetch */}
+      {loading && !rowData.length && (
+        <div className="absolute inset-0 z-30 bg-card-bg">
+          <TableLoader
+            rows={fitContent ? Math.min(maxVisibleRows, 6) : 10}
+            columns={Math.min(columns?.length || 7, 8)}
+            height="100%"
+          />
+        </div>
+      )}
+
       {fetching && <TableFetchOverlay />}
-      <div
-        className={`ag-theme-crm w-full overflow-hidden ${fitContent ? '' : 'flex-1 min-h-0'}`}
-        style={fitContent ? { height: fittedHeight } : undefined}
-      >
-        <AgGridReact
-          ref={gridRef}
-          theme="legacy"
-          columnDefs={columns}
-          rowData={rowData}
-          defaultColDef={defaultColDef}
-          rowHeight={rowHeight}
-          headerHeight={headerHeight}
-          getRowClass={() => 'crm-grid-row'}
-          rowClassRules={rowClassRules}
-          animateRows={false}
-          suppressCellFocus
-          rowSelection={resolvedRowSelection}
-          selectionColumnDef={resolvedRowSelection ? SELECTION_COLUMN_DEF : undefined}
-          onRowClicked={handleRowClicked}
-          onSelectionChanged={handleSelectionChanged}
-          pagination={pagination}
-          paginationPageSize={paginationPageSize}
-          suppressPaginationPanel
-          onGridReady={handleGridReady}
-          domLayout="normal"
-          suppressDragLeaveHidesColumns
-          enableCellTextSelection
-          tooltipShowDelay={300}
-          tooltipShowMode="whenTruncated"
-          getRowId={getRowId}
-          suppressColumnMoveAnimation
-          alwaysShowHorizontalScroll={false}
-          suppressHorizontalScroll={false}
-        />
-      </div>
-      {showPagination && (
+
+      {!rowData.length && !loading && !fetching ? (
+        <div className={`flex items-center justify-center border-t border-border bg-card-bg ${fitContent ? 'min-h-[220px]' : 'flex-1 min-h-[320px]'}`}>
+          <EmptyState
+            title={emptyTitle}
+            description={emptyDescription}
+            actionLabel={emptyActionLabel}
+            onAction={onEmptyAction}
+          />
+        </div>
+      ) : (
+        <div
+          className={`ag-theme-crm w-full h-full overflow-hidden ${fitContent ? '' : 'flex-1 min-h-0'}`}
+          style={fitContent ? { height: fittedHeight } : undefined}
+        >
+          <AgGridReact
+            ref={gridRef}
+            theme="legacy"
+            columnDefs={columns}
+            rowData={rowData}
+            defaultColDef={defaultColDef}
+            rowHeight={rowHeight}
+            headerHeight={headerHeight}
+            getRowClass={() => 'crm-grid-row'}
+            rowClassRules={rowClassRules}
+            animateRows={false}
+            suppressCellFocus
+            rowSelection={resolvedRowSelection}
+            selectionColumnDef={resolvedRowSelection ? SELECTION_COLUMN_DEF : undefined}
+            onRowClicked={handleRowClicked}
+            onSelectionChanged={handleSelectionChanged}
+            pagination={pagination}
+            paginationPageSize={paginationPageSize}
+            suppressPaginationPanel
+            onGridReady={handleGridReady}
+            onFirstDataRendered={handleFirstDataRendered}
+            onRowDataUpdated={handleRowDataUpdated}
+            domLayout="normal"
+            suppressDragLeaveHidesColumns
+            enableCellTextSelection
+            tooltipShowDelay={300}
+            tooltipShowMode="whenTruncated"
+            getRowId={getRowId}
+            suppressColumnMoveAnimation
+            alwaysShowHorizontalScroll={false}
+            suppressHorizontalScroll={false}
+            suppressScrollOnNewData
+            debounceVerticalScrollbarUpdate
+          />
+        </div>
+      )}
+
+      {showPagination && !loading && rowData.length > 0 && (
         <GridPagination
           api={gridApi}
           totalRows={rowData.length}

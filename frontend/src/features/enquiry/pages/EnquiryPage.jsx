@@ -225,6 +225,7 @@ export default function EnquiryPage() {
           : 'Follow-up, counselling & convert · walk-ins stay on Reception until Interested'}
         icon={FiInbox}
         iconColor="primary"
+        scroll="contain"
         breadcrumbs={[{ label: 'Dashboard', path: ROUTES.DASHBOARD }, { label: 'Manage Enquiry' }]}
         actions={(
           <Button
@@ -283,7 +284,7 @@ export default function EnquiryPage() {
           />
         </ModulePageCard.Filters>
 
-        <ModulePageCard.Table className="min-h-[320px]">
+        <ModulePageCard.Table className="flex-1 min-h-0">
           <EnquiryGrid
             rows={rows}
             loading={gridLoading}

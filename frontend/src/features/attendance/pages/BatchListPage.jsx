@@ -93,6 +93,7 @@ export default function BatchListPage() {
         subtitle="Coaching batches, timetable, and class attendance"
         icon={FiUsers}
         iconColor="primary"
+        scroll="contain"
         breadcrumbs={[{ label: 'Dashboard', path: ROUTES.DASHBOARD }, { label: 'Batches' }]}
         actions={(
           <PermissionGate permission={PERMISSIONS.ATTENDANCE_EDIT}>

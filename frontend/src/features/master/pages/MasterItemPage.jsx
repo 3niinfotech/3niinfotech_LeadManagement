@@ -323,6 +323,7 @@ export default function MasterItemPage() {
         subtitle={`${getMasterTypeMeta(hubItem.type).label} · ${hubItem.description}${hubItem.usedIn?.length ? ` · Used in ${hubItem.usedIn.join(', ')}` : ''}`}
         icon={Icon}
         breadcrumbs={buildMasterBreadcrumbs(hubItem)}
+        scroll="contain"
         actions={canManage ? (
           <Button size="sm" icon={FiPlus} onClick={() => setAddOpen(true)}>
             Add {meta.singular}
@@ -353,7 +354,7 @@ export default function MasterItemPage() {
             )}
           />
 
-          <ModulePageCard.Table className="min-h-[320px]">
+          <ModulePageCard.Table className="flex-1 min-h-0">
             <DataGrid
               columns={columns}
               rowData={rows}

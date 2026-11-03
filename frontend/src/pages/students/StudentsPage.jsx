@@ -241,6 +241,7 @@ export default function StudentsPage() {
           subtitle="Manage student admissions, applications, visas, and educational journeys"
           icon={FiUsers}
           iconColor="success"
+          scroll="contain"
           breadcrumbs={[
             { label: 'Dashboard', path: ROUTES.DASHBOARD },
             { label: 'Students' },
@@ -312,7 +313,7 @@ export default function StudentsPage() {
             />
           </ModulePageCard.Filters>
 
-          <ModulePageCard.Table className="min-h-[320px]">
+          <ModulePageCard.Table className="flex-1 min-h-0">
             <StudentGrid
               rows={students}
               loading={loading}

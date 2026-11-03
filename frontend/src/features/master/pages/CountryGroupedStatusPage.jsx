@@ -230,6 +230,7 @@ export default function CountryGroupedStatusPage({
       title={title}
       subtitle={`${getMasterTypeMeta(hubItem?.type).label} · ${subtitle}${hubItem?.usedIn?.length ? ` · Used in ${hubItem.usedIn.join(', ')}` : ''}`}
       icon={FiList}
+      scroll="contain"
       breadcrumbs={buildMasterBreadcrumbs(hubItem, breadcrumbLabel || title)}
     >
       <div className="flex flex-col h-full">
@@ -312,7 +313,7 @@ export default function CountryGroupedStatusPage({
                 </div>
               ) : (
                 <>
-                  <ModulePageCard.Table className="min-h-[320px]">
+                  <ModulePageCard.Table className="flex-1 min-h-0">
                     <DataGrid
                       columns={columns}
                       rowData={list.rows}
