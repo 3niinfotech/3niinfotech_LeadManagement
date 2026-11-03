@@ -385,21 +385,6 @@ html:has(.crm-portal-root) body {
   margin-left: 0;
 }
 
-/* Forcefully hide and disable sidebar & header whenever any modal is open */
-body.crm-modal-open .crm-portal-sidebar,
-body.crm-modal-open .crm-portal-header,
-body.crm-modal-open .crm-portal-sidebar-rail,
-body.crm-modal-open .crm-portal-bottom-nav,
-body.crm-modal-open .crm-portal-layout__sidebar,
-body.crm-modal-open .crm-portal-layout__header,
-body.crm-modal-open header.crm-portal-header,
-body.crm-modal-open aside.crm-portal-sidebar {
-  pointer-events: none !important;
-  user-select: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  transition: opacity 0.15s ease, visibility 0.15s ease;
-}
 
 .crm-portal-header {
   position: sticky !important;

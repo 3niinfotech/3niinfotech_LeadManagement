@@ -61,27 +61,9 @@
     to { transform: scaleX(0); }
   }
 
-  /* Forcefully hide and isolate layout sidebar & topbar when any modal/dialog is open */
-  body.crm-modal-open aside,
-  body.crm-modal-open header,
-  body.crm-modal-open .crm-portal-sidebar,
-  body.crm-modal-open .crm-portal-header,
-  body.crm-modal-open .crm-portal-sidebar-rail,
-  body.crm-modal-open .crm-portal-bottom-nav,
-  body.crm-modal-open .crm-portal-overlay,
-  body.crm-modal-open [data-sidebar],
-  body.crm-modal-open nav[aria-label="Quick navigation"] {
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-  }
-
-  body.crm-modal-open .crm-portal-main,
-  body.crm-modal-open .crm-portal-layout__main,
-  body.crm-modal-open main {
-    margin-left: 0 !important;
-    padding-left: 0 !important;
+  /* Modal open state — prevent page body scroll while preserving layout stability */
+  body.crm-modal-open {
+    overflow: hidden !important;
   }
 
   /* ── Unified form controls (Input, Select, DatePicker) ── */
