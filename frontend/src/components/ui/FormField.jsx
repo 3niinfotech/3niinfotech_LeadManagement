@@ -13,7 +13,7 @@ export default function FormField({
       {label && (
         <label
           htmlFor={htmlFor}
-          className="block text-[12px] font-semibold text-slate-600 mb-1.5 leading-none"
+          className="block text-[12.5px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5 leading-snug"
         >
           {label}
           {required && <span className="text-danger ml-0.5">*</span>}

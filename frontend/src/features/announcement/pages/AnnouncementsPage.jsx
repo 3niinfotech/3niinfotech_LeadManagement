@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import {
-  FiCheckCircle,
   FiClock,
   FiEdit2,
   FiEye,
   FiFilter,
   FiImage,
-  FiLayers,
   FiPaperclip,
   FiPlus,
   FiRefreshCw,
@@ -17,7 +15,6 @@ import {
   FiToggleLeft,
   FiToggleRight,
   FiTrash2,
-  FiTrendingUp,
   FiUsers,
   FiVolume2,
   FiX,
@@ -315,67 +312,7 @@ export default function AnnouncementsPage() {
       ) : null}
     >
       <div className="crm-ann-page">
-        {/* KPI Command Center Hero */}
-        <div className="crm-ann-page__hero">
-          <div className="crm-ann-page__hero-main">
-            <div className="crm-ann-page__hero-icon-wrap">
-              <FiVolume2 className="w-6 h-6 text-sky-600 dark:text-sky-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="crm-ann-page__hero-title">Communication Center</h2>
-                <span className="crm-ann-page__hero-badge">Real-Time Broadcast</span>
-              </div>
-              <p className="crm-ann-page__hero-text">
-                Publish company circulars and student notices. Instant notifications reach targeted devices with comprehensive view & receipt auditing.
-              </p>
-            </div>
-          </div>
-
-          <div className="crm-ann-page__stats-grid">
-            <div className="crm-ann-stat-card crm-ann-stat-card--published">
-              <div className="crm-ann-stat-card__icon">
-                <FiCheckCircle className="w-4 h-4" />
-              </div>
-              <div className="crm-ann-stat-card__data">
-                <strong className="crm-ann-stat-card__val">{stats.published}</strong>
-                <span className="crm-ann-stat-card__lbl">Published</span>
-              </div>
-            </div>
-
-            <div className="crm-ann-stat-card crm-ann-stat-card--views">
-              <div className="crm-ann-stat-card__icon">
-                <FiEye className="w-4 h-4" />
-              </div>
-              <div className="crm-ann-stat-card__data">
-                <strong className="crm-ann-stat-card__val">{stats.totalViews}</strong>
-                <span className="crm-ann-stat-card__lbl">Total Views</span>
-              </div>
-            </div>
-
-            <div className="crm-ann-stat-card crm-ann-stat-card--reach">
-              <div className="crm-ann-stat-card__icon">
-                <FiTrendingUp className="w-4 h-4" />
-              </div>
-              <div className="crm-ann-stat-card__data">
-                <strong className="crm-ann-stat-card__val">{stats.reachPercent}%</strong>
-                <span className="crm-ann-stat-card__lbl">Overall Reach</span>
-              </div>
-            </div>
-
-            <div className="crm-ann-stat-card crm-ann-stat-card--total">
-              <div className="crm-ann-stat-card__icon">
-                <FiLayers className="w-4 h-4" />
-              </div>
-              <div className="crm-ann-stat-card__data">
-                <strong className="crm-ann-stat-card__val">{stats.total}</strong>
-                <span className="crm-ann-stat-card__lbl">Total Notices</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Controls Toolbar */}
+        {/* Controls Toolbar */}
         <div className="crm-ann-page__toolbar-wrap">
           {/* Status Tabs */}
           <div className="crm-ann-tabs">
@@ -393,7 +330,7 @@ export default function AnnouncementsPage() {
               onClick={() => setStatusFilter('published')}
             >
               Published
-              <span className="crm-ann-tab__pill crm-ann-tab__pill--success">{stats.published}</span>
+              <span className="crm-ann-tab__pill">{stats.published}</span>
             </button>
             <button
               type="button"
@@ -465,66 +402,25 @@ export default function AnnouncementsPage() {
 
         {/* Empty States */}
         {items.length === 0 ? (
-          <div className="crm-ann-empty-container">
-            <div className="crm-ann-empty">
-              <div className="crm-ann-empty__badge">
-                <FiVolume2 className="w-8 h-8" />
-              </div>
-              <h3 className="crm-ann-empty__title">No announcements created yet</h3>
-              <p className="crm-ann-empty__hint">
-                Broadcast messages, important guidelines, batch schedules, or urgent notices to students and staff members.
-              </p>
-              {canManage && (
-                <Button size="md" className="mt-4 shadow-sm" onClick={() => openDrawer('add')}>
-                  <FiPlus className="w-4 h-4 mr-2" />
-                  Create First Announcement
-                </Button>
-              )}
+          <div className="crm-ann-empty">
+            <div className="crm-ann-empty__badge">
+              <FiVolume2 className="w-6 h-6" />
             </div>
-
-            {/* Feature Guide Cards to enrich the empty screen */}
-            <div className="crm-ann-features-grid">
-              <div className="crm-ann-feature-card">
-                <div className="crm-ann-feature-card__icon crm-ann-feature-card__icon--blue">
-                  <FiUsers className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="crm-ann-feature-card__title">Targeted Audiences</h4>
-                  <p className="crm-ann-feature-card__desc">
-                    Send updates selectively to Students only, Counsellors, Reception, or your entire company team.
-                  </p>
-                </div>
-              </div>
-
-              <div className="crm-ann-feature-card">
-                <div className="crm-ann-feature-card__icon crm-ann-feature-card__icon--purple">
-                  <FiPaperclip className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="crm-ann-feature-card__title">Rich Media & Files</h4>
-                  <p className="crm-ann-feature-card__desc">
-                    Attach cover banners, PDF circulars, offer checklists, and downloadable brochures to any post.
-                  </p>
-                </div>
-              </div>
-
-              <div className="crm-ann-feature-card">
-                <div className="crm-ann-feature-card__icon crm-ann-feature-card__icon--emerald">
-                  <FiEye className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="crm-ann-feature-card__title">Real-Time Read Receipts</h4>
-                  <p className="crm-ann-feature-card__desc">
-                    Audit who viewed your message, inspect exact timestamps, and send instant notification reminders.
-                  </p>
-                </div>
-              </div>
-            </div>
+            <h3 className="crm-ann-empty__title">No announcements created yet</h3>
+            <p className="crm-ann-empty__hint">
+              Broadcast company circulars, student updates, and important notices to your team.
+            </p>
+            {canManage && (
+              <Button size="sm" className="mt-3.5" onClick={() => openDrawer('add')}>
+                <FiPlus className="w-4 h-4 mr-1.5" />
+                Create First Announcement
+              </Button>
+            )}
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="crm-ann-empty">
             <div className="crm-ann-empty__badge">
-              <FiFilter className="w-7 h-7" />
+              <FiFilter className="w-6 h-6" />
             </div>
             <h3 className="crm-ann-empty__title">No matching announcements</h3>
             <p className="crm-ann-empty__hint">
