@@ -106,7 +106,7 @@ export default function StudentHelpPage() {
             <span className="crm-stu-chip crm-stu-chip--success">Active</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem', fontSize: '0.8125rem' }}>
-            Head Office student desk & live support
+            Student desk & live support
           </div>
         </div>
 

@@ -28,6 +28,7 @@ export const FORCE_DENY_PREFIXES_BY_ROLE = {
   teacher: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'accounts.', 'application.', 'visa.'],
   application_officer: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'accounts.'],
   visa_officer: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'accounts.'],
+  partner: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'feature.', 'accounts.', 'reception.', 'attendance.', 'teacher.', 'telecaller.'],
 };
 
 export const ADMIN_ROLE_SLUGS = new Set(['super_admin', 'company_admin', 'admin']);
@@ -201,6 +202,15 @@ export const ROLE_ACCESS_GUIDE = [
     hides: 'Staff CRM, Masters, Enquiry list of others',
     buttons: 'Portal actions only',
     notes: 'Student login surface — never staff Masters.',
+  },
+  {
+    slug: 'partner',
+    name: 'Partner (Agent)',
+    dataScope: 'OWN',
+    sees: 'Dashboard, My Referred Enquiries, My Students, Applications, Calendar, Profile',
+    hides: 'Reception, Masters, Settings, Roles, Users, Fees admin, other agents’ records',
+    buttons: 'Refer student, view application status, upload documents',
+    notes: 'Partner agent workspace. Dedicated agent login surface with professional CRM workspace.',
   },
   {
     slug: 'viewer',

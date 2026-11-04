@@ -226,9 +226,19 @@ function AppRoutes() {
       }>
         <Route index element={<Navigate to={ROUTES.AGENT_DASHBOARD} replace />} />
         <Route path="dashboard" element={<AgentDashboardPage />} />
+        <Route path="enquiries" element={
+          <PermissionRoute permission={PERMISSIONS.ENQUIRIES_VIEW}>
+            <EnquiryPage />
+          </PermissionRoute>
+        } />
         <Route path="students" element={
           <PermissionRoute permission={PERMISSIONS.STUDENTS_VIEW}>
             <AgentStudentsPage />
+          </PermissionRoute>
+        } />
+        <Route path="applications" element={
+          <PermissionRoute permission={PERMISSIONS.APPLICATIONS_VIEW}>
+            <ApplicationsPage />
           </PermissionRoute>
         } />
         <Route path="calendar" element={

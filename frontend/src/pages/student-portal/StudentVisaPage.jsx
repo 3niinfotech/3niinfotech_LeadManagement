@@ -546,7 +546,7 @@ export default function StudentVisaPage() {
                                 Priya Shah
                               </strong>
                               <span style={{ fontSize: '0.75rem', color: '#475569', display: 'block' }}>
-                                Head Office · Senior Study Abroad Visa Advisor
+                                Senior Study Abroad Visa Advisor
                               </span>
                             </div>
                           </div>

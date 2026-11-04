@@ -297,7 +297,7 @@ export default function PortalHeader({
         <NotificationPanel onClose={() => setNotifyOpen(false)} />
       </HeaderActionPopover>
 
-      {/* Profile Popover Modal with Head Office — Ahmedabad */}
+      {/* Profile Popover Modal */}
       <HeaderActionPopover
         open={profileOpen}
         onClose={() => setProfileOpen(false)}

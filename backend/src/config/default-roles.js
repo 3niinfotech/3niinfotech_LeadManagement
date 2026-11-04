@@ -290,14 +290,20 @@ export const DEFAULT_ROLES = [
   {
     name: 'Partner',
     slug: 'partner',
+    description: 'Partner Agent — refers leads, tracks applicants and commissions',
     dataScope: 'OWN',
     hierarchyLevel: 7,
     parentSlug: 'partner_manager',
     isSystem: true,
     permissions: [
-      'enquiry.view', 'enquiry.create', 'student.view', 'partner.view',
+      'dashboard.view',
+      'enquiry.view', 'enquiry.create',
+      'student.view',
+      'application.view', 'application.create',
+      'document.view', 'document.upload',
       'calendar.view', 'calendar.create', 'calendar.update',
       'calendar.complete', 'calendar.reschedule',
+      'partner.view',
     ],
   },
   {

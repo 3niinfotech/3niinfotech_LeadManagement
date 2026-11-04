@@ -1263,12 +1263,18 @@ export default function BatchDetailPage() {
                   </div>
                   <div className="text-xs font-bold text-text mt-0.5">{batch.name || 'Batch'}</div>
                   <div className="flex items-center gap-2 text-[11px] text-text-muted mt-0.5">
-                    <span className="flex items-center gap-1">
-                      <FiMapPin className="w-3 h-3 text-slate-400" />
-                      {batch.room || 'Room 2'}
-                    </span>
-                    <span>•</span>
-                    <span>{batch.branch?.name || 'Head Office Campus'}</span>
+                    {batch.room && (
+                      <span className="flex items-center gap-1">
+                        <FiMapPin className="w-3 h-3 text-slate-400" />
+                        {batch.room}
+                      </span>
+                    )}
+                    {batch.branch?.name && (
+                      <>
+                        <span>•</span>
+                        <span>{batch.branch.name}</span>
+                      </>
+                    )}
                   </div>
                 </div>
 

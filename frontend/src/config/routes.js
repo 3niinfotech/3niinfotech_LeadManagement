@@ -97,6 +97,8 @@ export const ROUTES = {
   FEES: '/admin/fees',
   FEATURE_TOGGLE: '/admin/settings/feature-toggle',
   AGENT_STUDENTS: '/agent/students',
+  AGENT_ENQUIRIES: '/agent/enquiries',
+  AGENT_APPLICATIONS: '/agent/applications',
 };
 
 /** Open an in-app route in a new browser tab (enquiry → student profile, etc.). */

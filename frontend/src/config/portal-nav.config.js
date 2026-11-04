@@ -35,6 +35,13 @@ export const PORTAL_BOTTOM_NAV = {
     { id: 'tasks', to: ROUTES.TEACHER_ASSIGNMENTS, label: 'Tasks', icon: FiClipboard, permissions: [PERMISSIONS.ATTENDANCE_VIEW] },
     { id: 'more', to: ROUTES.TEACHER_DASHBOARD, label: 'More', icon: FiUser, isMore: true },
   ],
+  agent: [
+    { id: 'home', to: ROUTES.AGENT_DASHBOARD, label: 'Home', icon: FiHome },
+    { id: 'referrals', to: ROUTES.AGENT_ENQUIRIES, label: 'Referrals', icon: FiMessageCircle, permissions: [PERMISSIONS.ENQUIRIES_VIEW] },
+    { id: 'students', to: ROUTES.AGENT_STUDENTS, label: 'Students', icon: FiUsers, permissions: [PERMISSIONS.STUDENTS_VIEW] },
+    { id: 'applications', to: ROUTES.AGENT_APPLICATIONS, label: 'Applications', icon: FiFileText, permissions: [PERMISSIONS.APPLICATIONS_VIEW] },
+    { id: 'more', to: ROUTES.AGENT_PROFILE, label: 'More', icon: FiUser, isMore: true },
+  ],
 };
 
 export const PORTAL_NAV = {
@@ -109,6 +116,28 @@ export const PORTAL_NAV = {
         { to: ROUTES.CALENDAR, label: 'Calendar', icon: FiCalendar, permissions: [PERMISSIONS.CALENDAR_VIEW] },
         { to: ROUTES.NOTIFICATIONS, label: 'Notifications', icon: FiBell, show: true },
         { to: ROUTES.PROFILE, label: 'Profile', icon: FiUser, show: true },
+      ],
+    },
+  ],
+  agent: [
+    {
+      items: [
+        { to: ROUTES.AGENT_DASHBOARD, label: 'Dashboard', icon: FiHome, permissions: [PERMISSIONS.DASHBOARD_VIEW] },
+      ],
+    },
+    {
+      label: 'Referrals & Admissions',
+      items: [
+        { to: ROUTES.AGENT_ENQUIRIES, label: 'My Referrals', icon: FiMessageCircle, permissions: [PERMISSIONS.ENQUIRIES_VIEW] },
+        { to: ROUTES.AGENT_STUDENTS, label: 'My Students', icon: FiUsers, permissions: [PERMISSIONS.STUDENTS_VIEW] },
+        { to: ROUTES.AGENT_APPLICATIONS, label: 'Applications', icon: FiFileText, permissions: [PERMISSIONS.APPLICATIONS_VIEW] },
+      ],
+    },
+    {
+      label: 'Workspace',
+      items: [
+        { to: ROUTES.AGENT_CALENDAR, label: 'Calendar', icon: FiCalendar, permissions: [PERMISSIONS.CALENDAR_VIEW] },
+        { to: ROUTES.AGENT_PROFILE, label: 'My Profile & Agency', icon: FiUser, show: true },
       ],
     },
   ],

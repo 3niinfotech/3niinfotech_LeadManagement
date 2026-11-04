@@ -711,7 +711,7 @@ export default function StudentProfilePage() {
                     {counselor?.name || 'Priya Shah'}
                   </h3>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    Head Office · Canada Specialization
+                    Senior Advisor · Canada Specialization
                   </div>
                 </div>
               </div>

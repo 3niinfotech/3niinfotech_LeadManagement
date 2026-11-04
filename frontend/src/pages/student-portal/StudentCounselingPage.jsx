@@ -159,7 +159,7 @@ export default function StudentCounselingPage() {
     email: 'priya.shah@3niinfotech.com',
     phone: '+91 98765 43210',
     title: 'Lead Study Abroad & Visa Advisor',
-    branch: 'Head Office',
+    branch: '',
   };
 
   const upcoming = data?.upcoming || [];
@@ -181,7 +181,7 @@ export default function StudentCounselingPage() {
             <span className="crm-stu-chip crm-stu-chip--brand">Lead Advisor</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem', fontSize: '0.8125rem' }}>
-            Head Office · Canada & UK Specialization
+            Canada & UK Specialization
           </div>
         </div>
 
@@ -300,7 +300,7 @@ export default function StudentCounselingPage() {
                     </span>
                   </div>
                   <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: 0, fontWeight: 600 }}>
-                    Senior Study Abroad & Immigration Counsellor · Head Office
+                    Senior Study Abroad & Immigration Counsellor
                   </p>
                 </div>
               </div>

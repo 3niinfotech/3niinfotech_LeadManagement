@@ -196,7 +196,7 @@ export default function StudentReceiptsPage() {
           </div>
           <div className="crm-stu-att-kpi-card__body">
             <span className="crm-stu-att-kpi-card__value" style={{ fontSize: '1.25rem' }}>
-              Head Office OK
+              Verified OK
             </span>
             <span className="crm-stu-chip crm-stu-chip--brand">GST Verified</span>
           </div>
