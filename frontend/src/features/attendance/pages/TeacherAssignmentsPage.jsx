@@ -21,7 +21,6 @@ import ContentLoader from '../../../components/ui/ContentLoader';
 import EmptyState from '../../../components/ui/EmptyState';
 import Modal from '../../../components/ui/Modal';
 import DeleteConfirmModal from '../../../components/ui/DeleteConfirmModal';
-import SummaryStatBar from '../../../components/ui/SummaryStatBar';
 import Input from '../../../components/ui/Input';
 import Textarea from '../../../components/ui/Textarea';
 import Select from '../../../components/ui/Select';
@@ -279,17 +278,6 @@ export default function TeacherAssignmentsPage() {
 
   return (
     <div className="crm-tacademic">
-      {/* ── Summary KPI Strip (Standard CRM UI) ── */}
-      <div className="rounded-xl border border-border bg-card-bg shadow-xs overflow-hidden">
-        <SummaryStatBar
-          items={summaryItems}
-          activeFilter={statusFilter}
-          onSelect={(val) => setStatusFilter(val || 'ALL')}
-          layout="grid"
-          ariaLabel="Assignment Statistics"
-        />
-      </div>
-
       {/* ── Search & Filter Toolbar ── */}
       <div className="crm-tacademic-toolbar">
         <div className="crm-tacademic-search">

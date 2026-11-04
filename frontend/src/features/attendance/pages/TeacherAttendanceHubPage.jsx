@@ -23,7 +23,6 @@ import {
 import Button from '../../../components/ui/Button';
 import Avatar from '../../../components/ui/Avatar';
 import Modal from '../../../components/ui/Modal';
-import SummaryStatBar from '../../../components/ui/SummaryStatBar';
 import ContentLoader from '../../../components/ui/ContentLoader';
 import EmptyState from '../../../components/ui/EmptyState';
 import { apiGet, apiPut } from '../../../api/apiClient';
@@ -297,16 +296,7 @@ export default function TeacherAttendanceHubPage() {
 
   return (
     <div className="crm-tattendance">
-      {/* ── 1. Summary KPI Metrics Strip ── */}
-      <div className="rounded-2xl border border-border bg-card-bg shadow-xs overflow-hidden">
-        <SummaryStatBar
-          items={summaryItems}
-          layout="grid"
-          ariaLabel="Attendance Hub Statistics"
-        />
-      </div>
-
-      {/* ── 2. Main Two-Column Faculty Layout ── */}
+      {/* ── Main Two-Column Faculty Layout ── */}
       <div className="crm-tattendance-main-grid">
         {/* Left Column: Live Active Session Hero Card + Student Roster */}
         <div className="flex flex-col gap-4">

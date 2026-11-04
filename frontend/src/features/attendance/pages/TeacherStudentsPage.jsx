@@ -28,7 +28,6 @@ import ModulePageCard from '../../../components/layout/ModulePageLayout';
 import Button from '../../../components/ui/Button';
 import Avatar from '../../../components/ui/Avatar';
 import Modal from '../../../components/ui/Modal';
-import SummaryStatBar from '../../../components/ui/SummaryStatBar';
 import EmptyState from '../../../components/ui/EmptyState';
 import ContentLoader from '../../../components/ui/ContentLoader';
 import { apiGet } from '../../../api/apiClient';
@@ -169,17 +168,6 @@ export default function TeacherStudentsPage() {
 
   return (
     <div className="crm-tstudents">
-      {/* ── Summary KPI Strip (Standard CRM UI) ── */}
-      <div className="rounded-xl border border-border bg-card-bg shadow-xs overflow-hidden">
-        <SummaryStatBar
-          items={summaryItems}
-          activeFilter={attendanceFilter}
-          onSelect={(val) => setAttendanceFilter(val || 'ALL')}
-          layout="grid"
-          ariaLabel="Student Statistics"
-        />
-      </div>
-
       {/* ── Search, Filter & View Controls Toolbar ── */}
       <div className="crm-tstudents-toolbar flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
@@ -376,45 +364,22 @@ export default function TeacherStudentsPage() {
 
                   {/* Foot Actions */}
                   <div className="crm-tstudent-card__foot">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        className="flex items-center gap-1.5 px-3 py-1.5 font-semibold text-xs whitespace-nowrap shadow-xs rounded-lg"
-                        onClick={() => setInspectStudent(st)}
-                      >
-                        <FiEye size={13} /> Inspect
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="primary"
-                        className="flex items-center gap-1.5 px-3.5 py-1.5 font-semibold text-xs whitespace-nowrap shadow-xs rounded-lg"
-                        onClick={() => navigate(ROUTES.TEACHER_STUDENT(st.id))}
-                      >
-                        <FiExternalLink size={13} /> Profile
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {st.email && (
-                        <a
-                          href={`mailto:${st.email}`}
-                          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-blue-100 hover:text-blue-600 flex items-center justify-center text-slate-600 transition-colors"
-                          title="Send Email"
-                        >
-                          <FiMail size={13} />
-                        </a>
-                      )}
-                      {st.phone && (
-                        <a
-                          href={`tel:${st.phone}`}
-                          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-emerald-100 hover:text-emerald-600 flex items-center justify-center text-slate-600 transition-colors"
-                          title="Call Phone"
-                        >
-                          <FiPhone size={13} />
-                        </a>
-                      )}
-                    </div>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      className="flex-1 flex items-center justify-center gap-1.5 font-semibold text-xs py-1.5 shadow-xs rounded-lg"
+                      onClick={() => setInspectStudent(st)}
+                    >
+                      <FiEye size={13} /> Quick Scorecard
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="primary"
+                      className="flex-1 flex items-center justify-center gap-1.5 font-semibold text-xs py-1.5 shadow-xs rounded-lg"
+                      onClick={() => navigate(ROUTES.TEACHER_STUDENT(st.id))}
+                    >
+                      Profile <FiExternalLink size={13} />
+                    </Button>
                   </div>
                 </article>
               );

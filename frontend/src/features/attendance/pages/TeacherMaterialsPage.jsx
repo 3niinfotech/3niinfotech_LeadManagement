@@ -19,7 +19,6 @@ import ContentLoader from '../../../components/ui/ContentLoader';
 import EmptyState from '../../../components/ui/EmptyState';
 import Modal from '../../../components/ui/Modal';
 import DeleteConfirmModal from '../../../components/ui/DeleteConfirmModal';
-import SummaryStatBar from '../../../components/ui/SummaryStatBar';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import { apiDelete, apiGet, apiPost, apiPut } from '../../../api/apiClient';
@@ -234,17 +233,6 @@ export default function TeacherMaterialsPage() {
 
   return (
     <div className="crm-tacademic">
-      {/* ── Summary KPI Strip (Standard CRM UI) ── */}
-      <div className="rounded-xl border border-border bg-card-bg shadow-xs overflow-hidden">
-        <SummaryStatBar
-          items={summaryItems}
-          activeFilter={typeFilter}
-          onSelect={(val) => setTypeFilter(val || 'ALL')}
-          layout="grid"
-          ariaLabel="Material Statistics"
-        />
-      </div>
-
       {/* ── Search & Filter Toolbar ── */}
       <div className="crm-tacademic-toolbar">
         <div className="crm-tacademic-search">
