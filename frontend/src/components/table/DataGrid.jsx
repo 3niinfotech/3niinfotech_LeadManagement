@@ -94,8 +94,8 @@ export default function DataGrid({
     onGridReady?.(params);
   }, [onGridReady]);
 
-  const handleRowDataUpdated = useCallback((params) => {
-    params.api?.redrawRows?.();
+  const handleRowDataUpdated = useCallback(() => {
+    // Let AG Grid reconcile rows naturally without forcing redraw
   }, []);
 
   const resolvedRowSelection = useMemo(() => {
@@ -149,8 +149,8 @@ export default function DataGrid({
         </div>
       ) : (
         <div
-          className={`ag-theme-crm w-full overflow-hidden ${fitContent ? '' : 'flex-1 min-h-0'}`}
-          style={fitContent ? { height: fittedHeight } : { width: '100%', height: '100%', flex: '1 1 0%', minHeight: 0 }}
+          className={`ag-theme-crm w-full h-full ${fitContent ? '' : 'flex-1 min-h-0'}`}
+          style={fitContent ? { height: fittedHeight } : { width: '100%', height: '100%' }}
         >
           <AgGridReact
             ref={gridRef}
@@ -183,7 +183,7 @@ export default function DataGrid({
             suppressColumnMoveAnimation
             alwaysShowHorizontalScroll={false}
             suppressHorizontalScroll={false}
-            rowBuffer={100}
+            rowBuffer={25}
           />
         </div>
       )}
