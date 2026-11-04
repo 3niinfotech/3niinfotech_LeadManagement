@@ -367,56 +367,76 @@ export default function TeacherAssignmentsPage() {
         <div className="crm-tacademic-grid">
           {filteredRows.map((row) => {
             const subCount = row._count?.submissions ?? 0;
+            const isPublished = row.status === 'PUBLISHED';
 
             return (
               <div key={row.id} className="crm-tacademic-card">
                 <div className="crm-tacademic-card__top">
                   <div className="crm-tacademic-card__header">
-                    <span className="text-[10.5px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-blue-50 text-blue-700">
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg uppercase tracking-wider bg-brand/10 text-brand border border-brand/20">
                       {row.batch?.name || 'Class Batch'}
                     </span>
-                    <Badge color={statusColor(row.status)} size="xs">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                        isPublished
+                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                          : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${isPublished ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                       {row.status}
-                    </Badge>
+                    </span>
                   </div>
 
-                  <h3 className="crm-tacademic-card__title" title={row.title}>
+                  <h3
+                    className="crm-tacademic-card__title cursor-pointer hover:text-brand transition-colors"
+                    title={row.title}
+                    onClick={() => openDetail(row)}
+                  >
                     {row.title}
                   </h3>
 
                   <div className="crm-tacademic-card__meta-bar">
-                    <span className="flex items-center gap-1 font-semibold text-slate-700">
-                      <FiClock size={12} className="text-amber-500" /> Due: {formatDate(row.dueDate)}
+                    <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                      <FiClock size={13} className="text-amber-500 shrink-0" />
+                      Due: <strong>{formatDate(row.dueDate)}</strong>
                     </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1 text-slate-500">
-                      <FiAward size={12} /> Max: {row.maxMarks ?? 100} pts
+                    <span className="text-slate-300 dark:text-slate-600">•</span>
+                    <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                      <FiAward size={13} className="text-brand shrink-0" />
+                      Max: <strong>{row.maxMarks ?? 100} pts</strong>
                     </span>
                   </div>
 
                   <div className="crm-tacademic-card__stat-box">
                     <div className="crm-tacademic-card__stat-item">
                       <strong>{subCount}</strong>
-                      <span className="text-slate-500 text-[11px]">Submissions</span>
+                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">Submissions</span>
                     </div>
                     <div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700">
-                        ● Active Task
-                      </span>
+                      {subCount > 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+                          ● Review Ready
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                          Awaiting submissions
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   {row.attachmentUrl && (
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
                       <a
                         href={row.attachmentUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline truncate"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline truncate max-w-full"
                         title="Open attachment"
                       >
-                        <FiPaperclip size={12} className="shrink-0" />
-                        <span className="truncate">{row.attachmentUrl.split('/').pop() || 'Attachment'}</span>
+                        <FiPaperclip size={13} className="shrink-0 text-slate-400" />
+                        <span className="truncate">{row.attachmentUrl.split('/').pop() || 'Attachment Document'}</span>
                       </a>
                     </div>
                   )}
@@ -426,31 +446,30 @@ export default function TeacherAssignmentsPage() {
                   <Button
                     size="xs"
                     variant="primary"
-                    className="font-bold shadow-xs"
+                    className="font-bold shadow-xs !py-1.5 !px-3 rounded-xl flex items-center gap-1.5"
                     onClick={() => openDetail(row)}
                   >
-                    <FiFileText /> Submissions ({subCount})
+                    <FiFileText size={13} /> Submissions ({subCount})
                   </Button>
 
                   {canManage && (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        icon={FiEdit2}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
                         onClick={() => openEdit(row)}
                         title="Edit Assignment"
+                        className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                       >
-                        Edit
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                        icon={FiTrash2}
+                        <FiEdit2 size={13} />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setDeleteTarget(row)}
                         title="Delete Assignment"
-                      />
+                        className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 text-rose-600 transition-colors cursor-pointer"
+                      >
+                        <FiTrash2 size={13} />
+                      </button>
                     </div>
                   )}
                 </div>

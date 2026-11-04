@@ -1,146 +1,15 @@
 /* =========================================================
-   Ultra-Modern Teacher Academic Workspace Styles
+   Executive Teacher Academic Workspace Styles
    Assignments, Tests & Study Materials
-   Pixel-Perfect, Spatially Balanced, High-Impact UI
+   Clean, Human-Designed, High-Impact UI
    ========================================================= */
 
 .crm-tacademic {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0 0 1rem;
+  gap: 1rem;
+  padding: 0 0 1.5rem;
   width: 100%;
-}
-
-/* ── Faculty Banner ── */
-.crm-tacademic-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  padding: 0.75rem 1rem;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-}
-
-.crm-tacademic-hero__left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
-}
-
-.crm-tacademic-hero__icon {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 8px;
-  background: rgba(37, 99, 235, 0.09);
-  color: #2563eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.15rem;
-  flex-shrink: 0;
-}
-
-.crm-tacademic-hero__copy h2 {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--text, #0f172a);
-  letter-spacing: -0.01em;
-  line-height: 1.25;
-}
-
-.crm-tacademic-hero__sub {
-  margin: 0.15rem 0 0;
-  font-size: 0.75rem;
-  color: var(--text-muted, #64748b);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-/* ── 4 Top KPI Stat Cards (Common CRM UI) ── */
-.crm-tacademic-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-@media (min-width: 1024px) {
-  .crm-tacademic-kpi-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-.crm-tacademic-kpi {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.85rem;
-  background: var(--surface, #ffffff);
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 9px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.crm-tacademic-kpi:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
-}
-
-.crm-tacademic-kpi__icon {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.crm-tacademic-kpi__icon--blue {
-  background: rgba(37, 99, 235, 0.1);
-  color: #2563eb;
-}
-
-.crm-tacademic-kpi__icon--emerald {
-  background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
-}
-
-.crm-tacademic-kpi__icon--amber {
-  background: rgba(245, 158, 11, 0.12);
-  color: #d97706;
-}
-
-.crm-tacademic-kpi__icon--purple {
-  background: rgba(139, 92, 246, 0.12);
-  color: #8b5cf6;
-}
-
-.crm-tacademic-kpi__val {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--text, #0f172a);
-  line-height: 1.1;
-  font-family: var(--font-mono, ui-monospace, monospace);
-}
-
-.crm-tacademic-kpi__label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--text-muted, #64748b);
-  margin-top: 0.1rem;
 }
 
 /* ── Filter & Search Toolbar ── */
@@ -148,32 +17,40 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  padding: 0.5rem 0.75rem;
-  background: var(--surface, #ffffff);
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 9px;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .crm-tacademic-search {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  background: #f8fafc;
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 7px;
-  padding: 0.35rem 0.65rem;
-  min-width: 240px;
+  gap: 0.6rem;
+  background: color-mix(in srgb, var(--bg-page) 65%, var(--bg-card));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.45rem 0.85rem;
+  min-width: 260px;
   flex: 1;
-  max-width: 400px;
+  max-width: 420px;
+  transition: all 0.15s ease;
+}
+
+.crm-tacademic-search:focus-within {
+  border-color: var(--brand);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
 }
 
 .crm-tacademic-search input {
   border: none;
   background: transparent;
   font-size: 0.8125rem;
-  color: var(--text, #0f172a);
+  color: var(--text-primary);
   width: 100%;
   outline: none;
 }
@@ -181,39 +58,39 @@
 .crm-tacademic-filters {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .crm-tacademic-pill {
-  padding: 0.3rem 0.65rem;
-  border-radius: 20px;
-  font-size: 0.725rem;
-  font-weight: 700;
-  border: 1px solid var(--border, #e2e8f0);
-  background: #ffffff;
-  color: #64748b;
+  padding: 0.4rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .crm-tacademic-pill:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: color-mix(in srgb, var(--bg-page) 60%, var(--bg-card));
+  color: var(--text-primary);
 }
 
 .crm-tacademic-pill.is-active {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: var(--brand);
+  border-color: var(--brand);
   color: #ffffff;
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--brand) 30%, transparent);
 }
 
 /* ── Content Grid / Cards ── */
 .crm-tacademic-grid {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: 1rem;
 }
 
 @media (min-width: 768px) {
@@ -229,86 +106,80 @@
 }
 
 .crm-tacademic-card {
-  background: var(--surface, #ffffff);
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: all 0.18s ease;
 }
 
 .crm-tacademic-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .crm-tacademic-card__top {
-  padding: 0.85rem 1rem 0.65rem;
+  padding: 1.15rem 1.25rem 0.85rem;
 }
 
 .crm-tacademic-card__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 0.65rem;
-  margin-bottom: 0.5rem;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
 }
 
 .crm-tacademic-card__title {
   margin: 0;
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: var(--text, #0f172a);
-  line-height: 1.35;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
 }
 
 .crm-tacademic-card__meta-bar {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.6rem;
   flex-wrap: wrap;
-  font-size: 0.725rem;
-  color: #64748b;
-  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
 }
 
 .crm-tacademic-card__stat-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 7px;
-  padding: 0.45rem 0.75rem;
-  margin-top: 0.65rem;
+  background: color-mix(in srgb, var(--bg-page) 60%, var(--bg-card));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.6rem 0.85rem;
+  margin-top: 0.85rem;
   font-size: 0.75rem;
 }
 
 .crm-tacademic-card__stat-item strong {
   display: block;
-  font-size: 1rem;
-  font-weight: 850;
-  color: #0f172a;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
   line-height: 1.1;
 }
 
 .crm-tacademic-card__foot {
-  padding: 0.6rem 1rem;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
+  padding: 0.75rem 1.25rem;
+  background: color-mix(in srgb, var(--bg-page) 40%, var(--bg-card));
+  border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-}
-
-.crm-tacademic-card__foot .flex {
-  gap: 0.5rem !important;
-}
-
-.crm-tacademic-card__foot button + button {
-  margin-left: 0.45rem !important;
 }

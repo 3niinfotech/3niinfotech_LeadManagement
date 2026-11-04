@@ -297,64 +297,8 @@ export default function TeacherAttendanceHubPage() {
 
   return (
     <div className="crm-tattendance">
-      {/* ── 1. Top Compact Header & Quick Action Bar ── */}
-      <div className="crm-tattendance-topbar">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold shadow-xs">
-            <FiClock className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-slate-900 leading-tight">
-                Attendance Workspace
-              </h1>
-              {primarySession?.pending ? (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                  Attendance Pending
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Active Session
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Live classroom attendance &amp; real-time student portal synchronization
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex items-center gap-1.5 font-semibold text-xs py-1.5 px-3"
-            onClick={handleManualRefresh}
-            disabled={isRefreshing}
-            title="Refresh session data"
-          >
-            <FiRefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-
-          {primarySession && (
-            <Button
-              size="sm"
-              variant="primary"
-              className="flex items-center gap-1.5 font-bold shadow-xs py-1.5 px-3.5"
-              onClick={() => openQuickAttendance(primarySession)}
-            >
-              <FiCheckCircle className="w-4 h-4" />
-              Mark Attendance
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* ── 2. Summary KPI Metrics Strip ── */}
-      <div className="rounded-xl border border-border bg-card-bg shadow-xs overflow-hidden">
+      {/* ── 1. Summary KPI Metrics Strip ── */}
+      <div className="rounded-2xl border border-border bg-card-bg shadow-xs overflow-hidden">
         <SummaryStatBar
           items={summaryItems}
           layout="grid"
@@ -362,75 +306,100 @@ export default function TeacherAttendanceHubPage() {
         />
       </div>
 
-      {/* ── 3. Main Two-Column Faculty Layout ── */}
+      {/* ── 2. Main Two-Column Faculty Layout ── */}
       <div className="crm-tattendance-main-grid">
         {/* Left Column: Live Active Session Hero Card + Student Roster */}
-        <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-4">
           {/* Live Today's Session Highlight */}
           {primarySession ? (
             <div className="crm-tsession-hero-card">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     {primarySession.pending ? (
-                      <span className="px-2.5 py-0.5 rounded-md text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        ● Action Required
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 inline-flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        Attendance Pending
                       </span>
                     ) : (
-                      <span className="px-2.5 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        ✓ Attendance Marked
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        Attendance Marked
                       </span>
                     )}
-                    <span className="text-[11px] font-semibold text-slate-400">
+                    <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
                       Today's Lecture Session
                     </span>
                   </div>
-                  <h2 className="text-base font-bold text-slate-900 truncate flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate flex items-center gap-2">
                     {primarySession.batchName}
                     {primarySession.courseName && (
-                      <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                      <span className="text-xs font-semibold text-brand bg-brand/10 px-2.5 py-0.5 rounded-md border border-brand/20">
                         {primarySession.courseName}
                       </span>
                     )}
                   </h2>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="primary"
-                  className="flex items-center gap-1.5 font-bold shadow-xs shrink-0"
-                  onClick={() => openQuickAttendance(primarySession)}
-                >
-                  Mark Attendance Now
-                  <FiArrowRight className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleManualRefresh}
+                    disabled={isRefreshing}
+                    title="Refresh session data"
+                    className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                  >
+                    <FiRefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-brand' : ''}`} />
+                  </button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    className="flex items-center gap-1.5 font-bold shadow-xs shrink-0 !py-2 !px-3.5"
+                    onClick={() => openQuickAttendance(primarySession)}
+                  >
+                    Mark Attendance Now
+                    <FiArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
 
               {/* Clean Meta Details Pill Grid */}
               <div className="crm-tsession-hero-card__meta-grid">
                 <div className="crm-tsession-meta-pill">
-                  <span className="crm-tsession-meta-pill__label">Class Timing</span>
+                  <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                    <FiClock className="w-3.5 h-3.5 shrink-0" />
+                    <span className="crm-tsession-meta-pill__label">Class Timing</span>
+                  </div>
                   <span className="crm-tsession-meta-pill__value">
                     {primarySession.time}
                   </span>
                 </div>
 
                 <div className="crm-tsession-meta-pill">
-                  <span className="crm-tsession-meta-pill__label">Classroom</span>
+                  <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+                    <FiMapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="crm-tsession-meta-pill__label">Classroom</span>
+                  </div>
                   <span className="crm-tsession-meta-pill__value" title={primarySession.room}>
                     {primarySession.room}
                   </span>
                 </div>
 
                 <div className="crm-tsession-meta-pill">
-                  <span className="crm-tsession-meta-pill__label">Enrolled</span>
+                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <FiUsers className="w-3.5 h-3.5 shrink-0" />
+                    <span className="crm-tsession-meta-pill__label">Enrolled</span>
+                  </div>
                   <span className="crm-tsession-meta-pill__value">
                     {primarySession.studentCount} Students
                   </span>
                 </div>
 
                 <div className="crm-tsession-meta-pill">
-                  <span className="crm-tsession-meta-pill__label">Marked</span>
+                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                    <FiCheckCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="crm-tsession-meta-pill__label">Marked Status</span>
+                  </div>
                   <span className="crm-tsession-meta-pill__value">
                     {primarySession.markedCount} / {primarySession.studentCount}
                   </span>
@@ -438,11 +407,11 @@ export default function TeacherAttendanceHubPage() {
               </div>
 
               {/* Clean Footer Link */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+              <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400">
                 <span>Real-time push notifications dispatch automatically to enrolled students</span>
                 <button
                   type="button"
-                  className="font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer flex items-center gap-1"
+                  className="font-bold text-brand hover:underline cursor-pointer flex items-center gap-1"
                   onClick={() => navigate(ROUTES.SESSION_ATTENDANCE(primarySession.id))}
                 >
                   Full Attendance Ledger
@@ -461,10 +430,10 @@ export default function TeacherAttendanceHubPage() {
           <div className="crm-tatt-panel">
             <div className="crm-tatt-panel__head">
               <h3 className="crm-tatt-panel__title">
-                <FiUsers className="text-blue-600" />
+                <FiUsers className="text-brand" />
                 Assigned Students Roster ({students.length})
               </h3>
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
                 Active Learners
               </span>
             </div>
@@ -480,23 +449,26 @@ export default function TeacherAttendanceHubPage() {
                   {students.map((st) => (
                     <div key={st.id} className="crm-troster-card">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <Avatar name={st.name} size="sm" />
+                        <div className="relative shrink-0">
+                          <Avatar name={st.name} size="sm" className="!w-8 !h-8 ring-1 ring-slate-200 dark:ring-slate-700" />
+                          <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-slate-900" />
+                        </div>
                         <div className="min-w-0">
                           <span
-                            className="text-xs font-bold text-slate-900 block truncate leading-tight hover:text-blue-600 cursor-pointer transition-colors"
+                            className="text-xs font-bold text-slate-900 dark:text-slate-100 block truncate leading-tight hover:text-brand cursor-pointer transition-colors"
                             onClick={() => navigate(ROUTES.TEACHER_STUDENT(st.id))}
                             title={`View ${st.name}'s Academic Profile`}
                           >
                             {st.name}
                           </span>
-                          <span className="font-mono text-[10px] text-slate-400 block truncate leading-none mt-1">
+                          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 block truncate leading-none mt-1">
                             {st.code}
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                        <span className="text-[10.5px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
                           ✓ {st.attendanceRate}%
                         </span>
                       </div>
@@ -505,11 +477,11 @@ export default function TeacherAttendanceHubPage() {
                 </div>
               )}
 
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                 <span>Click student name to view academic profile &amp; communications</span>
                 <button
                   type="button"
-                  className="font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer flex items-center gap-1"
+                  className="font-bold text-brand hover:underline cursor-pointer flex items-center gap-1"
                   onClick={() => navigate(ROUTES.TEACHER_STUDENTS)}
                 >
                   View All Students
@@ -521,15 +493,15 @@ export default function TeacherAttendanceHubPage() {
         </div>
 
         {/* Right Column: Upcoming 7-Day Lecture Schedule & Batch Health */}
-        <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-4">
           {/* Upcoming 7-Day Lecture Schedule */}
           <div className="crm-tatt-panel">
             <div className="crm-tatt-panel__head">
               <h3 className="crm-tatt-panel__title">
-                <FiCalendar className="text-blue-600" />
+                <FiCalendar className="text-brand" />
                 Upcoming Sessions (7 Days)
               </h3>
-              <span className="text-xs font-semibold text-slate-500">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 {upcoming.length} Scheduled
               </span>
             </div>
@@ -555,10 +527,10 @@ export default function TeacherAttendanceHubPage() {
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <span className="text-xs font-bold text-slate-900 block truncate">
+                          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block truncate">
                             {ses.batchName}
                           </span>
-                          <span className="text-[11px] text-slate-500 block truncate mt-0.5">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 block truncate mt-0.5">
                             {ses.room} · {ses.time}
                           </span>
                         </div>
@@ -566,7 +538,7 @@ export default function TeacherAttendanceHubPage() {
                         <Button
                           size="xs"
                           variant="outline"
-                          className="py-1 px-3 font-semibold text-xs shrink-0"
+                          className="py-1 px-3 font-semibold text-xs shrink-0 rounded-lg hover:border-brand hover:text-brand transition-colors"
                           onClick={() => openQuickAttendance(ses)}
                         >
                           Open
@@ -583,67 +555,71 @@ export default function TeacherAttendanceHubPage() {
           <div className="crm-tatt-panel">
             <div className="crm-tatt-panel__head">
               <h3 className="crm-tatt-panel__title">
-                <FiActivity className="text-emerald-600" />
+                <FiActivity className="text-emerald-600 dark:text-emerald-400" />
                 Batch Attendance Health &amp; Tools
               </h3>
-              <span className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+              <span className="text-[10.5px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
                 {overview.percent >= 75 ? 'Punctual' : 'Attention'}
               </span>
             </div>
 
             <div className="crm-tatt-panel__body">
               {/* Dynamic Health stats row from backend */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-center">
-                  <span className="text-[10px] uppercase font-bold text-emerald-800 block">
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40 text-center flex flex-col justify-center">
+                  <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 tracking-wider block">
                     Present Rate
                   </span>
-                  <span className="text-base font-black text-emerald-700 block mt-0.5">
+                  <span className="text-lg font-black text-emerald-700 dark:text-emerald-400 block mt-0.5">
                     {overview.percent ?? 100}%
                   </span>
                 </div>
-                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-center">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 text-center flex flex-col justify-center">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider block">
                     Absentees
                   </span>
-                  <span className="text-base font-black text-slate-800 block mt-0.5">
+                  <span className="text-lg font-black text-slate-800 dark:text-slate-100 block mt-0.5">
                     {overview.absent ?? 0}
                   </span>
                 </div>
-                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-center">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 text-center flex flex-col justify-center">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider block">
                     Late Arrivals
                   </span>
-                  <span className="text-base font-black text-slate-800 block mt-0.5">
+                  <span className="text-lg font-black text-slate-800 dark:text-slate-100 block mt-0.5">
                     {overview.late ?? 0}
                   </span>
                 </div>
               </div>
 
               {/* Action shortcuts */}
-              <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100 mt-1">
+              <div className="flex flex-col gap-1.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 mt-1">
                 <button
                   type="button"
                   onClick={() => navigate(ROUTES.TEACHER_CLASSES)}
-                  className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="flex items-center justify-between p-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-brand transition-colors cursor-pointer group"
                 >
-                  <span className="flex items-center gap-2">
-                    <FiLayers className="text-blue-600" />
+                  <span className="flex items-center gap-2.5">
+                    <span className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                      <FiLayers className="w-3.5 h-3.5" />
+                    </span>
                     Manage All Assigned Classes &amp; Batches
                   </span>
-                  <FiChevronRight className="text-slate-400" />
+                  <FiChevronRight className="text-slate-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
                 </button>
 
                 <button
                   type="button"
                   onClick={() => navigate(ROUTES.TEACHER_PERFORMANCE)}
-                  className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="flex items-center justify-between p-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-brand transition-colors cursor-pointer group"
                 >
-                  <span className="flex items-center gap-2">
-                    <FiTrendingUp className="text-indigo-600" />
+                  <span className="flex items-center gap-2.5">
+                    <span className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                      <FiTrendingUp className="w-3.5 h-3.5" />
+                    </span>
                     View Student Academic Performance Analytics
                   </span>
-                  <FiChevronRight className="text-slate-400" />
+                  <FiChevronRight className="text-slate-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
                 </button>
               </div>
             </div>
