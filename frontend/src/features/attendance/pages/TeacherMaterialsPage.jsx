@@ -332,35 +332,57 @@ export default function TeacherMaterialsPage() {
             const isVideo = row.materialType === 'VIDEO';
             const isLink = row.materialType === 'LINK';
             const resourceUrl = row.fileUrl || row.externalUrl;
+            const isPublished = row.status === 'PUBLISHED';
 
             return (
               <div key={row.id} className="crm-tacademic-card">
                 <div className="crm-tacademic-card__top">
                   <div className="crm-tacademic-card__header">
                     <div className="flex items-center gap-2">
-                      <span className="p-2 rounded-lg bg-blue-50 text-blue-600 shrink-0">
+                      <span
+                        className={`p-2 rounded-xl shrink-0 ${
+                          isVideo
+                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                            : isLink
+                              ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                              : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                        }`}
+                      >
                         {isVideo ? <FiVideo size={16} /> : isLink ? <FiLink size={16} /> : <FiFileText size={16} />}
                       </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-slate-100 text-slate-700">
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
                         {row.category || row.materialType || 'RESOURCE'}
                       </span>
                     </div>
-                    <Badge color={statusColor(row.status)} size="xs">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                        isPublished
+                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                          : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${isPublished ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                       {row.status}
-                    </Badge>
+                    </span>
                   </div>
 
-                  <h3 className="crm-tacademic-card__title" title={row.title}>
+                  <h3
+                    className="crm-tacademic-card__title cursor-pointer hover:text-brand transition-colors"
+                    title={row.title}
+                    onClick={() => {
+                      if (resourceUrl) window.open(resourceUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
                     {row.title}
                   </h3>
 
                   <div className="crm-tacademic-card__meta-bar">
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-brand">
                       {row.batch?.name || 'Class Batch'}
                     </span>
-                    <span>•</span>
-                    <span className="text-slate-500">
-                      {row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'Recent'}
+                    <span className="text-slate-300 dark:text-slate-600">•</span>
+                    <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                      {row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent'}
                     </span>
                   </div>
 
@@ -370,39 +392,43 @@ export default function TeacherMaterialsPage() {
                         href={resourceUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 hover:border-brand/40 hover:bg-white dark:hover:bg-slate-800 text-xs font-semibold text-brand transition-all group"
                       >
-                        {isDoc ? <FiDownload /> : <FiExternalLink />}
-                        {isDoc ? 'Download / View File' : 'Open Resource Link'}
+                        <span className="flex items-center gap-2 truncate">
+                          {isDoc ? <FiDownload className="shrink-0 text-blue-500" /> : <FiExternalLink className="shrink-0 text-purple-500" />}
+                          <span className="truncate">{isDoc ? 'Download / View File' : 'Open Resource Link'}</span>
+                        </span>
+                        <span className="text-[11px] text-slate-400 group-hover:text-brand transition-colors shrink-0 font-bold">
+                          →
+                        </span>
                       </a>
                     </div>
                   )}
                 </div>
 
                 <div className="crm-tacademic-card__foot">
-                  <span className="text-[11px] font-medium text-slate-500">
-                    {isDoc ? 'File Attached' : 'Web Link'}
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    {isDoc ? 'Document File' : isVideo ? 'Video Lecture' : 'Web Link'}
                   </span>
 
                   {canManage && (
                     <div className="flex items-center gap-1.5">
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        icon={FiEdit2}
+                      <button
+                        type="button"
                         onClick={() => openEdit(row)}
                         title="Edit Resource"
+                        className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                       >
-                        Edit
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                        icon={FiTrash2}
+                        <FiEdit2 size={13} />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setDeleteTarget(row)}
                         title="Delete Resource"
-                      />
+                        className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 text-rose-600 transition-colors cursor-pointer"
+                      >
+                        <FiTrash2 size={13} />
+                      </button>
                     </div>
                   )}
                 </div>
