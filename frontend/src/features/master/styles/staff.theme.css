@@ -140,8 +140,7 @@
 }
 
 .crm-staff-list-item--active {
-  background: color-mix(in srgb, var(--color-brand, #2563eb) 8%, transparent);
-  box-shadow: inset 3px 0 0 var(--color-brand, #2563eb);
+  background: color-mix(in srgb, var(--color-brand, #2563eb) 10%, var(--bg-card, #ffffff));
 }
 
 .crm-staff-list-item__row {
