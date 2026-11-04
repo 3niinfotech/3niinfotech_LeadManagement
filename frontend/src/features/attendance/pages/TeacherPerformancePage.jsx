@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
-  FiBarChart2,
   FiAward,
   FiUsers,
   FiCheckCircle,
@@ -17,13 +16,11 @@ import {
   FiTrendingUp,
   FiArrowUpRight,
   FiBookOpen,
-  FiMail,
 } from 'react-icons/fi';
 import Button from '../../../components/ui/Button';
 import Avatar from '../../../components/ui/Avatar';
 import Modal from '../../../components/ui/Modal';
 import Select from '../../../components/ui/Select';
-import SummaryStatBar from '../../../components/ui/SummaryStatBar';
 import ContentLoader from '../../../components/ui/ContentLoader';
 import EmptyState from '../../../components/ui/EmptyState';
 import { apiGet } from '../../../api/apiClient';
@@ -179,72 +176,91 @@ export default function TeacherPerformancePage() {
 
   const avgPerf = metrics.averagePerformance;
 
-  const summaryItems = useMemo(() => [
-    {
-      key: 'avg',
-      label: 'Overall Class Average',
-      value: avgPerf != null ? `${avgPerf}%` : '—',
-      icon: FiAward,
-      tone: 'success',
-      filterValue: 'ALL',
-      badge: 'Optimal',
-      badgeTone: 'bg-emerald-50 text-emerald-700',
-    },
-    {
-      key: 'students',
-      label: 'Enrolled Learners',
-      value: metrics.students ?? 0,
-      icon: FiUsers,
-      tone: 'primary',
-      filterValue: 'ALL',
-      badge: 'Active Roster',
-      badgeTone: 'bg-blue-50 text-blue-700',
-    },
-    {
-      key: 'risk',
-      label: 'Low Attendance (<75%)',
-      value: metrics.lowAttendance ?? 0,
-      icon: FiAlertTriangle,
-      tone: metrics.lowAttendance > 0 ? 'warning' : 'neutral',
-      filterValue: 'RISK',
-      badge: metrics.lowAttendance > 0 ? 'Attention' : 'Healthy',
-      badgeTone: metrics.lowAttendance > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600',
-    },
-    {
-      key: 'pending',
-      label: 'Pending Assignments',
-      value: metrics.pendingAssignments ?? 0,
-      icon: FiFileText,
-      tone: metrics.pendingAssignments > 0 ? 'info' : 'neutral',
-      filterValue: 'ALL',
-      badge: 'Submissions',
-      badgeTone: 'bg-cyan-50 text-cyan-700',
-    },
-  ], [avgPerf, metrics]);
-
   if (loading && !data) {
     return <ContentLoader variant="dashboard" />;
   }
 
   return (
     <div className="crm-tperf">
-      {/* ── Summary KPI Strip (Standard CRM UI) ── */}
-      <div className="rounded-xl border border-border bg-card-bg shadow-xs overflow-hidden">
-        <SummaryStatBar
-          items={summaryItems}
-          activeFilter={scoreTier === 'RISK' ? 'RISK' : 'ALL'}
-          onSelect={(val) => setScoreTier(val === 'RISK' ? 'RISK' : 'ALL')}
-          layout="grid"
-          ariaLabel="Performance Statistics"
-        />
+      {/* ── 4 Executive KPI Metric Cards ── */}
+      <div className="crm-tperf-kpi-grid">
+        <div className="crm-tperf-kpi-card">
+          <div className="space-y-1">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Class Average</span>
+            <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+              {avgPerf != null ? `${avgPerf}%` : '—'}
+            </div>
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Optimal Standing
+            </span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0">
+            <FiAward />
+          </div>
+        </div>
+
+        <div className="crm-tperf-kpi-card">
+          <div className="space-y-1">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Enrolled Learners</span>
+            <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+              {metrics.students ?? 0}
+            </div>
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              Active Cohort
+            </span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl shrink-0">
+            <FiUsers />
+          </div>
+        </div>
+
+        <div className="crm-tperf-kpi-card">
+          <div className="space-y-1">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Low Attendance (&lt;75%)</span>
+            <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+              {metrics.lowAttendance ?? 0}
+            </div>
+            <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${
+              metrics.lowAttendance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${metrics.lowAttendance > 0 ? 'bg-amber-500' : 'bg-slate-400'}`} />
+              {metrics.lowAttendance > 0 ? 'Needs Attention' : 'Healthy Attendance'}
+            </span>
+          </div>
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 ${
+            metrics.lowAttendance > 0
+              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+          }`}>
+            <FiAlertTriangle />
+          </div>
+        </div>
+
+        <div className="crm-tperf-kpi-card">
+          <div className="space-y-1">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Pending Assignments</span>
+            <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+              {metrics.pendingAssignments ?? 0}
+            </div>
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+              Tasks for Evaluation
+            </span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl shrink-0">
+            <FiFileText />
+          </div>
+        </div>
       </div>
 
       {/* ── Filter & Search Toolbar ── */}
-      <div className="crm-tperf-toolbar flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-          {/* Search */}
+      <div className="crm-tperf-toolbar">
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+          {/* Search Box */}
           <div className="crm-tperf-search">
-            <FiSearch className="text-slate-400" size={15} />
+            <FiSearch className="text-slate-400 shrink-0" size={15} />
             <input
               type="text"
               placeholder="Search by student name, ID or batch..."
@@ -253,9 +269,8 @@ export default function TeacherPerformancePage() {
             />
           </div>
 
-          {/* Batch & Score Filter Pills */}
+          {/* Batch Selector Pills */}
           <div className="crm-tperf-filters">
-            <span className="text-xs font-semibold text-slate-500 mr-1">Batch:</span>
             <button
               type="button"
               className={`crm-tperf-pill ${selectedBatch === 'ALL' ? 'is-active' : ''}`}
@@ -274,10 +289,9 @@ export default function TeacherPerformancePage() {
               </button>
             ))}
 
-            <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block" />
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
 
-            {/* Performance Tier */}
-            <span className="text-xs font-semibold text-slate-500 mr-1 hidden sm:inline">Tier:</span>
+            {/* Performance Tier Pills */}
             <button
               type="button"
               className={`crm-tperf-pill ${scoreTier === 'ALL' ? 'is-active' : ''}`}
@@ -326,12 +340,13 @@ export default function TeacherPerformancePage() {
           </div>
         </div>
 
+        {/* Toolbar Secondary Action Buttons */}
         <div className="flex items-center gap-2 shrink-0 ml-auto">
           <Button
             size="sm"
             variant="outline"
             onClick={() => navigate(ROUTES.TEACHER_STUDENTS)}
-            className="flex items-center gap-1.5 shadow-xs font-semibold"
+            className="flex items-center gap-1.5 shadow-xs font-semibold rounded-xl"
             title="Navigate to enrolled students roster"
           >
             <FiUsers size={13} />
@@ -342,7 +357,7 @@ export default function TeacherPerformancePage() {
             size="sm"
             variant="outline"
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 shadow-xs font-semibold"
+            className="flex items-center gap-1.5 shadow-xs font-semibold rounded-xl"
           >
             <FiDownload size={13} />
             Export CSV
@@ -353,7 +368,7 @@ export default function TeacherPerformancePage() {
             variant="outline"
             onClick={() => load(true)}
             disabled={isRefreshing}
-            className="flex items-center justify-center p-2 shadow-xs"
+            className="flex items-center justify-center p-2 shadow-xs rounded-xl"
             title="Refresh performance analytics"
           >
             <FiRefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
@@ -361,16 +376,16 @@ export default function TeacherPerformancePage() {
         </div>
       </div>
 
-      {/* ── Split Layout: Left Batch Analysis, Right Comprehensive Leaderboard ── */}
+      {/* ── Split Layout: Left Batch Analysis, Right Academic Leaderboard ── */}
       <div className="crm-tperf-layout">
         {/* ── Left Column: By Batch Performance ── */}
         <div className="crm-tperf-panel">
           <div className="crm-tperf-panel__header">
             <h3 className="crm-tperf-panel__title">
-              <FiLayers className="text-blue-600" />
+              <FiLayers className="text-blue-600 dark:text-blue-400" />
               Batch Performance Breakdown
             </h3>
-            <span className="text-xs font-bold text-slate-400">
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
               {courseTrend.length} {courseTrend.length === 1 ? 'Batch' : 'Batches'}
             </span>
           </div>
@@ -393,9 +408,7 @@ export default function TeacherPerformancePage() {
                 return (
                   <div
                     key={row.batchId}
-                    className={`crm-tperf-batch-card cursor-pointer transition-all ${
-                      isSelected ? 'ring-2 ring-blue-500 bg-blue-50/30' : ''
-                    }`}
+                    className={`crm-tperf-batch-card cursor-pointer ${isSelected ? 'is-active' : ''}`}
                     onClick={() => setSelectedBatch(isSelected ? 'ALL' : row.batch)}
                     title="Click to filter leaderboard by this batch"
                   >
@@ -423,18 +436,18 @@ export default function TeacherPerformancePage() {
                     </div>
 
                     <div className="crm-tperf-batch-card__meta">
-                      <span className="font-semibold text-slate-600">
+                      <span className="font-semibold text-slate-600 dark:text-slate-400">
                         {pct >= 90 ? '🌟 Exceptional standing' : pct >= 75 ? '✓ On Track' : '⚠ Action required'}
                       </span>
                       <button
                         type="button"
-                        className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1"
+                        className="text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(ROUTES.TEACHER_BATCH_DETAIL(row.batchId));
                         }}
                       >
-                        Open Class <FiArrowUpRight size={11} />
+                        Open Class <FiArrowUpRight size={12} />
                       </button>
                     </div>
                   </div>
@@ -443,9 +456,9 @@ export default function TeacherPerformancePage() {
             )}
 
             {/* Quick Helper Tip */}
-            <div className="mt-3 p-3 bg-blue-50/60 rounded-xl border border-blue-100 flex items-start gap-2.5">
-              <FiTrendingUp className="text-blue-600 shrink-0 mt-0.5" size={16} />
-              <div className="text-[12px] text-blue-900 leading-relaxed">
+            <div className="mt-3 p-3.5 bg-blue-50/70 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-900/40 flex items-start gap-2.5">
+              <FiTrendingUp className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" size={16} />
+              <div className="text-[12px] text-blue-900 dark:text-blue-200 leading-relaxed">
                 <strong>Faculty Insight:</strong> Overall score aggregates live attendance records,
                 test results, and evaluated assignments across all registered learners.
               </div>
@@ -462,12 +475,12 @@ export default function TeacherPerformancePage() {
                 Student Academic Leaderboard
               </h3>
               {selectedBatch !== 'ALL' && (
-                <span className="text-[11px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full">
+                <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100/70 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-full border border-blue-200/50">
                   Batch: {selectedBatch}
                 </span>
               )}
             </div>
-            <span className="text-xs font-bold text-slate-500">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
               Showing {filteredStudents.length} of {rawStudents.length} Students
             </span>
           </div>
@@ -484,13 +497,13 @@ export default function TeacherPerformancePage() {
               <table className="crm-tperf-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '68px' }}>Rank</th>
+                    <th style={{ width: '72px' }}>Rank</th>
                     <th>Student Details</th>
                     <th>Attendance</th>
                     <th>Tests</th>
                     <th>Assignments</th>
                     <th>Overall Score</th>
-                    <th style={{ width: '130px', textAlign: 'right' }}>Actions</th>
+                    <th style={{ width: '160px', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -504,28 +517,28 @@ export default function TeacherPerformancePage() {
                     let rankBadge;
                     if (idx === 0) {
                       rankBadge = (
-                        <span className="crm-tperf-rank-badge crm-tperf-rank-badge--1">
+                        <span className="crm-tperf-rank-pill crm-tperf-rank-pill--1">
                           <span>🥇</span>
-                          <span>1</span>
+                          <span>#1</span>
                         </span>
                       );
                     } else if (idx === 1) {
                       rankBadge = (
-                        <span className="crm-tperf-rank-badge crm-tperf-rank-badge--2">
+                        <span className="crm-tperf-rank-pill crm-tperf-rank-pill--2">
                           <span>🥈</span>
-                          <span>2</span>
+                          <span>#2</span>
                         </span>
                       );
                     } else if (idx === 2) {
                       rankBadge = (
-                        <span className="crm-tperf-rank-badge crm-tperf-rank-badge--3">
+                        <span className="crm-tperf-rank-pill crm-tperf-rank-pill--3">
                           <span>🥉</span>
-                          <span>3</span>
+                          <span>#3</span>
                         </span>
                       );
                     } else {
                       rankBadge = (
-                        <span className="crm-tperf-rank-badge crm-tperf-rank-badge--other font-mono">
+                        <span className="crm-tperf-rank-pill crm-tperf-rank-pill--other font-mono">
                           #{idx + 1}
                         </span>
                       );
@@ -541,21 +554,21 @@ export default function TeacherPerformancePage() {
                         {/* Student Name + Code + Batch */}
                         <td>
                           <div className="crm-tperf-student-cell">
-                            <Avatar name={row.name} size="sm" />
+                            <Avatar name={row.name} size="sm" className="!w-9 !h-9 !rounded-xl" />
                             <div className="min-w-0">
                               <button
                                 type="button"
-                                className="crm-tperf-student-name text-left hover:text-blue-600 transition-colors"
+                                className="crm-tperf-student-name text-left hover:text-blue-600 dark:hover:text-blue-400 transition-colors block truncate"
                                 onClick={() => setInspectStudent(row)}
                               >
                                 {row.name}
                               </button>
                               <div className="crm-tperf-student-meta">
-                                <span className="font-mono text-[11px] text-slate-500 font-semibold">
+                                <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
                                   {row.studentCode || 'N/A'}
                                 </span>
                                 <span>•</span>
-                                <span className="truncate max-w-[150px]">{row.batch}</span>
+                                <span className="truncate max-w-[160px] text-slate-600 dark:text-slate-400">{row.batch}</span>
                               </div>
                             </div>
                           </div>
@@ -569,7 +582,7 @@ export default function TeacherPerformancePage() {
                                 (row.attendancePercent ?? 0) >= 75 ? 'bg-emerald-500' : 'bg-amber-500'
                               }`}
                             />
-                            <span className="font-bold text-slate-700 tabular-nums">
+                            <span className="font-bold text-slate-700 dark:text-slate-200 tabular-nums">
                               {row.attendancePercent != null ? `${row.attendancePercent}%` : '—'}
                             </span>
                           </div>
@@ -578,7 +591,7 @@ export default function TeacherPerformancePage() {
                         {/* Tests */}
                         <td>
                           <div className="tabular-nums">
-                            <span className="font-semibold text-slate-700">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">
                               {row.averageTestPercent != null ? `${row.averageTestPercent}%` : '—'}
                             </span>
                             <span className="text-[11px] text-slate-400 ml-1">
@@ -589,12 +602,12 @@ export default function TeacherPerformancePage() {
 
                         {/* Assignments */}
                         <td>
-                          <div className="tabular-nums">
-                            <span className="font-semibold text-slate-700">
+                          <div className="tabular-nums flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">
                               {row.assignmentCompletion != null ? `${row.assignmentCompletion}%` : '—'}
                             </span>
                             {row.pendingAssignments > 0 && (
-                              <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-bold ml-1 border border-amber-200">
+                              <span className="text-[10px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded-full font-bold border border-amber-200/60 dark:border-amber-900/40">
                                 {row.pendingAssignments} pending
                               </span>
                             )}
@@ -610,30 +623,21 @@ export default function TeacherPerformancePage() {
 
                         {/* Actions */}
                         <td style={{ textAlign: 'right' }}>
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'flex-end',
-                              gap: '8px',
-                            }}
-                          >
-                            <Button
-                              size="xs"
-                              variant="outline"
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
                               onClick={() => setInspectStudent(row)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 font-semibold text-xs whitespace-nowrap shadow-xs rounded-lg"
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors inline-flex items-center gap-1 shadow-2xs"
                             >
-                              <FiEye size={12} /> Inspect
-                            </Button>
-                            <Button
-                              size="xs"
-                              variant="primary"
+                              <FiEye size={12} className="text-slate-400" /> Scorecard
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => navigate(ROUTES.TEACHER_STUDENT(row.studentId))}
-                              className="flex items-center gap-1.5 px-3.5 py-1.5 font-semibold text-xs whitespace-nowrap shadow-xs rounded-lg"
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary-dark transition-colors inline-flex items-center gap-1 shadow-xs"
                             >
                               <FiExternalLink size={12} /> Profile
-                            </Button>
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -654,23 +658,23 @@ export default function TeacherPerformancePage() {
           title="Student Academic Scorecard"
           maxWidth="md"
         >
-          <div className="p-1">
+          <div className="p-1 space-y-4">
             {/* Header info */}
-            <div className="flex items-center gap-3.5 pb-3 border-b border-slate-200">
-              <Avatar name={inspectStudent.name} size="lg" />
+            <div className="flex items-center gap-3.5 pb-3 border-b border-slate-200 dark:border-slate-800">
+              <Avatar name={inspectStudent.name} size="lg" className="!w-12 !h-12 !rounded-2xl" />
               <div>
-                <h3 className="text-base font-extrabold text-slate-900 leading-tight">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
                   {inspectStudent.name}
                 </h3>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
                   ID: {inspectStudent.studentCode || inspectStudent.studentId}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded border border-blue-100">
+                  <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-semibold rounded-md border border-blue-100 dark:border-blue-900/50">
                     {inspectStudent.batch}
                   </span>
                   <span className="text-xs text-slate-400">·</span>
-                  <span className="text-xs text-slate-600 font-medium">
+                  <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
                     {inspectStudent.course || 'Academic Course'}
                   </span>
                 </div>
@@ -680,19 +684,19 @@ export default function TeacherPerformancePage() {
             {/* 4 Metric Boxes */}
             <div className="crm-tperf-inspect-grid">
               <div className="crm-tperf-inspect-box">
-                <div className="crm-tperf-inspect-box__val text-blue-600">
+                <div className="crm-tperf-inspect-box__val text-blue-600 dark:text-blue-400">
                   {inspectStudent.overall != null ? `${inspectStudent.overall}%` : '—'}
                 </div>
                 <div className="crm-tperf-inspect-box__lbl">Overall Academic Standing</div>
               </div>
               <div className="crm-tperf-inspect-box">
-                <div className="crm-tperf-inspect-box__val text-emerald-600">
+                <div className="crm-tperf-inspect-box__val text-emerald-600 dark:text-emerald-400">
                   {inspectStudent.attendancePercent != null ? `${inspectStudent.attendancePercent}%` : '—'}
                 </div>
                 <div className="crm-tperf-inspect-box__lbl">Class Attendance Rate</div>
               </div>
               <div className="crm-tperf-inspect-box">
-                <div className="crm-tperf-inspect-box__val text-indigo-600">
+                <div className="crm-tperf-inspect-box__val text-indigo-600 dark:text-indigo-400">
                   {inspectStudent.averageTestPercent != null ? `${inspectStudent.averageTestPercent}%` : '—'}
                 </div>
                 <div className="crm-tperf-inspect-box__lbl">
@@ -700,7 +704,7 @@ export default function TeacherPerformancePage() {
                 </div>
               </div>
               <div className="crm-tperf-inspect-box">
-                <div className="crm-tperf-inspect-box__val text-amber-600">
+                <div className="crm-tperf-inspect-box__val text-amber-600 dark:text-amber-400">
                   {inspectStudent.assignmentCompletion != null ? `${inspectStudent.assignmentCompletion}%` : '—'}
                 </div>
                 <div className="crm-tperf-inspect-box__lbl">
@@ -710,11 +714,11 @@ export default function TeacherPerformancePage() {
             </div>
 
             {/* Performance Analysis Assessment */}
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl mb-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1.5">
-                <FiAward className="text-blue-600" /> Faculty Performance Assessment
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
+                <FiAward className="text-blue-600 dark:text-blue-400" /> Faculty Performance Assessment
               </h4>
-              <p className="text-xs text-slate-700 leading-relaxed">
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                 {(inspectStudent.overall ?? 0) >= 90
                   ? 'Exemplary academic achievement! Student consistently demonstrates high attendance, solid examination results, and prompt submission of assignments.'
                   : (inspectStudent.overall ?? 0) >= 75
@@ -724,7 +728,7 @@ export default function TeacherPerformancePage() {
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200">
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
               <Button size="sm" variant="outline" onClick={() => setInspectStudent(null)}>
                 Close
               </Button>
