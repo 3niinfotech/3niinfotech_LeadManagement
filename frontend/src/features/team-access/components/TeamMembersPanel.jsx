@@ -291,9 +291,18 @@ export default function TeamMembersPanel({
   };
 
   const openDrawer = (mode, record = null) => {
-    const snapshot = record || selected;
-    setForm(userToForm(snapshot));
-    setDrawer({ open: true, mode, record: snapshot });
+    if (mode === 'add') {
+      const defaultBranchId = branchOptions?.length === 1 ? branchOptions[0].value : '';
+      setForm({
+        ...emptyForm(),
+        branchId: defaultBranchId,
+      });
+      setDrawer({ open: true, mode: 'add', record: null });
+    } else {
+      const snapshot = record || selected;
+      setForm(userToForm(snapshot));
+      setDrawer({ open: true, mode, record: snapshot });
+    }
   };
 
   const closeDrawer = () => {
@@ -301,11 +310,34 @@ export default function TeamMembersPanel({
     setForm(emptyForm());
   };
 
-  const setField = (name, value) => setForm((prev) => ({ ...prev, [name]: value }));
+  const setField = (name, valOrEvt) => {
+    const value = valOrEvt && typeof valOrEvt === 'object' && valOrEvt.target !== undefined
+      ? valOrEvt.target.value
+      : valOrEvt;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-  const handleSubmit = async () => {
-    if (!form.firstName.trim() || !form.email.trim() || !form.roleId || !form.branchId) {
-      toastService.error('Name, email, role, and branch are required');
+  const handleSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!form.firstName.trim()) {
+      toastService.error('First name is required');
+      return;
+    }
+    if (!form.email.trim()) {
+      toastService.error('Email is required');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email.trim())) {
+      toastService.error('Please enter a valid email address');
+      return;
+    }
+    if (!form.roleId) {
+      toastService.error('Please select a role for this team member');
+      return;
+    }
+    if (!form.branchId) {
+      toastService.error('Please select a home branch');
       return;
     }
     if (drawer.mode === 'add' && !form.password.trim()) {
@@ -334,13 +366,13 @@ export default function TeamMembersPanel({
 
       if (drawer.mode === 'add') {
         const created = await staffApi.create(payload);
-        toastService.success('Team member added');
+        toastService.success('Team member added successfully');
         closeDrawer();
         await load(true);
-        setSelected(created);
+        if (created?.id) setSelected(created);
       } else {
         const updated = await staffApi.update(drawer.record.id, payload);
-        toastService.success('Team member updated');
+        toastService.success('Team member updated successfully');
         closeDrawer();
         syncMember(updated);
         await load(true);
@@ -489,7 +521,7 @@ export default function TeamMembersPanel({
         <div className="crm-team-filter-bar__actions">
           <Button variant="secondary" size="sm" icon={FiRefreshCw} loading={fetching} onClick={() => load(true)}>Refresh</Button>
           {canCreate && (
-            <Button size="sm" icon={FiPlus} onClick={() => openDrawer('add')} className="crm-team-add-btn">Add member</Button>
+            <Button size="sm" icon={FiPlus} onClick={() => openDrawer('add')} className="crm-team-add-btn">Add Team Member</Button>
           )}
         </div>
       </div>
@@ -528,7 +560,7 @@ export default function TeamMembersPanel({
                   </Button>
                 )}
                 {canCreate && !debouncedSearch && roleFilter === 'all' && branchFilter === 'all' && effectiveStatusFilter === 'all' && (
-                  <Button className="mt-4" size="sm" icon={FiPlus} onClick={() => openDrawer('add')}>Add member</Button>
+                  <Button className="mt-4" size="sm" icon={FiPlus} onClick={() => openDrawer('add')}>Add Team Member</Button>
                 )}
               </div>
             ) : rows.map((row) => (
@@ -580,15 +612,21 @@ export default function TeamMembersPanel({
         </div>
       </div>
 
-      <Drawer open={drawer.open} onClose={closeDrawer} title={drawerTitle} subtitle={drawerSubtitle} size="md" dense
+      <Drawer
+        open={drawer.open}
+        onClose={closeDrawer}
+        title={drawerTitle}
+        subtitle={drawerSubtitle}
+        size="lg"
+        dense
         footer={readOnly ? <Button variant="outline" size="sm" onClick={closeDrawer}>Close</Button> : (
-          <>
+          <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={closeDrawer} disabled={saving}>Cancel</Button>
             <Button size="sm" onClick={handleSubmit} loading={saving}>{saveLabel}</Button>
-          </>
+          </div>
         )}
       >
-        <div className="crm-master-drawer-form" autoComplete="off">
+        <form className="crm-master-drawer-form" onSubmit={handleSubmit} autoComplete="off">
           {(drawer.mode === 'edit' && drawerRecord) && (
             <div className="crm-staff-drawer-avatar">
               <StaffAvatarEditor
@@ -607,47 +645,139 @@ export default function TeamMembersPanel({
           )}
           <MasterFormSection title="Personal Information">
             <div className="crm-master-drawer-grid crm-master-drawer-grid--2col">
-              <FormField label="First name" required><Input value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} disabled={readOnly} name="staff-first-name" autoComplete="off" /></FormField>
-              <FormField label="Last name"><Input value={form.lastName} onChange={(e) => setField('lastName', e.target.value)} disabled={readOnly} name="staff-last-name" autoComplete="off" /></FormField>
-              <div className="crm-master-drawer-grid__full"><FormField label="Email" required><Input type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} disabled={readOnly || drawer.mode === 'edit'} name="staff-email" autoComplete="off" /></FormField></div>
-              <FormField label="Phone"><Input value={form.phone} onChange={(e) => setField('phone', e.target.value)} disabled={readOnly} icon={FiPhone} name="staff-phone" autoComplete="off" /></FormField>
-              <FormField label="Employee code"><Input value={form.employeeCode} onChange={(e) => setField('employeeCode', e.target.value)} disabled={readOnly} icon={FiHash} name="staff-employee-code" autoComplete="off" /></FormField>
-              <FormField label="Department"><Input value={form.department} onChange={(e) => setField('department', e.target.value)} disabled={readOnly} icon={FiBriefcase} name="staff-department" autoComplete="off" /></FormField>
-              <FormField label="Status"><Select value={form.status} onChange={(e) => setField('status', e.target.value)} options={USER_STATUS_FORM} disabled={readOnly} name="staff-status" autoComplete="off" /></FormField>
+              <FormField label="First name" required>
+                <Input
+                  value={form.firstName}
+                  onChange={(e) => setField('firstName', e.target.value)}
+                  disabled={readOnly}
+                  placeholder="e.g. Rahul"
+                  name="staff-first-name"
+                  autoComplete="off"
+                />
+              </FormField>
+              <FormField label="Last name">
+                <Input
+                  value={form.lastName}
+                  onChange={(e) => setField('lastName', e.target.value)}
+                  disabled={readOnly}
+                  placeholder="e.g. Sharma"
+                  name="staff-last-name"
+                  autoComplete="off"
+                />
+              </FormField>
+              <div className="crm-master-drawer-grid__full">
+                <FormField label="Email" required hint="Used for system login and alerts">
+                  <Input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setField('email', e.target.value)}
+                    disabled={readOnly || drawer.mode === 'edit'}
+                    placeholder="e.g. rahul@company.com"
+                    name="staff-email"
+                    autoComplete="off"
+                  />
+                </FormField>
+              </div>
+              <FormField label="Phone">
+                <Input
+                  value={form.phone}
+                  onChange={(e) => setField('phone', e.target.value)}
+                  disabled={readOnly}
+                  placeholder="e.g. +91 98765 43210"
+                  icon={FiPhone}
+                  name="staff-phone"
+                  autoComplete="off"
+                />
+              </FormField>
+              <FormField label="Employee code">
+                <Input
+                  value={form.employeeCode}
+                  onChange={(e) => setField('employeeCode', e.target.value)}
+                  disabled={readOnly}
+                  placeholder="e.g. EMP-101"
+                  icon={FiHash}
+                  name="staff-employee-code"
+                  autoComplete="off"
+                />
+              </FormField>
+              <FormField label="Department">
+                <Input
+                  value={form.department}
+                  onChange={(e) => setField('department', e.target.value)}
+                  disabled={readOnly}
+                  placeholder="e.g. Counselling / Academics"
+                  icon={FiBriefcase}
+                  name="staff-department"
+                  autoComplete="off"
+                />
+              </FormField>
+              <FormField label="Account Status">
+                <Select
+                  value={form.status}
+                  onChange={(e) => setField('status', e.target.value)}
+                  options={USER_STATUS_FORM}
+                  disabled={readOnly}
+                  allowClear={false}
+                  name="staff-status"
+                />
+              </FormField>
             </div>
           </MasterFormSection>
           <MasterFormSection title="Role & Branch Access">
             <div className="crm-master-drawer-grid crm-master-drawer-grid--2col">
               <div className="crm-master-drawer-grid__full">
-                <FormField label="Role" required hint="Controls menus, buttons, and data scope">
-                  <Select value={form.roleId} onChange={(e) => setField('roleId', e.target.value)} options={roleOptions} placeholder="Select role" disabled={readOnly} name="staff-role-id" autoComplete="off" />
+                <FormField label="Role" required hint="Controls accessible modules, permissions, and data scope">
+                  <Select
+                    value={form.roleId || undefined}
+                    onChange={(e) => setField('roleId', e.target.value)}
+                    options={roleOptions}
+                    placeholder="Select role"
+                    disabled={readOnly}
+                    allowClear={false}
+                    name="staff-role-id"
+                  />
                 </FormField>
               </div>
-              {formRole?.description && <p className="crm-master-drawer-hint crm-master-drawer-grid__full">{formRole.description}</p>}
+              {formRole?.description && (
+                <p className="crm-master-drawer-hint crm-master-drawer-grid__full text-xs text-slate-500">
+                  {formRole.description}
+                </p>
+              )}
               <div className="crm-master-drawer-grid__full">
-                <FormField label="Home branch" required>
+                <FormField label="Home branch" required hint="Determines active branch access for this member">
                   <Select
                     value={form.branchId || undefined}
                     onChange={(e) => setField('branchId', e.target.value)}
                     options={branchOptions}
-                    placeholder={branchesLoading ? 'Loading…' : 'Select branch'}
+                    placeholder={branchesLoading ? 'Loading branches…' : 'Select branch'}
                     disabled={readOnly || branchesLoading}
                     showSearch
+                    allowClear={false}
                     name="staff-branch-id"
-                    autoComplete="off"
                   />
                 </FormField>
               </div>
             </div>
           </MasterFormSection>
           {!readOnly && (
-            <MasterFormSection title="Security">
-              <FormField label={drawer.mode === 'add' ? 'Password' : 'New password (optional)'} required={drawer.mode === 'add'}>
-                <Input type="password" value={form.password} onChange={(e) => setField('password', e.target.value)} placeholder={drawer.mode === 'add' ? 'Min 8 characters' : 'Leave blank to keep current'} name="staff-new-password" autoComplete="new-password" />
+            <MasterFormSection title="Security Credentials">
+              <FormField
+                label={drawer.mode === 'add' ? 'Login Password' : 'New Password (optional)'}
+                required={drawer.mode === 'add'}
+                hint={drawer.mode === 'add' ? 'Minimum 8 characters' : 'Leave empty to keep existing password'}
+              >
+                <Input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => setField('password', e.target.value)}
+                  placeholder={drawer.mode === 'add' ? 'Set login password (min 8 chars)' : 'Leave blank to keep current'}
+                  name="staff-new-password"
+                  autoComplete="new-password"
+                />
               </FormField>
             </MasterFormSection>
           )}
-        </div>
+        </form>
       </Drawer>
     </div>
   );
