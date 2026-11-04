@@ -2,6 +2,9 @@ import { API } from '../../../config/api';
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../../../api/apiClient';
 
 export function getUserApiError(err, fallback = 'Request failed') {
+  if (err?.response?.data?.errors && Array.isArray(err.response.data.errors) && err.response.data.errors.length) {
+    return err.response.data.errors.map((e) => e.message || `${e.field}: invalid`).join(', ');
+  }
   return err?.response?.data?.message || err?.message || fallback;
 }
 
