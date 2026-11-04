@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { FiChevronRight, FiLogOut, FiMapPin } from 'react-icons/fi';
+import { FiChevronRight, FiLogOut } from 'react-icons/fi';
 import Avatar from '../ui/Avatar';
 import { selectUser } from '../../redux/slices/authSlice';
 import { ROUTES } from '../../config/routes';
@@ -13,7 +13,7 @@ export default function SidebarProfileDock({ collapsed = false, onLogout }) {
 
   const name = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.name || user?.email || 'User';
   const avatarUrl = resolvePublicAssetUrl(user?.avatar);
-  const branchName = user?.branch?.name || user?.branchName || '';
+  const roleName = user?.role?.name || user?.role?.slug || 'Active';
 
   if (collapsed) {
     return (
@@ -67,10 +67,9 @@ export default function SidebarProfileDock({ collapsed = false, onLogout }) {
             <span className="sidebar-profile-dock__name" title={name}>{name}</span>
             <FiChevronRight className="sidebar-profile-dock__chevron text-xs" aria-hidden />
           </div>
-          {branchName && (
-            <div className="sidebar-profile-dock__branch-row" title={branchName}>
-              <FiMapPin className="shrink-0 text-[10px] text-primary-500" />
-              <span className="truncate">{branchName}</span>
+          {roleName && (
+            <div className="sidebar-profile-dock__branch-row" title={roleName}>
+              <span className="truncate text-[11px] text-text-muted capitalize">{roleName}</span>
             </div>
           )}
         </div>

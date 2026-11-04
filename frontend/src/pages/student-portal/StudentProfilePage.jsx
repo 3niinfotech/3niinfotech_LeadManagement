@@ -130,7 +130,7 @@ export default function StudentProfilePage() {
   const personal = data?.personal || {};
   const academic = data?.academic || {};
   const enrollments = academic.enrollments || [];
-  const branchName = data?.system?.branch?.name || 'Head Office';
+  const branchName = data?.system?.branch?.name || '';
   const counselor = data?.system?.counselor || {
     name: 'Priya Shah',
     email: 'priya.shah@3niinfotech.com',

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiChevronDown, FiChevronRight, FiLogOut, FiMail, FiMapPin, FiSettings, FiShield, FiUser } from 'react-icons/fi';
+import { FiChevronDown, FiChevronRight, FiLogOut, FiMail, FiSettings, FiShield, FiUser } from 'react-icons/fi';
 import Avatar from '../ui/Avatar';
 import { selectUser, logoutUser } from '../../redux/slices/authSlice';
 import { ROUTES } from '../../config/routes';
@@ -122,7 +122,7 @@ export default function NavbarProfileMenu({ open, onToggle, onClose }) {
         </div>
         <div className="hidden lg:block text-left min-w-0 max-w-[128px]">
           <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-tight truncate">{avatarName}</p>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight truncate">{branchName || 'Active'}</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight truncate">{user?.role?.name || 'Active'}</p>
         </div>
         <FiChevronDown
           className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200
@@ -162,12 +162,6 @@ export default function NavbarProfileMenu({ open, onToggle, onClose }) {
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
                       {email}
                     </p>
-                    {branchName ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded mt-1">
-                        <FiMapPin className="w-2.5 h-2.5" />
-                        {branchName}
-                      </span>
-                    ) : null}
                   </div>
                 </div>
               </div>

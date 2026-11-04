@@ -106,7 +106,7 @@ export default function TeacherStudentProfilePage() {
   const primaryFaculty = primaryEnrollment?.instructor
     ? `${primaryEnrollment.instructor.firstName || ''} ${primaryEnrollment.instructor.lastName || ''}`.trim()
     : '—';
-  const branchName = student.branch?.name || 'Head Office';
+  const branchName = student.branch?.name || '';
   const scheduleSlots = primaryEnrollment?.timetableSlots || [];
   const scheduleString = scheduleSlots.length
     ? scheduleSlots.map((s) => `${s.startTime || ''}–${s.endTime || ''}`).join(', ')

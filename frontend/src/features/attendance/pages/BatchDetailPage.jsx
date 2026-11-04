@@ -320,7 +320,7 @@ export default function BatchDetailPage() {
   return (
     <ModulePageCard
       title={batch.name}
-      subtitle={`${batch.courseName} · ${batch.branch?.name || 'Head Office'} · ${batch.code || ''}${faculty ? ` · Faculty: ${faculty}` : ''}${batch.room ? ` · ${batch.room}` : ''}`}
+      subtitle={`${batch.courseName}${batch.branch?.name ? ` · ${batch.branch.name}` : ''} · ${batch.code || ''}${faculty ? ` · Faculty: ${faculty}` : ''}${batch.room ? ` · ${batch.room}` : ''}`}
       icon={FiUsers}
       iconColor="primary"
       breadcrumbs={[
@@ -1188,7 +1188,7 @@ export default function BatchDetailPage() {
                       </div>
                       <div className="p-2.5 rounded-lg border border-border bg-bg-page/50">
                         <span className="text-text-muted block text-[11px]">Campus Branch</span>
-                        <span className="font-bold text-text mt-0.5 block">{batch.branch?.name || 'Head Office'}</span>
+                        <span className="font-bold text-text mt-0.5 block">{batch.branch?.name || 'Main Campus'}</span>
                       </div>
                     </div>
                   </div>
