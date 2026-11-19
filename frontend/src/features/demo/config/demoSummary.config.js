@@ -11,7 +11,7 @@ import {
 export const DEMO_SUMMARY_CARDS = [
   {
     key: 'total',
-    label: 'Total Demos',
+    label: 'Total',
     icon: FiMonitor,
     tone: 'neutral',
     filterValue: null,
@@ -19,7 +19,7 @@ export const DEMO_SUMMARY_CARDS = [
   },
   {
     key: 'today',
-    label: "Today's",
+    label: 'Today',
     icon: FiCalendar,
     tone: 'info',
     filterValue: '__today',
@@ -51,7 +51,7 @@ export const DEMO_SUMMARY_CARDS = [
   },
   {
     key: 'notMarked',
-    label: 'Not Marked',
+    label: 'Pending',
     icon: FiAlertCircle,
     tone: 'warning',
     filterValue: '__notMarked',

@@ -213,7 +213,8 @@ export default function DemoGrid({
       {
         field: 'contact',
         headerName: 'Contact',
-        minWidth: 140,
+        minWidth: 165,
+        width: 175,
         flex: 1.1,
         cellClass: `text-xs ${centerCell}`,
         headerClass: centerHeader,
@@ -236,7 +237,7 @@ export default function DemoGrid({
                   title="WhatsApp student"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <FaWhatsapp className="w-3 h-3" />
+                  <FaWhatsapp className="w-3.5 h-3.5" />
                 </a>
               )}
               {cleanMobile && (
@@ -246,7 +247,7 @@ export default function DemoGrid({
                   title="Call student"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <FiPhone className="w-3 h-3" />
+                  <FiPhone className="w-3.5 h-3.5" />
                 </a>
               )}
             </div>
@@ -323,8 +324,8 @@ export default function DemoGrid({
       {
         field: 'faculty',
         headerName: 'Faculty',
-        minWidth: 110,
-        flex: 0.9,
+        minWidth: 120,
+        flex: 1,
         cellClass: `text-xs text-text-secondary ${centerCell}`,
         headerClass: centerHeader,
         valueGetter: (p) =>
@@ -335,8 +336,8 @@ export default function DemoGrid({
       {
         field: 'branch',
         headerName: 'Branch',
-        minWidth: 100,
-        flex: 0.8,
+        minWidth: 130,
+        flex: 1,
         cellClass: `text-xs text-text-secondary ${centerCell}`,
         headerClass: centerHeader,
         valueGetter: (p) => p.data?.enquiry?.branch?.name || p.data?.enquiry?.branch?.code || '—',
