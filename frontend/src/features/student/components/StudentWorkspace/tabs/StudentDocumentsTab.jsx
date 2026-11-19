@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FiUpload, FiFileText, FiImage, FiAward, FiBookOpen, FiEdit3, FiMail, FiFolder, FiEye, FiTrash2,
+  FiCheck, FiX, FiDownload,
 } from 'react-icons/fi';
 import Button from '../../../../../components/ui/Button';
+import Badge from '../../../../../components/ui/Badge';
 import FormSection from '../../../../../components/ui/FormSection';
 import DocumentPreviewModal from '../../../../enquiry/components/EnquiryDrawer/DocumentPreviewModal';
 import {
@@ -14,6 +16,7 @@ import {
 } from '../../../../enquiry/config/enquiryDocument.config';
 import { studentService } from '../../../../../modules/student/services/student.service';
 import { enquiryService } from '../../../../enquiry/services/enquiryService';
+import { apiPatch } from '../../../../../api/apiClient';
 import toastService from '../../../../../services/toast/toast.service';
 
 const ICONS = {
@@ -118,6 +121,34 @@ export default function StudentDocumentsTab({
     }
   };
 
+  const updateStatus = async (doc, newStatus) => {
+    if (!canEdit) return;
+    let rejectionReason = null;
+    if (newStatus === 'REJECTED') {
+      const reason = window.prompt('Please enter rejection reason for this document:', 'Document unclear or invalid');
+      if (reason === null) return;
+      rejectionReason = reason.trim() || 'Document rejected by counsellor';
+    }
+
+    try {
+      if (studentId) {
+        await apiPatch(`/students/${studentId}/documents/${doc.id}`, {
+          status: newStatus,
+          rejectionReason,
+        });
+      } else {
+        await apiPatch(`/documents/${doc.id}`, {
+          status: newStatus,
+          rejectionReason,
+        });
+      }
+      toastService.success(`Document marked as ${newStatus.toLowerCase()}`);
+      onRefresh?.();
+    } catch (e) {
+      toastService.error(e?.response?.data?.message || 'Failed to update document status');
+    }
+  };
+
   return (
     <>
       <FormSection
@@ -193,24 +224,71 @@ export default function StudentDocumentsTab({
                 {categoryDocs.map((doc) => {
                   const Icon = ICONS[DOCUMENT_CATEGORIES.find((c) => c.value === category)?.icon] || FiFileText;
                   const previewType = isPreviewable(doc.mimeType, doc.name || doc.fileName);
+                  const docUrl = getDocumentUrl(doc.filePath || doc.fileUrl);
+                  const meta = (doc.metadata && typeof doc.metadata === 'object') ? doc.metadata : {};
+                  const docStatus = meta.status || doc.status || (doc.filePath ? 'UPLOADED' : 'REQUIRED');
+
                   return (
-                    <li key={`${doc.source || 'student'}-${doc.id}`} className="crm-student-doc-tile">
-                      <div className="crm-student-doc-tile__icon" aria-hidden>
-                        <Icon />
+                    <li
+                      key={`${doc.source || 'student'}-${doc.id}`}
+                      className="crm-student-doc-tile flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200/90 bg-white hover:border-blue-400 hover:shadow-sm transition-all"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div
+                          className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-blue-50 text-blue-600 border border-blue-100/80"
+                          aria-hidden
+                        >
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                            <p
+                              className="text-sm font-semibold text-slate-800 truncate"
+                              title={doc.name || doc.fileName || 'Document'}
+                            >
+                              {doc.name || doc.fileName || 'Document'}
+                            </p>
+                            {docStatus === 'VERIFIED' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                                <FiCheck className="w-3 h-3" /> Verified
+                              </span>
+                            )}
+                            {docStatus === 'REJECTED' && (
+                              <span
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 shrink-0"
+                                title={meta.rejectionReason || doc.rejectionReason || 'Rejected'}
+                              >
+                                <FiX className="w-3 h-3" /> Rejected
+                              </span>
+                            )}
+                            {['UNDER_REVIEW', 'UPLOADED'].includes(docStatus) && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                                ⏳ Pending Review
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 whitespace-nowrap">
+                            <span>{doc.fileSize != null ? formatFileSize(doc.fileSize) : '—'}</span>
+                            {doc.createdAt && (
+                              <>
+                                <span>·</span>
+                                <span>{formatUploadedAt(doc.createdAt)}</span>
+                              </>
+                            )}
+                            {doc.source === 'enquiry' && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 font-medium">
+                                From enquiry
+                              </span>
+                            )}
+                          </div>
+                          {meta.rejectionReason && (
+                            <p className="text-xs text-rose-600 font-medium mt-1 truncate" title={meta.rejectionReason}>
+                              Reason: {meta.rejectionReason}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="crm-student-doc-tile__body">
-                        <p className="crm-student-doc-tile__name" title={doc.name || doc.fileName}>
-                          {doc.name || doc.fileName || 'Document'}
-                        </p>
-                        <p className="crm-student-doc-tile__meta">
-                          {doc.fileSize != null ? formatFileSize(doc.fileSize) : '—'}
-                          {doc.createdAt ? ` · ${formatUploadedAt(doc.createdAt)}` : ''}
-                        </p>
-                        {doc.source === 'enquiry' && (
-                          <span className="crm-student-doc-tile__badge">From enquiry</span>
-                        )}
-                      </div>
-                      <div className="crm-student-doc-tile__actions">
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
                         {previewType && (
                           <Button
                             variant="ghost"
@@ -218,6 +296,49 @@ export default function StudentDocumentsTab({
                             icon={FiEye}
                             onClick={() => setPreviewDoc(doc)}
                             aria-label="Preview"
+                            title="Preview"
+                          />
+                        )}
+                        {docUrl && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={FiDownload}
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = docUrl;
+                              link.download = doc.name || doc.fileName || 'document';
+                              link.target = '_blank';
+                              link.rel = 'noopener noreferrer';
+                              link.click();
+                            }}
+                            aria-label="Download"
+                            title="Download"
+                          />
+                        )}
+                        {canEdit && docStatus !== 'VERIFIED' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={FiCheck}
+                            className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                            onClick={() => updateStatus(doc, 'VERIFIED')}
+                            aria-label="Verify document"
+                            title="Verify document"
+                          />
+                        )}
+                        {canEdit && docStatus !== 'REJECTED' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={FiX}
+                            className="text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                            onClick={() => {
+                              const reason = window.prompt('Rejection reason (optional):') || 'Document rejected';
+                              updateStatus(doc, 'REJECTED', reason);
+                            }}
+                            aria-label="Reject document"
+                            title="Reject document"
                           />
                         )}
                         {canEdit && (
@@ -225,8 +346,10 @@ export default function StudentDocumentsTab({
                             variant="ghost"
                             size="sm"
                             icon={FiTrash2}
+                            className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
                             onClick={() => remove(doc)}
                             aria-label="Delete"
+                            title="Delete"
                           />
                         )}
                       </div>

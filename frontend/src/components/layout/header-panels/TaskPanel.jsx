@@ -47,7 +47,14 @@ export default function TaskPanel({ onClose }) {
   useEffect(() => {
     reload();
     const interval = setInterval(reload, 45000);
-    return () => clearInterval(interval);
+    const handleNewTask = () => reload();
+    window.addEventListener('crm-task-new', handleNewTask);
+    window.addEventListener('crm-task-update', handleNewTask);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('crm-task-new', handleNewTask);
+      window.removeEventListener('crm-task-update', handleNewTask);
+    };
   }, [reload]);
 
   const buckets = useMemo(() => buildTaskBuckets(feed), [feed]);

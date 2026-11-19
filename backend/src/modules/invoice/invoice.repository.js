@@ -93,8 +93,16 @@ const studentInclude = {
       studentCode: true,
       firstName: true,
       lastName: true,
-      branch: { select: { id: true, name: true } },
+      email: true,
+      phone: true,
+      branch: { select: { id: true, name: true, code: true } },
     },
+  },
+  payments: {
+    include: {
+      receipts: true,
+    },
+    orderBy: { paidAt: 'desc' },
   },
 };
 

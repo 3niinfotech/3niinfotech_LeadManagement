@@ -33,13 +33,14 @@ export const REPORT_ROUTES = {
 };
 
 export const REPORT_DATE_PRESETS = [
-  { id: 'today', label: 'Today' },
-  { id: 'yesterday', label: 'Yesterday' },
-  { id: 'this_week', label: 'This Week' },
+  { id: 'all_time', label: 'All Time' },
   { id: 'this_month', label: 'This Month' },
   { id: 'last_month', label: 'Last Month' },
   { id: 'this_quarter', label: 'This Quarter' },
   { id: 'this_year', label: 'This Year' },
+  { id: 'today', label: 'Today' },
+  { id: 'yesterday', label: 'Yesterday' },
+  { id: 'this_week', label: 'This Week' },
   { id: 'custom', label: 'Custom' },
 ];
 
@@ -58,180 +59,60 @@ export const OPERATIONS_REPORT_VIEWS = [
   { id: 'attendance', label: 'Attendance', icon: FiCheckCircle },
 ];
 
-/** Main sidebar Reports tree */
+/** Main sidebar Reports tree - Clean & Unified, No Duplicate Subpages */
 export function buildReportsSidebarChildren() {
   return [
     {
       id: 'reports-overview',
-      label: 'Overview',
-      description: 'Executive summary',
+      label: 'Executive Overview',
+      description: 'Business pulse & KPI telemetry',
       icon: FiBarChart2,
       path: REPORT_ROUTES.OVERVIEW,
       permission: PERMISSIONS.REPORTS_VIEW,
     },
     {
-      id: 'reports-leads-group',
-      label: 'Lead & Conversion',
-      description: 'Enquiry funnel analytics',
+      id: 'reports-leads',
+      label: 'Leads & Funnel',
+      description: 'Enquiry conversion & acquisition',
       icon: FiTrendingUp,
+      path: REPORT_ROUTES.LEADS,
       permission: PERMISSIONS.REPORTS_VIEW,
-      children: [
-        {
-          id: 'reports-leads',
-          label: 'Conversion',
-          path: `${REPORT_ROUTES.LEADS}/conversion`,
-          icon: FiTrendingUp,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-        {
-          id: 'reports-source',
-          label: 'Lead Source',
-          path: `${REPORT_ROUTES.LEADS}/source`,
-          icon: FiLink,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-        {
-          id: 'reports-country',
-          label: 'Country',
-          path: `${REPORT_ROUTES.LEADS}/country`,
-          icon: FiGlobe,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-        {
-          id: 'reports-counsellor',
-          label: 'Counsellor',
-          path: `${REPORT_ROUTES.LEADS}/counsellor`,
-          icon: FiUser,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-        {
-          id: 'reports-lead-performance',
-          label: 'Performance',
-          path: `${REPORT_ROUTES.LEADS}/performance`,
-          icon: FiAward,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-        {
-          id: 'reports-lost',
-          label: 'Lost Reason',
-          path: `${REPORT_ROUTES.LEADS}/lostReason`,
-          icon: FiXCircle,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-      ],
     },
     {
-      id: 'reports-ops-group',
-      label: 'Operations',
-      description: 'Follow-ups, demos, attendance',
-      icon: FiActivity,
-      permission: PERMISSIONS.REPORTS_VIEW,
-      children: [
-        {
-          id: 'reports-followup',
-          label: 'Follow-ups',
-          path: `${REPORT_ROUTES.OPERATIONS}/followup`,
-          icon: FiPhone,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-        {
-          id: 'reports-demo',
-          label: 'Demo',
-          path: `${REPORT_ROUTES.OPERATIONS}/demo`,
-          icon: FiMonitor,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-        {
-          id: 'reports-attendance',
-          label: 'Attendance',
-          path: `${REPORT_ROUTES.OPERATIONS}/attendance`,
-          icon: FiCheckCircle,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-      ],
-    },
-    {
-      id: 'reports-academic-group',
-      label: 'Student & Academic',
-      icon: FiBookOpen,
-      permission: PERMISSIONS.REPORTS_VIEW,
-      children: [
-        {
-          id: 'reports-students',
-          label: 'Students',
-          path: `${REPORT_ROUTES.ACADEMIC}/students`,
-          icon: FiUsers,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-        {
-          id: 'reports-performance',
-          label: 'Performance',
-          path: `${REPORT_ROUTES.ACADEMIC}/performance`,
-          icon: FiAward,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-      ],
-    },
-    {
-      id: 'reports-appvisa-group',
-      label: 'Application & Visa',
+      id: 'reports-academic-appvisa',
+      label: 'Admissions & Visas',
+      description: 'Enrollments, applications & visas',
       icon: FiFileText,
+      path: REPORT_ROUTES.APPLICATION_VISA,
       permission: PERMISSIONS.REPORTS_VIEW,
-      children: [
-        {
-          id: 'reports-applications',
-          label: 'Applications',
-          path: `${REPORT_ROUTES.APPLICATION_VISA}/applications`,
-          icon: FiFileText,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-        {
-          id: 'reports-visa',
-          label: 'Visa',
-          path: `${REPORT_ROUTES.APPLICATION_VISA}/visa`,
-          icon: FiGlobe,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-      ],
     },
     {
-      id: 'reports-finance-group',
-      label: 'Finance',
+      id: 'reports-finance',
+      label: 'Finance & Collections',
+      description: 'Revenue, billing & receivables',
       icon: FiDollarSign,
-      permission: PERMISSIONS.REPORTS_VIEW,
-      children: [
-        {
-          id: 'reports-fees',
-          label: 'Fees & Collection',
-          path: `${REPORT_ROUTES.FINANCE}/collection`,
-          icon: FiDollarSign,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-        {
-          id: 'reports-outstanding',
-          label: 'Outstanding',
-          path: `${REPORT_ROUTES.FINANCE}/outstanding`,
-          icon: FiDollarSign,
-          permission: PERMISSIONS.REPORTS_VIEW,
-        },
-      ],
-    },
-    {
-      id: 'reports-targets',
-      label: 'Target vs Achievement',
-      path: REPORT_ROUTES.TARGETS,
-      icon: FiTarget,
+      path: REPORT_ROUTES.FINANCE,
       permission: PERMISSIONS.REPORTS_VIEW,
     },
     {
       id: 'reports-export',
-      label: 'Backup / Export',
-      path: REPORT_ROUTES.EXPORT,
+      label: 'Export Center',
+      description: 'Download CSV datasets',
       icon: FiDownload,
+      path: REPORT_ROUTES.EXPORT,
       permission: PERMISSIONS.REPORTS_VIEW,
     },
   ];
 }
+
+/** Unified In-Page Tab Navigation Sections */
+export const REPORT_NAV_TABS = [
+  { id: 'overview', label: 'Overview', path: REPORT_ROUTES.OVERVIEW, icon: FiBarChart2 },
+  { id: 'leads', label: 'Leads & Funnel', path: REPORT_ROUTES.LEADS, icon: FiTrendingUp },
+  { id: 'applications', label: 'Admissions & Visas', path: REPORT_ROUTES.APPLICATION_VISA, icon: FiFileText },
+  { id: 'finance', label: 'Finance & Revenue', path: REPORT_ROUTES.FINANCE, icon: FiDollarSign },
+  { id: 'export', label: 'Export Center', path: REPORT_ROUTES.EXPORT, icon: FiDownload },
+];
 
 /** Date preset → { from, to } ISO date strings (yyyy-mm-dd) */
 export function resolveReportDateRange(preset, custom = {}) {
@@ -257,6 +138,8 @@ export function resolveReportDateRange(preset, custom = {}) {
   let to = endOfDay(now);
 
   switch (preset) {
+    case 'all_time':
+      return { from: undefined, to: undefined };
     case 'today':
       from = startOfDay(now);
       break;

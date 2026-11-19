@@ -5,6 +5,9 @@ import { getDefaultRoute, resolvePortalFromRole } from '../../config/portal.conf
 
 export default function RoleHomeRedirect() {
   const user = useSelector(selectUser);
+  if (!user) {
+    return <Navigate to="/login/admin" replace />;
+  }
   const portal = user?.portal || resolvePortalFromRole(user?.role?.slug);
   const to = user?.defaultRoute || getDefaultRoute(portal, user);
   return <Navigate to={to} replace />;

@@ -10,13 +10,17 @@ function useDebounced(value, delay = 450) {
   return debounced;
 }
 
-export function useWalkInDuplicateCheck({ phone, branchId, enabled = true }) {
+export function useWalkInDuplicateCheck({ phone, email, branchId, enabled = true }) {
   const [checkDuplicate, { isFetching }] = useLazyCheckWalkInDuplicateQuery();
   const [match, setMatch] = useState(null);
   const debouncedPhone = useDebounced(phone?.trim() || '');
+  const debouncedEmail = useDebounced(email?.trim() || '');
 
   useEffect(() => {
-    if (!enabled || !branchId || debouncedPhone.length < 8) {
+    const hasPhone = debouncedPhone.length >= 8;
+    const hasEmail = debouncedEmail.includes('@') && debouncedEmail.length >= 5;
+
+    if (!enabled || !branchId || (!hasPhone && !hasEmail)) {
       setMatch(null);
       return;
     }
@@ -24,15 +28,24 @@ export function useWalkInDuplicateCheck({ phone, branchId, enabled = true }) {
     let cancelled = false;
     (async () => {
       try {
-        const result = await checkDuplicate({ phone: debouncedPhone, branchId }).unwrap();
-        if (!cancelled) setMatch(result?.existing || null);
+        const params = { branchId };
+        if (hasPhone) params.phone = debouncedPhone;
+        if (hasEmail) params.email = debouncedEmail;
+
+        const result = await checkDuplicate(params).unwrap();
+        if (!cancelled) {
+          const matchData = result?.existing || (result?.hasDuplicate ? result?.identity : null);
+          setMatch(matchData || null);
+        }
       } catch {
         if (!cancelled) setMatch(null);
       }
     })();
 
-    return () => { cancelled = true; };
-  }, [debouncedPhone, branchId, enabled, checkDuplicate]);
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedPhone, debouncedEmail, branchId, enabled, checkDuplicate]);
 
   return { match, checking: isFetching, hasDuplicate: Boolean(match) };
 }

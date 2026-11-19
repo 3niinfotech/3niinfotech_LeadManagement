@@ -391,10 +391,23 @@
   padding: 1rem 1.25rem 1.5rem;
 }
 
+.crm-enquiry-tab-panel {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.crm-enquiry-tab-panel .crm-form-panel__layer,
 .crm-enquiry-tab-panel .crm-enquiry-tab-panel__layer {
-  position: absolute;
-  inset: 0;
-  will-change: opacity, transform;
+  position: relative;
+  inset: auto;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem 1.25rem 1.5rem;
 }
 
 .crm-followup-actions-panel.crm-form-section {

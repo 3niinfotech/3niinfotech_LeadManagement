@@ -1,4 +1,4 @@
-import { FiAlertTriangle, FiExternalLink, FiUser } from 'react-icons/fi';
+import { FiAlertTriangle, FiExternalLink, FiUser, FiCheckCircle } from 'react-icons/fi';
 import Button from '../../../../components/ui/Button';
 import Badge from '../../../../components/ui/Badge';
 import { getWalkInStatusLabel } from '../../config/walkin.constants';
@@ -8,22 +8,28 @@ export default function DuplicateDetectionPanel({
   match,
   onContinueExisting,
   onOpenProfile,
-  onDismiss,
 }) {
   if (!match) return null;
 
-  const name = getVisitorName(match);
-  const meta = match.metadata || {};
+  const name = match.name || getVisitorName(match);
+  const matchType = match.matchType || 'LEAD';
+  const matchedOn = match.matchedOn === 'both' ? 'Mobile Number & Email' : (match.matchedOn === 'email' ? 'Email Address' : 'Mobile Number');
+  const code = match.code || match.leadCode || match.studentCode || match.enquiryCode || '—';
+  const assignedToName = typeof match.assignedTo === 'string'
+    ? match.assignedTo
+    : (match.assignedTo ? `${match.assignedTo.firstName || ''} ${match.assignedTo.lastName || ''}`.trim() : '—');
 
   return (
-    <div className="crm-reception-duplicate" role="alert">
-      <div className="crm-reception-duplicate__glow" aria-hidden />
+    <div className="crm-reception-duplicate" role="alert" style={{ borderColor: 'var(--color-danger, #ef4444)' }}>
+      <div className="crm-reception-duplicate__glow" aria-hidden style={{ background: 'rgba(239, 68, 68, 0.12)' }} />
       <div className="crm-reception-duplicate__head">
-        <FiAlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+        <FiAlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
         <div>
-          <p className="crm-reception-duplicate__title">Existing person found</p>
-          <p className="crm-reception-duplicate__sub">
-            Mobile matches an active lead — avoid duplicate master records.
+          <p className="crm-reception-duplicate__title font-bold text-red-700">
+            Duplicate Entry Blocked ({matchType} Found)
+          </p>
+          <p className="crm-reception-duplicate__sub text-red-600">
+            Matched by {matchedOn}. Re-registration is strictly blocked to maintain CRM data integrity.
           </p>
         </div>
       </div>
@@ -35,37 +41,32 @@ export default function DuplicateDetectionPanel({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <p className="font-semibold text-text">{name}</p>
-            <Badge color="warning" className="text-[10px]">
-              {getWalkInStatusLabel(match.status)}
+            <Badge color={matchType === 'STUDENT' ? 'success' : 'warning'} className="text-[10px]">
+              {matchType}: {getWalkInStatusLabel(match.status)}
             </Badge>
           </div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-text-secondary">
-            <span>Lead ID: {match.leadCode || '—'}</span>
-            <span>Assigned: {match.assignedTo ? `${match.assignedTo.firstName || ''} ${match.assignedTo.lastName || ''}`.trim() : '—'}</span>
-            <span>Mobile: {match.phone}</span>
-            <span>Last visit: {formatTimeShort(match.walkInAt)}</span>
-            <span>Country: {match.country || meta.interestedCountry || '—'}</span>
-            <span>
-              Counsellor:
-              {' '}
-              {match.assignedTo
-                ? `${match.assignedTo.firstName} ${match.assignedTo.lastName || ''}`.trim()
-                : 'Unassigned'}
-            </span>
+            <span>Reference ID: {code}</span>
+            <span>Assigned: {assignedToName || 'Unassigned'}</span>
+            <span>Mobile: {match.phone || '—'}</span>
+            <span>Email: {match.email || '—'}</span>
+            {match.branch && <span>Branch: {match.branch}</span>}
+            {match.walkInAt && <span>Last visit: {formatTimeShort(match.walkInAt)}</span>}
           </div>
         </div>
       </div>
 
       <div className="crm-reception-duplicate__actions">
-        <Button size="sm" variant="outline" onClick={onDismiss}>
-          Create New Visit
-        </Button>
-        <Button size="sm" icon={FiExternalLink} onClick={() => onOpenProfile?.(match.id)}>
-          Open Profile
-        </Button>
-        <Button size="sm" variant="primary" onClick={() => onContinueExisting?.(match.id)}>
-          Continue Existing
-        </Button>
+        {onOpenProfile && (
+          <Button size="sm" variant="primary" icon={FiExternalLink} onClick={() => onOpenProfile(match.id)}>
+            Open Existing {matchType === 'STUDENT' ? 'Student' : (matchType === 'ENQUIRY' ? 'Enquiry' : 'Lead')}
+          </Button>
+        )}
+        {onContinueExisting && (
+          <Button size="sm" variant="outline" onClick={() => onContinueExisting(match.id)}>
+            Log Follow-up on Existing
+          </Button>
+        )}
       </div>
     </div>
   );

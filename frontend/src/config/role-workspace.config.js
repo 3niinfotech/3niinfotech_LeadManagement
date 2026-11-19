@@ -15,6 +15,7 @@ export const ROLE_DEFAULT_ROUTES = {
   visa_officer: '/admin/visas',
   finance_manager: '/admin/fees',
   finance_executive: '/admin/fees',
+  accountant: '/admin/fees',
   marketing_manager: '/admin/dashboard',
   marketing_executive: '/admin/enquiries',
   telecaller: '/admin/enquiries',
@@ -22,6 +23,8 @@ export const ROLE_DEFAULT_ROUTES = {
   compliance_officer: '/admin/reports',
   partner_manager: '/admin/master/partners',
   partner: '/agent/dashboard',
+  agent: '/agent/dashboard',
+  partner_agent: '/agent/dashboard',
   student_portal: '/student/dashboard',
   viewer: '/admin/dashboard',
   custom_role: '/admin/dashboard',
@@ -72,6 +75,43 @@ export const ROLE_NAV_LABELS = {
     dashboard: 'Dashboard',
     fees: 'Fees',
   },
+  accountant: {
+    dashboard: 'Dashboard',
+    fees: 'Fee Management',
+    students: 'Students (Accounts)',
+    reports: 'Financial Reports',
+    calendar: 'Payment Calendar',
+  },
+  agent: {
+    dashboard: 'Dashboard',
+    enquiries: 'My Referrals',
+    students: 'My Students',
+    applications: 'Applications',
+    visas: 'Visa Tracking',
+    commissions: 'Commissions',
+    calendar: 'Calendar',
+    reports: 'Reports',
+  },
+  partner: {
+    dashboard: 'Dashboard',
+    enquiries: 'My Referrals',
+    students: 'My Students',
+    applications: 'Applications',
+    visas: 'Visa Tracking',
+    commissions: 'Commissions',
+    calendar: 'Calendar',
+    reports: 'Reports',
+  },
+  partner_agent: {
+    dashboard: 'Dashboard',
+    enquiries: 'My Referrals',
+    students: 'My Students',
+    applications: 'Applications',
+    visas: 'Visa Tracking',
+    commissions: 'Commissions',
+    calendar: 'Calendar',
+    reports: 'Reports',
+  },
 };
 
 /** Optional path overrides by role (centralized landing/nav — not scattered role checks) */
@@ -109,6 +149,10 @@ export const ROLE_WORKSPACE_META = {
   visa_officer: { title: 'Visa cases', subtitle: 'Assigned visa files and follow-ups' },
   finance_manager: { title: 'Finance', subtitle: 'Invoices, collections, and revenue' },
   finance_executive: { title: 'Collections', subtitle: 'Branch invoices and payments' },
+  accountant: { title: 'Accounts Desk', subtitle: 'Fee collection, invoices, receipts, and financial ledgers' },
+  agent: { title: 'Agency Workspace', subtitle: 'Track candidate referrals, admissions progress, and commissions in real-time' },
+  partner: { title: 'Agency Workspace', subtitle: 'Track candidate referrals, admissions progress, and commissions in real-time' },
+  partner_agent: { title: 'Agency Workspace', subtitle: 'Track candidate referrals, admissions progress, and commissions in real-time' },
 };
 
 export function getRoleDefaultRoute(roleSlug, fallback = '/admin/dashboard') {

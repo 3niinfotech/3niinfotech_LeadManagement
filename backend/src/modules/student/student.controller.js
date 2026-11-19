@@ -85,4 +85,17 @@ export const deleteStudentDocument = asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Document deleted');
 });
 
+export const updateStudentDocumentStatus = asyncHandler(async (req, res) => {
+  const { status, rejectionReason } = req.body;
+  if (!status) return res.status(400).json({ success: false, message: 'Status is required' });
+  const updated = await studentService.updateDocumentStatus(
+    req.params.id,
+    req.params.docId,
+    { status, rejectionReason },
+    req.user.id,
+    req,
+  );
+  sendSuccess(res, updated, `Document ${status.toLowerCase()}`);
+});
+
 export { authorize, PERMISSIONS };

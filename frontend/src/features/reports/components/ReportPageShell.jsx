@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { FiBarChart2, FiDownload, FiRefreshCw } from 'react-icons/fi';
 import ModulePageCard from '../../../components/layout/ModulePageLayout';
 import Button from '../../../components/ui/Button';
 import { ROUTES } from '../../../config/routes';
-import ReportFiltersBar from './ReportFiltersBar';
+import { REPORT_NAV_TABS } from '../config/reports.config';
+import ReportHeaderFilters from './ReportHeaderFilters';
 
 export default function ReportPageShell({
   title,
@@ -12,8 +13,12 @@ export default function ReportPageShell({
   actions,
   filters,
   showExport = true,
+  hideNav = false,
   children,
 }) {
+  const location = useLocation();
+  const path = location.pathname;
+
   const crumbs = [
     { label: 'Dashboard', path: ROUTES.DASHBOARD },
     { label: 'Reports', path: ROUTES.REPORTS },
@@ -21,7 +26,10 @@ export default function ReportPageShell({
   ];
 
   const headerActions = (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center flex-wrap gap-2">
+      {filters && (
+        <ReportHeaderFilters {...filters} />
+      )}
       {actions}
       {filters?.onRefresh && (
         <Button
@@ -30,13 +38,14 @@ export default function ReportPageShell({
           icon={FiRefreshCw}
           loading={filters.refreshLoading}
           onClick={filters.onRefresh}
+          className="h-8"
         >
           Refresh
         </Button>
       )}
       {showExport && (
         <Link to={ROUTES.REPORTS_EXPORT || `${ROUTES.REPORTS}/export`}>
-          <Button size="sm" variant="primary" icon={FiDownload}>
+          <Button size="sm" variant="primary" icon={FiDownload} className="h-8">
             Export
           </Button>
         </Link>
@@ -54,11 +63,30 @@ export default function ReportPageShell({
         breadcrumbs={crumbs}
         actions={headerActions}
       >
-        {filters && (
-          <div className="crm-report-toolbar">
-            <ReportFiltersBar {...filters} hideRefresh />
+        {!hideNav && (
+          <div className="px-4 pt-3.5 pb-1 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800">
+            <nav className="crm-reports-nav" aria-label="Reports Navigation">
+              {REPORT_NAV_TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isExactOverview = tab.path === ROUTES.REPORTS && (path === ROUTES.REPORTS || path === `${ROUTES.REPORTS}/`);
+                const isSubActive = tab.path !== ROUTES.REPORTS && path.startsWith(tab.path);
+                const active = isExactOverview || isSubActive;
+
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`crm-reports-nav__item ${active ? 'crm-reports-nav__item--active' : ''}`}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{tab.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
         )}
+
         <div className="crm-report-body">
           {children}
         </div>
@@ -89,14 +117,19 @@ export function ReportSectionChips({ items, activeId, basePath }) {
   );
 }
 
-export function ReportEmpty({ message = 'No data available for selected filters.', icon: Icon = FiBarChart2 }) {
+export function ReportEmpty({ message = 'No data available for selected filters.', icon: Icon = FiBarChart2, onResetAllTime }) {
   return (
     <div className="crm-report-empty">
       <div className="crm-report-empty__icon-wrap">
-        <Icon className="w-5 h-5" />
+        <Icon className="w-5 h-5 text-slate-400" />
       </div>
-      <p className="crm-report-empty__title">No data available</p>
-      <p className="crm-report-empty__msg">{message}</p>
+      <p className="crm-report-empty__title text-slate-800 dark:text-slate-200">No records found</p>
+      <p className="crm-report-empty__msg text-slate-500 dark:text-slate-400">{message}</p>
+      {onResetAllTime && (
+        <Button size="sm" variant="outline" className="mt-3" onClick={onResetAllTime}>
+          View All Time Data
+        </Button>
+      )}
     </div>
   );
 }

@@ -498,9 +498,17 @@ export default function AnnouncementsPage() {
                       )}
                       <p className="crm-ann-page__card-excerpt">{item.body}</p>
 
-                      {(item.attachments || []).length > 0 && (
-                        <AnnouncementAttachmentList attachments={item.attachments} compact />
-                      )}
+                      {(() => {
+                        const extraAttachments = (item.attachments || []).filter(
+                          (a) => a?.url && a.url !== item.imageUrl
+                        );
+                        if (!extraAttachments.length) return null;
+                        return (
+                          <div className="crm-ann-page__card-attachments my-2">
+                            <AnnouncementAttachmentList attachments={extraAttachments} compact />
+                          </div>
+                        );
+                      })()}
 
                       {item.isActive && canManage && (
                         <div className="crm-ann-page__reach">

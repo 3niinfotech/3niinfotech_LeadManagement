@@ -67,7 +67,8 @@ export const authenticate = async (req, res, next) => {
 export const authorize = (...permissions) => (req, res, next) => {
   if (!req.user) return next(new AppError('Authentication required', 401));
 
-  if (!hasAnyPermission(req.user.permissions, permissions)) {
+  const flatPerms = permissions.flat(Infinity).filter(Boolean);
+  if (!hasAnyPermission(req.user.permissions, flatPerms)) {
     return next(new AppError('Insufficient permissions', 403));
   }
 

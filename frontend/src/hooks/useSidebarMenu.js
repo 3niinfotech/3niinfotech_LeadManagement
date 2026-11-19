@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated, selectUser } from '../redux/slices/authSlice';
 import { sidebarConfig } from '../config/sidebar.config';
+import { agentSidebarMenuStructure } from '../config/agent-sidebar.config';
 import { filterMenuToPhase1 } from '../config/phase1-sidebar.config';
 import { applyRoleNavLabels } from '../config/role-workspace.config';
 import { useFeatures } from './useFeature';
+
+const AGENT_ROLE_SLUGS = ['partner', 'agent', 'partner_agent'];
 
 function applyFeatureFilters(items, flags) {
   return items
@@ -28,14 +31,16 @@ export function useSidebarMenu() {
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const roleSlug = useSelector(selectUser)?.role?.slug;
   const { flags, isLoading: featuresLoading } = useFeatures();
-  const [baseMenu, setBaseMenu] = useState(() => filterMenuToPhase1(sidebarConfig));
+  const isAgent = AGENT_ROLE_SLUGS.includes(roleSlug);
+  const [baseMenu, setBaseMenu] = useState(() => (isAgent ? agentSidebarMenuStructure : filterMenuToPhase1(sidebarConfig)));
 
   useEffect(() => {
-    setBaseMenu(filterMenuToPhase1(sidebarConfig));
-  }, [isAuthenticated]);
+    setBaseMenu(isAgent ? agentSidebarMenuStructure : filterMenuToPhase1(sidebarConfig));
+  }, [isAuthenticated, isAgent]);
 
   return useMemo(() => {
+    if (isAgent) return agentSidebarMenuStructure;
     const withFlags = featuresLoading ? baseMenu : applyFeatureFilters(baseMenu, flags);
     return applyRoleNavLabels(withFlags, roleSlug);
-  }, [baseMenu, flags, featuresLoading, roleSlug]);
+  }, [baseMenu, flags, featuresLoading, roleSlug, isAgent]);
 }

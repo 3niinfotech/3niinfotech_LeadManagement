@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import prisma from '../../config/database.js';
 import { AppError } from '../../utils/response.util.js';
 import { notifyUser } from '../notification/notification.dispatcher.js';
+import { applicationRepository } from '../application/application.repository.js';
 import {
   resolveOwnStudent,
   sanitizeDocumentForStudent,
@@ -261,10 +262,10 @@ async function loadFeeBundle(studentId) {
     }
   } catch (_) {}
 
-  const totalFees = Number(metaFees?.totalFees) || (planTotal || invoiceTotal || 120000);
+  const totalFees = Number(metaFees?.totalFees) || (planTotal || invoiceTotal || 0);
   const paid = metaFees?.paid !== undefined
     ? Number(metaFees.paid)
-    : ((planPaid || invoicePaid) ? (planPaid || invoicePaid) : 80000);
+    : ((planPaid || invoicePaid) ? (planPaid || invoicePaid) : 0);
   const pending = metaFees?.pending !== undefined
     ? Number(metaFees.pending)
     : Math.max(0, totalFees - paid);
@@ -355,6 +356,66 @@ async function loadFeeBundle(studentId) {
       }
       : null,
   };
+}
+
+export async function ensureStudentPrimaryApplication(student, actorId = null) {
+  if (!student || !student.id) return null;
+
+  const existing = await prisma.application.findFirst({
+    where: { studentId: student.id, deletedAt: null },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (existing) return existing;
+
+  const rawCourse = String(student.course || '').trim();
+  const rawCountry = String(student.country || '').trim();
+  let university = String(student.university || '').trim();
+  let course = rawCourse;
+
+  if (rawCourse.includes('·')) {
+    const parts = rawCourse.split('·').map((p) => p.trim());
+    course = parts[0] || rawCourse;
+    if (!university && parts[1]) {
+      university = parts[1];
+    }
+  }
+
+  if (!university && !course && !rawCountry) return null;
+  if (!university) university = 'Foreign University Admission';
+  if (!course) course = 'Higher Education Degree';
+
+  const applicationNo = await applicationRepository.generateCode();
+  const companyId = student.branch?.companyId || student.companyId;
+
+  let countryRecord = null;
+  if (rawCountry && companyId) {
+    countryRecord = await prisma.country.findFirst({
+      where: {
+        companyId,
+        deletedAt: null,
+        OR: [{ name: rawCountry }, { code: rawCountry }],
+      },
+    });
+  }
+
+  return applicationRepository.create({
+    studentId: student.id,
+    university,
+    course,
+    intake: student.intake || 'Sep 2026',
+    country: rawCountry || countryRecord?.name || 'International',
+    status: 'DRAFT',
+    applicationNo,
+    metadata: {
+      autoInitialized: true,
+      countryId: countryRecord?.id || null,
+      countryName: countryRecord?.name || rawCountry || null,
+      applicationStatusName: 'Application Started',
+      defaultStatus: true,
+      position: 1,
+    },
+    createdBy: actorId || student.createdBy || student.assignedToId || null,
+  });
 }
 
 export const studentPortalService = {
@@ -480,6 +541,11 @@ export const studentPortalService = {
         take: 12,
       }),
     ]);
+
+    if (!applications.length && (student.course || student.country || student.university)) {
+      const autoApp = await ensureStudentPrimaryApplication(student, user.id).catch(() => null);
+      if (autoApp) applications = [autoApp];
+    }
 
     const attTotal = attendances.length;
     const attPresent = attendances.filter((a) => ['PRESENT', 'HALF_DAY', 'LATE', 'EXCUSED'].includes(a.status)).length;
@@ -812,7 +878,7 @@ export const studentPortalService = {
         targetCourse: student.course || student.targetCourse,
         country: student.country,
         targetCountry: student.country || student.targetCountry,
-        intake: student.intake || 'Sep 2025',
+        intake: student.intake || null,
         university: student.university,
         branch: student.branch,
         createdAt: student.createdAt,
@@ -1082,12 +1148,22 @@ export const studentPortalService = {
 
   applications: async (user) => {
     const student = await resolveOwnStudent(user);
-    const rows = await prisma.application.findMany({
+    const counselorName = student.assignedTo
+      ? `${student.assignedTo.firstName || ''} ${student.assignedTo.lastName || ''}`.trim()
+      : null;
+    let rows = await prisma.application.findMany({
       where: { studentId: student.id, deletedAt: null },
       orderBy: { updatedAt: 'desc' },
     });
+
+    if (!rows.length && (student.course || student.country || student.university)) {
+      const autoApp = await ensureStudentPrimaryApplication(student, user.id).catch(() => null);
+      if (autoApp) rows = [autoApp];
+    }
+
     return rows.map((app) => ({
       ...sanitizeApplicationForStudent(app),
+      counsellorName: counselorName,
       timeline: buildApplicationTimeline(app),
     }));
   },
@@ -1106,6 +1182,9 @@ export const studentPortalService = {
 
   counseling: async (user) => {
     const student = await resolveOwnStudent(user);
+    const counselorName = student.assignedTo
+      ? `${student.assignedTo.firstName || ''} ${student.assignedTo.lastName || ''}`.trim()
+      : null;
     const now = new Date();
     const appointments = await prisma.appointment.findMany({
       where: { studentId: student.id, deletedAt: null },
@@ -1124,13 +1203,14 @@ export const studentPortalService = {
         isCompleted: a.isCompleted,
         status: meta.status || (a.isCompleted ? 'COMPLETED' : (new Date(a.startAt) < now ? 'PAST' : 'SCHEDULED')),
         requestNote: meta.requestNote || null,
+        counselorName: meta.counselorName || counselorName,
       };
     });
     return {
       counselor: student.assignedTo
         ? {
           id: student.assignedTo.id,
-          name: `${student.assignedTo.firstName || ''} ${student.assignedTo.lastName || ''}`.trim(),
+          name: counselorName,
           email: student.assignedTo.email,
           phone: student.assignedTo.phone,
         }
@@ -1342,6 +1422,12 @@ export const studentPortalService = {
       },
     });
 
+    const primaryAppRow = await prisma.application.findFirst({
+      where: { studentId: student.id, deletedAt: null },
+      orderBy: { updatedAt: 'desc' },
+    });
+    const primaryApp = primaryAppRow ? sanitizeApplicationForStudent(primaryAppRow) : null;
+
     const meta = (student.metadata && typeof student.metadata === 'object') ? student.metadata : {};
     const emergencyContact = meta.emergencyContact
       || meta.alternateNo
@@ -1366,10 +1452,12 @@ export const studentPortalService = {
         studentCode: student.studentCode,
         status: student.status,
         qualification: meta.qualification || meta.highestQual || null,
-        course: student.course,
-        university: student.university,
-        country: student.country,
-        intake: student.intake,
+        course: student.course || primaryApp?.course || null,
+        university: student.university || primaryApp?.university || null,
+        country: student.country || primaryApp?.country || null,
+        intake: student.intake || primaryApp?.intake || null,
+        applicationStatus: primaryApp?.statusName || primaryApp?.status || null,
+        applicationNo: primaryApp?.applicationNo || null,
         enrollments: enrollments.map((e) => ({
           batchId: e.batchId,
           batch: e.batch?.name,
@@ -1380,6 +1468,7 @@ export const studentPortalService = {
             : null,
         })),
       },
+      application: primaryApp,
       contact: {
         emergencyContact,
         address: student.address,
@@ -1389,11 +1478,21 @@ export const studentPortalService = {
         branch: student.branch,
         counselor: student.assignedTo
           ? {
+            id: student.assignedTo.id,
             name: `${student.assignedTo.firstName || ''} ${student.assignedTo.lastName || ''}`.trim(),
             email: student.assignedTo.email,
+            phone: student.assignedTo.phone,
           }
           : null,
       },
+      counselor: student.assignedTo
+        ? {
+          id: student.assignedTo.id,
+          name: `${student.assignedTo.firstName || ''} ${student.assignedTo.lastName || ''}`.trim(),
+          email: student.assignedTo.email,
+          phone: student.assignedTo.phone,
+        }
+        : null,
       editableFields: ['phone', 'address', 'emergencyContact'],
     };
   },
@@ -1498,7 +1597,7 @@ export const studentPortalService = {
     const student = await resolveOwnStudent(user);
     const fees = await loadFeeBundle(student.id);
 
-    const requestedAmount = Number(body.amount) || Number(fees?.summary?.nextDueAmount) || Number(fees?.summary?.pending) || 40000;
+    const requestedAmount = Number(body.amount) || Number(fees?.summary?.nextDueAmount) || Number(fees?.summary?.pending) || 0;
     const amountInPaise = Math.round(requestedAmount * 100);
     const currency = body.currency || 'INR';
 
@@ -1562,7 +1661,7 @@ export const studentPortalService = {
   verifyPayment: async (user, body = {}) => {
     const student = await resolveOwnStudent(user);
     const { orderId, paymentId, signature, amount } = body;
-    const paidAmount = Number(amount) || 40000;
+    const paidAmount = Number(amount) || 0;
     const receiptNo = `REC-${Date.now().toString(36).toUpperCase()}`;
 
     const keySecret = process.env.RAZORPAY_KEY_SECRET || 'QYKDFLEeN0j5rvpBK7PJxPt8';
@@ -1585,8 +1684,9 @@ export const studentPortalService = {
 
     const meta = (student.metadata && typeof student.metadata === 'object') ? { ...student.metadata } : {};
     const existingFees = meta.fees || {};
-    const totalFees = Number(existingFees.totalFees) || 120000;
-    const prevPaid = Number(existingFees.paid) || 80000;
+    const feesBundle = await loadFeeBundle(student.id);
+    const totalFees = Number(existingFees.totalFees) || Number(feesBundle?.summary?.totalFees) || 0;
+    const prevPaid = Number(existingFees.paid) || Number(feesBundle?.summary?.paid) || 0;
     const newPaid = prevPaid + paidAmount;
     const newPending = Math.max(0, totalFees - newPaid);
 

@@ -48,7 +48,7 @@ async function findActiveMapping(companyId, branchId, courseLabel) {
     companyId,
     isActive: true,
     deletedAt: null,
-    courseLabel: { equals: label, mode: 'insensitive' },
+    courseLabel: { equals: label },
   };
 
   if (branchId) {
@@ -80,7 +80,7 @@ export const courseCounsellorMappingService = {
       ...(activeOnly ? { isActive: true } : {}),
       ...(branchId ? { OR: [{ branchId }, { branchId: null }] } : {}),
       ...(search?.trim()
-        ? { courseLabel: { contains: search.trim(), mode: 'insensitive' } }
+        ? { courseLabel: { contains: search.trim() } }
         : {}),
     };
 
@@ -108,7 +108,7 @@ export const courseCounsellorMappingService = {
         companyId,
         branchId,
         deletedAt: null,
-        courseLabel: { equals: courseLabel, mode: 'insensitive' },
+        courseLabel: { equals: courseLabel },
       },
     });
     if (existing) throw new AppError('Mapping already exists for this course', 409);

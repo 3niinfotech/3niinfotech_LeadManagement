@@ -26,7 +26,7 @@ import { useCompanyRuntime } from '../../features/organization/CompanyRuntime';
 import { resolvePublicAssetUrl } from '../../config/company-settings.config';
 import './portal.theme.css';
 
-const MOBILE_BREAK = 1024;
+const MOBILE_BREAK = 768;
 
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(() => {

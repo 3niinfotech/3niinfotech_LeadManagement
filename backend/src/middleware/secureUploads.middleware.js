@@ -74,6 +74,7 @@ async function assertUploadAccess(user, relativePath) {
         if (isEnquiryDoc) return;
       }
     }
+    throw new AppError('Forbidden: You can only access your own documents', 403);
   }
 
   // Enquiry / note attachments

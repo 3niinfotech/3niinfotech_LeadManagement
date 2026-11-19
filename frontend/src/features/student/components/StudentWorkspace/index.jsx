@@ -113,9 +113,22 @@ export default function StudentWorkspace({
       reset({
         ...defaultValues,
         ...student,
+        firstName: student.firstName || '',
+        lastName: student.lastName || '',
         email: student.email || '',
-        dateOfBirth: student.dateOfBirth?.slice?.(0, 10) || '',
+        phone: student.phone || '',
+        dateOfBirth: student.dateOfBirth ? String(student.dateOfBirth).slice(0, 10) : '',
+        gender: student.gender || '',
+        nationality: student.nationality || '',
+        passportNo: student.passportNo || '',
+        address: student.address || '',
         emergencyContact: meta.emergencyContact || meta.alternateNo || student.enquiry?.alternateNo || '',
+        status: student.status || defaultValues.status,
+        intake: student.intake || '',
+        course: student.course || '',
+        university: student.university || '',
+        country: student.country || '',
+        branchId: student.branchId || '',
       });
     }
   }, [student, reset]);
@@ -123,9 +136,22 @@ export default function StudentWorkspace({
   const onSubmit = async (data) => {
     try {
       const payload = {
-        ...data,
+        firstName: data.firstName?.trim(),
+        lastName: data.lastName?.trim(),
         email: data.email?.trim() || null,
+        phone: data.phone?.trim() || null,
+        dateOfBirth: data.dateOfBirth || null,
+        gender: data.gender || null,
+        nationality: data.nationality || null,
+        passportNo: data.passportNo?.trim() || null,
+        address: data.address?.trim() || null,
         emergencyContact: data.emergencyContact?.trim() || null,
+        status: data.status || undefined,
+        intake: data.intake || null,
+        course: data.course || null,
+        university: data.university || null,
+        country: data.country || null,
+        branchId: data.branchId || undefined,
       };
       await dispatch(updateStudent({ id: studentId, data: payload })).unwrap();
       toastService.action.saved('Student updated');

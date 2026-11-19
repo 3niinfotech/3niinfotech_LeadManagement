@@ -238,4 +238,142 @@ export const invoiceService = {
       req,
     });
   },
+
+  getAccountantDashboard: async (query, user) => {
+    const companyId = requireCompany(user);
+    const branchId = query?.branchId || null;
+
+    const invoiceWhere = {
+      deletedAt: null,
+      ...(branchId ? { student: { branchId } } : {}),
+    };
+
+    const invoices = await prisma.invoice.findMany({
+      where: invoiceWhere,
+      select: {
+        id: true,
+        amount: true,
+        tax: true,
+        total: true,
+        amountPaid: true,
+        status: true,
+        dueDate: true,
+        currency: true,
+      },
+    });
+
+    let totalBilled = 0;
+    let totalCollected = 0;
+    let overdueCount = 0;
+    let overdueAmount = 0;
+    const now = new Date();
+
+    for (const inv of invoices) {
+      const tot = Number(inv.total || 0);
+      const paid = Number(inv.amountPaid || 0);
+      totalBilled += tot;
+      totalCollected += paid;
+      if (inv.status !== 'PAID' && inv.dueDate && new Date(inv.dueDate) < now) {
+        overdueCount++;
+        overdueAmount += Math.max(0, tot - paid);
+      }
+    }
+
+    const totalOutstanding = Math.max(0, Math.round((totalBilled - totalCollected) * 100) / 100);
+
+    // Today & Month Payment Collections
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const todayPayments = await prisma.admissionPayment.aggregate({
+      where: {
+        paidAt: { gte: startOfToday },
+        ...(branchId ? { student: { branchId } } : {}),
+      },
+      _sum: { amount: true },
+    });
+
+    const monthPayments = await prisma.admissionPayment.aggregate({
+      where: {
+        paidAt: { gte: startOfMonth },
+        ...(branchId ? { student: { branchId } } : {}),
+      },
+      _sum: { amount: true },
+    });
+
+    // Expenses
+    const expensesAgg = await prisma.expense.aggregate({
+      where: {
+        status: 'PAID',
+        ...(branchId ? { branchId } : {}),
+      },
+      _sum: { amount: true },
+    });
+
+    // Refunds
+    const refundsAgg = await prisma.refund.aggregate({
+      where: {
+        status: 'PAID',
+        ...(branchId ? { branchId } : {}),
+      },
+      _sum: { amount: true },
+    });
+
+    const totalExpenses = Number(expensesAgg._sum.amount || 0);
+    const totalRefunds = Number(refundsAgg._sum.amount || 0);
+    const netCashFlow = Math.round((totalCollected - totalExpenses - totalRefunds) * 100) / 100;
+
+    // Recent Payments
+    const recentPayments = await prisma.admissionPayment.findMany({
+      where: branchId ? { student: { branchId } } : {},
+      take: 8,
+      orderBy: { paidAt: 'desc' },
+      include: {
+        invoice: { select: { invoiceNo: true } },
+        student: { select: { firstName: true, lastName: true, studentCode: true } },
+        receipts: { select: { receiptNo: true } },
+      },
+    });
+
+    // Recent Expenses
+    const recentExpenses = await prisma.expense.findMany({
+      where: branchId ? { branchId } : {},
+      take: 6,
+      orderBy: { expenseDate: 'desc' },
+      include: {
+        category: { select: { name: true, code: true } },
+      },
+    });
+
+    // Pending Proofs Count
+    const pendingProofsCount = await prisma.paymentProof.count({
+      where: { status: 'PENDING' },
+    });
+
+    // Pending Refunds Count
+    const pendingRefundsCount = await prisma.refund.count({
+      where: { status: 'PENDING' },
+    });
+
+    return {
+      kpis: {
+        totalBilled: Math.round(totalBilled * 100) / 100,
+        totalCollected: Math.round(totalCollected * 100) / 100,
+        totalOutstanding,
+        overdueCount,
+        overdueAmount: Math.round(overdueAmount * 100) / 100,
+        todayCollected: Number(todayPayments._sum.amount || 0),
+        monthCollected: Number(monthPayments._sum.amount || 0),
+        totalExpenses: Math.round(totalExpenses * 100) / 100,
+        totalRefunds: Math.round(totalRefunds * 100) / 100,
+        netCashFlow,
+        pendingProofsCount,
+        pendingRefundsCount,
+      },
+      recentPayments,
+      recentExpenses,
+    };
+  },
 };

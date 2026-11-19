@@ -1,14 +1,14 @@
 /* =========================================================
-   Executive Teacher Academic Workspace Styles
+   Executive Faculty Academic Workspace Styles
    Assignments, Tests & Study Materials
-   Clean, Human-Designed, High-Impact UI
+   Clean, Professional, Enterprise-Grade UI
    ========================================================= */
 
 .crm-tacademic {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 0 0 1.5rem;
+  gap: 0.85rem;
+  padding: 0.25rem 0.25rem 1.25rem;
   width: 100%;
 }
 
@@ -17,40 +17,46 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
-  padding: 0.75rem 1rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .crm-tacademic-search {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  background: color-mix(in srgb, var(--bg-page) 65%, var(--bg-card));
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.45rem 0.85rem;
-  min-width: 260px;
+  gap: 0.5rem;
+  background: var(--bg-surface, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  min-width: 220px;
   flex: 1;
-  max-width: 420px;
+  max-width: 360px;
   transition: all 0.15s ease;
 }
 
 .crm-tacademic-search:focus-within {
-  border-color: var(--brand);
-  background: var(--bg-card);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
+  border-color: var(--brand, #2563eb);
+  background: var(--bg-card, #ffffff);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand, #2563eb) 15%, transparent);
+}
+
+.crm-tacademic-search svg {
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
 .crm-tacademic-search input {
   border: none;
   background: transparent;
   font-size: 0.8125rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #0f172a);
   width: 100%;
   outline: none;
 }
@@ -58,128 +64,190 @@
 .crm-tacademic-filters {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
 }
 
 .crm-tacademic-pill {
-  padding: 0.4rem 0.85rem;
-  border-radius: 10px;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-secondary);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted, #64748b);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .crm-tacademic-pill:hover {
-  background: color-mix(in srgb, var(--bg-page) 60%, var(--bg-card));
-  color: var(--text-primary);
+  background: var(--row-hover, #f1f5f9);
+  color: var(--text-primary, #0f172a);
 }
 
 .crm-tacademic-pill.is-active {
-  background: var(--brand);
-  border-color: var(--brand);
-  color: #ffffff;
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--brand) 30%, transparent);
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.2);
+  font-weight: 700;
 }
 
-/* ── Content Grid / Cards ── */
+.crm-tacademic-view-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  background: var(--bg-surface, #f1f5f9);
+  border-radius: 6px;
+  padding: 0.125rem;
+}
+
+.crm-tacademic-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+}
+
+.crm-tacademic-view-btn.is-active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Compact Academic Grid (No hollow boxes) ── */
 .crm-tacademic-grid {
   display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   .crm-tacademic-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1280px) {
-  .crm-tacademic-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
 }
 
 .crm-tacademic-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: all 0.18s ease;
+  transition: all 0.15s ease;
 }
 
 .crm-tacademic-card:hover {
-  border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
-  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--brand, #2563eb) 35%, var(--border, #e2e8f0));
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
 .crm-tacademic-card__top {
-  padding: 1.15rem 1.25rem 0.85rem;
+  padding: 0.85rem 1rem 0.65rem;
 }
 
-.crm-tacademic-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.65rem;
-}
-
-.crm-tacademic-card__title {
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.4;
-  letter-spacing: -0.01em;
-}
-
-.crm-tacademic-card__meta-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-top: 0.5rem;
-}
-
-.crm-tacademic-card__stat-box {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: color-mix(in srgb, var(--bg-page) 60%, var(--bg-card));
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.6rem 0.85rem;
-  margin-top: 0.85rem;
-  font-size: 0.75rem;
-}
-
-.crm-tacademic-card__stat-item strong {
-  display: block;
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  line-height: 1.1;
-}
-
-.crm-tacademic-card__foot {
-  padding: 0.75rem 1.25rem;
-  background: color-mix(in srgb, var(--bg-page) 40%, var(--bg-card));
-  border-top: 1px solid var(--border);
+.crm-tacademic-card__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.crm-tacademic-card__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  line-height: 1.35;
+  margin: 0 0 0.45rem;
+}
+
+.crm-tacademic-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.crm-tacademic-card__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.crm-tacademic-card__stat-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.75rem;
+}
+
+.crm-tacademic-card__foot {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border-top: 1px solid var(--border, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* ── Academic Table View ── */
+.crm-tacademic-table-wrap {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  overflow-x: auto;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.crm-tacademic-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.crm-tacademic-table th {
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-surface, #f8fafc);
+  color: var(--text-muted, #64748b);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  white-space: nowrap;
+}
+
+.crm-tacademic-table td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  color: var(--text-primary, #0f172a);
+  vertical-align: middle;
+}
+
+.crm-tacademic-table tr:last-child td {
+  border-bottom: none;
+}
+
+.crm-tacademic-table tr:hover td {
+  background: var(--row-hover, #f8fafc);
 }

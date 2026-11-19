@@ -9,7 +9,8 @@ router.use(authenticate);
 router.get('/', authorize(PERMISSIONS.DOCUMENTS_VIEW), documentController.getDocuments);
 router.get('/:id', authorize(PERMISSIONS.DOCUMENTS_VIEW), documentController.getDocument);
 router.post('/', authorize(PERMISSIONS.DOCUMENTS_UPLOAD), documentController.createDocument);
-router.put('/:id', authorize(PERMISSIONS.DOCUMENTS_UPLOAD), documentController.updateDocument);
+router.put('/:id', authorize(PERMISSIONS.DOCUMENTS_UPLOAD, 'document.update', 'student.update'), documentController.updateDocument);
+router.patch('/:id', authorize(PERMISSIONS.DOCUMENTS_UPLOAD, 'document.update', 'student.update'), documentController.updateDocument);
 router.delete('/:id', authorize(PERMISSIONS.DOCUMENTS_DELETE), documentController.deleteDocument);
 
 export default router;

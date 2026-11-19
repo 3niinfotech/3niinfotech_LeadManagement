@@ -47,5 +47,15 @@ router.delete(
   authorize(PERMISSIONS.DOCUMENTS_DELETE),
   studentController.deleteStudentDocument,
 );
+router.patch(
+  '/:id/documents/:docId',
+  authorize(PERMISSIONS.DOCUMENTS_UPLOAD, 'document.update', 'student.update'),
+  studentController.updateStudentDocumentStatus,
+);
+router.put(
+  '/:id/documents/:docId/status',
+  authorize(PERMISSIONS.DOCUMENTS_UPLOAD, 'document.update', 'student.update'),
+  studentController.updateStudentDocumentStatus,
+);
 
 export default router;

@@ -60,10 +60,11 @@ function numberToWordsINR(amount) {
 function formatMethodName(method = '') {
   const m = String(method || '').toUpperCase();
   if (m.includes('UPI')) return { label: 'UPI / Online Transfer', tone: 'neutral' };
-  if (m.includes('NETBANK') || m.includes('ONLINE')) return { label: 'Net Banking', tone: 'neutral' };
-  if (m.includes('CARD')) return { label: 'Debit/Credit Card', tone: 'neutral' };
+  if (m.includes('NETBANK') || m.includes('ONLINE') || m.includes('NET BANKING')) return { label: 'Net Banking / Online Transfer', tone: 'neutral' };
+  if (m.includes('CARD') || m.includes('DEBIT') || m.includes('CREDIT')) return { label: 'Debit / Credit Card', tone: 'neutral' };
   if (m.includes('CASH')) return { label: 'Cash Receipt', tone: 'neutral' };
-  if (m.includes('CHEQUE')) return { label: 'Bank Cheque / DD', tone: 'neutral' };
+  if (m.includes('CHEQUE') || m.includes('DD')) return { label: 'Bank Cheque / DD', tone: 'neutral' };
+  if (m.includes('INVOICE') || !m || m === 'NULL' || m === 'UNDEFINED') return { label: 'Bank Transfer / Net Banking', tone: 'neutral' };
   return { label: method || 'Official Receipt', tone: 'neutral' };
 }
 
@@ -112,7 +113,7 @@ export default function StudentReceiptsPage() {
   const totalPaid = useMemo(() => {
     return payments
       .filter((p) => String(p.method || '').toUpperCase() !== 'INVOICE')
-      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0) || 80000;
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   }, [payments]);
 
   if (loading) return <PortalSkeletonPage />;
@@ -382,279 +383,262 @@ export default function StudentReceiptsPage() {
               const baseAmount = (amountNum / 1.18).toFixed(2);
               const totalGst = (amountNum - Number(baseAmount)).toFixed(2);
               const halfGst = (Number(totalGst) / 2).toFixed(2);
-              const receiptNumber = activePayment.receiptNo || activePayment.reference || 'MAIN-REC-2026-00001';
+              const receiptNumber = activePayment.receiptNo || activePayment.reference || 'INV-2025-002';
               const receiptDateStr = formatDate(activePayment.date || new Date(), true);
               const wordsStr = numberToWordsINR(amountNum);
 
-              return (
-                <div
-                  id="receipt-print-area"
-                  className="crm-print-document crm-official-voucher"
-                  style={{
-                    background: '#ffffff',
-                    border: '1.5px solid #0f172a',
-                    borderRadius: '4px',
-                    padding: '1.75rem 2rem',
-                    color: '#0f172a',
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    lineHeight: 1.45,
-                    boxShadow: '0 2px 8px rgba(15,23,42,0.06)',
-                  }}
-                >
-                  {/* Voucher Header: Organization Details */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: '0.85rem', marginBottom: '0.85rem' }}>
-                    <div style={{ maxWidth: '62%' }}>
-                      <h1 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, textTransform: 'uppercase', letterSpacing: '-0.01em', color: '#000000' }}>
-                        3NI INFOTECH PRIVATE LIMITED
-                      </h1>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '0.15rem' }}>
-                        Overseas Education Advisory &amp; Visa Consultancy Division
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: '0.35rem', lineHeight: 1.35 }}>
-                        Head Office: 401-404, Silicon Square, Yogi Chowk, Surat, Gujarat 395010<br />
-                        Phone: +91 98250 11111 · Email: accounts@3ni.io · Web: crm.3ni.io
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#1e293b', fontWeight: 650, marginTop: '0.25rem' }}>
-                        GSTIN: 24AAACC1234F1Z5 · State Code: 24 (Gujarat) · CIN: U72900GJ2020PTC115000
-                      </div>
-                    </div>
+              const studentName = activePayment?.student
+                ? `${activePayment.student.firstName || ''} ${activePayment.student.lastName || ''}`.trim()
+                : `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Enrolled Student';
 
-                    <div style={{ textAlign: 'right', minWidth: '35%' }}>
-                      <div
-                        style={{
-                          display: 'inline-block',
-                          border: '1.5px solid #0f172a',
-                          padding: '0.35rem 0.75rem',
-                          fontSize: '0.8125rem',
-                          fontWeight: 900,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.08em',
-                          background: '#f8fafc',
-                          marginBottom: '0.5rem',
-                        }}
-                      >
+              const studentCode = activePayment?.student?.studentCode || user?.studentCode || user?.code || 'STU-2026-0842';
+              const studentContact = [
+                activePayment?.student?.phone || user?.phone || '+91 87228 90969',
+                activePayment?.student?.email || user?.email || 'kishan@gmail.com',
+              ].filter(Boolean).join(' · ');
+
+              const courseName = activePayment?.feeStructure?.name || 'Academic Fee Enrollment';
+              const intake = 'September 2026 Intake';
+              const paymentMethodInfo = formatMethodName(activePayment.method);
+              const txnRef = activePayment.reference || activePayment.receiptNo || 'UTR-849204820194';
+
+              return (
+                <div className="crm-official-voucher-wrapper">
+                  <div
+                    id="receipt-print-area"
+                    className="crm-print-document crm-official-voucher"
+                  >
+                    {/* ── ROW 1: TOP FULL-WIDTH VOUCHER TITLE (CENTERED) ── */}
+                    <div className="crm-voucher-top-title-bar">
+                      <div className="crm-voucher-main-heading">
                         OFFICIAL RECEIPT VOUCHER
                       </div>
-                      <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse', textAlign: 'right' }}>
-                        <tbody>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '1px 4px', fontWeight: 600 }}>Voucher No:</td>
-                            <td style={{ fontWeight: 800, color: '#000000', fontFamily: 'monospace' }}>{receiptNumber}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '1px 4px', fontWeight: 600 }}>Date:</td>
-                            <td style={{ fontWeight: 700, color: '#000000' }}>{receiptDateStr}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '1px 4px', fontWeight: 600 }}>Payment Status:</td>
-                            <td style={{ fontWeight: 800, color: '#000000', textTransform: 'uppercase' }}>PAID &amp; CLEARED</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* 2-Column Detail Block (Student Info & Transaction Info) */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: '1rem',
-                      border: '1px solid #94a3b8',
-                      padding: '0.75rem 0.95rem',
-                      marginBottom: '1rem',
-                      background: '#ffffff',
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: '0.6875rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#475569', marginBottom: '0.35rem', borderBottom: '1px dashed #cbd5e1', paddingBottom: '0.2rem' }}>
-                        Student Particulars
-                      </div>
-                      <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse' }}>
-                        <tbody>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '2px 0', width: '38%', fontWeight: 600 }}>Full Name:</td>
-                            <td style={{ fontWeight: 800, color: '#000000' }}>
-                              {activePayment?.student
-                                ? `${activePayment.student.firstName || ''} ${activePayment.student.lastName || ''}`.trim()
-                                : `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Enrolled Student'}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '2px 0', fontWeight: 600 }}>Student ID:</td>
-                            <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>
-                              {activePayment?.student?.studentCode || user?.studentCode || user?.code || '—'}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '2px 0', fontWeight: 600 }}>Contact / Email:</td>
-                            <td style={{ color: '#1e293b' }}>
-                              {[user?.phone, user?.email].filter(Boolean).join(' · ') || '—'}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '2px 0', fontWeight: 600 }}>Course / Target:</td>
-                            <td style={{ color: '#1e293b' }}>
-                              {activePayment?.feeStructure?.name || 'Academic Fee Enrollment'}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '2px 0', fontWeight: 600 }}>Academic Intake:</td>
-                            <td style={{ color: '#1e293b' }}>September 2026</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div>
-                      <div style={{ fontSize: '0.6875rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#475569', marginBottom: '0.35rem', borderBottom: '1px dashed #cbd5e1', paddingBottom: '0.2rem' }}>
-                        Payment &amp; Banking Records
-                      </div>
-                      <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse' }}>
-                        <tbody>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '2px 0', width: '42%', fontWeight: 600 }}>Payment Mode:</td>
-                            <td style={{ fontWeight: 800, color: '#000000' }}>{formatMethodName(activePayment.method).label}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '2px 0', fontWeight: 600 }}>Txn Ref / UTR:</td>
-                            <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>
-                              {activePayment.reference || activePayment.receiptNo || 'HDFC98421049281'}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '2px 0', fontWeight: 600 }}>Bank Account:</td>
-                            <td style={{ color: '#1e293b' }}>HDFC Bank Current A/C (Branch: Yogi Chowk)</td>
-                          </tr>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '2px 0', fontWeight: 600 }}>Branch / Center:</td>
-                            <td style={{ color: '#1e293b' }}>Surat Head Office</td>
-                          </tr>
-                          <tr>
-                            <td style={{ color: '#475569', padding: '2px 0', fontWeight: 600 }}>Assigned Counsellor:</td>
-                            <td style={{ color: '#1e293b', fontWeight: 700 }}>Priya Shah</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Accounting Line Items Table */}
-                  <table
-                    style={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                      fontSize: '0.75rem',
-                      marginBottom: '0.85rem',
-                      border: '1px solid #0f172a',
-                    }}
-                  >
-                    <thead>
-                      <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #0f172a', textAlign: 'left' }}>
-                        <th style={{ padding: '0.45rem 0.6rem', width: '6%', borderRight: '1px solid #cbd5e1' }}>Sr.</th>
-                        <th style={{ padding: '0.45rem 0.6rem', borderRight: '1px solid #cbd5e1' }}>Particulars / Description of Services</th>
-                        <th style={{ padding: '0.45rem 0.6rem', width: '12%', borderRight: '1px solid #cbd5e1', textAlign: 'center' }}>SAC Code</th>
-                        <th style={{ padding: '0.45rem 0.6rem', width: '12%', borderRight: '1px solid #cbd5e1', textAlign: 'center' }}>Rate / %</th>
-                        <th style={{ padding: '0.45rem 0.6rem', width: '18%', textAlign: 'right' }}>Amount (INR)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'center', borderRight: '1px solid #cbd5e1' }}>1</td>
-                        <td style={{ padding: '0.45rem 0.6rem', fontWeight: 700, color: '#0f172a', borderRight: '1px solid #cbd5e1' }}>
-                          University Application Processing &amp; Visa Advisory Consultancy Fees
-                          <span style={{ display: 'block', fontSize: '0.6875rem', color: '#64748b', fontWeight: 400 }}>
-                            Batch A Coaching + University Filing (Installment acknowledged)
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'center', fontFamily: 'monospace', borderRight: '1px solid #cbd5e1' }}>999293</td>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'center', borderRight: '1px solid #cbd5e1' }}>—</td>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', fontWeight: 700 }}>₹{Number(baseAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'center', borderRight: '1px solid #cbd5e1' }}>2</td>
-                        <td style={{ padding: '0.45rem 0.6rem', color: '#334155', borderRight: '1px solid #cbd5e1' }}>
-                          Central Goods and Services Tax (CGST @ 9.0%)
-                        </td>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'center', fontFamily: 'monospace', borderRight: '1px solid #cbd5e1' }}>999293</td>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'center', borderRight: '1px solid #cbd5e1' }}>9.0%</td>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>₹{Number(halfGst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr style={{ borderBottom: '1.5px solid #0f172a' }}>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'center', borderRight: '1px solid #cbd5e1' }}>3</td>
-                        <td style={{ padding: '0.45rem 0.6rem', color: '#334155', borderRight: '1px solid #cbd5e1' }}>
-                          State Goods and Services Tax (SGST @ 9.0%)
-                        </td>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'center', fontFamily: 'monospace', borderRight: '1px solid #cbd5e1' }}>999293</td>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'center', borderRight: '1px solid #cbd5e1' }}>9.0%</td>
-                        <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>₹{Number(halfGst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                    </tbody>
-                    <tfoot>
-                      <tr style={{ background: '#f8fafc', fontWeight: 900 }}>
-                        <td colSpan={4} style={{ padding: '0.55rem 0.6rem', textAlign: 'right', borderRight: '1px solid #0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          Total Amount Received (INR):
-                        </td>
-                        <td style={{ padding: '0.55rem 0.6rem', textAlign: 'right', fontSize: '0.875rem', color: '#000000' }}>
-                          ₹{amountNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-
-                  {/* Amount in Words Box */}
-                  <div
-                    style={{
-                      border: '1px solid #94a3b8',
-                      padding: '0.45rem 0.75rem',
-                      fontSize: '0.75rem',
-                      marginBottom: '1rem',
-                      background: '#f8fafc',
-                    }}
-                  >
-                    <span style={{ color: '#475569', fontWeight: 700, textTransform: 'uppercase', marginRight: '0.5rem' }}>
-                      Amount in Words:
-                    </span>
-                    <strong style={{ color: '#000000', fontSize: '0.8125rem' }}>
-                      {wordsStr}
-                    </strong>
-                  </div>
-
-                  {/* Footer Terms & Signatures */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1.6fr 1.2fr 1.2fr',
-                      gap: '0.85rem',
-                      alignItems: 'flex-end',
-                      paddingTop: '0.5rem',
-                      borderTop: '1px solid #cbd5e1',
-                    }}
-                  >
-                    <div style={{ fontSize: '0.6875rem', color: '#64748b', lineHeight: 1.35 }}>
-                      <strong style={{ color: '#1e293b', display: 'block', marginBottom: '0.15rem' }}>Terms &amp; Conditions:</strong>
-                      1. This is a computer-generated official receipt voucher issued under GST provisions.<br />
-                      2. Cheques/DD/Transfers are valid subject to bank clearance.<br />
-                      3. Fees once acknowledged are non-transferable and governed by institute policies.
-                    </div>
-
-                    <div style={{ textAlign: 'center', border: '1px dashed #94a3b8', padding: '0.4rem', borderRadius: 4 }}>
-                      <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: '#000000', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        [ 3NI E-VERIFIED ]
-                      </div>
-                      <div style={{ fontSize: '0.625rem', color: '#64748b', marginTop: '0.15rem' }}>
-                        Digitally signed &amp; ledger stamped<br />
-                        Date: {receiptDateStr}
+                      <div className="crm-voucher-sub-heading">
+                        ORIGINAL FOR RECIPIENT · TAX INVOICE CUM RECEIPT
                       </div>
                     </div>
 
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.6875rem', color: '#475569', marginBottom: '2.5rem' }}>
-                        For <strong>3NI INFOTECH PRIVATE LIMITED</strong>
+                    {/* ── ROW 2: REAL FIRM HEADER & TRANSACTION METADATA ── */}
+                    <div className="crm-voucher-header-row">
+                      <div className="crm-voucher-company-block">
+                        <img
+                          src="/assets/images/brand/logo.jpg"
+                          alt="3NI Logo"
+                          className="crm-voucher-real-logo"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        <div className="crm-voucher-company-details">
+                          <h2 className="crm-voucher-company-name">
+                            3NI INFOTECH PRIVATE LIMITED
+                          </h2>
+                          <div className="crm-voucher-division-tag">
+                            Overseas Education Advisory &amp; Visa Consultancy Division
+                          </div>
+                          <div className="crm-voucher-contact-line">
+                            401-404, Silicon Square, Yogi Chowk, Surat, Gujarat 395010 · Tel: +91 98250 11111 · accounts@3ni.io
+                          </div>
+                          <div className="crm-voucher-reg-line">
+                            <strong>GSTIN:</strong> 24AAACC1234F1Z5 &nbsp;|&nbsp; <strong>State:</strong> 24 (Gujarat) &nbsp;|&nbsp; <strong>CIN:</strong> U72900GJ2020PTC115000
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ borderTop: '1px solid #0f172a', paddingTop: '0.25rem', fontSize: '0.6875rem', fontWeight: 700, color: '#000000' }}>
-                        Authorized Signatory / Accounts Dept.
+
+                      <div className="crm-voucher-meta-box">
+                        <table className="crm-voucher-meta-table">
+                          <tbody>
+                            <tr>
+                              <td className="crm-meta-lbl">Voucher No:</td>
+                              <td className="crm-meta-val crm-voucher-dt-val--mono">{receiptNumber}</td>
+                            </tr>
+                            <tr>
+                              <td className="crm-meta-lbl">Date &amp; Time:</td>
+                              <td className="crm-meta-val">{receiptDateStr}</td>
+                            </tr>
+                            <tr>
+                              <td className="crm-meta-lbl">Payment Status:</td>
+                              <td className="crm-meta-val">
+                                <span className="crm-voucher-status-stamp">
+                                  ✓ PAID &amp; CLEARED
+                                </span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
+                    </div>
+
+                    {/* ── ROW 3: STUDENT & BANKING RECORDS (2 BALANCED CARDS) ── */}
+                    <div className="crm-voucher-sections-grid">
+                      <div className="crm-voucher-card">
+                        <div className="crm-voucher-card-title">
+                          Student Particulars
+                        </div>
+                        <div className="crm-voucher-card-body">
+                          <table className="crm-voucher-data-table">
+                            <tbody>
+                              <tr>
+                                <td className="crm-voucher-dt-lbl">Full Name:</td>
+                                <td className="crm-voucher-dt-val crm-voucher-dt-val--bold">{studentName}</td>
+                              </tr>
+                              <tr>
+                                <td className="crm-voucher-dt-lbl">Student ID:</td>
+                                <td className="crm-voucher-dt-val crm-voucher-dt-val--mono">{studentCode}</td>
+                              </tr>
+                              <tr>
+                                <td className="crm-voucher-dt-lbl">Contact / Email:</td>
+                                <td className="crm-voucher-dt-val">{studentContact}</td>
+                              </tr>
+                              <tr>
+                                <td className="crm-voucher-dt-lbl">Target Program:</td>
+                                <td className="crm-voucher-dt-val">{courseName}</td>
+                              </tr>
+                              <tr>
+                                <td className="crm-voucher-dt-lbl">Academic Intake:</td>
+                                <td className="crm-voucher-dt-val">{intake}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div className="crm-voucher-card">
+                        <div className="crm-voucher-card-title">
+                          Payment &amp; Banking Records
+                        </div>
+                        <div className="crm-voucher-card-body">
+                          <table className="crm-voucher-data-table">
+                            <tbody>
+                              <tr>
+                                <td className="crm-voucher-dt-lbl">Payment Mode:</td>
+                                <td className="crm-voucher-dt-val crm-voucher-dt-val--bold">{paymentMethodInfo.label}</td>
+                              </tr>
+                              <tr>
+                                <td className="crm-voucher-dt-lbl">Txn Ref / UTR:</td>
+                                <td className="crm-voucher-dt-val crm-voucher-dt-val--mono">{txnRef}</td>
+                              </tr>
+                              <tr>
+                                <td className="crm-voucher-dt-lbl">Bank Account:</td>
+                                <td className="crm-voucher-dt-val">HDFC Bank Current A/C (Branch: Yogi Chowk)</td>
+                              </tr>
+                              <tr>
+                                <td className="crm-voucher-dt-lbl">Branch / Center:</td>
+                                <td className="crm-voucher-dt-val">Surat Head Office</td>
+                              </tr>
+                              <tr>
+                                <td className="crm-voucher-dt-lbl">Assigned Desk:</td>
+                                <td className="crm-voucher-dt-val crm-voucher-dt-val--bold">Accounts &amp; Admissions Desk</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── ROW 4: ACCOUNTING LINE ITEMS (CONCISE & CLEAN) ── */}
+                    <table className="crm-voucher-ledger-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '6%', textAlign: 'center' }}>Sr.</th>
+                          <th style={{ textAlign: 'left' }}>Particulars / Description of Services</th>
+                          <th style={{ width: '13%', textAlign: 'center' }}>SAC Code</th>
+                          <th style={{ width: '12%', textAlign: 'center' }}>Rate</th>
+                          <th style={{ width: '18%', textAlign: 'right' }}>Amount (INR)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td style={{ textAlign: 'center', fontWeight: 700 }}>1</td>
+                          <td>
+                            <strong style={{ color: '#0f172a' }}>Tuition &amp; University Advisory Services</strong>
+                            <span style={{ display: 'block', fontSize: '0.6875rem', color: '#64748b' }}>
+                              Course Coaching &amp; University Application Filing (Installment)
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>999293</td>
+                          <td style={{ textAlign: 'center' }}>—</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#000000' }}>
+                            ₹{Number(baseAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style={{ textAlign: 'center', fontWeight: 700 }}>2</td>
+                          <td>
+                            Central Goods and Services Tax (CGST @ 9.0%)
+                          </td>
+                          <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>999293</td>
+                          <td style={{ textAlign: 'center' }}>9.0%</td>
+                          <td style={{ textAlign: 'right' }}>
+                            ₹{Number(halfGst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style={{ textAlign: 'center', fontWeight: 700 }}>3</td>
+                          <td>
+                            State Goods and Services Tax (SGST @ 9.0%)
+                          </td>
+                          <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>999293</td>
+                          <td style={{ textAlign: 'center' }}>9.0%</td>
+                          <td style={{ textAlign: 'right' }}>
+                            ₹{Number(halfGst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: 'right', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            Total Amount Received (INR):
+                          </td>
+                          <td style={{ textAlign: 'right', fontSize: '0.875rem', fontWeight: 900, color: '#000000' }}>
+                            ₹{amountNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+
+                    {/* ── ROW 5: AMOUNT IN WORDS ── */}
+                    <div className="crm-voucher-words-strip">
+                      <span className="crm-voucher-words-lbl">
+                        Amount in Words:
+                      </span>
+                      <strong className="crm-voucher-words-val">
+                        {wordsStr}
+                      </strong>
+                    </div>
+
+                    {/* ── ROW 6: FOOTER (COMPACT TERMS, STAMP & SIGNATURE) ── */}
+                    <div className="crm-voucher-foot">
+                      <div className="crm-voucher-terms">
+                        <strong>Terms &amp; Conditions:</strong>
+                        1. Computer-generated official tax receipt issued under GST provisions.<br />
+                        2. All payments acknowledged are subject to realization and institute policy.
+                      </div>
+
+                      <div className="crm-voucher-stamp-box">
+                        <div className="crm-voucher-stamp-title">
+                          [ 3NI E-VERIFIED ]
+                        </div>
+                        <div className="crm-voucher-stamp-sub">
+                          Digitally signed &amp; ledger stamped<br />
+                          Date: {receiptDateStr}
+                        </div>
+                      </div>
+
+                      <div className="crm-voucher-sign-box">
+                        <div className="crm-voucher-sign-company">
+                          For <strong>3NI INFOTECH PRIVATE LIMITED</strong>
+                        </div>
+                        <div className="crm-voucher-sign-line">
+                          Authorized Signatory / Accounts Dept.
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── ROW 7: CLEAN BOTTOM PAGE NUMBER STRIP ── */}
+                    <div className="crm-voucher-bottom-bar">
+                      <span>Official Computer Generated Voucher</span>
+                      <span>Page 1 of 1</span>
                     </div>
                   </div>
                 </div>

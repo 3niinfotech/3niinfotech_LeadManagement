@@ -98,14 +98,15 @@ export default function EnquiryTagChips({ tags = [], onChange }) {
   const menu = open ? createPortal(
     <div
       ref={menuRef}
-      className="fixed z-[1200] bg-card-bg border border-border rounded-lg shadow-dropdown overflow-hidden"
+      className="fixed z-[1200] bg-card-bg border border-border rounded-xl shadow-xl overflow-hidden backdrop-blur-md bg-white/98 dark:bg-slate-900/98 animate-in fade-in zoom-in-95 duration-100"
       style={{ top: menuPos.top, left: menuPos.left, width: menuPos.width }}
       onClick={(e) => e.stopPropagation()}
       {...gridCellMenuWheelProps}
     >
-      <div className="px-3 py-2 border-b border-border">
-        <p className="text-[11px] font-semibold text-text">Tags</p>
-        <p className="text-[10px] text-text-muted">Select multiple</p>
+      <div className="px-3 py-2 border-b border-border/60 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Select Tags</p>
+        </div>
       </div>
       <div className="p-2 max-h-52 overflow-y-auto no-scrollbar flex flex-wrap gap-1.5">
         {tagOptions.map((tag) => {
@@ -116,8 +117,8 @@ export default function EnquiryTagChips({ tags = [], onChange }) {
               key={tag.value}
               type="button"
               onClick={() => toggleTag(tag.value)}
-              className={`inline-flex items-center h-6 px-2 rounded-full border text-[10px] font-semibold transition-all ${
-                active ? `${chipClass} ring-1 ring-brand/30` : 'bg-white text-text-secondary border-border hover:bg-row-hover'
+              className={`inline-flex items-center h-6 px-2.5 rounded-full border text-[10px] font-semibold transition-all ${
+                active ? `${chipClass} ring-2 ring-brand/40 shadow-xs` : 'bg-card text-text-secondary border-border hover:bg-row-hover'
               }`}
             >
               {tag.label}
@@ -125,7 +126,7 @@ export default function EnquiryTagChips({ tags = [], onChange }) {
           );
         })}
       </div>
-      <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-border bg-[color-mix(in_srgb,var(--bg-page)_50%,transparent)]">
+      <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-border/60 bg-muted/20">
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setOpen(false); }}
@@ -136,7 +137,7 @@ export default function EnquiryTagChips({ tags = [], onChange }) {
         <button
           type="button"
           onClick={apply}
-          className="text-[11px] font-semibold text-white bg-brand hover:bg-brand/90 px-3 py-1 rounded-md"
+          className="text-[11px] font-semibold text-white bg-brand hover:bg-brand/90 px-3 py-1 rounded-lg transition-colors"
         >
           Apply
         </button>

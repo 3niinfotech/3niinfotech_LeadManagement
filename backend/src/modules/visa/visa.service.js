@@ -10,6 +10,7 @@ import {
   assertStudentInTenant,
   mergeStudentRelationScope,
 } from '../../utils/tenant.util.js';
+import { notifyVisaEvent } from '../notification/notification.dispatcher.js';
 
 const dateInput = z.string().optional().nullable();
 
@@ -187,6 +188,33 @@ export const visaService = {
       newData: { id: record.id, applicationNo, studentId: record.studentId },
       req,
     });
+
+    try {
+      const student = await prisma.student.findUnique({
+        where: { id: record.studentId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          assignedToId: true,
+          branchId: true,
+          branch: { select: { companyId: true } },
+          partner: { select: { userId: true } },
+        },
+      });
+      if (student) {
+        await notifyVisaEvent({
+          visa: record,
+          student,
+          eventType: 'FILE_READY',
+          companyId,
+          actorId: userId,
+        });
+      }
+    } catch (e) {
+      console.warn('[visa.create] notifyVisaEvent warning:', e.message);
+    }
+
     return record;
   },
 
@@ -244,6 +272,36 @@ export const visaService = {
       newData: { id: record.id, status: record.status },
       req,
     });
+
+    if (record.status && record.status !== existing.status) {
+      try {
+        const student = await prisma.student.findUnique({
+          where: { id: record.studentId },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            assignedToId: true,
+            branchId: true,
+            branch: { select: { companyId: true } },
+            partner: { select: { userId: true } },
+          },
+        });
+        if (student) {
+          await notifyVisaEvent({
+            visa: record,
+            student,
+            eventType: 'DECISION',
+            newStatus: record.status,
+            companyId,
+            actorId: userId,
+          });
+        }
+      } catch (e) {
+        console.warn('[visa.update] notifyVisaEvent warning:', e.message);
+      }
+    }
+
     return record;
   },
 

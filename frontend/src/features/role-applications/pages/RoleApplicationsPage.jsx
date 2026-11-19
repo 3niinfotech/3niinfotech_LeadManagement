@@ -7,6 +7,7 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Drawer from '../../../components/ui/Drawer';
 import ContentLoader from '../../../components/ui/ContentLoader';
+import Pagination from '../../../components/ui/Pagination';
 import PermissionGate from '../../../components/common/PermissionGate';
 import SummaryStatBar from '../../../components/ui/SummaryStatBar';
 import { PERMISSIONS } from '../../../config/permissions';
@@ -171,6 +172,14 @@ export default function RoleApplicationsPage() {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        page={1}
+        limit={50}
+        total={rows.length}
+        onPageChange={() => {}}
+        showPageSize={false}
+      />
 
       <Drawer
         open={Boolean(selectedId)}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiChevronRight, FiEdit2, FiEye, FiList, FiTrash2 } from 'react-icons/fi';
+import { FiChevronRight, FiEdit2, FiEye, FiList, FiTrash2, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
 import dayjs from 'dayjs';
 import ModulePageCard from '../../../components/layout/ModulePageLayout';
 import Card from '../../../components/ui/Card';
@@ -194,7 +194,8 @@ export default function CountryGroupedStatusPage({
 
     cols.push(
       createActionsColumn({
-        width: 148,
+        width: 156,
+        pinned: 'right',
         cellRenderer: (p) => {
           const row = p.data;
           const busy = actionId === row.id;
@@ -208,8 +209,8 @@ export default function CountryGroupedStatusPage({
                   <button type="button" className="crm-grid-action-btn crm-grid-action-btn--edit" title="Edit" aria-label="Edit" disabled={busy} onClick={() => openDrawer('edit', row)}>
                     <FiEdit2 className="w-3.5 h-3.5" />
                   </button>
-                  <button type="button" className="crm-grid-action-btn" title={row.isActive ? 'Deactivate' : 'Activate'} aria-label="Toggle status" disabled={busy} onClick={() => handleStatusToggle(row)}>
-                    {row.isActive ? 'On' : 'Off'}
+                  <button type="button" className="crm-grid-action-btn crm-grid-action-btn--toggle" title={row.isActive ? 'Deactivate' : 'Activate'} aria-label="Toggle status" disabled={busy} onClick={() => handleStatusToggle(row)}>
+                    {row.isActive ? <FiToggleRight className="w-3.5 h-3.5 text-emerald-600" /> : <FiToggleLeft className="w-3.5 h-3.5 text-slate-400" />}
                   </button>
                   <button type="button" className="crm-grid-action-btn crm-grid-action-btn--delete" title="Delete" aria-label="Delete" disabled={busy} onClick={() => handleDelete(row)}>
                     <FiTrash2 className="w-3.5 h-3.5" />
@@ -225,6 +226,8 @@ export default function CountryGroupedStatusPage({
     return cols;
   }, [entityConfig, canManage, actionId, openDrawer, handleStatusToggle, handleDelete]);
 
+  const selectedGroup = countryGroups.find((g) => (g.countryId || null) === (selectedCountryId || null));
+
   return (
     <ModulePageCard
       title={title}
@@ -233,116 +236,113 @@ export default function CountryGroupedStatusPage({
       scroll="contain"
       breadcrumbs={buildMasterBreadcrumbs(hubItem, breadcrumbLabel || title)}
     >
-      <div className="flex flex-col h-full">
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-full min-h-[420px]">
-          <Card className="w-full lg:w-[340px] p-4 shrink-0">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div>
-                <div className="text-sm font-semibold text-text">Countries</div>
-                <div className="text-xs text-text-muted">Select to manage statuses</div>
-              </div>
-              <span className="text-xs text-text-muted">
-                {countrySummaryLoading ? 'Loading…' : countryGroups.length}
-              </span>
+      <div className="flex flex-row flex-1 min-h-0 h-full overflow-hidden">
+        {/* Left: Countries Sidebar */}
+        <aside className="w-64 xl:w-72 h-full shrink-0 border-r border-border flex flex-col bg-slate-50/60 dark:bg-slate-900/30 overflow-hidden">
+          <div className="p-3.5 border-b border-border bg-card-bg shrink-0 flex items-center justify-between gap-2">
+            <div>
+              <div className="text-xs font-bold text-text uppercase tracking-wider">Countries</div>
+              <div className="text-[11px] text-text-muted mt-0.5">Select to manage workflow statuses</div>
             </div>
-            <div className="space-y-2 overflow-auto max-h-[320px] no-scrollbar">
-              {countryGroups.length === 0 ? (
-                <div className="text-sm text-text-muted">No countries found.</div>
-              ) : (
-                countryGroups.map((g) => {
-                  const active = (g.countryId || null) === (selectedCountryId || null);
-                  return (
-                    <button
-                      key={`${g.countryId || '__none__'}`}
-                      type="button"
-                      onClick={() => setSelectedCountryId(g.countryId || null)}
-                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                        active ? 'bg-primary/10 border-primary text-primary' : 'bg-card border-border hover:bg-row-hover'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium truncate">
-                            <CountryFlagLabel country={g.countryName} size="sm" />
-                          </div>
-                          <div className="text-xs text-text-muted">
-                            {g.statusCount} status{g.statusCount === 1 ? '' : 'es'}
-                          </div>
-                        </div>
-                        <FiChevronRight className={`shrink-0 ${active ? 'text-primary' : 'text-text-muted'}`} />
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-            <div className="mt-4">
-              <Button size="sm" className="w-full" icon={FiEdit2} onClick={() => openDrawer('add', null)} disabled={!selectedCountryId}>
-                {addButtonLabel || `Add ${entityConfig?.singular || 'Status'}`}
-              </Button>
-            </div>
-          </Card>
-
-          <div className="flex-1 min-h-0">
-            <div className="flex flex-col gap-3">
-              <MasterToolbar
-                search={list.search}
-                onSearchChange={list.setSearch}
-                filtersOpen={false}
-                onToggleFilters={() => {}}
-                activeFilterCount={0}
-                onRefresh={list.reload}
-                refreshing={list.fetching}
-                onAdd={() => {
-                  if (!selectedCountryId) {
-                    toastService.error('Select a country first');
-                    return;
-                  }
-                  openDrawer('add', null);
-                }}
-                singularLabel="Status"
-                canManage={canManage}
-              />
-
-              {list.error && list.rows.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center p-8">
-                  <Card className="p-8 text-center max-w-md">
-                    <p className="text-sm text-danger mb-3">{list.error}</p>
-                    <Button variant="outline" onClick={list.reload}>Retry</Button>
-                  </Card>
-                </div>
-              ) : (
-                <>
-                  <ModulePageCard.Table className="flex-1 min-h-0">
-                    <DataGrid
-                      columns={columns}
-                      rowData={list.rows}
-                      loading={list.loading}
-                      fetching={list.fetching}
-                      pagination={false}
-                      getRowId={(p) => p.data.id}
-                      emptyTitle="No statuses"
-                      emptyDescription={`Add a ${entityConfig?.singular?.toLowerCase() || 'status'} for this country.`}
-                      emptyActionLabel={canManage ? 'Add Status' : undefined}
-                      onEmptyAction={canManage ? () => openDrawer('add') : undefined}
-                      onGridReady={(params) => {
-                        params.api.addEventListener('sortChanged', onSortChanged);
-                      }}
-                    />
-                  </ModulePageCard.Table>
-                  <Pagination
-                    page={list.pagination.page || 1}
-                    limit={list.pagination.limit || 25}
-                    total={list.pagination.total || 0}
-                    totalPages={list.pagination.totalPages || 0}
-                    onPageChange={list.setPage}
-                    onPageSizeChange={list.setPageSize}
-                  />
-                </>
-              )}
-            </div>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 tabular-nums">
+              {countrySummaryLoading ? '…' : `${countryGroups.length} countries`}
+            </span>
           </div>
-        </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-1.5 custom-scrollbar">
+            {countryGroups.length === 0 ? (
+              <div className="p-6 text-xs text-text-muted text-center">No countries found.</div>
+            ) : (
+              countryGroups.map((g) => {
+                const active = (g.countryId || null) === (selectedCountryId || null);
+                return (
+                  <button
+                    key={`${g.countryId || '__none__'}`}
+                    type="button"
+                    onClick={() => setSelectedCountryId(g.countryId || null)}
+                    className={`w-full text-left px-3.5 py-2.5 rounded-lg border transition-all text-xs ${
+                      active
+                        ? 'bg-white dark:bg-slate-800 border-primary-500 text-primary shadow-xs ring-1 ring-primary/20 font-medium'
+                        : 'bg-card border-border/70 hover:border-slate-300 hover:bg-white/80 dark:hover:bg-slate-800/80 text-text-secondary'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-semibold text-text truncate">
+                          <CountryFlagLabel country={g.countryName} size="sm" />
+                        </div>
+                        <div className="text-[11px] text-text-muted mt-0.5 flex items-center gap-1.5">
+                          <span className={`inline-block w-1.5 h-1.5 rounded-full ${g.statusCount > 0 ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                          <span>{g.statusCount} status{g.statusCount === 1 ? '' : 'es'}</span>
+                        </div>
+                      </div>
+                      <FiChevronRight className={`w-3.5 h-3.5 shrink-0 transition-transform ${active ? 'text-primary translate-x-0.5' : 'text-text-muted/60'}`} />
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </aside>
+
+        {/* Right: Statuses Grid */}
+        <section className="flex-1 min-h-0 h-full flex flex-col overflow-hidden bg-card-bg">
+          <MasterToolbar
+            search={list.search}
+            onSearchChange={list.setSearch}
+            filtersOpen={false}
+            onToggleFilters={() => {}}
+            activeFilterCount={0}
+            onRefresh={list.reload}
+            refreshing={list.fetching}
+            onAdd={() => {
+              if (!selectedCountryId) {
+                toastService.error('Select a country first');
+                return;
+              }
+              openDrawer('add', { countryId: selectedCountryId });
+            }}
+            singularLabel={selectedGroup ? `Status (${selectedGroup.countryName || 'Country'})` : 'Status'}
+            canManage={canManage}
+          />
+
+          {list.error && list.rows.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center p-8">
+              <Card className="p-8 text-center max-w-md">
+                <p className="text-sm text-danger mb-3">{list.error}</p>
+                <Button variant="outline" onClick={list.reload}>Retry</Button>
+              </Card>
+            </div>
+          ) : (
+            <div className="flex-1 min-h-0 flex flex-col">
+              <ModulePageCard.Table className="flex-1 min-h-0">
+                <DataGrid
+                  columns={columns}
+                  rowData={list.rows}
+                  loading={list.loading}
+                  fetching={list.fetching}
+                  pagination={false}
+                  getRowId={(p) => p.data.id}
+                  emptyTitle="No statuses"
+                  emptyDescription={`Add a ${entityConfig?.singular?.toLowerCase() || 'status'} for this country.`}
+                  emptyActionLabel={canManage ? 'Add Status' : undefined}
+                  onEmptyAction={canManage ? () => openDrawer('add', { countryId: selectedCountryId }) : undefined}
+                  onGridReady={(params) => {
+                    params.api.addEventListener('sortChanged', onSortChanged);
+                  }}
+                />
+              </ModulePageCard.Table>
+              <Pagination
+                page={list.pagination.page || 1}
+                limit={list.pagination.limit || 25}
+                total={list.pagination.total || 0}
+                totalPages={list.pagination.totalPages || 0}
+                onPageChange={list.setPage}
+                onPageSizeChange={list.setPageSize}
+              />
+            </div>
+          )}
+        </section>
       </div>
 
       <MasterFormDrawer

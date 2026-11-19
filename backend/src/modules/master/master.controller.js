@@ -147,6 +147,7 @@ export const applicationStatusCountrySummary = asyncHandler(async (req, res) => 
 });
 
 export const applicationStatusWorkflow = asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const data = await masterService.applicationStatusWorkflow(req.user, req.query.countryId);
   sendSuccess(res, data);
 });
@@ -157,6 +158,7 @@ export const bulkCreateApplicationChecklist = asyncHandler(async (req, res) => {
 });
 
 export const applicationChecklistByCountry = asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const data = await masterService.getApplicationChecklistByCountry(req.user, req.query.countryId);
   sendSuccess(res, data);
 });
@@ -172,11 +174,13 @@ export const visaStatusCountrySummary = asyncHandler(async (req, res) => {
 });
 
 export const visaStatusWorkflow = asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const data = await masterService.visaStatusWorkflow(req.user, req.query.countryId);
   sendSuccess(res, data);
 });
 
 export const visaChecklistByCountry = asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const data = await masterService.getVisaChecklistByCountry(req.user, req.query.countryId);
   sendSuccess(res, data);
 });

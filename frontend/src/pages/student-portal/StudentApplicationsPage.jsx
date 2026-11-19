@@ -29,47 +29,50 @@ import {
 } from '../../components/portal/PortalUi';
 import './student-dashboard.theme.css';
 
-function appStatusBadge(status) {
+function appStatusBadge(status, statusName) {
+  const displayLabel = statusName || (status ? String(status).replace(/_/g, ' ') : 'In Progress');
   const s = String(status || '').toUpperCase();
-  if (['UNCONDITIONAL_OFFER', 'OFFER_RECEIVED', 'ACCEPTED', 'APPROVED'].includes(s)) {
+  const sn = String(statusName || '').toUpperCase();
+
+  if (['UNCONDITIONAL_OFFER', 'OFFER_RECEIVED', 'ACCEPTED', 'APPROVED'].includes(s) || sn.includes('OFFER ACCEPTED') || sn.includes('UNCONDITIONAL')) {
     return {
-      label: 'Unconditional Offer',
+      label: displayLabel,
       chipClass: 'crm-stu-chip--success',
       tagColor: '#059669',
       bgColor: '#ecfdf5',
       borderColor: '#a7f3d0',
     };
   }
-  if (['CONDITIONAL_OFFER'].includes(s)) {
+  if (['CONDITIONAL_OFFER'].includes(s) || sn.includes('CONDITIONAL')) {
     return {
-      label: 'Conditional Offer',
+      label: displayLabel,
       chipClass: 'crm-stu-chip--amber',
       tagColor: '#d97706',
       bgColor: '#fffbeb',
       borderColor: '#fde68a',
     };
   }
-  if (['UNDER_REVIEW'].includes(s)) {
+  if (['UNDER_REVIEW'].includes(s) || sn.includes('REVIEW') || sn.includes('PENDING')) {
     return {
-      label: 'Under Faculty Review',
+      label: displayLabel,
       chipClass: 'crm-stu-chip--amber',
       tagColor: '#b45309',
       bgColor: '#fef3c7',
       borderColor: '#fde68a',
     };
   }
-  if (['SUBMITTED'].includes(s)) {
+  if (['SUBMITTED'].includes(s) || sn.includes('LODGED') || sn.includes('SUBMITTED') || sn.includes('STARTED')) {
     return {
-      label: 'Application Lodged',
+      label: displayLabel,
       chipClass: 'crm-stu-chip--brand',
       tagColor: '#2563eb',
       bgColor: '#eff6ff',
       borderColor: '#bfdbfe',
     };
   }
-  if (['REJECTED', 'WITHDRAWN'].includes(s)) {
+  if (['REJECTED', 'WITHDRAWN'].includes(s) || sn.includes('REJECTED')) {
     return {
-      label: s.replace(/_/g, ' '),
+      label: displayLabel,
       chipClass: 'crm-stu-chip--danger',
       tagColor: '#dc2626',
       bgColor: '#fef2f2',
@@ -77,7 +80,7 @@ function appStatusBadge(status) {
     };
   }
   return {
-    label: s.replace(/_/g, ' ') || 'In Progress',
+    label: displayLabel,
     chipClass: 'crm-stu-chip--neutral',
     tagColor: '#475569',
     bgColor: '#f1f5f9',
@@ -85,95 +88,35 @@ function appStatusBadge(status) {
   };
 }
 
-function getUniversityMeta(uniName) {
-  const name = (uniName || '').toLowerCase();
-  if (name.includes('mcmaster')) {
-    return {
-      initials: 'MCM',
-      brandColor: '#7A003C',
-      accentColor: '#FDBF57',
-      location: 'Hamilton, Ontario, Canada',
-      flag: '🇨🇦',
-      ranking: 'QS World #189 · Top 10 Canada',
-      counsellor: 'Priya Shah (Lead Counsellor)',
-      intake: 'Fall 2027 (Sept 2027)',
-      appFee: '$150 CAD (Paid)',
-      depositStatus: 'Conditional Acceptance',
-      scholarship: 'Entrance Bursary Nominee',
-    };
-  }
-  if (name.includes('waterloo')) {
-    return {
-      initials: 'UW',
-      brandColor: '#E2231A',
-      accentColor: '#FFD54F',
-      location: 'Waterloo, Ontario, Canada',
-      flag: '🇨🇦',
-      ranking: 'QS World #112 · #1 Tech & CS',
-      counsellor: 'Priya Shah (Lead Counsellor)',
-      intake: 'Fall 2027 (Sept 2027)',
-      appFee: '$125 CAD (Paid)',
-      depositStatus: 'Awaiting Department Review',
-      scholarship: 'Faculty Graduate Studentship Nominee',
-    };
-  }
-  if (name.includes('toronto')) {
-    return {
-      initials: 'UofT',
-      brandColor: '#002A5C',
-      accentColor: '#1e3a8a',
-      location: 'Toronto, Ontario, Canada',
-      flag: '🇨🇦',
-      ranking: 'QS World #21 · #1 in Canada',
-      counsellor: 'Priya Shah (Lead Counsellor)',
-      intake: 'Fall 2027 (Sept 2027)',
-      appFee: '$130 CAD (Paid)',
-      depositStatus: '$5,000 CAD Confirmed',
-      scholarship: '$7,500 CAD Dean’s Excellence Award',
-    };
-  }
-  if (name.includes('mcgill')) {
-    return {
-      initials: 'MCG',
-      brandColor: '#ED1B2F',
-      accentColor: '#b91c1c',
-      location: 'Montreal, Quebec, Canada',
-      flag: '🇨🇦',
-      ranking: 'QS World #30 · Top Tier',
-      counsellor: 'Priya Shah (Lead Counsellor)',
-      intake: 'Fall 2027 (Sept 2027)',
-      appFee: '$125 CAD (Paid)',
-      depositStatus: 'Awaiting Offer Decision',
-      scholarship: 'Eligible for Merit Bursary',
-    };
-  }
-  if (name.includes('columbia') || name.includes('ubc')) {
-    return {
-      initials: 'UBC',
-      brandColor: '#002145',
-      accentColor: '#047857',
-      location: 'Vancouver, BC, Canada',
-      flag: '🇨🇦',
-      ranking: 'QS World #34 · Research Leader',
-      counsellor: 'Priya Shah (Lead Counsellor)',
-      intake: 'Fall 2027 (Sept 2027)',
-      appFee: '$145 CAD (Paid)',
-      depositStatus: 'Under Committee Review',
-      scholarship: 'Faculty Scholarship Nominee',
-    };
-  }
+function getUniversityMeta(uniName, app = {}) {
+  const name = (uniName || '').trim();
+  const initials = name
+    ? name.split(/\s+/).filter(Boolean).map((w) => w[0]).join('').substring(0, 3).toUpperCase()
+    : 'UNI';
+
+  const country = app.country || 'International';
+  const cLower = country.toLowerCase();
+  let flag = '🌐';
+  if (cLower.includes('germany') || cLower === 'de') flag = '🇩🇪';
+  else if (cLower.includes('canada') || cLower === 'ca') flag = '🇨🇦';
+  else if (cLower.includes('usa') || cLower.includes('united states') || cLower === 'us') flag = '🇺🇸';
+  else if (cLower.includes('uk') || cLower.includes('united kingdom') || cLower === 'gb') flag = '🇬🇧';
+  else if (cLower.includes('australia') || cLower === 'au') flag = '🇦🇺';
+  else if (cLower.includes('ireland') || cLower === 'ie') flag = '🇮🇪';
+  else if (cLower.includes('new zealand') || cLower === 'nz') flag = '🇳🇿';
+
   return {
-    initials: (uniName || 'UNI').substring(0, 3).toUpperCase(),
+    initials: initials || 'UNI',
     brandColor: '#2563eb',
-    accentColor: '#2563eb',
-    location: 'Canada',
-    flag: '🇨🇦',
-    ranking: 'Accredited Institution',
-    counsellor: 'Priya Shah (Lead Counsellor)',
-    intake: 'Fall 2027 (Sept 2027)',
-    appFee: 'Fee Paid',
-    depositStatus: 'Standard Processing',
-    scholarship: '',
+    accentColor: '#1d4ed8',
+    location: country,
+    flag,
+    ranking: app.metadata?.ranking || 'Recognized University',
+    counsellor: app.counsellorName || 'Assigned Counsellor',
+    intake: app.intake || 'Upcoming Intake',
+    appFee: app.metadata?.applicationFee || 'Standard Processing',
+    depositStatus: app.metadata?.depositStatus || (app.status === 'UNCONDITIONAL_OFFER' ? 'Deposit Required' : 'Awaiting Decision'),
+    scholarship: app.metadata?.scholarship || '',
   };
 }
 
@@ -251,10 +194,12 @@ export default function StudentApplicationsPage() {
           </div>
           <div className="crm-stu-att-kpi-card__body">
             <span className="crm-stu-att-kpi-card__value">{rows.length}</span>
-            <span className="crm-stu-chip crm-stu-chip--brand">U of T, McGill, UBC</span>
+            <span className="crm-stu-chip crm-stu-chip--brand">
+              {rows[0]?.university ? (rows[0].university.length > 20 ? `${rows[0].university.substring(0, 18)}...` : rows[0].university) : 'Pipeline'}
+            </span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem' }}>
-            Fall 2027 Canadian university intake
+            {rows[0] ? `${rows[0].country || 'International'} · ${rows[0].intake || 'Active'}` : 'University admissions pipeline'}
           </div>
         </div>
 
@@ -265,10 +210,10 @@ export default function StudentApplicationsPage() {
           </div>
           <div className="crm-stu-att-kpi-card__body">
             <span className="crm-stu-att-kpi-card__value">{counts.offers}</span>
-            <span className="crm-stu-chip crm-stu-chip--success">Unconditional</span>
+            <span className="crm-stu-chip crm-stu-chip--success">{counts.offers > 0 ? 'Offer Received' : 'In Review'}</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem' }}>
-            University of Toronto granted admission
+            {counts.offers > 0 ? 'Official admission offer letter granted' : 'Awaiting university decision'}
           </div>
         </div>
 
@@ -278,25 +223,27 @@ export default function StudentApplicationsPage() {
             <FiClock className="crm-stu-att-kpi-card__icon--amber" />
           </div>
           <div className="crm-stu-att-kpi-card__body">
-            <span className="crm-stu-att-kpi-card__value">{counts.review + counts.submitted}</span>
+            <span className="crm-stu-att-kpi-card__value">{counts.review + counts.submitted || rows.length}</span>
             <span className="crm-stu-chip crm-stu-chip--amber">On Track</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem' }}>
-            Faculty & Admissions committee review
+            Admissions & documentation verification
           </div>
         </div>
 
         <div className="crm-stu-att-kpi-card">
           <div className="crm-stu-att-kpi-card__header">
-            <span className="crm-stu-att-kpi-card__label">Scholarships Awarded</span>
-            <FiDollarSign className="crm-stu-att-kpi-card__icon--green" />
+            <span className="crm-stu-att-kpi-card__label">Assigned Advisory</span>
+            <FiUser className="crm-stu-att-kpi-card__icon--green" />
           </div>
           <div className="crm-stu-att-kpi-card__body">
-            <span className="crm-stu-att-kpi-card__value">$7,500</span>
-            <span className="crm-stu-chip crm-stu-chip--success">CAD Granted</span>
+            <span className="crm-stu-att-kpi-card__value" style={{ fontSize: '1.0625rem' }}>
+              {rows[0]?.counsellorName || 'Assigned'}
+            </span>
+            <span className="crm-stu-chip crm-stu-chip--success">Counsellor</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem' }}>
-            Dean's International Merit Award
+            Direct guidance for application processing
           </div>
         </div>
       </div>
@@ -357,11 +304,11 @@ export default function StudentApplicationsPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
           {filteredRows.map((row) => {
-            const badge = appStatusBadge(row.status);
+            const badge = appStatusBadge(row.status, row.statusName);
             const rawStatusUpper = String(row.status || '').toUpperCase();
             const isOffer = rawStatusUpper.includes('OFFER') || rawStatusUpper.includes('ACCEPTED') || rawStatusUpper.includes('APPROVED');
             const isConditional = rawStatusUpper === 'CONDITIONAL_OFFER';
-            const meta = getUniversityMeta(row.university);
+            const meta = getUniversityMeta(row.university, row);
             const isExpanded = expandedId === row.id;
 
             // Structured 5-stage application journey
@@ -422,13 +369,13 @@ export default function StudentApplicationsPage() {
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem', flexWrap: 'wrap' }}>
                         <span className="crm-stu-chip crm-stu-chip--neutral" style={{ fontSize: '0.75rem', padding: '0.1rem 0.45rem' }}>
-                          {meta.flag} {row.country || 'Canada'}
+                          {meta.flag} {row.country || meta.location}
                         </span>
                         <span className="crm-stu-chip crm-stu-chip--neutral" style={{ fontSize: '0.75rem', padding: '0.1rem 0.45rem' }}>
                           Intake: {row.intake || meta.intake}
                         </span>
                         <span className="crm-stu-chip crm-stu-chip--brand" style={{ fontSize: '0.75rem', padding: '0.1rem 0.45rem' }}>
-                          App ID: #{row.applicationNo || 'APP-2026-CA'}
+                          App ID: #{row.applicationNo || 'APP'}
                         </span>
                       </div>
 

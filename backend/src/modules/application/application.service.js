@@ -10,6 +10,7 @@ import {
   assertStudentInTenant,
   mergeStudentRelationScope,
 } from '../../utils/tenant.util.js';
+import { notifyApplicationEvent } from '../notification/notification.dispatcher.js';
 
 const dateInput = z.string().optional().nullable();
 
@@ -19,8 +20,8 @@ export const createApplicationSchema = z.object({
   course: z.string().min(1),
   intake: z.string().optional().nullable(),
   country: z.string().optional().nullable(),
-  countryId: z.string().uuid().optional().nullable(),
-  applicationStatusMasterId: z.string().uuid().optional().nullable(),
+  countryId: z.string().optional().nullable(),
+  applicationStatusMasterId: z.string().optional().nullable(),
   status: z.enum(['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL_OFFER', 'UNCONDITIONAL_OFFER', 'REJECTED', 'WITHDRAWN']).optional(),
   applicationNo: z.string().optional().nullable(),
   submittedAt: dateInput,
@@ -38,31 +39,67 @@ function requireCompany(user) {
   return companyId;
 }
 
+async function resolveCountryInCompany(countryId, companyId) {
+  if (!countryId) return null;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(countryId).trim());
+  if (isUuid) {
+    const country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+    if (country) return country;
+  }
+  const needle = String(countryId).trim();
+  return prisma.country.findFirst({
+    where: {
+      companyId,
+      deletedAt: null,
+      OR: [
+        { name: needle },
+        { code: needle },
+        { isoCode: needle },
+      ],
+    },
+  });
+}
+
 async function resolveStatusMetadata(companyId, { countryId, applicationStatusMasterId }) {
   if (!countryId) return {};
 
-  const country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+  const country = await resolveCountryInCompany(countryId, companyId);
   if (!country) throw new AppError('Country not found in your company', 422);
 
   let statusRecord = null;
   if (applicationStatusMasterId) {
-    statusRecord = await masterRepository.findApplicationStatusById(companyId, applicationStatusMasterId);
-    if (!statusRecord || statusRecord.countryId !== countryId) {
-      throw new AppError('Application status not found for this country', 422);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(applicationStatusMasterId).trim());
+    if (isUuid) {
+      statusRecord = await masterRepository.findApplicationStatusById(companyId, applicationStatusMasterId);
     }
-  } else {
-    statusRecord = await masterRepository.findDefaultApplicationStatus(companyId, countryId);
+    if (!statusRecord) {
+      statusRecord = await prisma.applicationStatusMaster.findFirst({
+        where: {
+          companyId,
+          countryId: country.id,
+          name: String(applicationStatusMasterId).trim(),
+          deletedAt: null,
+        },
+      });
+    }
+    if (statusRecord && statusRecord.countryId !== country.id) {
+      statusRecord = null;
+    }
+  }
+
+  if (!statusRecord) {
+    statusRecord = await masterRepository.findDefaultApplicationStatus(companyId, country.id);
   }
 
   if (!statusRecord) {
     return {
-      countryId,
+      countryId: country.id,
       countryName: country.name,
     };
   }
 
   return {
-    countryId,
+    countryId: country.id,
     countryName: country.name,
     applicationStatusMasterId: statusRecord.id,
     applicationStatusName: statusRecord.name,
@@ -139,6 +176,21 @@ export const applicationService = {
       ...rest
     } = data;
 
+    if (data.studentId && rest.university) {
+      const existing = await prisma.application.findFirst({
+        where: {
+          studentId: data.studentId,
+          university: rest.university,
+          course: rest.course || undefined,
+          intake: rest.intake || undefined,
+          deletedAt: null,
+        },
+      });
+      if (existing) {
+        throw new AppError(`An active application for "${rest.university}" already exists for this student (${existing.applicationNo || existing.id}).`, 409);
+      }
+    }
+
     const statusMeta = await resolveStatusMetadata(companyId, { countryId, applicationStatusMasterId });
     const metadata = mergeMetadata(inputMetadata, statusMeta);
 
@@ -170,6 +222,25 @@ export const applicationService = {
       newData: { id: record.id, applicationNo, studentId: record.studentId },
       req,
     });
+
+    try {
+      const student = await prisma.student.findUnique({
+        where: { id: record.studentId },
+        select: { id: true, firstName: true, lastName: true, assignedToId: true, branchId: true, branch: { select: { companyId: true } } },
+      });
+      if (student) {
+        await notifyApplicationEvent({
+          application: record,
+          student,
+          eventType: 'CREATED',
+          actorId: userId,
+          companyId,
+        });
+      }
+    } catch (e) {
+      console.warn('[application.create] notifyApplicationEvent warning:', e.message);
+    }
+
     return record;
   },
 
@@ -220,6 +291,28 @@ export const applicationService = {
       newData: { id: record.id, status: record.status },
       req,
     });
+
+    if (record.status && record.status !== existing.status) {
+      try {
+        const student = await prisma.student.findUnique({
+          where: { id: record.studentId },
+          select: { id: true, firstName: true, lastName: true, assignedToId: true, branchId: true, branch: { select: { companyId: true } } },
+        });
+        if (student) {
+          await notifyApplicationEvent({
+            application: record,
+            student,
+            eventType: 'STATUS_CHANGED',
+            newStatus: record.status,
+            actorId: userId,
+            companyId,
+          });
+        }
+      } catch (e) {
+        console.warn('[application.update] notifyApplicationEvent warning:', e.message);
+      }
+    }
+
     return record;
   },
 

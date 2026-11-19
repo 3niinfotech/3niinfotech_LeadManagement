@@ -7,7 +7,7 @@ export const PORTALS = {
 };
 
 export const STUDENT_ROLE_SLUGS = ['student_portal'];
-export const AGENT_ROLE_SLUGS = ['partner'];
+export const AGENT_ROLE_SLUGS = ['partner', 'agent', 'partner_agent'];
 
 export function resolvePortalFromRole(roleSlug) {
   if (STUDENT_ROLE_SLUGS.includes(roleSlug)) return PORTALS.STUDENT;

@@ -120,7 +120,7 @@ export default function StudentCounselingPage() {
         note: form.note.trim() || undefined,
         location: form.location.trim() || undefined,
       });
-      toastService.success('Appointment requested! Your counsellor Priya Shah has been notified.');
+      toastService.success(`Appointment requested! Your counsellor ${counselor?.name || 'advisor'} has been notified.`);
       setForm((prev) => ({ ...prev, note: '' }));
       setShowRequestModal(false);
       await loadCounseling();
@@ -155,10 +155,10 @@ export default function StudentCounselingPage() {
   if (loading) return <PortalSkeletonPage />;
 
   const counselor = data?.counselor || {
-    name: 'Priya Shah',
-    email: 'priya.shah@3niinfotech.com',
-    phone: '+91 98765 43210',
-    title: 'Lead Study Abroad & Visa Advisor',
+    name: 'Counsellor Desk',
+    email: 'helpdesk@3niinfotech.com',
+    phone: '',
+    title: 'Study Abroad Advisor',
     branch: '',
   };
 
@@ -176,12 +176,12 @@ export default function StudentCounselingPage() {
           </div>
           <div className="crm-stu-att-kpi-card__body">
             <span className="crm-stu-att-kpi-card__value" style={{ fontSize: '1.25rem' }}>
-              {counselor.name || 'Priya Shah'}
+              {counselor.name || 'Admissions Advisor'}
             </span>
             <span className="crm-stu-chip crm-stu-chip--brand">Lead Advisor</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem', fontSize: '0.8125rem' }}>
-            Canada & UK Specialization
+            Study Abroad Guidance
           </div>
         </div>
 
@@ -293,14 +293,14 @@ export default function StudentCounselingPage() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.15rem' }}>
                     <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                      {counselor.name || 'Priya Shah'}
+                      {counselor.name || 'Admissions Counsellor'}
                     </h3>
                     <span className="crm-stu-chip crm-stu-chip--brand" style={{ fontSize: '0.75rem' }}>
                       Assigned Advisor
                     </span>
                   </div>
                   <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: 0, fontWeight: 600 }}>
-                    Senior Study Abroad & Immigration Counsellor
+                    Study Abroad & Visa Advisory
                   </p>
                 </div>
               </div>
@@ -345,7 +345,7 @@ export default function StudentCounselingPage() {
                     Direct Email
                   </span>
                   <strong style={{ fontSize: '0.8125rem', color: '#0f172a' }}>
-                    {counselor.email || 'priya.shah@3niinfotech.com'}
+                    {counselor.email || 'counseling@3niinfotech.com'}
                   </strong>
                 </div>
               </div>
@@ -557,11 +557,11 @@ export default function StudentCounselingPage() {
                           SCHEDULED & CONFIRMED
                         </span>
                         <h4 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0f172a', margin: '0.2rem 0 0' }}>
-                          {row.title || 'SOP & Visa Documentation Strategy Review'}
+                          {row.title || 'Counselling & Advisory Session'}
                         </h4>
                       </div>
                       <span className="crm-stu-chip crm-stu-chip--brand" style={{ fontSize: '0.75rem' }}>
-                        Priya Shah
+                        {row.counselorName || counselor.name || 'Counsellor'}
                       </span>
                     </div>
 
@@ -572,7 +572,7 @@ export default function StudentCounselingPage() {
                       </span>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                         <FiMapPin style={{ color: '#059669' }} />
-                        {row.location || 'Branch Office · Executive Cabin 2 / Google Meet'}
+                        {row.location || 'Branch Office / Google Meet'}
                       </span>
                     </div>
 
@@ -587,26 +587,26 @@ export default function StudentCounselingPage() {
                       }}
                     >
                       <strong style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
-                        Session Preparation Checklist:
+                        Session Preparation & Notes:
                       </strong>
-                      <ul style={{ margin: 0, paddingLeft: '1.15rem', color: '#334155', lineHeight: 1.45 }}>
-                        <li>Bring revised Statement of Purpose (SOP) draft for U of T</li>
-                        <li>Have official IELTS TRF scorecard (Band 8.0) ready</li>
-                        <li>Keep Scotiabank GIC certificate copy for visa verification</li>
-                      </ul>
+                      <p style={{ margin: 0, color: '#334155', lineHeight: 1.45 }}>
+                        {row.description || 'Have your updated academic transcripts, passport copy, and admission questions ready for this session.'}
+                      </p>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.45rem', marginTop: '0.25rem' }}>
-                      <a
-                        href="https://meet.google.com/xyz-counsel-priya"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="crm-stu-btn crm-stu-btn--primary"
-                        style={{ fontSize: '0.8125rem', padding: '0.4rem 0.95rem' }}
-                      >
-                        <FiVideo /> Join Google Meet
-                      </a>
-                    </div>
+                    {row.location?.toLowerCase().includes('meet') || row.location?.toLowerCase().includes('online') ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.45rem', marginTop: '0.25rem' }}>
+                        <a
+                          href="https://meet.google.com"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="crm-stu-btn crm-stu-btn--primary"
+                          style={{ fontSize: '0.8125rem', padding: '0.4rem 0.95rem' }}
+                        >
+                          <FiVideo /> Join Meeting
+                        </a>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -717,7 +717,7 @@ export default function StudentCounselingPage() {
                   Request Counselling Appointment
                 </h3>
                 <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '0.15rem 0 0' }}>
-                  Consultation with Lead Counsellor Priya Shah
+                  Consultation with {counselor.name || 'Assigned Counsellor'}
                 </p>
               </div>
               <button
@@ -861,7 +861,7 @@ export default function StudentCounselingPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  Message Counsellor Priya Shah
+                  Message Counsellor {counselor.name || ''}
                 </h3>
                 <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '0.15rem 0 0' }}>
                   Direct priority communication channel
@@ -886,7 +886,7 @@ export default function StudentCounselingPage() {
                   required
                   value={counselorMessage}
                   onChange={(e) => setCounselorMessage(e.target.value)}
-                  placeholder="Hi Priya, I have updated my SOP for U of T and would like you to review the draft..."
+                  placeholder="Hi, I would like to consult on my admission documents and timeline..."
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.75rem',

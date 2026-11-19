@@ -57,14 +57,26 @@ export const walkinService = {
     return { ...lead, leadNotes: notes };
   },
 
-  checkDuplicate: async (phone, branchId, excludeId, user) => {
-    await assertBranchInTenant(branchId, user);
-    const existing = await walkinRepository.findByPhone(phone, branchId, excludeId);
-    const companyId = requireTenantCompany(user) || (await assertBranchInTenant(branchId, user)).companyId;
-    const identity = await assignmentService.resolveIdentity(phone, branchId, companyId);
+  checkDuplicate: async (args, user) => {
+    const { phone, email, branchId, excludeId } = (typeof args === 'object' && args !== null)
+      ? args
+      : { phone: args, branchId: arguments[1], excludeId: arguments[2] };
+    const branch = await assertBranchInTenant(branchId, user);
+    const companyId = requireTenantCompany(user) || branch?.companyId;
+
+    const existingMatch = await walkinRepository.findDuplicateIdentity(companyId, {
+      phone,
+      email,
+      branchId,
+      excludeId,
+    });
+
+    const identity = phone ? await assignmentService.resolveIdentity(phone, branchId, companyId) : { matchType: 'NEW' };
+    const hasDuplicate = Boolean(existingMatch) || (identity && identity.matchType !== 'NEW');
+
     return {
-      hasDuplicate: Boolean(existing) || identity.matchType !== 'NEW',
-      existing,
+      hasDuplicate,
+      existing: existingMatch,
       identity,
     };
   },
@@ -73,6 +85,19 @@ export const walkinService = {
     const user = req.user;
     const branchId = await resolveWriteBranchId(user, data.branchId);
     const branch = await assertBranchInTenant(branchId, user);
+
+    // Strict duplicate prevention: forcefully block if phone or email already registered
+    const duplicate = await walkinRepository.findDuplicateIdentity(branch.companyId, {
+      phone: data.phone,
+      email: data.email,
+      branchId,
+    });
+    if (duplicate) {
+      throw new AppError(
+        `Registration blocked: A ${duplicate.matchType.toLowerCase()} with this ${duplicate.matchedOn === 'both' ? 'mobile number and email' : duplicate.matchedOn} already exists (${duplicate.name} · ${duplicate.code || ''} · Status: ${duplicate.status}). Duplicate walk-in entries are not allowed.`,
+        409,
+      );
+    }
 
     const config = await assignmentEngine.getCompanyAssignmentConfig(branch.companyId);
     let assignedToId = data.assignedToId || null;

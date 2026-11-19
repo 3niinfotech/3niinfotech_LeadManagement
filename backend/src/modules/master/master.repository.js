@@ -518,6 +518,8 @@ export const masterRepository = {
     };
     if (hasCode) select.code = true;
     if (slug === 'course') {
+      select.countryId = true;
+      select.country = { select: { id: true, name: true } };
       select.university = { select: { name: true } };
     }
     if ((config.createFields || []).includes('sortOrder')) select.sortOrder = true;

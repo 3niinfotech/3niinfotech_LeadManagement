@@ -881,7 +881,7 @@ html:has(.crm-portal-root) body {
   color: var(--brand);
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .crm-portal-bottom-nav {
     display: none;
   }
@@ -891,7 +891,7 @@ html:has(.crm-portal-root) body {
   }
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 767px) {
   .crm-portal-root {
     --portal-sidebar-w: min(17.5rem, 88vw);
   }

@@ -167,7 +167,6 @@ export default function WalkInGrid({
       paginationPageSize={25}
       fitContent
       maxVisibleRows={10}
-      hideSinglePagePagination
       emptyTitle={emptyTitle || 'No visitors'}
       emptyDescription={emptyDescription || 'Register a visitor or switch tab.'}
       emptyActionLabel={emptyActionLabel}

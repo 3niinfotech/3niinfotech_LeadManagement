@@ -416,7 +416,8 @@ export default function MasterDataPage() {
     }
 
     cols.push(createActionsColumn({
-      width: canManage ? 148 : 72,
+      width: canManage ? 156 : 72,
+      pinned: 'right',
       cellRenderer: (p) => {
         const row = p.data;
         if (!row) return null;
@@ -425,7 +426,7 @@ export default function MasterDataPage() {
           <div className="crm-grid-actions" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
-              className="crm-grid-action-btn"
+              className="crm-grid-action-btn crm-grid-action-btn--view"
               title="View"
               aria-label="View"
               onClick={() => openDrawer('view', row)}
@@ -446,7 +447,7 @@ export default function MasterDataPage() {
                 </button>
                 <button
                   type="button"
-                  className="crm-grid-action-btn"
+                  className="crm-grid-action-btn crm-grid-action-btn--toggle"
                   title={row.isActive ? 'Deactivate' : 'Activate'}
                   aria-label="Toggle status"
                   disabled={busy}
@@ -454,7 +455,7 @@ export default function MasterDataPage() {
                 >
                   {row.isActive
                     ? <FiToggleRight className="w-3.5 h-3.5 text-emerald-600" />
-                    : <FiToggleLeft className="w-3.5 h-3.5" />}
+                    : <FiToggleLeft className="w-3.5 h-3.5 text-slate-400" />}
                 </button>
                 <button
                   type="button"
@@ -599,32 +600,32 @@ export default function MasterDataPage() {
         />
 
         {slug === 'faculty' && (
-          <div className="mx-1 mb-3 p-3 rounded-xl border border-blue-200 bg-blue-50/70 dark:bg-blue-950/30 dark:border-blue-900/50 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-                <FiUsers className="w-4 h-4" />
+          <div className="mx-4 my-3.5 p-3.5 sm:p-4 rounded-xl border border-blue-200/90 bg-blue-50/75 dark:bg-blue-950/35 dark:border-blue-900/60 shadow-2xs flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="w-9 h-9 rounded-xl bg-blue-600/15 text-blue-600 dark:bg-blue-500/25 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <FiUsers className="w-4 h-4 stroke-[2.2]" />
               </span>
               <div>
-                <strong className="text-xs font-bold text-slate-900 dark:text-white block">
+                <h4 className="text-xs sm:text-[13px] font-bold text-slate-900 dark:text-slate-100 leading-snug">
                   Looking for Teacher &amp; Staff Login Accounts?
-                </strong>
-                <span className="text-[11.5px] text-slate-600 dark:text-slate-300">
-                  Manage teachers, login credentials, passwords, and batch instructors in <strong>Team &amp; Access</strong>.
-                </span>
+                </h4>
+                <p className="text-[12px] text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                  Manage teachers, login credentials, passwords, and batch instructors in <strong className="font-semibold text-slate-800 dark:text-slate-200">Team &amp; Access</strong>.
+                </p>
               </div>
             </div>
             <Link
               to={ROUTES.USERS}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-xs"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition-all shrink-0"
             >
               <FiUsers className="w-3.5 h-3.5" />
-              Go to Team &amp; Access
+              <span>Go to Team &amp; Access</span>
             </Link>
           </div>
         )}
 
         {slug === 'application-checklist' && canManage && (
-          <div className="px-1 pb-2">
+          <div className="px-4 py-2.5">
             <Button size="sm" variant="outline" onClick={() => setBulkChecklistOpen(true)}>
               Add Multiple Rows
             </Button>
@@ -632,7 +633,7 @@ export default function MasterDataPage() {
         )}
 
         {slug === 'visa-checklist' && canManage && (
-          <div className="px-1 pb-2">
+          <div className="px-4 py-2.5">
             <Button size="sm" variant="outline" onClick={() => setBulkChecklistOpen(true)}>
               Add Multiple Rows
             </Button>

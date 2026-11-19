@@ -83,6 +83,26 @@ async function validateRelations(config, companyId, payload) {
   }
 }
 
+async function resolveCountryInCompany(countryId, companyId) {
+  if (!countryId) return null;
+  let country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+  if (country) return country;
+
+  const needle = String(countryId).trim();
+  country = await prisma.country.findFirst({
+    where: {
+      companyId,
+      deletedAt: null,
+      OR: [
+        { name: needle },
+        { code: needle },
+        { isoCode: needle },
+      ],
+    },
+  });
+  return country;
+}
+
 function formatDependencyMessage(entityLabel, deps) {
   const parts = deps.map((d) => `${d.count} ${d.label}`);
   return `${entityLabel} cannot be deleted because it is referenced by ${parts.join(' and ')}. Deactivate it instead.`;
@@ -573,6 +593,8 @@ export const masterService = {
         label,
         code: row.code,
         name: row.name,
+        countryId: row.countryId || null,
+        countryName: row.country?.name || null,
         ...(row.university?.name ? { universityName: row.university.name } : {}),
         ...(row.isoCode != null && row.isoCode !== '' ? { isoCode: String(row.isoCode).toUpperCase() } : {}),
         ...(row.phoneCode != null && row.phoneCode !== '' ? { phoneCode: row.phoneCode } : {}),
@@ -594,9 +616,44 @@ export const masterService = {
   applicationStatusWorkflow: async (user, countryId) => {
     if (!countryId) throw new AppError('countryId is required', 422);
     const companyId = requireCompany(user);
-    const country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+    const country = await resolveCountryInCompany(countryId, companyId);
     if (!country) throw new AppError('Country not found in your company', 422);
-    const rows = await masterRepository.findApplicationStatusWorkflow(companyId, countryId);
+    let rows = await masterRepository.findApplicationStatusWorkflow(companyId, country.id);
+    if (!rows.length) {
+      try {
+        const { RELATIONAL_APPLICATION_STATUSES } = await import('../../config/master-relational-seed.config.js');
+        for (let i = 0; i < RELATIONAL_APPLICATION_STATUSES.length; i += 1) {
+          const item = RELATIONAL_APPLICATION_STATUSES[i];
+          await prisma.applicationStatusMaster.create({
+            data: {
+              companyId,
+              countryId: country.id,
+              name: item.name,
+              mailSend: item.mailSend ?? false,
+              defaultStatus: item.defaultStatus ?? false,
+              setOfferLetter: item.setOfferLetter ?? false,
+              position: item.position ?? i + 1,
+              createdBy: user.id,
+              updatedBy: user.id,
+            },
+          }).catch(() => {});
+        }
+        rows = await masterRepository.findApplicationStatusWorkflow(companyId, country.id);
+      } catch (seedErr) {
+        console.warn('[applicationStatusWorkflow] auto-seed fallback error:', seedErr.message);
+      }
+    }
+    if (!rows.length) {
+      const { RELATIONAL_APPLICATION_STATUSES } = await import('../../config/master-relational-seed.config.js');
+      return RELATIONAL_APPLICATION_STATUSES.map((item, idx) => ({
+        value: item.id || `default-app-status-${idx}`,
+        label: item.name,
+        mailSend: item.mailSend ?? false,
+        defaultStatus: item.defaultStatus ?? false,
+        setOfferLetter: item.setOfferLetter ?? false,
+        position: item.position ?? idx + 1,
+      }));
+    }
     return rows.map((row) => ({
       value: row.id,
       label: row.name,
@@ -649,9 +706,32 @@ export const masterService = {
   getApplicationChecklistByCountry: async (user, countryId) => {
     if (!countryId) throw new AppError('countryId is required', 422);
     const companyId = requireCompany(user);
-    const country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+    const country = await resolveCountryInCompany(countryId, companyId);
     if (!country) throw new AppError('Country not found in your company', 422);
-    return masterRepository.findApplicationChecklistByCountry(companyId, countryId);
+    let docs = await masterRepository.findApplicationChecklistByCountry(companyId, country.id);
+    if (!docs.length) {
+      try {
+        const { RELATIONAL_APPLICATION_CHECKLISTS } = await import('../../config/master-relational-seed.config.js');
+        for (const item of RELATIONAL_APPLICATION_CHECKLISTS) {
+          await prisma.applicationChecklist.create({
+            data: {
+              companyId,
+              countryId: country.id,
+              name: item.name,
+              documentType: item.documentType,
+              isMandatory: item.isMandatory ?? true,
+              sortOrder: item.sortOrder ?? 0,
+              createdBy: user.id,
+              updatedBy: user.id,
+            },
+          }).catch(() => {});
+        }
+        docs = await masterRepository.findApplicationChecklistByCountry(companyId, country.id);
+      } catch (seedErr) {
+        console.warn('[getApplicationChecklistByCountry] auto-seed error:', seedErr.message);
+      }
+    }
+    return docs;
   },
 
   leadStatusWorkflow: async (user) => {
@@ -674,9 +754,49 @@ export const masterService = {
   visaStatusWorkflow: async (user, countryId) => {
     if (!countryId) throw new AppError('countryId is required', 422);
     const companyId = requireCompany(user);
-    const country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+    const country = await resolveCountryInCompany(countryId, companyId);
     if (!country) throw new AppError('Country not found in your company', 422);
-    const rows = await masterRepository.findVisaStatusWorkflow(companyId, countryId);
+    let rows = await masterRepository.findVisaStatusWorkflow(companyId, country.id);
+    if (!rows.length) {
+      try {
+        const { RELATIONAL_VISA_STATUSES } = await import('../../config/master-relational-seed.config.js');
+        for (let i = 0; i < RELATIONAL_VISA_STATUSES.length; i += 1) {
+          const item = RELATIONAL_VISA_STATUSES[i];
+          await prisma.visaStatusMaster.create({
+            data: {
+              companyId,
+              countryId: country.id,
+              name: item.name,
+              visaApproved: item.visaApproved ?? false,
+              visaWithdraw: item.visaWithdraw ?? false,
+              visaRejected: item.visaRejected ?? false,
+              mailSend: item.mailSend ?? false,
+              defaultStatus: item.defaultStatus ?? false,
+              position: item.position ?? i + 1,
+              createdBy: user.id,
+              updatedBy: user.id,
+            },
+          }).catch(() => {});
+        }
+        rows = await masterRepository.findVisaStatusWorkflow(companyId, country.id);
+      } catch (seedErr) {
+        console.warn('[visaStatusWorkflow] auto-seed fallback error:', seedErr.message);
+      }
+    }
+    if (!rows.length) {
+      const { RELATIONAL_VISA_STATUSES } = await import('../../config/master-relational-seed.config.js');
+      return RELATIONAL_VISA_STATUSES.map((item, idx) => ({
+        value: item.id || `default-visa-status-${idx}`,
+        label: item.name,
+        visaApproved: item.visaApproved,
+        visaWithdraw: item.visaWithdraw,
+        visaRejected: item.visaRejected,
+        mailSend: item.mailSend,
+        defaultStatus: item.defaultStatus,
+        position: item.position ?? idx + 1,
+        colorCode: item.colorCode,
+      }));
+    }
     return rows.map((row) => ({
       value: row.id,
       label: row.name,
@@ -693,9 +813,32 @@ export const masterService = {
   getVisaChecklistByCountry: async (user, countryId) => {
     if (!countryId) throw new AppError('countryId is required', 422);
     const companyId = requireCompany(user);
-    const country = await masterRepository.assertRelatedInCompany('country', countryId, companyId);
+    const country = await resolveCountryInCompany(countryId, companyId);
     if (!country) throw new AppError('Country not found in your company', 422);
-    return masterRepository.findVisaChecklistByCountry(companyId, countryId);
+    let docs = await masterRepository.findVisaChecklistByCountry(companyId, country.id);
+    if (!docs.length) {
+      try {
+        const { RELATIONAL_VISA_CHECKLISTS } = await import('../../config/master-relational-seed.config.js');
+        for (const item of RELATIONAL_VISA_CHECKLISTS) {
+          await prisma.visaChecklist.create({
+            data: {
+              companyId,
+              countryId: country.id,
+              name: item.name,
+              documentType: item.documentType,
+              isMandatory: item.isMandatory ?? true,
+              sortOrder: item.sortOrder ?? 0,
+              createdBy: user.id,
+              updatedBy: user.id,
+            },
+          }).catch(() => {});
+        }
+        docs = await masterRepository.findVisaChecklistByCountry(companyId, country.id);
+      } catch (seedErr) {
+        console.warn('[getVisaChecklistByCountry] auto-seed fallback error:', seedErr.message);
+      }
+    }
+    return docs;
   },
 
   bulkCreateVisaChecklist: async (body, user, req) => {

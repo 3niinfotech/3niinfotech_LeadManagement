@@ -46,7 +46,7 @@ export default function Button({
       className={`
         inline-flex items-center justify-center font-medium rounded-lg
         transition-all duration-200 ease-out focus-ring
-        active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+        disabled:opacity-50 disabled:cursor-not-allowed
         ${variants[variant] || variants.primary} ${sizes[size]} ${className}
       `}
       {...props}

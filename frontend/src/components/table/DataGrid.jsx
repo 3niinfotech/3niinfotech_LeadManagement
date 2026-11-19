@@ -1,8 +1,10 @@
 import { useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import { FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight } from 'react-icons/fi';
 import EmptyState from '../ui/EmptyState';
 import TableLoader, { TableFetchOverlay } from '../ui/TableLoader';
+import Select from '../ui/Select';
 import { useSelector } from 'react-redux';
 import { selectTableDensity } from '../../redux/slices/uiSlice';
 import { TABLE_DENSITY } from '../../config/constants';
@@ -49,6 +51,18 @@ export default function DataGrid({
   const rowHeight = density === TABLE_DENSITY.COMPACT ? 34 : 40;
   const headerHeight = density === TABLE_DENSITY.COMPACT ? 34 : 38;
 
+  const resolvedGetRowId = useCallback((params) => {
+    try {
+      if (typeof getRowId === 'function') {
+        const customId = getRowId(params);
+        if (customId != null && customId !== '') return String(customId);
+      }
+    } catch (_) {}
+    const d = params?.data;
+    if (!d) return String(params?.node?.id ?? Math.random());
+    return String(d.id || d._id || d.enquiryCode || d.studentCode || d.invoiceNo || d.invoiceNumber || d.code || d.key || params?.node?.id || Math.random());
+  }, [getRowId]);
+
   const defaultColDef = useMemo(() => ({
     sortable: true,
     resizable: true,
@@ -59,18 +73,6 @@ export default function DataGrid({
     autoHeight: false,
     cellClass: 'crm-grid-cell crm-grid-cell--center',
     headerClass: 'crm-grid-header-cell crm-grid-header-cell--center',
-    tooltipValueGetter: (p) => {
-      const v = p.valueFormatted ?? p.value;
-      if (v == null || v === '') return null;
-      if (typeof v === 'object') {
-        if (typeof v.name === 'string') return v.name;
-        if (v.firstName || v.lastName) return `${v.firstName || ''} ${v.lastName || ''}`.trim();
-        if (typeof v.title === 'string') return v.title;
-        if (typeof v.label === 'string') return v.label;
-        return null;
-      }
-      return String(v);
-    },
   }), []);
 
   const rowClassRules = useMemo(() => ({
@@ -116,8 +118,7 @@ export default function DataGrid({
   const fittedHeight = headerHeight
     + Math.max(Math.min(pageRowCount, maxVisibleRows), 1) * rowHeight
     + 10;
-  const showPagination = pagination
-    && (!hideSinglePagePagination || rowData.length > paginationPageSize);
+  const showPagination = Boolean(pagination);
 
   return (
     <div
@@ -176,10 +177,7 @@ export default function DataGrid({
             onRowDataUpdated={handleRowDataUpdated}
             domLayout="normal"
             suppressDragLeaveHidesColumns
-            enableCellTextSelection
-            tooltipShowDelay={300}
-            tooltipShowMode="whenTruncated"
-            getRowId={getRowId}
+            getRowId={resolvedGetRowId}
             suppressColumnMoveAnimation
             alwaysShowHorizontalScroll={false}
             suppressHorizontalScroll={false}
@@ -194,6 +192,52 @@ export default function DataGrid({
           totalRows={rowData.length}
           pageSizeOptions={paginationPageSizeOptions}
         />
+      )}
+
+      {showPagination && !loading && !rowData.length && !fetching && (
+        <footer className="crm-grid-footer shrink-0">
+          <div className="crm-grid-footer__left">
+            <span className="crm-grid-footer__label">Rows per page</span>
+            <div className="crm-grid-footer__page-size">
+              <Select
+                size="sm"
+                value={paginationPageSize}
+                disabled
+                options={paginationPageSizeOptions.map((n) => ({ value: n, label: String(n) }))}
+                searchable={false}
+                allowClear={false}
+                className="crm-grid-footer__page-size-control"
+                aria-label="Rows per page"
+              />
+            </div>
+            <span className="crm-grid-footer__range">
+              <strong>0–0</strong>
+              <span className="text-text-muted"> of </span>
+              <strong>0</strong>
+              <span className="text-text-muted"> records</span>
+            </span>
+          </div>
+
+          <div className="crm-grid-footer__right">
+            <span className="crm-grid-footer__page-info">
+              Page <strong>0</strong> of <strong>0</strong>
+            </span>
+            <div className="crm-grid-footer__nav" role="navigation" aria-label="Table pagination">
+              <button type="button" className="crm-grid-footer__btn" disabled aria-label="First page">
+                <FiChevronsLeft className="w-3.5 h-3.5" />
+              </button>
+              <button type="button" className="crm-grid-footer__btn" disabled aria-label="Previous page">
+                <FiChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button type="button" className="crm-grid-footer__btn" disabled aria-label="Next page">
+                <FiChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <button type="button" className="crm-grid-footer__btn" disabled aria-label="Last page">
+                <FiChevronsRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </footer>
       )}
     </div>
   );

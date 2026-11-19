@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FiExternalLink,
+  FiDownload,
   FiUpload,
   FiCheckCircle,
   FiClock,
@@ -16,29 +17,92 @@ import {
   FiTrash2,
   FiLink,
   FiPaperclip,
+  FiGrid,
+  FiList,
+  FiSearch,
 } from 'react-icons/fi';
 import { apiGet, apiPost } from '../../api/apiClient';
 import { API } from '../../config/api';
 import toastService from '../../services/toast/toast.service';
 import { formatDate } from './components/portalFormat';
 import { PortalSkeletonPage } from '../../components/portal/PortalUi';
+import Pagination from '../../components/ui/Pagination';
+import { getDocumentUrl } from '../../features/enquiry/config/enquiryDocument.config';
 import './student-dashboard.theme.css';
 
 const EMPTY_FORM = { name: '', category: 'OTHER', remarks: '', fileUrl: '' };
 
+const CATEGORY_MAP = {
+  // Academic
+  ACADEMIC: 'ACADEMIC',
+  TENTH: 'ACADEMIC',
+  TWELFTH: 'ACADEMIC',
+  DEGREE: 'ACADEMIC',
+  TRANSCRIPT: 'ACADEMIC',
+  DIPLOMA: 'ACADEMIC',
+  CERTIFICATE: 'ACADEMIC',
+  MARKSHEET: 'ACADEMIC',
+
+  // Language Test
+  LANGUAGE_TEST: 'LANGUAGE_TEST',
+  IELTS: 'LANGUAGE_TEST',
+  PTE: 'LANGUAGE_TEST',
+  TOEFL: 'LANGUAGE_TEST',
+  DUOLINGO: 'LANGUAGE_TEST',
+
+  // Passport
+  PASSPORT: 'PASSPORT',
+
+  // Photo & ID
+  PHOTO: 'PHOTO',
+  SIGNATURE: 'PHOTO',
+  ID: 'PHOTO',
+  AADHAR: 'PHOTO',
+  PAN: 'PHOTO',
+
+  // Visa & SOP
+  VISA: 'VISA',
+  SOP: 'VISA',
+  LOR: 'VISA',
+  RESUME: 'VISA',
+  CV: 'VISA',
+  EXPERIENCE: 'VISA',
+
+  // Financial
+  FINANCIAL: 'FINANCIAL',
+  BANK: 'FINANCIAL',
+  ITR: 'FINANCIAL',
+  AFFIDAVIT: 'FINANCIAL',
+  LOAN: 'FINANCIAL',
+};
+
+export function normalizeCategory(category) {
+  const c = String(category || '').toUpperCase();
+  return CATEGORY_MAP[c] || 'OTHER';
+}
+
 const CATEGORY_META = {
-  PASSPORT: { label: 'Passport', icon: FiShield, color: '#3b82f6', bg: '#eff6ff' },
   ACADEMIC: { label: 'Academic', icon: FiAward, color: '#8b5cf6', bg: '#f5f3ff' },
-  LANGUAGE_TEST: { label: 'Language Test', icon: FiAward, color: '#06b6d4', bg: '#ecfeff' },
-  FINANCIAL: { label: 'Financial', icon: FiDollarSign, color: '#10b981', bg: '#ecfdf5' },
+  LANGUAGE_TEST: { label: 'Language Test', icon: FiFileText, color: '#06b6d4', bg: '#ecfeff' },
+  PASSPORT: { label: 'Passport', icon: FiShield, color: '#3b82f6', bg: '#eff6ff' },
   PHOTO: { label: 'Photo & ID', icon: FiImage, color: '#f59e0b', bg: '#fffbeb' },
-  VISA: { label: 'Visa File', icon: FiFileText, color: '#6366f1', bg: '#eef2ff' },
+  VISA: { label: 'Visa & SOP', icon: FiFileText, color: '#6366f1', bg: '#eef2ff' },
+  FINANCIAL: { label: 'Financial', icon: FiDollarSign, color: '#10b981', bg: '#ecfdf5' },
   OTHER: { label: 'Other', icon: FiFolder, color: '#64748b', bg: '#f8fafc' },
 };
 
 function getCategoryConfig(category) {
-  const c = String(category || '').toUpperCase();
-  return CATEGORY_META[c] || CATEGORY_META.OTHER;
+  const norm = normalizeCategory(category);
+  return CATEGORY_META[norm] || CATEGORY_META.OTHER;
+}
+
+function cleanRawFileName(rawName) {
+  return String(rawName || '').replace(/^\d{10,14}-/, '');
+}
+
+function getFileExtension(filename) {
+  const parts = String(filename || '').split('.');
+  return parts.length > 1 ? parts.pop().toUpperCase() : 'DOC';
 }
 
 function formatFileSize(bytes) {
@@ -72,6 +136,10 @@ export default function StudentDocumentsPage() {
   const [categories, setCategories] = useState([]);
   const [rows, setRows] = useState([]);
   const [filterCategory, setFilterCategory] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('grid');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
@@ -152,13 +220,12 @@ export default function StudentDocumentsPage() {
   }, [showUpload, handleFileChosen]);
 
   const loadDocuments = useCallback(() => {
-    const params = filterCategory ? { category: filterCategory } : {};
-    return apiGet(API.PORTAL_STUDENT_DOCUMENTS, params).then((res) => {
+    return apiGet(API.PORTAL_STUDENT_DOCUMENTS).then((res) => {
       const payload = res.data || {};
       setRows(payload.data || []);
       setCategories(payload.categories || []);
     });
-  }, [filterCategory]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -175,6 +242,11 @@ export default function StudentDocumentsPage() {
     };
   }, [loadDocuments]);
 
+  // Reset pagination on filter or search changes
+  useEffect(() => {
+    setPage(1);
+  }, [filterCategory, searchQuery]);
+
   const summary = useMemo(() => ({
     verified: rows.filter((r) => r.status === 'VERIFIED').length,
     pending: rows.filter((r) => ['UNDER_REVIEW', 'UPLOADED', 'PENDING'].includes(r.status)).length,
@@ -185,11 +257,34 @@ export default function StudentDocumentsPage() {
   const categoryCounts = useMemo(() => {
     const map = {};
     rows.forEach((r) => {
-      const cat = r.category || 'OTHER';
+      const cat = normalizeCategory(r.category);
       map[cat] = (map[cat] || 0) + 1;
     });
     return map;
   }, [rows]);
+
+  const displayList = useMemo(() => {
+    let list = rows;
+    if (filterCategory) {
+      list = list.filter((r) => normalizeCategory(r.category) === filterCategory);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((r) => {
+        const name = (r.name || '').toLowerCase();
+        const fn = cleanRawFileName(r.fileName || '').toLowerCase();
+        const cat = normalizeCategory(r.category).toLowerCase();
+        const remarks = (r.studentRemarks || '').toLowerCase();
+        return name.includes(q) || fn.includes(q) || cat.includes(q) || remarks.includes(q);
+      });
+    }
+    return list;
+  }, [rows, filterCategory, searchQuery]);
+
+  const paginatedList = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return displayList.slice(start, start + pageSize);
+  }, [displayList, page, pageSize]);
 
   const startReplace = (doc) => {
     setReplaceId(doc.id);
@@ -257,10 +352,6 @@ export default function StudentDocumentsPage() {
   };
 
   if (loading) return <PortalSkeletonPage />;
-
-  const displayList = filterCategory
-    ? rows.filter((r) => (r.category || 'OTHER') === filterCategory)
-    : rows;
 
   return (
     <div className="crm-stu-page-container">
@@ -335,24 +426,82 @@ export default function StudentDocumentsPage() {
           <div>
             <h2 className="crm-stu-section-title">Official Document Portfolio</h2>
             <p className="crm-stu-section-desc">
-              Scanned credentials, identity verification, and financial proofs for university & visa processing
+              Scanned credentials, identity verification, and financial proofs for university &amp; visa processing
             </p>
           </div>
-          <button
-            type="button"
-            className={`crm-stu-btn ${showUpload ? 'crm-stu-btn--secondary' : 'crm-stu-btn--primary'}`}
-            style={{ fontSize: '0.8125rem', padding: '0.45rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
-            onClick={() => {
-              if (showUpload) {
-                resetUploadState();
-              } else {
-                setShowUpload(true);
-              }
-            }}
-          >
-            {showUpload ? <FiX /> : <FiUpload />}
-            {showUpload ? 'Close Upload' : 'Submit New Document'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {/* View Mode Switcher */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                background: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                borderRadius: 8,
+                padding: '2px',
+                gap: '2px',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                title="Grid View"
+                aria-label="Grid View"
+                style={{
+                  border: 'none',
+                  background: viewMode === 'grid' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'grid' ? '#2563eb' : '#64748b',
+                  padding: '0.35rem 0.55rem',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '0.8125rem',
+                  boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <FiGrid />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                title="Table View"
+                aria-label="Table View"
+                style={{
+                  border: 'none',
+                  background: viewMode === 'table' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'table' ? '#2563eb' : '#64748b',
+                  padding: '0.35rem 0.55rem',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '0.8125rem',
+                  boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <FiList />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className={`crm-stu-btn ${showUpload ? 'crm-stu-btn--secondary' : 'crm-stu-btn--primary'}`}
+              style={{ fontSize: '0.8125rem', padding: '0.45rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+              onClick={() => {
+                if (showUpload) {
+                  resetUploadState();
+                } else {
+                  setShowUpload(true);
+                }
+              }}
+            >
+              {showUpload ? <FiX /> : <FiUpload />}
+              {showUpload ? 'Close Upload' : 'Submit New Document'}
+            </button>
+          </div>
         </div>
 
         {/* ── Upload Form Panel (When Expanded) ── */}
@@ -733,223 +882,206 @@ export default function StudentDocumentsPage() {
 
 
 
-        {/* ── Category Pill Filter Tabs with Dynamic Counts ── */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            overflowX: 'auto',
-            paddingBottom: '0.35rem',
-            marginBottom: '0.85rem',
-            borderBottom: '1px solid #f1f5f9',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setFilterCategory('')}
-            style={{
-              padding: '0.35rem 0.75rem',
-              borderRadius: 20,
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              border: filterCategory === '' ? '1px solid #2563eb' : '1px solid #e2e8f0',
-              background: filterCategory === '' ? '#2563eb' : '#ffffff',
-              color: filterCategory === '' ? '#ffffff' : '#475569',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            All
-            <span
-              style={{
-                fontSize: '0.75rem',
-                padding: '1px 5px',
-                borderRadius: 10,
-                background: filterCategory === '' ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
-                color: filterCategory === '' ? '#ffffff' : '#64748b',
-              }}
+        {/* ── Category Pill Filter Tabs & Real-Time Search Toolbar ── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 mb-3.5 border-b border-slate-100 dark:border-slate-800">
+          {/* Category Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+            <button
+              type="button"
+              onClick={() => setFilterCategory('')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                filterCategory === ''
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
             >
-              {rows.length}
-            </span>
-          </button>
-
-          {Object.entries(CATEGORY_META).map(([key, cfg]) => {
-            const count = categoryCounts[key] || 0;
-            if (count === 0 && key !== 'PASSPORT' && key !== 'ACADEMIC') return null;
-            const isSelected = filterCategory === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setFilterCategory(key)}
-                style={{
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: 20,
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  border: isSelected ? '1px solid #2563eb' : '1px solid #e2e8f0',
-                  background: isSelected ? '#2563eb' : '#ffffff',
-                  color: isSelected ? '#ffffff' : '#475569',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  transition: 'all 0.15s ease',
-                }}
+              All
+              <span
+                className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
+                  filterCategory === ''
+                    ? 'bg-white/25 text-white'
+                    : 'bg-slate-200/90 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                }`}
               >
-                {cfg.label}
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    padding: '1px 5px',
-                    borderRadius: 10,
-                    background: isSelected ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
-                    color: isSelected ? '#ffffff' : '#64748b',
-                  }}
+                {rows.length}
+              </span>
+            </button>
+
+            {Object.entries(CATEGORY_META).map(([key, cfg]) => {
+              const count = categoryCounts[key] || 0;
+              if (count === 0 && key !== 'PASSPORT' && key !== 'ACADEMIC') return null;
+              const isSelected = filterCategory === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setFilterCategory(key)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
                 >
-                  {count}
-                </span>
+                  {cfg.label}
+                  <span
+                    className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
+                      isSelected
+                        ? 'bg-white/25 text-white'
+                        : 'bg-slate-200/90 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search Box */}
+          <div className="relative w-full md:w-64 shrink-0">
+            <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search documents..."
+              className="w-full pl-8 pr-7 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs px-1"
+                aria-label="Clear search"
+              >
+                ×
               </button>
-            );
-          })}
+            )}
+          </div>
         </div>
 
-        {/* ── 2-Column Responsive Document Card Grid ── */}
+        {/* ── Document List Display (Grid View vs Table View) ── */}
         {displayList.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b' }}>
-            <FiFolder style={{ fontSize: '2.5rem', color: '#cbd5e1', marginBottom: '0.5rem' }} />
-            <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1e293b', margin: '0 0 0.25rem' }}>
-              No documents found in this category
+          <div className="text-center py-12 px-4 text-slate-500">
+            <FiFolder className="text-4xl text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              No documents found
             </h4>
-            <p style={{ fontSize: '0.75rem', margin: 0 }}>
-              Switch filter to "All" or upload a new file for counsellor review.
+            <p className="text-xs text-slate-400 mt-1">
+              Switch category filter or upload a new file for counsellor review.
             </p>
+            {(searchQuery || filterCategory) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterCategory('');
+                  setSearchQuery('');
+                }}
+                className="mt-3 text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+              >
+                Clear all filters
+              </button>
+            )}
           </div>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-              gap: '0.75rem',
-            }}
-          >
-            {displayList.map((doc) => {
+        ) : viewMode === 'grid' ? (
+          /* ── Balanced, Compact 3-Column Grid ── */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {paginatedList.map((doc) => {
               const cfg = getCategoryConfig(doc.category);
               const Icon = cfg.icon;
               const isVerified = doc.status === 'VERIFIED';
               const isRejected = doc.status === 'REJECTED';
+              const cleanName = cleanRawFileName(doc.fileName || doc.name);
+              const ext = getFileExtension(doc.fileName || doc.name);
 
               return (
                 <div
                   key={doc.id}
-                  style={{
-                    padding: '0.95rem 1.15rem',
-                    borderRadius: 12,
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: '0.65rem',
-                    boxShadow: '0 1px 3px rgba(15,23,42,0.03)',
-                    transition: 'all 0.15s ease',
-                  }}
+                  className="p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:shadow-md hover:border-blue-400/50 transition-all flex flex-col justify-between gap-2.5 group"
                 >
-                  {/* Card Header: Icon + Title + Status */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.65rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                  {/* Card Header: Icon + Title + Category + Status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <div
-                        style={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: 10,
-                          background: cfg.bg,
-                          color: cfg.color,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '1.15rem',
-                          flexShrink: 0,
-                        }}
+                        className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0 transition-transform group-hover:scale-105"
+                        style={{ background: cfg.bg, color: cfg.color }}
                       >
                         <Icon />
                       </div>
-                      <div style={{ minWidth: 0 }}>
+                      <div className="min-w-0 flex-1">
                         <strong
-                          style={{
-                            fontSize: '0.8125rem',
-                            color: '#0f172a',
-                            fontWeight: 700,
-                            display: 'block',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
+                          className="text-xs font-bold text-slate-900 dark:text-slate-100 block truncate leading-snug"
                           title={doc.name}
                         >
                           {doc.name}
                         </strong>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                          {cfg.label} · {doc.fileName || 'Scanned Document'}
-                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                            {cfg.label}
+                          </span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
+                            {ext}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
                     <span
-                      className={`crm-stu-chip crm-stu-chip--${isVerified ? 'success' : isRejected ? 'danger' : 'amber'}`}
-                      style={{ flexShrink: 0 }}
+                      className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 border ${
+                        isVerified
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                          : isRejected
+                          ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                          : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                      }`}
                     >
-                      {isVerified ? '✓ Verified' : isRejected ? '✕ Action Required' : '⏳ Under Review'}
+                      {isVerified ? '✓ Verified' : isRejected ? '✕ Action Req.' : '⏳ Under Review'}
                     </span>
                   </div>
 
-                  {/* Card Meta & Bottom Toolbar */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      paddingTop: '0.55rem',
-                      borderTop: '1px solid #f1f5f9',
-                      fontSize: '0.75rem',
-                      color: '#64748b',
-                    }}
-                  >
-                    <span>
-                      Updated <strong>{formatDate(doc.updatedAt || doc.createdAt, true)}</strong>
+                  {/* Clean Filename Badge */}
+                  <div className="text-[11px] text-slate-500 font-mono truncate bg-slate-50 dark:bg-slate-800/40 px-2 py-1 rounded border border-slate-100 dark:border-slate-800" title={cleanName}>
+                    {cleanName}
+                  </div>
+
+                  {/* Card Bottom: Date + Action Buttons */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                    <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1 shrink-0">
+                      <FiClock className="w-3 h-3 text-slate-400 shrink-0" />
+                      {formatDate(doc.updatedAt || doc.createdAt, true)}
                     </span>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                      {doc.filePath && (
-                        <a
-                          href={doc.filePath}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="crm-stu-btn crm-stu-btn--secondary"
-                          style={{
-                            fontSize: '0.75rem',
-                            padding: '0.3rem 0.65rem',
-                            textDecoration: 'none',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.3rem',
-                          }}
-                        >
-                          <FiExternalLink /> View File
-                        </a>
+                    <div className="flex items-center gap-1.5">
+                      {(doc.filePath || doc.fileUrl) && (
+                        <>
+                          <a
+                            href={getDocumentUrl(doc.filePath || doc.fileUrl)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2 py-1 rounded text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
+                            title="View File"
+                          >
+                            <FiExternalLink className="w-3 h-3" />
+                            View
+                          </a>
+                          <a
+                            href={getDocumentUrl(doc.filePath || doc.fileUrl)}
+                            download={cleanName}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2 py-1 rounded text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
+                            title="Download document"
+                          >
+                            <FiDownload className="w-3 h-3" />
+                            Download
+                          </a>
+                        </>
                       )}
 
                       {isRejected && (
                         <button
                           type="button"
-                          className="crm-stu-btn crm-stu-btn--primary"
-                          style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem' }}
+                          className="px-2 py-1 rounded text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                           onClick={() => startReplace(doc)}
                         >
                           Re-submit
@@ -961,7 +1093,121 @@ export default function StudentDocumentsPage() {
               );
             })}
           </div>
+        ) : (
+          /* ── Table View Option ── */
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+                  <th className="py-2.5 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Document</th>
+                  <th className="py-2.5 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Category</th>
+                  <th className="py-2.5 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">File Name</th>
+                  <th className="py-2.5 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="py-2.5 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Updated</th>
+                  <th className="py-2.5 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {paginatedList.map((doc) => {
+                  const cfg = getCategoryConfig(doc.category);
+                  const Icon = cfg.icon;
+                  const isVerified = doc.status === 'VERIFIED';
+                  const isRejected = doc.status === 'REJECTED';
+                  const cleanName = cleanRawFileName(doc.fileName || doc.name);
+                  const ext = getFileExtension(doc.fileName || doc.name);
+
+                  return (
+                    <tr key={doc.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0"
+                            style={{ background: cfg.bg, color: cfg.color }}
+                          >
+                            <Icon />
+                          </div>
+                          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-xs">
+                            {doc.name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                          {cfg.label}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-500">
+                          <span className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase">
+                            {ext}
+                          </span>
+                          <span className="truncate max-w-[160px]">{cleanName}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap border ${
+                            isVerified
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : isRejected
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}
+                        >
+                          {isVerified ? '✓ Verified' : isRejected ? '✕ Action Req.' : '⏳ Under Review'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-xs text-slate-400 font-medium whitespace-nowrap">
+                        {formatDate(doc.updatedAt || doc.createdAt, true)}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="inline-flex items-center gap-1.5">
+                          {(doc.filePath || doc.fileUrl) && (
+                            <>
+                              <a
+                                href={getDocumentUrl(doc.filePath || doc.fileUrl)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-1.5 rounded text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                title="View File"
+                              >
+                                <FiExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                              <a
+                                href={getDocumentUrl(doc.filePath || doc.fileUrl)}
+                                download={cleanName}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-1.5 rounded text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                title="Download"
+                              >
+                                <FiDownload className="w-3.5 h-3.5" />
+                              </a>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
+
+        {/* Dynamic Responsive Pagination */}
+        <Pagination
+          page={page}
+          limit={pageSize}
+          total={displayList.length}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+          pageSizeOptions={[9, 18, 36]}
+          className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800"
+        />
       </div>
     </div>
   );

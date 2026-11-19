@@ -299,35 +299,27 @@ export default function TeacherAttendanceHubPage() {
       {/* ── Main Two-Column Faculty Layout ── */}
       <div className="crm-tattendance-main-grid">
         {/* Left Column: Live Active Session Hero Card + Student Roster */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {/* Live Today's Session Highlight */}
           {primarySession ? (
             <div className="crm-tsession-hero-card">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    {primarySession.pending ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 inline-flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                        Attendance Pending
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Attendance Marked
-                      </span>
-                    )}
-                    <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
-                      Today's Lecture Session
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
+                      primarySession.pending ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
+                    }`}>
+                      <span className={`w-2 h-2 rounded-full ${primarySession.pending ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                      {primarySession.pending ? 'Attendance Pending' : 'Attendance Marked'}
                     </span>
-                  </div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate flex items-center gap-2">
-                    {primarySession.batchName}
                     {primarySession.courseName && (
-                      <span className="text-xs font-semibold text-brand bg-brand/10 px-2.5 py-0.5 rounded-md border border-brand/20">
-                        {primarySession.courseName}
+                      <span className="text-[11px] font-medium text-text-muted">
+                        • {primarySession.courseName}
                       </span>
                     )}
+                  </div>
+                  <h2 className="text-base font-bold text-text truncate">
+                    {primarySession.batchName}
                   </h2>
                 </div>
 
@@ -337,76 +329,51 @@ export default function TeacherAttendanceHubPage() {
                     onClick={handleManualRefresh}
                     disabled={isRefreshing}
                     title="Refresh session data"
-                    className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg border border-border hover:bg-bg-page text-text-muted hover:text-text transition-colors cursor-pointer"
                   >
-                    <FiRefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-brand' : ''}`} />
+                    <FiRefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-brand' : ''}`} />
                   </button>
                   <Button
                     size="sm"
                     variant="primary"
-                    className="flex items-center gap-1.5 font-bold shadow-xs shrink-0 !py-2 !px-3.5"
+                    className="flex items-center gap-1.5 font-medium shrink-0 text-xs"
                     onClick={() => openQuickAttendance(primarySession)}
                   >
-                    Mark Attendance Now
-                    <FiArrowRight className="w-4 h-4" />
+                    <span>Mark Attendance</span>
+                    <FiArrowRight className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
 
-              {/* Clean Meta Details Pill Grid */}
+              {/* Clean Meta Details Grid */}
               <div className="crm-tsession-hero-card__meta-grid">
                 <div className="crm-tsession-meta-pill">
-                  <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
-                    <FiClock className="w-3.5 h-3.5 shrink-0" />
-                    <span className="crm-tsession-meta-pill__label">Class Timing</span>
-                  </div>
-                  <span className="crm-tsession-meta-pill__value">
+                  <span className="crm-tsession-meta-pill__label">Class Timing</span>
+                  <span className="crm-tsession-meta-pill__value font-medium text-text">
                     {primarySession.time}
                   </span>
                 </div>
 
                 <div className="crm-tsession-meta-pill">
-                  <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
-                    <FiMapPin className="w-3.5 h-3.5 shrink-0" />
-                    <span className="crm-tsession-meta-pill__label">Classroom</span>
-                  </div>
-                  <span className="crm-tsession-meta-pill__value" title={primarySession.room}>
+                  <span className="crm-tsession-meta-pill__label">Classroom</span>
+                  <span className="crm-tsession-meta-pill__value font-medium text-text truncate" title={primarySession.room}>
                     {primarySession.room}
                   </span>
                 </div>
 
                 <div className="crm-tsession-meta-pill">
-                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                    <FiUsers className="w-3.5 h-3.5 shrink-0" />
-                    <span className="crm-tsession-meta-pill__label">Enrolled</span>
-                  </div>
-                  <span className="crm-tsession-meta-pill__value">
+                  <span className="crm-tsession-meta-pill__label">Enrolled</span>
+                  <span className="crm-tsession-meta-pill__value font-medium text-text">
                     {primarySession.studentCount} Students
                   </span>
                 </div>
 
                 <div className="crm-tsession-meta-pill">
-                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                    <FiCheckCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span className="crm-tsession-meta-pill__label">Marked Status</span>
-                  </div>
-                  <span className="crm-tsession-meta-pill__value">
+                  <span className="crm-tsession-meta-pill__label">Marked</span>
+                  <span className="crm-tsession-meta-pill__value font-medium text-text">
                     {primarySession.markedCount} / {primarySession.studentCount}
                   </span>
                 </div>
-              </div>
-
-              {/* Clean Footer Link */}
-              <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400">
-                <span>Real-time push notifications dispatch automatically to enrolled students</span>
-                <button
-                  type="button"
-                  className="font-bold text-brand hover:underline cursor-pointer flex items-center gap-1"
-                  onClick={() => navigate(ROUTES.SESSION_ATTENDANCE(primarySession.id))}
-                >
-                  Full Attendance Ledger
-                  <FiChevronRight className="w-3.5 h-3.5" />
-                </button>
               </div>
             </div>
           ) : (
@@ -423,9 +390,14 @@ export default function TeacherAttendanceHubPage() {
                 <FiUsers className="text-brand" />
                 Assigned Students Roster ({students.length})
               </h3>
-              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
-                Active Learners
-              </span>
+              <button
+                type="button"
+                className="text-xs font-medium text-brand hover:underline cursor-pointer flex items-center gap-1"
+                onClick={() => navigate(ROUTES.TEACHER_STUDENTS)}
+              >
+                <span>View All Students</span>
+                <FiChevronRight className="w-3 h-3" />
+              </button>
             </div>
 
             <div className="crm-tatt-panel__body">
@@ -439,51 +411,36 @@ export default function TeacherAttendanceHubPage() {
                   {students.map((st) => (
                     <div key={st.id} className="crm-troster-card">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="relative shrink-0">
-                          <Avatar name={st.name} size="sm" className="!w-8 !h-8 ring-1 ring-slate-200 dark:ring-slate-700" />
-                          <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-slate-900" />
-                        </div>
+                        <Avatar name={st.name} size="sm" className="!w-7 !h-7" />
                         <div className="min-w-0">
                           <span
-                            className="text-xs font-bold text-slate-900 dark:text-slate-100 block truncate leading-tight hover:text-brand cursor-pointer transition-colors"
+                            className="text-xs font-semibold text-text block truncate leading-tight hover:text-brand cursor-pointer transition-colors"
                             onClick={() => navigate(ROUTES.TEACHER_STUDENT(st.id))}
                             title={`View ${st.name}'s Academic Profile`}
                           >
                             {st.name}
                           </span>
-                          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 block truncate leading-none mt-1">
+                          <span className="font-mono text-[10px] text-text-muted block truncate leading-none mt-0.5">
                             {st.code}
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[10.5px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
-                          ✓ {st.attendanceRate}%
+                        <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
+                          {st.attendanceRate}%
                         </span>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-
-              <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                <span>Click student name to view academic profile &amp; communications</span>
-                <button
-                  type="button"
-                  className="font-bold text-brand hover:underline cursor-pointer flex items-center gap-1"
-                  onClick={() => navigate(ROUTES.TEACHER_STUDENTS)}
-                >
-                  View All Students
-                  <FiChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
             </div>
           </div>
         </div>
 
         {/* Right Column: Upcoming 7-Day Lecture Schedule & Batch Health */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {/* Upcoming 7-Day Lecture Schedule */}
           <div className="crm-tatt-panel">
             <div className="crm-tatt-panel__head">
@@ -491,7 +448,7 @@ export default function TeacherAttendanceHubPage() {
                 <FiCalendar className="text-brand" />
                 Upcoming Sessions (7 Days)
               </h3>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-text-muted">
                 {upcoming.length} Scheduled
               </span>
             </div>
@@ -517,10 +474,10 @@ export default function TeacherAttendanceHubPage() {
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block truncate">
+                          <span className="text-xs font-semibold text-text block truncate">
                             {ses.batchName}
                           </span>
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400 block truncate mt-0.5">
+                          <span className="text-[11px] text-text-muted block truncate mt-0.5">
                             {ses.room} · {ses.time}
                           </span>
                         </div>
@@ -528,7 +485,7 @@ export default function TeacherAttendanceHubPage() {
                         <Button
                           size="xs"
                           variant="outline"
-                          className="py-1 px-3 font-semibold text-xs shrink-0 rounded-lg hover:border-brand hover:text-brand transition-colors"
+                          className="py-1 px-2.5 font-medium text-xs shrink-0 rounded-lg hover:border-brand hover:text-brand transition-colors"
                           onClick={() => openQuickAttendance(ses)}
                         >
                           Open
@@ -541,76 +498,42 @@ export default function TeacherAttendanceHubPage() {
             </div>
           </div>
 
-          {/* Quick Attendance Navigation & Batch Health */}
+          {/* Quick Attendance Summary */}
           <div className="crm-tatt-panel">
             <div className="crm-tatt-panel__head">
               <h3 className="crm-tatt-panel__title">
-                <FiActivity className="text-emerald-600 dark:text-emerald-400" />
-                Batch Attendance Health &amp; Tools
+                <FiActivity className="text-brand" />
+                Attendance Summary
               </h3>
-              <span className="text-[10.5px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
-                {overview.percent >= 75 ? 'Punctual' : 'Attention'}
-              </span>
             </div>
 
             <div className="crm-tatt-panel__body">
-              {/* Dynamic Health stats row from backend */}
-              <div className="grid grid-cols-3 gap-2.5">
-                <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40 text-center flex flex-col justify-center">
-                  <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 tracking-wider block">
+              {/* Health stats row from backend */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-2 rounded-lg bg-bg-page/70 border border-border/70 text-center flex flex-col justify-center">
+                  <span className="text-[10px] uppercase font-semibold text-text-muted tracking-wider block">
                     Present Rate
                   </span>
-                  <span className="text-lg font-black text-emerald-700 dark:text-emerald-400 block mt-0.5">
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
                     {overview.percent ?? 100}%
                   </span>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 text-center flex flex-col justify-center">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider block">
+                <div className="p-2 rounded-lg bg-bg-page/70 border border-border/70 text-center flex flex-col justify-center">
+                  <span className="text-[10px] uppercase font-semibold text-text-muted tracking-wider block">
                     Absentees
                   </span>
-                  <span className="text-lg font-black text-slate-800 dark:text-slate-100 block mt-0.5">
+                  <span className="text-sm font-bold text-text block mt-0.5">
                     {overview.absent ?? 0}
                   </span>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 text-center flex flex-col justify-center">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider block">
-                    Late Arrivals
+                <div className="p-2 rounded-lg bg-bg-page/70 border border-border/70 text-center flex flex-col justify-center">
+                  <span className="text-[10px] uppercase font-semibold text-text-muted tracking-wider block">
+                    Late
                   </span>
-                  <span className="text-lg font-black text-slate-800 dark:text-slate-100 block mt-0.5">
+                  <span className="text-sm font-bold text-text block mt-0.5">
                     {overview.late ?? 0}
                   </span>
                 </div>
-              </div>
-
-              {/* Action shortcuts */}
-              <div className="flex flex-col gap-1.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 mt-1">
-                <button
-                  type="button"
-                  onClick={() => navigate(ROUTES.TEACHER_CLASSES)}
-                  className="flex items-center justify-between p-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-brand transition-colors cursor-pointer group"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                      <FiLayers className="w-3.5 h-3.5" />
-                    </span>
-                    Manage All Assigned Classes &amp; Batches
-                  </span>
-                  <FiChevronRight className="text-slate-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate(ROUTES.TEACHER_PERFORMANCE)}
-                  className="flex items-center justify-between p-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-brand transition-colors cursor-pointer group"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                      <FiTrendingUp className="w-3.5 h-3.5" />
-                    </span>
-                    View Student Academic Performance Analytics
-                  </span>
-                  <FiChevronRight className="text-slate-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
-                </button>
               </div>
             </div>
           </div>

@@ -253,13 +253,14 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
       ),
     },
     createActionsColumn({
-      width: canManage ? 148 : 72,
+      width: canManage ? 156 : 72,
+      pinned: 'right',
       cellRenderer: (p) => {
         const row = p.data;
         const busy = actionId === row.id;
         return (
           <div className="crm-grid-actions" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="crm-grid-action-btn" title="View" onClick={() => openDrawer('view', row)}>
+            <button type="button" className="crm-grid-action-btn crm-grid-action-btn--view" title="View" onClick={() => openDrawer('view', row)}>
               <FiEye className="w-3.5 h-3.5" />
             </button>
             {canManage && (
@@ -267,8 +268,8 @@ export default function MasterPartnerPage({ defaultType = null, slug = 'partners
                 <button type="button" className="crm-grid-action-btn crm-grid-action-btn--edit" title="Edit" disabled={busy} onClick={() => openDrawer('edit', row)}>
                   <FiEdit2 className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" className="crm-grid-action-btn" title="Toggle status" disabled={busy} onClick={() => handleStatus(row)}>
-                  {row.isActive ? <FiToggleRight className="w-3.5 h-3.5 text-emerald-600" /> : <FiToggleLeft className="w-3.5 h-3.5" />}
+                <button type="button" className="crm-grid-action-btn crm-grid-action-btn--toggle" title="Toggle status" disabled={busy} onClick={() => handleStatus(row)}>
+                  {row.isActive ? <FiToggleRight className="w-3.5 h-3.5 text-emerald-600" /> : <FiToggleLeft className="w-3.5 h-3.5 text-slate-400" />}
                 </button>
                 <button type="button" className="crm-grid-action-btn crm-grid-action-btn--delete" title="Delete" disabled={busy} onClick={() => handleDelete(row)}>
                   <FiTrash2 className="w-3.5 h-3.5" />

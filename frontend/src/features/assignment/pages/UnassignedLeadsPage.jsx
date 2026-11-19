@@ -14,6 +14,7 @@ import {
   useBulkAutoAssignEnquiriesMutation,
 } from '../redux/assignmentApiSlice';
 import AssignEnquiryModal from '../components/AssignEnquiryModal';
+import Pagination from '../../../components/ui/Pagination';
 import '../styles/assignment.theme.css';
 
 const PRIORITY_OPTIONS = [
@@ -93,8 +94,8 @@ export default function UnassignedLeadsPage() {
       icon={FiInbox}
       actions={(
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()} loading={isFetching}>
-            <FiRefreshCw size={14} /> Refresh
+          <Button variant="outline" size="sm" icon={FiRefreshCw} onClick={() => refetch()} loading={isFetching}>
+            Refresh
           </Button>
           <PermissionGate permission={PERMISSIONS.ENQUIRIES_ASSIGN}>
             <Button size="sm" onClick={handleBulkAutoAssign} loading={bulkLoading} disabled={!selectedIds.length}>
@@ -203,13 +204,13 @@ export default function UnassignedLeadsPage() {
           </table>
         </div>
 
-        {total > 25 && (
-          <div className="crm-assignment-pagination">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-            <span>Page {page}</span>
-            <Button variant="outline" size="sm" disabled={page * 25 >= total} onClick={() => setPage((p) => p + 1)}>Next</Button>
-          </div>
-        )}
+        <Pagination
+          page={page}
+          limit={25}
+          total={total}
+          onPageChange={setPage}
+          showPageSize={false}
+        />
       </div>
 
       <AssignEnquiryModal

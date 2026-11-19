@@ -15,6 +15,7 @@ export const ROLE_DEFAULT_ROUTES = {
   visa_officer: '/admin/visas',
   finance_manager: '/admin/fees',
   finance_executive: '/admin/fees',
+  accountant: '/admin/fees',
   marketing_manager: '/admin/dashboard',
   marketing_executive: '/admin/enquiries',
   telecaller: '/admin/enquiries',
@@ -22,6 +23,8 @@ export const ROLE_DEFAULT_ROUTES = {
   compliance_officer: '/admin/reports',
   partner_manager: '/admin/master/partners',
   partner: '/agent/dashboard',
+  agent: '/agent/dashboard',
+  partner_agent: '/agent/dashboard',
   student_portal: '/student/dashboard',
   viewer: '/admin/dashboard',
   custom_role: '/admin/dashboard',
@@ -55,6 +58,10 @@ export const ROLE_WORKSPACE_META = {
   finance_executive: {
     title: 'Collections',
     subtitle: 'Branch invoices and payments',
+  },
+  accountant: {
+    title: 'Accounts Desk',
+    subtitle: 'Fee collection, invoices, receipts, and financial ledgers',
   },
   student_portal: {
     title: 'My dashboard',

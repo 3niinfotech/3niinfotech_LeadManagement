@@ -43,6 +43,8 @@ export const attendanceEntrySchema = z.object({
 export const bulkAttendanceSchema = z.object({
   entries: z.array(attendanceEntrySchema).min(1).max(200),
   markAllPresent: z.boolean().optional(),
+  force: z.boolean().optional(),
+  overrideWindow: z.boolean().optional(),
 });
 
 export const correctAttendanceSchema = z.object({

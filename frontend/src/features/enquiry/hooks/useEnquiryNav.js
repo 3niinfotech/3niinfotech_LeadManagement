@@ -12,7 +12,7 @@ export function useEnquiryNav() {
     openStudent: (id, tab = 'overview') => {
       if (!id) return;
       const path = tab === 'overview' ? ROUTES.STUDENT_DETAIL(id) : ROUTES.STUDENT_TAB(id, tab);
-      openRouteInNewTab(path);
+      navigate(path);
     },
     openCreate: () => navigate(ROUTES.ENQUIRY_CREATE),
     backToList: () => navigate(ROUTES.ENQUIRIES),

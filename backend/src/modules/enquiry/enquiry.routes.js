@@ -60,8 +60,9 @@ const update = authorize(PERMISSIONS.ENQUIRIES_UPDATE);
 const remove = authorize(PERMISSIONS.ENQUIRIES_DELETE);
 const exportPerm = authorize(PERMISSIONS.ENQUIRIES_EXPORT);
 
-// Public contact / enquiry form
+// Public contact & consultation booking forms
 router.post('/public/contact', enquiryController.submitPublicEnquiry);
+router.post('/public/consultation', enquiryController.bookPublicConsultation);
 
 router.use(authenticate);
 

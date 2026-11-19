@@ -3,6 +3,7 @@ import { RECEPTION_ASSIGN_ROLE_SLUGS } from './assignment.config.js';
 import { assignmentRepository } from './assignment.repository.js';
 import { availabilityEngine, mapAvailabilityLabelFromState } from './availability.engine.js';
 import { scoreCounsellorForLead, pickBestCandidate, mergeAssignmentConfig } from './assignment.scoring.js';
+import { notifyUser } from '../notification/notification.dispatcher.js';
 
 async function buildSkillsProfile(counsellor, companyId) {
   return availabilityEngine.getCounsellorSkillsProfile(counsellor.id, companyId);
@@ -242,6 +243,57 @@ export const assignmentEngine = {
     await assignmentRepository.upsertPresence(selected.id, enquiry.branchId, {
       lastAssignedAt: new Date(),
     });
+
+    const counsellorName = `${selected.firstName || ''} ${selected.lastName || ''}`.trim() || 'Counsellor';
+    const leadName = `${enquiry.firstName || ''} ${enquiry.lastName || ''}`.trim() || 'Lead';
+    const code = enquiry.enquiryCode ? ` (${enquiry.enquiryCode})` : '';
+    const reasonsSummary = Array.isArray(selected.reasons) && selected.reasons.length
+      ? ` via ${selected.reasons.join(', ')}`
+      : '';
+
+    // Record in enquiry audit log for activity timeline
+    try {
+      await prisma.enquiryAuditLog.create({
+        data: {
+          enquiryId: enquiry.id,
+          userId: actorId,
+          action: 'ASSIGNED',
+          field: 'assignedToId',
+          oldValue: enquiry.assignedToId || null,
+          newValue: selected.id,
+          description: `Counsellor Assigned – ${counsellorName} (Auto Assigned${reasonsSummary})`,
+        },
+      });
+    } catch {
+      // non-blocking
+    }
+
+    // Immediately notify assigned counsellor
+    try {
+      const isWalkIn = ['WALK_IN', 'WALKIN', 'RECEPTION'].includes(
+        String(enquiry.source || '').toUpperCase().replace(/[-\s]/g, '_')
+      );
+      await notifyUser(selected.id, {
+        type: 'INFO',
+        category: 'ENQUIRY',
+        title: isWalkIn
+          ? `Walk-in visitor assigned to you${code}`
+          : `New lead assigned to you${code}`,
+        message: isWalkIn
+          ? `${leadName} is waiting in reception for consultation (${enquiry.interestedCourse || 'General'}).`
+          : `${leadName} (${enquiry.source || 'Online Form'}) has been assigned to your desk for follow-up.`,
+        link: `/admin/enquiries/${enquiry.id}`,
+        metadata: {
+          event: isWalkIn ? 'WALKIN_COUNSELLOR_ASSIGNED' : 'COUNSELLOR_ASSIGNED',
+          enquiryId: enquiry.id,
+          enquiryCode: enquiry.enquiryCode,
+          source: enquiry.source,
+          assignmentType: 'AUTO',
+        },
+      });
+    } catch {
+      // non-blocking
+    }
 
     return { enquiry: updated, assigned: true, match: selected, candidates: rows };
   },

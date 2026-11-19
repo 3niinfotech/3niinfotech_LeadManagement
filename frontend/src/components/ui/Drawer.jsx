@@ -69,23 +69,26 @@ export default function Drawer({
   const panel = (
     <AnimatePresence>
       {open && (
-        <div
+        <motion.div
+          key="crm-drawer-root"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
           className="fixed inset-0"
           style={{ zIndex }}
           role="dialog"
           aria-modal="true"
           aria-label={title}
         >
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: DRAWER_MS, ease: DRAWER_EASE }}
-            className="absolute inset-0 bg-black/30"
+          <div
+            className="absolute inset-0 bg-black/30 cursor-default"
             onClick={onClose}
+            aria-hidden="true"
           />
 
           <motion.div
+            key="crm-drawer-panel"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -102,6 +105,7 @@ export default function Drawer({
                 ? { top: NAVBAR_HEIGHT, height: `calc(100dvh - ${NAVBAR_HEIGHT})` }
                 : { top: 0, height: '100dvh' }),
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <div className={`crm-drawer-header shrink-0 ${dense ? 'crm-drawer-header--dense' : ''}`}>
               <div className="min-w-0">
@@ -124,7 +128,7 @@ export default function Drawer({
               </div>
             ) : null}
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

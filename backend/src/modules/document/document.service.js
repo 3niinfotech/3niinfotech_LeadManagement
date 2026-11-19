@@ -4,7 +4,7 @@ import { parseSort } from '../../utils/response.util.js';
 import { documentRepository, DOCUMENT_SORT_FIELDS } from './document.repository.js';
 import prisma from '../../config/database.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
-import { notifyStudentLinkedUser } from '../notification/notification.dispatcher.js';
+import { notifyStudentLinkedUser, notifyDocumentEvent } from '../notification/notification.dispatcher.js';
 
 export const createDocumentSchema = z.object({
   studentId: z.string().optional().nullable(),
@@ -18,7 +18,12 @@ export const createDocumentSchema = z.object({
   category: z.string().optional().nullable(),
 });
 
-export const updateDocumentSchema = createDocumentSchema.partial();
+export const updateDocumentSchema = createDocumentSchema.partial().extend({
+  status: z.enum(['UPLOADED', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED', 'REQUIRED']).optional(),
+  rejectionReason: z.string().optional().nullable(),
+  remarks: z.string().optional().nullable(),
+  metadata: z.record(z.any()).optional().nullable(),
+});
 
 export const documentService = {
   getAll: async (query) => {
@@ -52,6 +57,26 @@ export const documentService = {
         }
       } catch {}
     }
+
+    if (record.studentId) {
+      try {
+        const student = await prisma.student.findUnique({
+          where: { id: record.studentId },
+          select: { id: true, firstName: true, lastName: true, assignedToId: true, branchId: true, branch: { select: { companyId: true } } },
+        });
+        if (student) {
+          await notifyDocumentEvent({
+            document: record,
+            student,
+            eventType: 'UPLOADED',
+            companyId: student.branch?.companyId,
+          });
+        }
+      } catch (e) {
+        console.warn('[document.create] notifyDocumentEvent warning:', e.message);
+      }
+    }
+
     return record;
   },
 
@@ -59,8 +84,22 @@ export const documentService = {
     const existing = await documentRepository.findById(id);
     if (!existing) throw new AppError('Document not found', 404);
 
-    const record = await documentRepository.update(id, data);
-    await prisma.activity.create({ data: { userId, action: 'UPDATE', entityType: 'Document', entityId: id, description: 'Document updated' } });
+    const existingMeta = existing.metadata && typeof existing.metadata === 'object' ? { ...existing.metadata } : {};
+    const metadataUpdate = {
+      ...existingMeta,
+      ...(data.metadata || {}),
+      ...(data.status ? { status: data.status } : {}),
+      ...(data.rejectionReason !== undefined ? { rejectionReason: data.rejectionReason } : {}),
+      ...(data.status === 'VERIFIED' ? { verifiedAt: new Date().toISOString(), verifiedBy: userId } : {}),
+      ...(data.status === 'REJECTED' ? { rejectedAt: new Date().toISOString(), rejectedBy: userId } : {}),
+    };
+    const updateData = { ...data, metadata: metadataUpdate };
+    delete updateData.status;
+    delete updateData.rejectionReason;
+    delete updateData.remarks;
+
+    const record = await documentRepository.update(id, updateData);
+    await prisma.activity.create({ data: { userId, action: 'UPDATE', entityType: 'Document', entityId: id, description: `Document ${record.name} status updated` } });
     await auditLog({ userId, action: 'UPDATE', entityType: 'Document', entityId: id, oldData: existing, newData: record, req });
 
     if (String(record.category || '').toUpperCase() === 'PHOTO' && record.filePath && record.studentId) {
@@ -84,32 +123,26 @@ export const documentService = {
     const newMeta = record.metadata && typeof record.metadata === 'object' ? record.metadata : {};
     const oldStatus = oldMeta.status;
     const newStatus = newMeta.status;
+
     if (existing.studentId && newStatus && oldStatus !== newStatus) {
-      const statusMessages = {
-        VERIFIED: {
-          type: 'SUCCESS',
-          title: 'Document verified',
-          message: `${record.name} has been approved.`,
-        },
-        REJECTED: {
-          type: 'WARNING',
-          title: 'Document needs revision',
-          message: `${record.name}: ${newMeta.rejectionReason || 'Please re-upload from Documents.'}`,
-        },
-        UNDER_REVIEW: {
-          type: 'INFO',
-          title: 'Document under review',
-          message: `${record.name} is being reviewed by your counsellor.`,
-        },
-      };
-      const payload = statusMessages[newStatus];
-      if (payload) {
-        await notifyStudentLinkedUser({
-          studentId: existing.studentId,
-          ...payload,
-          link: '/student/documents',
-          metadata: { event: 'DOCUMENT_STATUS', documentId: id, status: newStatus },
+      try {
+        const student = await prisma.student.findUnique({
+          where: { id: existing.studentId },
+          select: { id: true, firstName: true, lastName: true, assignedToId: true, branchId: true, branch: { select: { companyId: true } } },
         });
+        if (student) {
+          await notifyDocumentEvent({
+            document: record,
+            student,
+            eventType: newStatus === 'VERIFIED' ? 'APPROVED' : newStatus === 'REJECTED' ? 'REJECTED' : 'UPLOADED',
+            status: newStatus,
+            rejectionReason: newMeta.rejectionReason,
+            reviewerUser: req?.user,
+            companyId: student.branch?.companyId,
+          });
+        }
+      } catch (e) {
+        console.warn('[document.update] notifyDocumentEvent warning:', e.message);
       }
     }
 

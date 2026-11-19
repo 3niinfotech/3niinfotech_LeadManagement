@@ -241,25 +241,33 @@
    -------------------------------------------------------------------------- */
 .crm-ann-page__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-  gap: 1.125rem;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+@media (max-width: 640px) {
+  .crm-ann-page__grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 }
 
 .crm-ann-page__card {
   border: 1px solid var(--border);
-  border-radius: 1.125rem;
+  border-radius: 0.875rem;
   overflow: hidden;
   background: var(--bg-card);
   display: flex;
   flex-direction: column;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .crm-ann-page__card:hover {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--info) 35%, var(--border));
-  box-shadow: 0 12px 32px -4px color-mix(in srgb, var(--info) 12%, rgba(0, 0, 0, 0.08));
+  /* No scale or translateY — clean, stable hover */
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.08);
 }
 
 .crm-ann-page__card--draft {
@@ -270,20 +278,18 @@
 
 .crm-ann-page__card-media {
   position: relative;
-  aspect-ratio: 16 / 8;
-  background: color-mix(in srgb, var(--info) 7%, var(--bg-page));
+  aspect-ratio: 16 / 9;
+  min-height: 180px;
+  background: color-mix(in srgb, var(--info) 6%, var(--bg-page));
   overflow: hidden;
+  border-bottom: 1px solid var(--border);
 }
 
 .crm-ann-page__card-media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.crm-ann-page__card:hover .crm-ann-page__card-media img {
-  transform: scale(1.03);
+  display: block;
 }
 
 .crm-ann-page__card-media-fallback {
@@ -292,26 +298,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--info);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--info) 10%, var(--bg-page)) 0%, color-mix(in srgb, var(--brand) 6%, var(--bg-page)) 100%);
+  color: var(--text-muted);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--info) 8%, var(--bg-page)) 0%, color-mix(in srgb, var(--brand) 5%, var(--bg-page)) 100%);
 }
 
 .crm-ann-page__status {
   position: absolute;
-  top: 0.625rem;
-  right: 0.625rem;
+  top: 0.75rem;
+  right: 0.75rem;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.2rem 0.6rem;
+  padding: 0.25rem 0.65rem;
   border-radius: 999px;
   font-size: 0.6875rem;
-  font-weight: 750;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  background: color-mix(in srgb, var(--bg-card) 92%, transparent);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
+  letter-spacing: 0.03em;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-secondary);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   backdrop-filter: blur(8px);
 }
 
@@ -323,35 +330,36 @@
 }
 
 .crm-ann-page__status--live {
-  background: color-mix(in srgb, var(--success-soft) 94%, transparent);
-  color: var(--success);
-  border-color: color-mix(in srgb, var(--success) 30%, transparent);
+  background: rgba(240, 253, 244, 0.95);
+  color: #15803d;
+  border-color: rgba(187, 247, 208, 0.9);
 }
 
 .crm-ann-page__status--live .crm-ann-page__status-dot {
-  background: var(--success);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 35%, transparent);
+  background: #16a34a;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
 }
 
 .crm-ann-page__files-badge {
   position: absolute;
-  bottom: 0.625rem;
-  left: 0.625rem;
+  bottom: 0.75rem;
+  left: 0.75rem;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.2rem 0.55rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
   font-size: 0.6875rem;
   font-weight: 700;
-  background: color-mix(in srgb, var(--bg-card) 90%, transparent);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   color: var(--text-secondary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   backdrop-filter: blur(8px);
 }
 
 .crm-ann-page__card-body {
-  padding: 1rem 1.125rem;
+  padding: 1.125rem 1.25rem 1rem;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -421,16 +429,16 @@
 .crm-ann-page__reach {
   margin: 0.5rem 0 0.875rem;
   padding: 0.75rem 0.875rem;
-  border-radius: 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--info) 16%, var(--border));
-  background: color-mix(in srgb, var(--info) 4%, var(--bg-page));
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--bg-page);
 }
 
 .crm-ann-page__reach-bar {
   width: 100%;
   height: 0.35rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--border) 90%, transparent);
   overflow: hidden;
   margin-bottom: 0.5rem;
 }
@@ -439,7 +447,7 @@
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--info) 0%, var(--success) 100%);
+  background: linear-gradient(90deg, #0284c7 0%, #10b981 100%);
   transition: width 0.3s ease;
 }
 
@@ -454,14 +462,16 @@
 .crm-ann-page__reach-btn {
   display: inline-flex;
   align-items: center;
+  gap: 0.3rem;
   padding: 0.3rem 0.65rem;
-  border-radius: 0.5rem;
+  border-radius: 0.45rem;
   border: 1px solid var(--border);
   background: var(--bg-card);
-  font-size: 0.6875rem;
-  font-weight: 650;
+  font-size: 0.7125rem;
+  font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   transition: all 0.12s ease;
 }
 
@@ -495,39 +505,48 @@
 .crm-ann-page__card-date {
   font-size: 0.6875rem;
   color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .crm-ann-page__card-actions {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.375rem;
 }
 
 .crm-ann-page__card-actions button {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.55rem;
+  gap: 0.3rem;
+  padding: 0.3rem 0.625rem;
   border-radius: 0.45rem;
   border: 1px solid var(--border);
-  background: var(--bg-page);
-  font-size: 0.6875rem;
-  font-weight: 650;
+  background: var(--bg-card);
+  font-size: 0.75rem;
+  font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   transition: all 0.12s ease;
 }
 
 .crm-ann-page__card-actions button:hover:not(:disabled) {
   color: var(--text-primary);
-  background: var(--bg-card);
-  border-color: color-mix(in srgb, var(--brand) 25%, var(--border));
+  background: var(--bg-page);
+  border-color: color-mix(in srgb, var(--border) 60%, var(--text-secondary));
+}
+
+.crm-ann-page__card-actions .crm-ann-page__danger {
+  color: #dc2626;
+  border-color: color-mix(in srgb, #dc2626 25%, var(--border));
 }
 
 .crm-ann-page__card-actions .crm-ann-page__danger:hover:not(:disabled) {
-  color: var(--danger);
-  border-color: color-mix(in srgb, var(--danger) 30%, var(--border));
-  background: var(--danger-soft);
+  color: #b91c1c;
+  background: rgba(254, 226, 226, 0.5);
+  border-color: #fca5a5;
 }
 
 /* --------------------------------------------------------------------------

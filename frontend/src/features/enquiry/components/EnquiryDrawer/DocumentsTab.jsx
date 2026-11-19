@@ -2,8 +2,10 @@ import { useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import {
   FiUpload, FiFileText, FiImage, FiAward, FiBookOpen, FiEdit3, FiMail, FiFolder, FiEye, FiTrash2,
+  FiDownload,
 } from 'react-icons/fi';
 import Button from '../../../../components/ui/Button';
+import Badge from '../../../../components/ui/Badge';
 import FormSection from '../../../../components/ui/FormSection';
 import DocumentPreviewModal from './DocumentPreviewModal';
 import {
@@ -14,6 +16,7 @@ import {
   getDocumentUrl,
 } from '../../config/enquiryDocument.config';
 import { enquiryService } from '../../services/enquiryService';
+import { studentService } from '../../../../modules/student/services/student.service';
 import { enquiryApi } from '../../redux/enquiryApiSlice';
 import toastService from '../../../../services/toast/toast.service';
 
@@ -36,13 +39,22 @@ function normalizeCategory(value) {
 
 function DocCard({ doc, onPreview, onRemove, compact = false }) {
   const previewType = isPreviewable(doc.mimeType, doc.name || doc.fileName);
-  const thumb = previewType === 'image' ? getDocumentUrl(doc.filePath) : null;
+  const docUrl = getDocumentUrl(doc.filePath || doc.fileUrl);
+  const thumb = previewType === 'image' ? docUrl : null;
+  const meta = (doc.metadata && typeof doc.metadata === 'object') ? doc.metadata : {};
+  const docStatus = meta.status || doc.status;
 
   return (
     <article className={`crm-doc-card ${compact ? 'crm-doc-card--compact' : 'crm-doc-card--row'}`}>
       {!compact && (
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-text truncate">{doc.name || doc.fileName}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-sm font-semibold text-text truncate">{doc.name || doc.fileName}</p>
+            {docStatus === 'VERIFIED' && <Badge color="success" size="xs">Verified</Badge>}
+            {docStatus === 'REJECTED' && <Badge color="danger" size="xs">Rejected</Badge>}
+            {['UNDER_REVIEW', 'UPLOADED'].includes(docStatus) && <Badge color="warning" size="xs">Pending Review</Badge>}
+            {doc.source === 'student' && <Badge color="brand" size="xs">Student Portal</Badge>}
+          </div>
           <p className="text-[11px] text-text-muted mt-0.5 tabular-nums">
             {formatFileSize(doc.fileSize)}
             {' · '}
@@ -60,7 +72,12 @@ function DocCard({ doc, onPreview, onRemove, compact = false }) {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-text truncate">{doc.name || doc.fileName}</p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-sm font-semibold text-text truncate">{doc.name || doc.fileName}</p>
+              {docStatus === 'VERIFIED' && <Badge color="success" size="xs">Verified</Badge>}
+              {docStatus === 'REJECTED' && <Badge color="danger" size="xs">Rejected</Badge>}
+              {doc.source === 'student' && <Badge color="brand" size="xs">Student Portal</Badge>}
+            </div>
             <p className="text-[11px] text-text-muted mt-0.5">
               {getDocumentCategoryLabel(doc.category)}
               {' · '}
@@ -83,9 +100,26 @@ function DocCard({ doc, onPreview, onRemove, compact = false }) {
           </button>
         )}
         {previewType && (
-          <Button variant="ghost" size="sm" icon={FiEye} onClick={() => onPreview(doc)} aria-label="Preview" />
+          <Button variant="ghost" size="sm" icon={FiEye} onClick={() => onPreview(doc)} aria-label="Preview" title="Preview" />
         )}
-        <Button variant="ghost" size="sm" icon={FiTrash2} onClick={() => onRemove(doc.id)} aria-label="Delete" />
+        {docUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={FiDownload}
+            onClick={() => {
+              const link = document.createElement('a');
+              link.href = docUrl;
+              link.download = doc.name || doc.fileName || 'document';
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+              link.click();
+            }}
+            aria-label="Download"
+            title="Download"
+          />
+        )}
+        <Button variant="ghost" size="sm" icon={FiTrash2} onClick={() => onRemove(doc)} aria-label="Delete" title="Delete" />
       </div>
     </article>
   );
@@ -144,9 +178,13 @@ export default function DocumentsTab({ enquiryId, documents = [], onRefresh }) {
     await uploadFile(file);
   };
 
-  const remove = async (docId) => {
+  const remove = async (doc) => {
     try {
-      await enquiryService.deleteDocument(enquiryId, docId);
+      if (doc?.source === 'student') {
+        await studentService.deleteDocument(doc.studentId || doc.entityId, doc.id);
+      } else {
+        await enquiryService.deleteDocument(enquiryId, doc?.id || doc);
+      }
       toastService.success('Document removed');
       refreshAfterDocChange();
     } catch (e) {

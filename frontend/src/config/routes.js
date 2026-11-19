@@ -95,10 +95,17 @@ export const ROUTES = {
   STUDENT_NOTIFICATIONS: '/student/notifications',
   STUDENT_HELP: '/student/help',
   FEES: '/admin/fees',
+  FEES_PAYMENT_PROOFS: '/admin/fees/payment-proofs',
+  FEES_REFUNDS: '/admin/fees/refunds',
+  FEES_LEDGER: '/admin/fees/ledger',
+  FEES_EXPENSES: '/admin/fees/expenses',
   FEATURE_TOGGLE: '/admin/settings/feature-toggle',
   AGENT_STUDENTS: '/agent/students',
   AGENT_ENQUIRIES: '/agent/enquiries',
   AGENT_APPLICATIONS: '/agent/applications',
+  AGENT_VISAS: '/agent/visas',
+  AGENT_COMMISSIONS: '/agent/commissions',
+  AGENT_REPORTS: '/agent/reports',
 };
 
 /** Open an in-app route in a new browser tab (enquiry → student profile, etc.). */

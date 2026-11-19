@@ -11,7 +11,7 @@ import {
 export default function DocumentPreviewModal({ doc, open = Boolean(doc), onClose }) {
   if (!doc || !open) return null;
 
-  const url = getDocumentUrl(doc.filePath);
+  const url = getDocumentUrl(doc.filePath || doc.fileUrl);
   const previewType = isPreviewable(doc.mimeType, doc.name || doc.fileName);
 
   const download = () => {

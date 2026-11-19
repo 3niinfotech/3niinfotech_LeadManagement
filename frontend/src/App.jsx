@@ -99,6 +99,8 @@ const StudentCalendarPage = lazyImport(() => import('./pages/student-portal/Stud
 const StudentHelpPage = lazyImport(() => import('./pages/student-portal/StudentHelpPage'));
 const AgentDashboardPage = lazyImport(() => import('./pages/agent-portal/AgentDashboardPage'));
 const AgentStudentsPage = lazyImport(() => import('./pages/agent-portal/AgentStudentsPage'));
+const AgentCommissionsPage = lazyImport(() => import('./pages/agent-portal/AgentCommissionsPage'));
+const AgentReportsPage = lazyImport(() => import('./pages/agent-portal/AgentReportsPage'));
 
 function MasterRecordRoute() {
   const { slug } = useParams();
@@ -123,7 +125,7 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public auth */}
-      <Route path="/login" element={<Navigate to={ROUTES.LANDING} replace />} />
+      <Route path="/login" element={<Navigate to="/login/admin" replace />} />
       <Route path="/login/admin" element={<Suspense fallback={<GlobalLoader />}><AuthLoginForm portal={PORTALS.ADMIN} /></Suspense>} />
       <Route path="/login/student" element={<Suspense fallback={<GlobalLoader />}><AuthLoginForm portal={PORTALS.STUDENT} /></Suspense>} />
       <Route path="/login/agent" element={<Suspense fallback={<GlobalLoader />}><AuthLoginForm portal={PORTALS.AGENT} /></Suspense>} />
@@ -237,10 +239,17 @@ function AppRoutes() {
           </PermissionRoute>
         } />
         <Route path="applications" element={
-          <PermissionRoute permission={PERMISSIONS.APPLICATIONS_VIEW}>
+          <PermissionRoute permissions={[PERMISSIONS.APPLICATIONS_VIEW, PERMISSIONS.STUDENTS_VIEW]}>
             <ApplicationsPage />
           </PermissionRoute>
         } />
+        <Route path="visas" element={
+          <PermissionRoute permissions={[PERMISSIONS.VISAS_VIEW, PERMISSIONS.STUDENTS_VIEW]}>
+            <VisasPage />
+          </PermissionRoute>
+        } />
+        <Route path="commissions" element={<AgentCommissionsPage />} />
+        <Route path="reports" element={<AgentReportsPage />} />
         <Route path="calendar" element={
           <PermissionRoute permission={PERMISSIONS.CALENDAR_VIEW}>
             <CalendarPage />
@@ -342,12 +351,12 @@ function AppRoutes() {
         <Route path="leads" element={<Navigate to={ROUTES.ENQUIRIES} replace />} />
         <Route path="leads/:id" element={<Navigate to={ROUTES.ENQUIRIES} replace />} />
         <Route path="applications" element={
-          <PermissionRoute permission={PERMISSIONS.APPLICATIONS_VIEW}>
+          <PermissionRoute permissions={[PERMISSIONS.APPLICATIONS_VIEW, PERMISSIONS.STUDENTS_VIEW]}>
             <ApplicationsPage />
           </PermissionRoute>
         } />
         <Route path="visas" element={
-          <PermissionRoute permission={PERMISSIONS.VISAS_VIEW}>
+          <PermissionRoute permissions={[PERMISSIONS.VISAS_VIEW, PERMISSIONS.STUDENTS_VIEW]}>
             <VisasPage />
           </PermissionRoute>
         } />
@@ -545,8 +554,11 @@ function AppRoutes() {
         } />
       </Route>
 
-      <Route path="/" element={<Suspense fallback={<GlobalLoader />}><LandingPage /></Suspense>} />
-      <Route path="*" element={<Navigate to={ROUTES.LANDING} replace />} />
+      {/* Website archived at /website for future use */}
+      <Route path="/website" element={<Suspense fallback={<GlobalLoader />}><LandingPage /></Suspense>} />
+      {/* Root & Fallback open the CRM Login or Dashboard directly */}
+      <Route path="/" element={<RoleHomeRedirect />} />
+      <Route path="*" element={<RoleHomeRedirect />} />
     </Routes>
   );
 }

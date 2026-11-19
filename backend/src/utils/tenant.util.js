@@ -111,7 +111,34 @@ function portalScopeWhere(user, entity) {
         ],
       };
     }
-    return { partner: { userId: user.id } };
+    if (entity === 'student') {
+      return {
+        OR: [
+          { partner: { userId: user.id } },
+          { createdBy: user.id },
+        ],
+      };
+    }
+    if (entity === 'lead') {
+      return {
+        OR: [
+          { createdBy: user.id },
+          { student: { partner: { userId: user.id } } },
+          { enquiry: { createdBy: user.id } },
+        ],
+      };
+    }
+    if (entity === 'application' || entity === 'visa' || entity === 'invoice' || entity === 'feePlan') {
+      return {
+        student: {
+          OR: [
+            { partner: { userId: user.id } },
+            { createdBy: user.id },
+          ],
+        },
+      };
+    }
+    return { createdBy: user.id };
   }
   return null;
 }
@@ -148,8 +175,8 @@ export function mergeScope(user, options = {}) {
     return { AND: [ownWhere, tenantWall] };
   }
 
-  // Teachers see only students enrolled in batches/sessions they instruct.
-  if (slug === 'teacher' && options.entity === 'student') {
+  // Teachers see only students enrolled in batches/sessions they instruct (unless checking eligibility for enrollment).
+  if (slug === 'teacher' && options.entity === 'student' && !options.forEnrollment) {
     const teacherStudents = {
       batchEnrollments: {
         some: {
@@ -340,8 +367,8 @@ export async function assertEnquiryIdsInTenant(ids, user) {
   }
 }
 
-export async function assertStudentInTenant(studentId, user) {
-  return assertEntityInScope('student', studentId, user, { entity: 'student' }, 'Student');
+export async function assertStudentInTenant(studentId, user, extraScopeOptions = {}) {
+  return assertEntityInScope('student', studentId, user, { entity: 'student', ...extraScopeOptions }, 'Student');
 }
 
 export async function assertStudentIdsInTenant(ids, user) {

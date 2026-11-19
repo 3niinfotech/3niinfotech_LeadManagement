@@ -14,6 +14,8 @@ import {
   FiUploadCloud,
   FiX,
   FiExternalLink,
+  FiGrid,
+  FiList,
 } from 'react-icons/fi';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
@@ -68,6 +70,7 @@ export default function TeacherAssignmentsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [batchFilter, setBatchFilter] = useState('ALL');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -284,7 +287,7 @@ export default function TeacherAssignmentsPage() {
           <FiSearch className="text-slate-400" />
           <input
             type="search"
-            placeholder="Search assignment title, prompt, or batch…"
+            placeholder="Search assignments by title or batch…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -296,25 +299,25 @@ export default function TeacherAssignmentsPage() {
             className={`crm-tacademic-pill ${statusFilter === 'ALL' ? 'is-active' : ''}`}
             onClick={() => setStatusFilter('ALL')}
           >
-            All Status
+            All ({rows.length})
           </button>
           <button
             type="button"
             className={`crm-tacademic-pill ${statusFilter === 'PUBLISHED' ? 'is-active' : ''}`}
             onClick={() => setStatusFilter('PUBLISHED')}
           >
-            Published
+            Published ({kpis.published})
           </button>
           <button
             type="button"
             className={`crm-tacademic-pill ${statusFilter === 'DRAFT' ? 'is-active' : ''}`}
             onClick={() => setStatusFilter('DRAFT')}
           >
-            Drafts
+            Drafts ({kpis.drafts})
           </button>
 
           {batchOptions.length > 1 && (
-            <div className="w-40">
+            <div className="w-36">
               <Select
                 size="sm"
                 searchable={false}
@@ -326,13 +329,32 @@ export default function TeacherAssignmentsPage() {
             </div>
           )}
 
+          <div className="crm-tacademic-view-switch">
+            <button
+              type="button"
+              className={`crm-tacademic-view-btn ${viewMode === 'grid' ? 'is-active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              title="Card Grid View"
+            >
+              <FiGrid />
+            </button>
+            <button
+              type="button"
+              className={`crm-tacademic-view-btn ${viewMode === 'table' ? 'is-active' : ''}`}
+              onClick={() => setViewMode('table')}
+              title="Data Table View"
+            >
+              <FiList />
+            </button>
+          </div>
+
           {canManage && (
             <Button
               size="sm"
               icon={FiPlus}
               onClick={openCreate}
               disabled={batchesLoading || !batchOptions.length}
-              className="shadow-xs font-bold shrink-0 ml-auto"
+              className="shadow-xs font-semibold shrink-0 ml-auto"
             >
               Create Assignment
             </Button>
@@ -340,7 +362,7 @@ export default function TeacherAssignmentsPage() {
         </div>
       </div>
 
-      {/* ── Content Grid ── */}
+      {/* ── Content View ── */}
       {!filteredRows.length ? (
         <EmptyState
           title="No assignments found"
@@ -351,80 +373,68 @@ export default function TeacherAssignmentsPage() {
             </Button>
           )}
         />
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="crm-tacademic-grid">
           {filteredRows.map((row) => {
             const subCount = row._count?.submissions ?? 0;
             const isPublished = row.status === 'PUBLISHED';
+            const fileName = row.attachmentUrl ? (row.attachmentUrl.split('/').pop()?.replace(/^\d+[-_]/, '') || 'Attachment Document') : null;
 
             return (
               <div key={row.id} className="crm-tacademic-card">
                 <div className="crm-tacademic-card__top">
-                  <div className="crm-tacademic-card__header">
-                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg uppercase tracking-wider bg-brand/10 text-brand border border-brand/20">
+                  <div className="crm-tacademic-card__head">
+                    <span className="text-[11px] font-medium text-text-muted truncate">
                       {row.batch?.name || 'Class Batch'}
                     </span>
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-                        isPublished
-                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
-                          : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
-                      }`}
-                    >
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${
+                      isPublished ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                    }`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${isPublished ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                      {row.status}
+                      {isPublished ? 'Published' : 'Draft'}
                     </span>
                   </div>
 
                   <h3
-                    className="crm-tacademic-card__title cursor-pointer hover:text-brand transition-colors"
+                    className="crm-tacademic-card__title hover:text-brand cursor-pointer transition-colors truncate"
                     title={row.title}
                     onClick={() => openDetail(row)}
                   >
                     {row.title}
                   </h3>
 
-                  <div className="crm-tacademic-card__meta-bar">
-                    <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                      <FiClock size={13} className="text-amber-500 shrink-0" />
-                      Due: <strong>{formatDate(row.dueDate)}</strong>
+                  <div className="crm-tacademic-card__meta-row">
+                    <span className="crm-tacademic-card__meta-item">
+                      <FiClock size={12} /> Due {formatDate(row.dueDate)}
                     </span>
-                    <span className="text-slate-300 dark:text-slate-600">•</span>
-                    <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                      <FiAward size={13} className="text-brand shrink-0" />
-                      Max: <strong>{row.maxMarks ?? 100} pts</strong>
+                    <span>•</span>
+                    <span className="crm-tacademic-card__meta-item">
+                      <FiAward size={12} /> {row.maxMarks ?? 100} pts
                     </span>
                   </div>
 
-                  <div className="crm-tacademic-card__stat-box">
-                    <div className="crm-tacademic-card__stat-item">
-                      <strong>{subCount}</strong>
-                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">Submissions</span>
-                    </div>
-                    <div>
+                  <div className="crm-tacademic-card__stat-strip">
+                    <span className="text-text-muted">Submissions</span>
+                    <span className="font-semibold text-text">
                       {subCount > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
-                          ● Review Ready
-                        </span>
+                        <span className="text-brand font-medium">{subCount} turned in</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                          Awaiting submissions
-                        </span>
+                        <span className="text-text-muted font-normal">0 submitted</span>
                       )}
-                    </div>
+                    </span>
                   </div>
 
                   {row.attachmentUrl && (
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                    <div className="mt-2">
                       <a
                         href={row.attachmentUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline truncate max-w-full"
-                        title="Open attachment"
+                        className="inline-flex items-center gap-1.5 text-xs text-brand hover:underline truncate max-w-full font-medium"
+                        title={fileName}
                       >
-                        <FiPaperclip size={13} className="shrink-0 text-slate-400" />
-                        <span className="truncate">{row.attachmentUrl.split('/').pop() || 'Attachment Document'}</span>
+                        <FiPaperclip size={11} className="shrink-0 text-text-muted" />
+                        <span className="truncate">{fileName}</span>
                       </a>
                     </div>
                   )}
@@ -433,20 +443,21 @@ export default function TeacherAssignmentsPage() {
                 <div className="crm-tacademic-card__foot">
                   <Button
                     size="xs"
-                    variant="primary"
-                    className="font-bold shadow-xs !py-1.5 !px-3 rounded-xl flex items-center gap-1.5"
+                    variant="outline"
+                    className="text-xs font-medium"
                     onClick={() => openDetail(row)}
                   >
-                    <FiFileText size={13} /> Submissions ({subCount})
+                    <FiFileText size={12} />
+                    <span>Submissions ({subCount})</span>
                   </Button>
 
                   {canManage && (
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => openEdit(row)}
                         title="Edit Assignment"
-                        className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                        className="p-1 rounded hover:bg-bg-page text-text-muted hover:text-text transition-colors cursor-pointer"
                       >
                         <FiEdit2 size={13} />
                       </button>
@@ -454,7 +465,7 @@ export default function TeacherAssignmentsPage() {
                         type="button"
                         onClick={() => setDeleteTarget(row)}
                         title="Delete Assignment"
-                        className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 text-rose-600 transition-colors cursor-pointer"
+                        className="p-1 rounded hover:bg-rose-50 text-text-muted hover:text-rose-600 transition-colors cursor-pointer"
                       >
                         <FiTrash2 size={13} />
                       </button>
@@ -464,6 +475,88 @@ export default function TeacherAssignmentsPage() {
               </div>
             );
           })}
+        </div>
+      ) : (
+        <div className="crm-tacademic-table-wrap">
+          <table className="crm-tacademic-table">
+            <thead>
+              <tr>
+                <th>Assignment Title</th>
+                <th>Batch</th>
+                <th>Due Date</th>
+                <th>Max Marks</th>
+                <th>Submissions</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((row) => {
+                const subCount = row._count?.submissions ?? 0;
+                const isPublished = row.status === 'PUBLISHED';
+
+                return (
+                  <tr key={row.id}>
+                    <td>
+                      <span
+                        className="font-semibold text-text hover:text-brand cursor-pointer block truncate max-w-xs"
+                        onClick={() => openDetail(row)}
+                      >
+                        {row.title}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="text-text-muted text-xs">{row.batch?.name || '—'}</span>
+                    </td>
+                    <td>
+                      <span className="text-xs">{formatDate(row.dueDate)}</span>
+                    </td>
+                    <td>
+                      <span className="text-xs font-medium">{row.maxMarks ?? 100} pts</span>
+                    </td>
+                    <td>
+                      <span className="text-xs font-semibold text-brand">{subCount}</span>
+                    </td>
+                    <td>
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium ${
+                        isPublished ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isPublished ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        {isPublished ? 'Published' : 'Draft'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div className="inline-flex items-center gap-1.5">
+                        <Button size="xs" variant="outline" onClick={() => openDetail(row)}>
+                          Submissions ({subCount})
+                        </Button>
+                        {canManage && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openEdit(row)}
+                              title="Edit"
+                              className="p-1 rounded hover:bg-bg-page text-text-muted hover:text-text cursor-pointer"
+                            >
+                              <FiEdit2 size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(row)}
+                              title="Delete"
+                              className="p-1 rounded hover:bg-rose-50 text-text-muted hover:text-rose-600 cursor-pointer"
+                            >
+                              <FiTrash2 size={13} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

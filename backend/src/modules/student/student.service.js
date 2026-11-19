@@ -22,14 +22,24 @@ import {
 import { attachStudentPhotoUrl } from '../../utils/studentPhoto.util.js';
 import { masterRepository } from '../master/master.repository.js';
 import { normalizeDocumentCategory } from '../enquiry/enquiryDocument.config.js';
+import { assignmentEngine } from '../assignment/assignment.engine.js';
+import { pickBestCandidate } from '../assignment/assignment.scoring.js';
+import { assignmentRepository } from '../assignment/assignment.repository.js';
+import { AGENT_ROLE_SLUGS } from '../../config/portal.config.js';
+import { ensureStudentPrimaryApplication } from '../student-portal/student-portal.service.js';
+import {
+  notifyAgentReferredStudent,
+  notifyCounsellorAssignment,
+  notifyDocumentEvent,
+} from '../notification/notification.dispatcher.js';
 
 export const createStudentSchema = z.object({
   branchId: z.string().uuid(),
-  partnerId: z.string().uuid().optional().nullable(),
-  assignedToId: z.string().uuid().optional().nullable(),
+  partnerId: z.string().uuid().optional().nullable().or(z.literal('')),
+  assignedToId: z.string().uuid().optional().nullable().or(z.literal('')),
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
-  email: z.string().email().optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal('')),
   phone: z.string().optional().nullable(),
   dateOfBirth: z.string().optional().nullable(),
   gender: z.string().optional().nullable(),
@@ -37,14 +47,33 @@ export const createStudentSchema = z.object({
   passportNo: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
   emergencyContact: z.string().max(200).optional().nullable(),
-  status: z.enum(['ENQUIRY', 'REGISTERED', 'DOCUMENT_PENDING', 'APPLICATION_SUBMITTED', 'OFFER_RECEIVED', 'VISA_APPLIED', 'VISA_GRANTED', 'ENROLLED', 'DEFERRED', 'WITHDRAWN']).optional(),
+  status: z.enum(['ENQUIRY', 'REGISTERED', 'DOCUMENT_PENDING', 'APPLICATION_SUBMITTED', 'OFFER_RECEIVED', 'VISA_APPLIED', 'VISA_GRANTED', 'ENROLLED', 'DEFERRED', 'WITHDRAWN']).optional().nullable().or(z.literal('')),
   intake: z.string().optional().nullable(),
   course: z.string().optional().nullable(),
   university: z.string().optional().nullable(),
   country: z.string().optional().nullable(),
 });
 
-export const updateStudentSchema = createStudentSchema.partial();
+export const updateStudentSchema = z.object({
+  branchId: z.string().uuid().optional().nullable().or(z.literal('')),
+  partnerId: z.string().uuid().optional().nullable().or(z.literal('')),
+  assignedToId: z.string().uuid().optional().nullable().or(z.literal('')),
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  email: z.string().email().optional().nullable().or(z.literal('')),
+  phone: z.string().optional().nullable(),
+  dateOfBirth: z.string().optional().nullable(),
+  gender: z.string().optional().nullable(),
+  nationality: z.string().optional().nullable(),
+  passportNo: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  emergencyContact: z.string().max(200).optional().nullable(),
+  status: z.enum(['ENQUIRY', 'REGISTERED', 'DOCUMENT_PENDING', 'APPLICATION_SUBMITTED', 'OFFER_RECEIVED', 'VISA_APPLIED', 'VISA_GRANTED', 'ENROLLED', 'DEFERRED', 'WITHDRAWN']).optional().nullable().or(z.literal('')),
+  intake: z.string().optional().nullable(),
+  course: z.string().optional().nullable(),
+  university: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
+});
 
 export const studentService = {
   getAll: async (query, user) => {
@@ -129,14 +158,62 @@ export const studentService = {
     await assertBranchInTenant(data.branchId, req.user);
     if (data.assignedToId) await assertUserInTenant(data.assignedToId, req.user);
 
+    const userRoleSlug = (req?.user?.role?.slug || req?.user?.role?.name || req?.user?.role || '').toLowerCase();
+    const isAgent = AGENT_ROLE_SLUGS.includes(userRoleSlug);
+
+    let partnerId = data.partnerId;
+    if (isAgent) {
+      const partner = await prisma.partner.findFirst({
+        where: { userId },
+      });
+      if (partner) {
+        partnerId = partner.id;
+      }
+    }
+
     const companyId = await resolveCompanyIdForBranch(data.branchId, req.user);
-    const normalizedData = await normalizeStudentMasterFields(data, companyId);
+    const normalizedData = await normalizeStudentMasterFields({
+      ...data,
+      partnerId,
+    }, companyId);
     const studentCode = await studentRepository.generateCode(companyId);
 
     let status = normalizedData.status;
     if (!status) {
       const defaultStatus = await masterRepository.findDefaultStudentStatus(companyId);
       if (defaultStatus?.code) status = defaultStatus.code;
+    }
+
+    let assignedCounsellor = null;
+    let assignmentScore = null;
+    // Auto-assign counsellor via Assignment Engine if not manually specified
+    if (!normalizedData.assignedToId) {
+      try {
+        const leadHint = {
+          branchId: normalizedData.branchId,
+          country: normalizedData.country || null,
+          interestedCountry: normalizedData.country || null,
+          interestedCourse: normalizedData.course || null,
+          priority: 'HIGH',
+          metadata: {
+            source: isAgent ? 'AGENT_REFERRAL' : 'STUDENT_REGISTRATION',
+            partnerId,
+          },
+        };
+        const { rows, config } = await assignmentEngine.scoreAllForLead(leadHint, {
+          branchId: normalizedData.branchId,
+          companyId,
+          excludeIds: [],
+        });
+        const { selected } = pickBestCandidate(rows, config?.fallback);
+        if (selected?.routable) {
+          normalizedData.assignedToId = selected.id;
+          assignedCounsellor = selected;
+          assignmentScore = selected.score;
+        }
+      } catch (err) {
+        console.warn('[student.service.create] auto-assignment warning:', err.message);
+      }
     }
 
     const student = await studentRepository.create({
@@ -146,6 +223,38 @@ export const studentService = {
       createdBy: userId,
       dateOfBirth: normalizedData.dateOfBirth ? new Date(normalizedData.dateOfBirth) : null,
     });
+
+    if (student.course || student.country || student.university) {
+      await ensureStudentPrimaryApplication(student, userId).catch((err) =>
+        console.warn('[student.create] ensureStudentPrimaryApplication warning:', err.message)
+      );
+    }
+
+    if (isAgent) {
+      await notifyAgentReferredStudent({
+        student,
+        partnerUserId: userId,
+        assignedCounsellorId: assignedCounsellor?.id || normalizedData.assignedToId || null,
+        branchId: normalizedData.branchId,
+        companyId,
+      }).catch((e) => console.warn('[student.create] notifyAgentReferredStudent error:', e.message));
+    } else if (assignedCounsellor?.id || normalizedData.assignedToId) {
+      const counsellorId = assignedCounsellor?.id || normalizedData.assignedToId;
+      await notifyCounsellorAssignment({
+        student,
+        counsellorId,
+        previousCounsellorId: null,
+        actorId: userId,
+        companyId,
+        branchId: normalizedData.branchId,
+      }).catch((e) => console.warn('[student.create] notifyCounsellorAssignment error:', e.message));
+
+      if (assignedCounsellor) {
+        await assignmentRepository.upsertPresence(assignedCounsellor.id, normalizedData.branchId, {
+          lastAssignedAt: new Date(),
+        }).catch(() => {});
+      }
+    }
 
     await prisma.activity.create({
       data: { userId, studentId: student.id, action: 'CREATE', description: `Student ${studentCode} created` },
@@ -157,21 +266,55 @@ export const studentService = {
 
   update: async (id, data, userId, req) => {
     const existing = await assertStudentInTenant(id, req.user);
-    if (data.branchId) await assertBranchInTenant(data.branchId, req.user);
-    if (data.assignedToId) await assertUserInTenant(data.assignedToId, req.user);
+    const { emergencyContact, ...rest } = data;
+
+    const userRoleSlug = (req?.user?.role?.slug || req?.user?.role?.name || req?.user?.role || '').toLowerCase();
+    if (AGENT_ROLE_SLUGS.includes(userRoleSlug)) {
+      delete rest.assignedToId;
+      delete rest.partnerId;
+      delete rest.branchId;
+    }
+
+    if (rest.branchId && rest.branchId !== '') await assertBranchInTenant(rest.branchId, req.user);
+    else delete rest.branchId;
+
+    if (rest.assignedToId && rest.assignedToId !== '') await assertUserInTenant(rest.assignedToId, req.user);
+    else if (rest.assignedToId === '') rest.assignedToId = null;
+
+    if (rest.partnerId === '') rest.partnerId = null;
+    if (rest.email === '') rest.email = null;
+    if (rest.phone === '') rest.phone = null;
+    if (rest.gender === '') rest.gender = null;
+    if (rest.nationality === '') rest.nationality = null;
+    if (rest.passportNo === '') rest.passportNo = null;
+    if (rest.address === '') rest.address = null;
+    if (rest.intake === '') rest.intake = null;
+    if (rest.course === '') rest.course = null;
+    if (rest.university === '') rest.university = null;
+    if (rest.country === '') rest.country = null;
+    if (rest.status === '') delete rest.status;
 
     const companyId = existing.branch?.companyId || req.user?.companyId
-      || (data.branchId ? await resolveCompanyIdForBranch(data.branchId, req.user) : null);
+      || (rest.branchId ? await resolveCompanyIdForBranch(rest.branchId, req.user) : null);
 
-    const { emergencyContact, ...rest } = data;
     const normalizedData = companyId
       ? await normalizeStudentMasterFields(rest, companyId)
       : rest;
 
+    let parsedDateOfBirth = undefined;
+    if (normalizedData.dateOfBirth !== undefined) {
+      if (!normalizedData.dateOfBirth || normalizedData.dateOfBirth === '') {
+        parsedDateOfBirth = null;
+      } else {
+        const d = new Date(normalizedData.dateOfBirth);
+        parsedDateOfBirth = Number.isNaN(d.getTime()) ? null : d;
+      }
+    }
+
     const updatePayload = {
       ...normalizedData,
       updatedBy: userId,
-      dateOfBirth: normalizedData.dateOfBirth ? new Date(normalizedData.dateOfBirth) : undefined,
+      ...(parsedDateOfBirth !== undefined ? { dateOfBirth: parsedDateOfBirth } : {}),
     };
 
     if (emergencyContact !== undefined) {
@@ -229,6 +372,17 @@ export const studentService = {
     await prisma.activity.create({
       data: { userId, studentId: id, action: 'UPDATE', description: 'Student record updated' },
     });
+
+    if (normalizedData.assignedToId && normalizedData.assignedToId !== existing.assignedToId) {
+      await notifyCounsellorAssignment({
+        student,
+        counsellorId: normalizedData.assignedToId,
+        previousCounsellorId: existing.assignedToId || null,
+        actorId: userId,
+        companyId,
+        branchId: student.branchId,
+      }).catch((e) => console.warn('[student.update] notifyCounsellorAssignment warning:', e.message));
+    }
 
     await auditLog({ userId, action: 'UPDATE', entityType: 'Student', entityId: id, oldData: existing, newData: student, req });
     return student;
@@ -335,5 +489,62 @@ export const studentService = {
     });
     await auditLog({ userId, action: 'DELETE', entityType: 'Document', entityId: docId, oldData: doc, req });
     return { id: docId };
+  },
+
+  updateDocumentStatus: async (studentId, docId, { status, rejectionReason }, userId, req) => {
+    await assertStudentInTenant(studentId, req.user);
+    const doc = await prisma.document.findFirst({
+      where: { id: docId, studentId, ...softDeleteWhere },
+    });
+    if (!doc) throw new AppError('Document not found', 404);
+
+    const prevMeta = (doc.metadata && typeof doc.metadata === 'object') ? { ...doc.metadata } : {};
+    const updatedMeta = {
+      ...prevMeta,
+      status,
+      rejectionReason: status === 'REJECTED' ? (rejectionReason || 'Document rejected by counsellor') : null,
+      verifiedAt: status === 'VERIFIED' ? new Date().toISOString() : null,
+      verifiedBy: status === 'VERIFIED' ? userId : null,
+      reviewedBy: userId,
+      reviewedAt: new Date().toISOString(),
+    };
+
+    const updated = await prisma.document.update({
+      where: { id: docId },
+      data: { metadata: updatedMeta },
+    });
+
+    await prisma.activity.create({
+      data: {
+        userId,
+        studentId,
+        action: status === 'VERIFIED' ? 'APPROVE' : status === 'REJECTED' ? 'REJECT' : 'DOCUMENT',
+        description: `Document ${doc.name} ${status.toLowerCase()}${rejectionReason ? `: ${rejectionReason}` : ''}`,
+        entityType: 'Document',
+        entityId: docId,
+      },
+    });
+
+    try {
+      const student = await prisma.student.findUnique({
+        where: { id: studentId },
+        select: { id: true, firstName: true, lastName: true, assignedToId: true, branchId: true, branch: { select: { companyId: true } } },
+      });
+      if (student) {
+        await notifyDocumentEvent({
+          document: updated,
+          student,
+          eventType: status === 'VERIFIED' ? 'APPROVED' : status === 'REJECTED' ? 'REJECTED' : 'UPLOADED',
+          status,
+          rejectionReason,
+          reviewerUser: req.user,
+          companyId: student.branch?.companyId,
+        });
+      }
+    } catch (e) {
+      console.warn('[updateDocumentStatus] notifyDocumentEvent warning:', e.message);
+    }
+
+    return updated;
   },
 };

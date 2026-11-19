@@ -481,9 +481,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 6px;
   width: 100%;
   height: 100%;
+  padding: 0 4px;
 }
 
 .ag-theme-crm .crm-grid-action-btn {
@@ -493,32 +494,141 @@
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  border: 1px solid transparent;
-  background: transparent;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.ag-theme-crm .crm-grid-action-btn--edit {
-  color: var(--grid-action-edit);
-}
-
-.ag-theme-crm .crm-grid-action-btn--delete {
-  color: var(--grid-action-delete);
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--bg-card, #ffffff);
+  color: var(--text-secondary, #475569);
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transform: none !important;
 }
 
 .ag-theme-crm .crm-grid-action-btn:hover {
-  background: var(--grid-action-hover-bg);
-  border-color: var(--field-border);
+  background: var(--bg-row-hover, #f8fafc);
+  border-color: var(--border-strong, #cbd5e1);
+  color: var(--text-primary, #0f172a);
+  transform: none !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.08);
+}
+
+.ag-theme-crm .crm-grid-action-btn:active {
+  transform: none !important;
+  box-shadow: none;
+}
+
+.ag-theme-crm .crm-grid-actions-cell button,
+.ag-theme-crm [col-id="__actions"] button {
+  transform: none !important;
+}
+
+.ag-theme-crm .crm-grid-actions-cell button:hover,
+.ag-theme-crm [col-id="__actions"] button:hover,
+.ag-theme-crm .crm-grid-actions-cell button:active,
+.ag-theme-crm [col-id="__actions"] button:active {
+  transform: none !important;
+}
+
+.ag-theme-crm .crm-grid-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none;
+}
+
+/* View button */
+.ag-theme-crm .crm-grid-action-btn--view,
+.ag-theme-crm .crm-grid-action-btn:not(.crm-grid-action-btn--edit):not(.crm-grid-action-btn--delete):not(.crm-grid-action-btn--toggle) {
+  color: #3b82f6;
+}
+
+.ag-theme-crm .crm-grid-action-btn--view:hover,
+.ag-theme-crm .crm-grid-action-btn:not(.crm-grid-action-btn--edit):not(.crm-grid-action-btn--delete):not(.crm-grid-action-btn--toggle):hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+/* Edit button */
+.ag-theme-crm .crm-grid-action-btn--edit {
+  color: #059669;
 }
 
 .ag-theme-crm .crm-grid-action-btn--edit:hover {
-  background: color-mix(in srgb, var(--grid-action-edit) 10%, var(--grid-action-hover-bg));
-  border-color: color-mix(in srgb, var(--grid-action-edit) 25%, var(--field-border));
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #047857;
+}
+
+/* Toggle button */
+.ag-theme-crm .crm-grid-action-btn--toggle {
+  color: #059669;
+}
+
+.ag-theme-crm .crm-grid-action-btn--toggle:hover {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #15803d;
+}
+
+/* Delete button */
+.ag-theme-crm .crm-grid-action-btn--delete {
+  color: #ef4444;
 }
 
 .ag-theme-crm .crm-grid-action-btn--delete:hover {
-  background: color-mix(in srgb, var(--grid-action-delete) 10%, var(--grid-action-hover-bg));
-  border-color: color-mix(in srgb, var(--grid-action-delete) 25%, var(--field-border));
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+/* Dark mode overrides */
+.dark .ag-theme-crm .crm-grid-action-btn,
+[data-theme='dark'] .ag-theme-crm .crm-grid-action-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.dark .ag-theme-crm .crm-grid-action-btn:hover,
+[data-theme='dark'] .ag-theme-crm .crm-grid-action-btn:hover {
+  background: #334155;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+.dark .ag-theme-crm .crm-grid-action-btn--view:hover,
+.dark .ag-theme-crm .crm-grid-action-btn:not(.crm-grid-action-btn--edit):not(.crm-grid-action-btn--delete):not(.crm-grid-action-btn--toggle):hover,
+[data-theme='dark'] .ag-theme-crm .crm-grid-action-btn--view:hover,
+[data-theme='dark'] .ag-theme-crm .crm-grid-action-btn:not(.crm-grid-action-btn--edit):not(.crm-grid-action-btn--delete):not(.crm-grid-action-btn--toggle):hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(147, 197, 253, 0.4);
+  color: #60a5fa;
+}
+
+.dark .ag-theme-crm .crm-grid-action-btn--edit,
+[data-theme='dark'] .ag-theme-crm .crm-grid-action-btn--edit {
+  color: #34d399;
+}
+
+.dark .ag-theme-crm .crm-grid-action-btn--edit:hover,
+[data-theme='dark'] .ag-theme-crm .crm-grid-action-btn--edit:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(110, 231, 183, 0.4);
+  color: #6ee7b7;
+}
+
+.dark .ag-theme-crm .crm-grid-action-btn--delete,
+[data-theme='dark'] .ag-theme-crm .crm-grid-action-btn--delete {
+  color: #f87171;
+}
+
+.dark .ag-theme-crm .crm-grid-action-btn--delete:hover,
+[data-theme='dark'] .ag-theme-crm .crm-grid-action-btn--delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(252, 165, 165, 0.4);
+  color: #fca5a5;
 }
 
 /* ── Pinned columns — only selection checkbox stays sticky */
@@ -672,6 +782,19 @@
 .crm-grid-footer__btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .crm-grid-footer {
+    padding: 8px 12px;
+    gap: 8px;
+    min-height: auto;
+  }
+  .crm-grid-footer__left,
+  .crm-grid-footer__right {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 /* ── Scroll ── */

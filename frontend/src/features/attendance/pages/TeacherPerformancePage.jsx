@@ -185,144 +185,185 @@ export default function TeacherPerformancePage() {
       {/* ── 4 Executive KPI Metric Cards ── */}
       <div className="crm-tperf-kpi-grid">
         <div className="crm-tperf-kpi-card">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Class Average</span>
-            <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+          <div>
+            <span className="crm-tperf-kpi-label">Class Average</span>
+            <div className="crm-tperf-kpi-value">
               {avgPerf != null ? `${avgPerf}%` : '—'}
             </div>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Optimal Standing
-            </span>
+            <span className="crm-tperf-kpi-hint">Overall academic grade</span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0">
-            <FiAward />
+          <div className="crm-tperf-kpi-icon crm-tperf-kpi-icon--emerald">
+            <FiAward size={18} />
           </div>
         </div>
 
         <div className="crm-tperf-kpi-card">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Enrolled Learners</span>
-            <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+          <div>
+            <span className="crm-tperf-kpi-label">Enrolled Learners</span>
+            <div className="crm-tperf-kpi-value">
               {metrics.students ?? 0}
             </div>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-              Active Cohort
-            </span>
+            <span className="crm-tperf-kpi-hint">Across active classes</span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl shrink-0">
-            <FiUsers />
+          <div className="crm-tperf-kpi-icon crm-tperf-kpi-icon--blue">
+            <FiUsers size={18} />
           </div>
         </div>
 
         <div className="crm-tperf-kpi-card">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Low Attendance (&lt;75%)</span>
-            <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+          <div>
+            <span className="crm-tperf-kpi-label">Low Attendance (&lt;75%)</span>
+            <div className="crm-tperf-kpi-value">
               {metrics.lowAttendance ?? 0}
             </div>
-            <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${
-              metrics.lowAttendance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${metrics.lowAttendance > 0 ? 'bg-amber-500' : 'bg-slate-400'}`} />
-              {metrics.lowAttendance > 0 ? 'Needs Attention' : 'Healthy Attendance'}
+            <span className="crm-tperf-kpi-hint">
+              {metrics.lowAttendance > 0 ? 'Requires attention' : 'All students on track'}
             </span>
           </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 ${
-            metrics.lowAttendance > 0
-              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-          }`}>
-            <FiAlertTriangle />
+          <div className={`crm-tperf-kpi-icon ${metrics.lowAttendance > 0 ? 'crm-tperf-kpi-icon--amber' : 'crm-tperf-kpi-icon--neutral'}`}>
+            <FiAlertTriangle size={18} />
           </div>
         </div>
 
         <div className="crm-tperf-kpi-card">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Pending Assignments</span>
-            <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+          <div>
+            <span className="crm-tperf-kpi-label">Pending Assignments</span>
+            <div className="crm-tperf-kpi-value">
               {metrics.pendingAssignments ?? 0}
             </div>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-              Tasks for Evaluation
-            </span>
+            <span className="crm-tperf-kpi-hint">Submissions awaiting review</span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl shrink-0">
-            <FiFileText />
+          <div className="crm-tperf-kpi-icon crm-tperf-kpi-icon--purple">
+            <FiFileText size={18} />
           </div>
         </div>
       </div>
 
-      {/* ── Filter & Search Toolbar ── */}
-      <div className="crm-tperf-toolbar">
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
-          {/* Search Box */}
+      {/* ── Batch Performance Cards (Horizontal Responsive Strip) ── */}
+      {courseTrend.length > 0 && (
+        <div className="crm-tperf-section">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <FiLayers className="text-brand shrink-0" size={15} />
+              <h3 className="text-sm font-semibold text-text">Batch Performance Overview</h3>
+              <span className="text-xs text-text-muted">({courseTrend.length} {courseTrend.length === 1 ? 'batch' : 'batches'})</span>
+            </div>
+            {selectedBatch !== 'ALL' && (
+              <button
+                type="button"
+                className="text-xs text-brand hover:underline font-medium"
+                onClick={() => setSelectedBatch('ALL')}
+              >
+                Clear batch filter
+              </button>
+            )}
+          </div>
+
+          <div className="crm-tperf-batch-grid">
+            {courseTrend.map((row) => {
+              const pct = row.averagePerformance != null ? row.averagePerformance : 0;
+              let fillClass = 'crm-tperf-progress-fill--emerald';
+              if (pct < 70) fillClass = 'crm-tperf-progress-fill--rose';
+              else if (pct < 85) fillClass = 'crm-tperf-progress-fill--blue';
+
+              const isSelected = selectedBatch === row.batch;
+
+              return (
+                <div
+                  key={row.batchId}
+                  className={`crm-tperf-batch-card cursor-pointer ${isSelected ? 'is-active' : ''}`}
+                  onClick={() => setSelectedBatch(isSelected ? 'ALL' : row.batch)}
+                  title="Click to filter leaderboard by this batch"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="min-w-0">
+                      <h4 className="font-semibold text-sm text-text truncate">{row.batch}</h4>
+                      <p className="text-xs text-text-muted truncate mt-0.5">
+                        {row.course || 'Academic Course'} · {row.students} students
+                      </p>
+                    </div>
+                    <span className="font-semibold text-base text-text tabular-nums shrink-0">
+                      {row.averagePerformance != null ? `${row.averagePerformance}%` : '—'}
+                    </span>
+                  </div>
+
+                  <div className="crm-tperf-progress-bar mb-2.5">
+                    <div
+                      className={`crm-tperf-progress-fill ${fillClass}`}
+                      style={{ width: `${Math.min(100, pct)}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+                    <span className="text-text-muted font-medium">
+                      {pct >= 90 ? 'Optimal (≥90%)' : pct >= 75 ? 'On Track' : 'Needs attention'}
+                    </span>
+                    <button
+                      type="button"
+                      className="text-brand hover:underline font-medium inline-flex items-center gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(ROUTES.TEACHER_BATCH_DETAIL(row.batchId));
+                      }}
+                    >
+                      Open Class <FiArrowUpRight size={11} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Student Academic Leaderboard ── */}
+      <div className="crm-tperf-panel">
+        {/* Table Toolbar */}
+        <div className="crm-tperf-table-toolbar">
           <div className="crm-tperf-search">
-            <FiSearch className="text-slate-400 shrink-0" size={15} />
+            <FiSearch className="text-text-muted shrink-0" size={14} />
             <input
               type="text"
-              placeholder="Search by student name, ID or batch..."
+              placeholder="Search by student name, code, or batch..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
-          {/* Batch Selector Pills */}
-          <div className="crm-tperf-filters">
-            <button
-              type="button"
-              className={`crm-tperf-pill ${selectedBatch === 'ALL' ? 'is-active' : ''}`}
-              onClick={() => setSelectedBatch('ALL')}
-            >
-              All Batches
-            </button>
-            {batchList.map((batchName) => (
-              <button
-                key={batchName}
-                type="button"
-                className={`crm-tperf-pill ${selectedBatch === batchName ? 'is-active' : ''}`}
-                onClick={() => setSelectedBatch(batchName)}
-              >
-                {batchName}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Batch Filter Dropdown */}
+            {batchList.length > 1 && (
+              <div className="w-44">
+                <Select
+                  size="sm"
+                  searchable={false}
+                  allowClear={false}
+                  value={selectedBatch}
+                  onChange={(val) => setSelectedBatch(typeof val === 'string' ? val : val?.target?.value || val)}
+                  options={[{ value: 'ALL', label: 'All Batches' }, ...batchList.map((b) => ({ value: b, label: b }))]}
+                />
+              </div>
+            )}
 
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
+            {/* Score Tier Dropdown */}
+            <div className="w-36">
+              <Select
+                size="sm"
+                searchable={false}
+                allowClear={false}
+                value={scoreTier}
+                onChange={(val) => setScoreTier(typeof val === 'string' ? val : val?.target?.value || val)}
+                options={[
+                  { value: 'ALL', label: 'All Tiers' },
+                  { value: 'TOP', label: 'Top (≥90%)' },
+                  { value: 'GOOD', label: 'Good (75-89%)' },
+                  { value: 'RISK', label: 'At Risk (<75%)' },
+                ]}
+              />
+            </div>
 
-            {/* Performance Tier Pills */}
-            <button
-              type="button"
-              className={`crm-tperf-pill ${scoreTier === 'ALL' ? 'is-active' : ''}`}
-              onClick={() => setScoreTier('ALL')}
-            >
-              All Tiers
-            </button>
-            <button
-              type="button"
-              className={`crm-tperf-pill ${scoreTier === 'TOP' ? 'is-active' : ''}`}
-              onClick={() => setScoreTier('TOP')}
-            >
-              Top (≥90%)
-            </button>
-            <button
-              type="button"
-              className={`crm-tperf-pill ${scoreTier === 'GOOD' ? 'is-active' : ''}`}
-              onClick={() => setScoreTier('GOOD')}
-            >
-              Good (75-89%)
-            </button>
-            <button
-              type="button"
-              className={`crm-tperf-pill ${scoreTier === 'RISK' ? 'is-active' : ''}`}
-              onClick={() => setScoreTier('RISK')}
-            >
-              At Risk (&lt;75%)
-            </button>
-
-            {/* Sort Selector */}
-            <div className="w-44 ml-1">
+            {/* Sort Dropdown */}
+            <div className="w-44">
               <Select
                 size="sm"
                 searchable={false}
@@ -337,316 +378,164 @@ export default function TeacherPerformancePage() {
                 ]}
               />
             </div>
+
+            {/* Actions */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 shadow-xs font-medium"
+            >
+              <FiDownload size={13} />
+              Export CSV
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => load(true)}
+              disabled={isRefreshing}
+              className="p-2 shadow-xs"
+              title="Refresh performance analytics"
+            >
+              <FiRefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+            </Button>
           </div>
         </div>
 
-        {/* Toolbar Secondary Action Buttons */}
-        <div className="flex items-center gap-2 shrink-0 ml-auto">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigate(ROUTES.TEACHER_STUDENTS)}
-            className="flex items-center gap-1.5 shadow-xs font-semibold rounded-xl"
-            title="Navigate to enrolled students roster"
-          >
-            <FiUsers size={13} />
-            View Students
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleExportCSV}
-            className="flex items-center gap-1.5 shadow-xs font-semibold rounded-xl"
-          >
-            <FiDownload size={13} />
-            Export CSV
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => load(true)}
-            disabled={isRefreshing}
-            className="flex items-center justify-center p-2 shadow-xs rounded-xl"
-            title="Refresh performance analytics"
-          >
-            <FiRefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
-          </Button>
-        </div>
-      </div>
-
-      {/* ── Split Layout: Left Batch Analysis, Right Academic Leaderboard ── */}
-      <div className="crm-tperf-layout">
-        {/* ── Left Column: By Batch Performance ── */}
-        <div className="crm-tperf-panel">
-          <div className="crm-tperf-panel__header">
-            <h3 className="crm-tperf-panel__title">
-              <FiLayers className="text-blue-600 dark:text-blue-400" />
-              Batch Performance Breakdown
-            </h3>
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
-              {courseTrend.length} {courseTrend.length === 1 ? 'Batch' : 'Batches'}
-            </span>
-          </div>
-
-          <div className="crm-tperf-panel__body">
-            {!courseTrend.length ? (
+        {/* Table Content */}
+        <div className="overflow-x-auto">
+          {!filteredStudents.length ? (
+            <div className="p-8">
               <EmptyState
-                title="No batch analytics"
-                description="Performance appears once batches and students are active."
+                title="No matching student records"
+                description="Try adjusting your search criteria, batch filter, or performance tier."
               />
-            ) : (
-              courseTrend.map((row) => {
-                const pct = row.averagePerformance != null ? row.averagePerformance : 0;
-                let fillClass = 'crm-tperf-progress-fill--emerald';
-                if (pct < 70) fillClass = 'crm-tperf-progress-fill--rose';
-                else if (pct < 85) fillClass = 'crm-tperf-progress-fill--blue';
-
-                const isSelected = selectedBatch === row.batch;
-
-                return (
-                  <div
-                    key={row.batchId}
-                    className={`crm-tperf-batch-card cursor-pointer ${isSelected ? 'is-active' : ''}`}
-                    onClick={() => setSelectedBatch(isSelected ? 'ALL' : row.batch)}
-                    title="Click to filter leaderboard by this batch"
-                  >
-                    <div className="crm-tperf-batch-card__head">
-                      <div>
-                        <h4 className="crm-tperf-batch-card__name">{row.batch}</h4>
-                        <p className="crm-tperf-batch-card__sub">
-                          {row.course || 'Academic Course'} · {row.students} students enrolled
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="crm-tperf-batch-card__score">
-                          {row.averagePerformance != null ? `${row.averagePerformance}%` : '—'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="crm-tperf-progress-wrap">
-                      <div className="crm-tperf-progress-bar">
-                        <div
-                          className={`crm-tperf-progress-fill ${fillClass}`}
-                          style={{ width: `${Math.min(100, pct)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="crm-tperf-batch-card__meta">
-                      <span className="font-semibold text-slate-600 dark:text-slate-400">
-                        {pct >= 90 ? '🌟 Exceptional standing' : pct >= 75 ? '✓ On Track' : '⚠ Action required'}
-                      </span>
-                      <button
-                        type="button"
-                        className="text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(ROUTES.TEACHER_BATCH_DETAIL(row.batchId));
-                        }}
-                      >
-                        Open Class <FiArrowUpRight size={12} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-
-            {/* Quick Helper Tip */}
-            <div className="mt-3 p-3.5 bg-blue-50/70 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-900/40 flex items-start gap-2.5">
-              <FiTrendingUp className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" size={16} />
-              <div className="text-[12px] text-blue-900 dark:text-blue-200 leading-relaxed">
-                <strong>Faculty Insight:</strong> Overall score aggregates live attendance records,
-                test results, and evaluated assignments across all registered learners.
-              </div>
             </div>
-          </div>
-        </div>
+          ) : (
+            <table className="crm-tperf-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '56px' }}>Rank</th>
+                  <th>Student Details</th>
+                  <th>Attendance</th>
+                  <th>Tests</th>
+                  <th>Assignments</th>
+                  <th>Overall Score</th>
+                  <th style={{ width: '160px', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStudents.map((row, idx) => {
+                  const score = row.overall;
+                  let scoreColor = 'text-brand';
+                  if (score != null) {
+                    if (score >= 90) scoreColor = 'text-emerald-600 dark:text-emerald-400';
+                    else if (score < 75) scoreColor = 'text-rose-600 dark:text-rose-400';
+                  }
 
-        {/* ── Right Column: Academic Student Leaderboard ── */}
-        <div className="crm-tperf-panel">
-          <div className="crm-tperf-panel__header">
-            <div className="flex items-center gap-2">
-              <h3 className="crm-tperf-panel__title">
-                <FiAward className="text-amber-500" />
-                Student Academic Leaderboard
-              </h3>
-              {selectedBatch !== 'ALL' && (
-                <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100/70 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-full border border-blue-200/50">
-                  Batch: {selectedBatch}
-                </span>
-              )}
-            </div>
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-              Showing {filteredStudents.length} of {rawStudents.length} Students
-            </span>
-          </div>
-
-          <div className="overflow-x-auto">
-            {!filteredStudents.length ? (
-              <div className="p-8">
-                <EmptyState
-                  title="No matching student records"
-                  description="Try adjusting your search criteria, batch filter, or performance tier."
-                />
-              </div>
-            ) : (
-              <table className="crm-tperf-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '72px' }}>Rank</th>
-                    <th>Student Details</th>
-                    <th>Attendance</th>
-                    <th>Tests</th>
-                    <th>Assignments</th>
-                    <th>Overall Score</th>
-                    <th style={{ width: '160px', textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.map((row, idx) => {
-                    const score = row.overall;
-                    let scoreClass = 'crm-tperf-score-pill--high';
-                    if (score == null) scoreClass = 'crm-tperf-score-pill--mid';
-                    else if (score < 70) scoreClass = 'crm-tperf-score-pill--low';
-                    else if (score < 85) scoreClass = 'crm-tperf-score-pill--mid';
-
-                    let rankBadge;
-                    if (idx === 0) {
-                      rankBadge = (
-                        <span className="crm-tperf-rank-pill crm-tperf-rank-pill--1">
-                          <span>🥇</span>
-                          <span>#1</span>
-                        </span>
-                      );
-                    } else if (idx === 1) {
-                      rankBadge = (
-                        <span className="crm-tperf-rank-pill crm-tperf-rank-pill--2">
-                          <span>🥈</span>
-                          <span>#2</span>
-                        </span>
-                      );
-                    } else if (idx === 2) {
-                      rankBadge = (
-                        <span className="crm-tperf-rank-pill crm-tperf-rank-pill--3">
-                          <span>🥉</span>
-                          <span>#3</span>
-                        </span>
-                      );
-                    } else {
-                      rankBadge = (
-                        <span className="crm-tperf-rank-pill crm-tperf-rank-pill--other font-mono">
+                  return (
+                    <tr key={row.studentId}>
+                      {/* Rank */}
+                      <td>
+                        <span className="font-mono text-xs font-semibold text-text-muted">
                           #{idx + 1}
                         </span>
-                      );
-                    }
+                      </td>
 
-                    return (
-                      <tr key={row.studentId}>
-                        {/* Rank */}
-                        <td>
-                          {rankBadge}
-                        </td>
-
-                        {/* Student Name + Code + Batch */}
-                        <td>
-                          <div className="crm-tperf-student-cell">
-                            <Avatar name={row.name} size="sm" className="!w-9 !h-9 !rounded-xl" />
-                            <div className="min-w-0">
-                              <button
-                                type="button"
-                                className="crm-tperf-student-name text-left hover:text-blue-600 dark:hover:text-blue-400 transition-colors block truncate"
-                                onClick={() => setInspectStudent(row)}
-                              >
-                                {row.name}
-                              </button>
-                              <div className="crm-tperf-student-meta">
-                                <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
-                                  {row.studentCode || 'N/A'}
-                                </span>
-                                <span>•</span>
-                                <span className="truncate max-w-[160px] text-slate-600 dark:text-slate-400">{row.batch}</span>
-                              </div>
+                      {/* Student Name + Code + Batch */}
+                      <td>
+                        <div className="flex items-center gap-2.5">
+                          <Avatar name={row.name} size="sm" />
+                          <div className="min-w-0">
+                            <button
+                              type="button"
+                              className="font-semibold text-xs text-text hover:text-brand transition-colors block truncate text-left"
+                              onClick={() => setInspectStudent(row)}
+                            >
+                              {row.name}
+                            </button>
+                            <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
+                              <span className="font-mono">{row.studentCode || 'N/A'}</span>
+                              <span>•</span>
+                              <span className="truncate max-w-[160px]">{row.batch}</span>
                             </div>
                           </div>
-                        </td>
+                        </div>
+                      </td>
 
-                        {/* Attendance % */}
-                        <td>
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className={`w-2 h-2 rounded-full shrink-0 ${
-                                (row.attendancePercent ?? 0) >= 75 ? 'bg-emerald-500' : 'bg-amber-500'
-                              }`}
-                            />
-                            <span className="font-bold text-slate-700 dark:text-slate-200 tabular-nums">
-                              {row.attendancePercent != null ? `${row.attendancePercent}%` : '—'}
+                      {/* Attendance % */}
+                      <td>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                              (row.attendancePercent ?? 0) >= 75 ? 'bg-emerald-500' : 'bg-amber-500'
+                            }`}
+                          />
+                          <span className="font-medium text-xs text-text tabular-nums">
+                            {row.attendancePercent != null ? `${row.attendancePercent}%` : '—'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Tests */}
+                      <td>
+                        <div className="text-xs tabular-nums">
+                          <span className="font-medium text-text">
+                            {row.averageTestPercent != null ? `${row.averageTestPercent}%` : '—'}
+                          </span>
+                          <span className="text-[11px] text-text-muted ml-1">
+                            ({row.testCount ?? 0} {row.testCount === 1 ? 'test' : 'tests'})
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Assignments */}
+                      <td>
+                        <div className="text-xs tabular-nums flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium text-text">
+                            {row.assignmentCompletion != null ? `${row.assignmentCompletion}%` : '—'}
+                          </span>
+                          {row.pendingAssignments > 0 && (
+                            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                              ({row.pendingAssignments} pending)
                             </span>
-                          </div>
-                        </td>
+                          )}
+                        </div>
+                      </td>
 
-                        {/* Tests */}
-                        <td>
-                          <div className="tabular-nums">
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">
-                              {row.averageTestPercent != null ? `${row.averageTestPercent}%` : '—'}
-                            </span>
-                            <span className="text-[11px] text-slate-400 ml-1">
-                              ({row.testCount ?? 0} {row.testCount === 1 ? 'test' : 'tests'})
-                            </span>
-                          </div>
-                        </td>
+                      {/* Overall Score */}
+                      <td>
+                        <span className={`font-bold text-sm tabular-nums ${scoreColor}`}>
+                          {score != null ? `${score}%` : '—'}
+                        </span>
+                      </td>
 
-                        {/* Assignments */}
-                        <td>
-                          <div className="tabular-nums flex items-center gap-1.5 flex-wrap">
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">
-                              {row.assignmentCompletion != null ? `${row.assignmentCompletion}%` : '—'}
-                            </span>
-                            {row.pendingAssignments > 0 && (
-                              <span className="text-[10px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded-full font-bold border border-amber-200/60 dark:border-amber-900/40">
-                                {row.pendingAssignments} pending
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Overall Score */}
-                        <td>
-                          <div className={`crm-tperf-score-pill ${scoreClass}`}>
-                            {score != null ? `${score}%` : '—'}
-                          </div>
-                        </td>
-
-                        {/* Actions */}
-                        <td style={{ textAlign: 'right' }}>
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setInspectStudent(row)}
-                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors inline-flex items-center gap-1 shadow-2xs"
-                            >
-                              <FiEye size={12} className="text-slate-400" /> Scorecard
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => navigate(ROUTES.TEACHER_STUDENT(row.studentId))}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary-dark transition-colors inline-flex items-center gap-1 shadow-xs"
-                            >
-                              <FiExternalLink size={12} /> Profile
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+                      {/* Actions */}
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setInspectStudent(row)}
+                            className="px-2.5 py-1 rounded-md text-xs font-medium border border-border text-text hover:bg-bg-page transition-colors inline-flex items-center gap-1 shadow-2xs"
+                          >
+                            <FiEye size={12} className="text-text-muted" /> Scorecard
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigate(ROUTES.TEACHER_STUDENT(row.studentId))}
+                            className="px-2.5 py-1 rounded-md text-xs font-medium bg-primary text-white hover:bg-primary-dark transition-colors inline-flex items-center gap-1 shadow-2xs"
+                          >
+                            Profile
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 

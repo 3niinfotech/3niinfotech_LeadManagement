@@ -8,6 +8,7 @@ import { assignmentEngine } from './modules/assignment/assignment.engine.js';
 import { reconcileExpiredDemoAttendance } from './modules/enquiry/enquiry.service.js';
 import { processSlaBatch } from './modules/assignment/sla.service.js';
 import { processSmartReminderBatch } from './modules/enquiry/enquirySmartReminder.service.js';
+import { startReminderScheduler } from './modules/reminder/reminder.scheduler.js';
 
 const app = createApp();
 const server = http.createServer(app);
@@ -57,6 +58,9 @@ if (config.env !== 'test') {
       console.error('[smart-reminder] processor:', err.message);
     });
   }, 300000);
+
+  // Automatic scheduled reminders (overdue tasks, 30m consultations, tuition installments)
+  startReminderScheduler(60000);
 
   function listLanIPv4() {
     const nets = os.networkInterfaces();

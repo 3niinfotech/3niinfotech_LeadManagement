@@ -141,21 +141,33 @@ export default function MasterHubPage() {
         { label: 'Admin', path: ROUTES.DASHBOARD },
         { label: 'Masters' },
       ]}
-    >
-      <div className="flex-1 min-h-0 overflow-auto p-4 space-y-5">
-        <div className="max-w-xl">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, category, or used in… e.g. visa, partner, company"
-            icon={FiSearch}
-          />
+      actions={
+        <div className="flex items-center gap-2">
           {query && (
-            <p className="text-xs text-text-muted mt-2">
-              {matchedItems.length} result{matchedItems.length === 1 ? '' : 's'}
-            </p>
+            <span className="text-xs text-text-muted hidden sm:inline tabular-nums">
+              {matchedItems.length} found
+            </span>
           )}
+          <div className="w-64 sm:w-80 md:w-96">
+            <Input
+              size="sm"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, category, or used in… e.g. visa, partner"
+              icon={FiSearch}
+              aria-label="Search masters"
+            />
+          </div>
         </div>
+      }
+    >
+      <div className="flex-1 min-h-0 overflow-auto p-4 space-y-4">
+        {query && (
+          <div className="flex items-center justify-between text-xs text-text-muted pb-2 border-b border-border/60">
+            <span>Showing results matching “{query}”</span>
+            <span className="font-semibold text-text">{matchedItems.length} master{matchedItems.length === 1 ? '' : 's'} found</span>
+          </div>
+        )}
 
         {!query && (
           <div className="flex flex-wrap gap-2">

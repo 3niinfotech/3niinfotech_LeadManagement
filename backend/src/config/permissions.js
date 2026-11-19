@@ -42,6 +42,16 @@ export const PERMISSIONS = {
   INVOICES_UPDATE: 'invoices:update',
   INVOICES_DELETE: 'invoices:delete',
 
+  PAYMENTS_VIEW: 'payments:view',
+  PAYMENTS_CREATE: 'payments:create',
+  FEE_PLANS_VIEW: 'fee_plans:view',
+  FEE_PLANS_MANAGE: 'fee_plans:manage',
+  REFUNDS_VIEW: 'refunds:view',
+  REFUNDS_MANAGE: 'refunds:manage',
+  LEDGER_VIEW: 'ledger:view',
+  EXPENSES_VIEW: 'expenses:view',
+  EXPENSES_MANAGE: 'expenses:manage',
+
   PARTNERS_VIEW: 'partners:view',
   PARTNERS_CREATE: 'partners:create',
   PARTNERS_UPDATE: 'partners:update',

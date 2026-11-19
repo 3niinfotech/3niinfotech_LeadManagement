@@ -479,18 +479,25 @@ export function LandingDestinations() {
 
 
 export function LandingContactSection() {
+  const [formType, setFormType] = useState('ENQUIRY'); // 'ENQUIRY' | 'CONSULTATION'
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     mobile: '',
     interestedCountry: 'Canada',
     interestedCourse: '',
+    preferredIntake: 'Fall 2026',
+    highestQualification: "Bachelor's Degree",
+    preferredDate: '',
+    preferredTime: '10:30',
+    consultationType: 'ONLINE',
     city: '',
     message: '',
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [refCode, setRefCode] = useState('');
+  const [scheduledAt, setScheduledAt] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -503,14 +510,39 @@ export function LandingContactSection() {
       return;
     }
 
+    if (formType === 'CONSULTATION' && !formData.preferredDate) {
+      toastService.error('Please pick your preferred consultation date.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await apiPost('/enquiries/public/contact', formData);
-      toastService.success(res?.message || 'Thank you! Your enquiry has been received.');
-      setRefCode(res?.data?.enquiryCode || '');
-      setSubmitted(true);
+      if (formType === 'CONSULTATION') {
+        const payload = {
+          name: formData.name,
+          email: formData.email,
+          mobile: formData.mobile,
+          preferredCountry: formData.interestedCountry,
+          preferredCourse: formData.interestedCourse,
+          preferredDate: formData.preferredDate,
+          preferredTime: formData.preferredTime,
+          consultationType: formData.consultationType,
+          city: formData.city,
+          message: formData.message,
+        };
+        const res = await apiPost('/enquiries/public/consultation', payload);
+        toastService.success(res?.message || 'Consultation booked successfully!');
+        setRefCode(res?.data?.enquiryCode || '');
+        setScheduledAt(res?.data?.scheduledAt ? new Date(res?.data?.scheduledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '');
+        setSubmitted(true);
+      } else {
+        const res = await apiPost('/enquiries/public/contact', formData);
+        toastService.success(res?.message || 'Thank you! Your enquiry has been received.');
+        setRefCode(res?.data?.enquiryCode || '');
+        setSubmitted(true);
+      }
     } catch (err) {
-      toastService.error(err?.response?.data?.message || 'Failed to submit enquiry. Please try again.');
+      toastService.error(err?.response?.data?.message || 'Submission failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -520,42 +552,89 @@ export function LandingContactSection() {
     <section id="contact" className="landing-section landing-section--soft" aria-labelledby="contact-title">
       <div className="landing-container">
         <Reveal>
-          <span className="landing-eyebrow">Free Consultation &amp; Enquiry</span>
-          <h2 id="contact-title" className="landing-h2">Get in Touch with Our Education Experts</h2>
+          <span className="landing-eyebrow">Direct Admissions &amp; Expert Consultation</span>
+          <h2 id="contact-title" className="landing-h2">Start Your Global Journey With Certified Experts</h2>
           <p className="landing-lead">
-            Have questions about university admissions, course eligibility, fees, or visa processing? Submit your enquiry below and our certified advisors will guide you step by step.
+            Whether you want immediate guidance or a personalized 1-on-1 counseling slot, submit below and our visa specialists will assist you every step of the way.
           </p>
         </Reveal>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mt-8">
-          {/* Left Column: Interactive Enquiry Form */}
+          {/* Left Column: Interactive Form with Mode Switcher */}
           <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+            {/* Mode Switcher Tabs */}
+            <div className="flex items-center gap-2 mb-6 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setFormType('ENQUIRY')}
+                className={`flex-1 py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition-all ${
+                  formType === 'ENQUIRY'
+                    ? 'bg-white dark:bg-slate-900 text-primary shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                Study Abroad Enquiry
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormType('CONSULTATION')}
+                className={`flex-1 py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition-all ${
+                  formType === 'CONSULTATION'
+                    ? 'bg-white dark:bg-slate-900 text-primary shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                📅 Book 1-on-1 Consultation
+              </button>
+            </div>
+
             {submitted ? (
               <div className="text-center py-8">
                 <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl font-bold mb-4">
                   ✓
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Enquiry Received!</h3>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                  {formType === 'CONSULTATION' ? 'Consultation Booked!' : 'Enquiry Received!'}
+                </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 max-w-md mx-auto">
-                  Thank you, <strong>{formData.name}</strong>. Your enquiry has been successfully registered in our CRM pipeline.
+                  Thank you, <strong>{formData.name}</strong>. Your request has been successfully registered in our CRM pipeline.
                 </p>
+                {scheduledAt && (
+                  <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 font-semibold max-w-sm mx-auto">
+                    Scheduled Time: {scheduledAt} ({formData.consultationType === 'ONLINE' ? 'Online Video Call' : 'In-Person Branch Visit'})
+                  </div>
+                )}
                 {refCode && (
                   <div className="inline-block bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-lg text-xs font-mono font-bold text-primary mt-4">
                     Reference ID: {refCode}
                   </div>
                 )}
                 <p className="text-xs text-slate-500 mt-3">
-                  Our counsellor will call or WhatsApp you on <strong>{formData.mobile}</strong> within 24 hours.
+                  Our assigned counsellor will call or message you on <strong>{formData.mobile}</strong>.
                 </p>
                 <button
                   type="button"
                   onClick={() => {
                     setSubmitted(false);
-                    setFormData({ name: '', email: '', mobile: '', interestedCountry: 'Canada', interestedCourse: '', city: '', message: '' });
+                    setScheduledAt('');
+                    setFormData({
+                      name: '',
+                      email: '',
+                      mobile: '',
+                      interestedCountry: 'Canada',
+                      interestedCourse: '',
+                      preferredIntake: 'Fall 2026',
+                      highestQualification: "Bachelor's Degree",
+                      preferredDate: '',
+                      preferredTime: '10:30',
+                      consultationType: 'ONLINE',
+                      city: '',
+                      message: '',
+                    });
                   }}
                   className="landing-btn landing-btn--primary mt-6"
                 >
-                  Submit Another Enquiry
+                  Submit Another Request
                 </button>
               </div>
             ) : (
@@ -607,7 +686,7 @@ export function LandingContactSection() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Preferred Country *
+                      Interested Country *
                     </label>
                     <select
                       value={formData.interestedCountry}
@@ -654,12 +733,99 @@ export function LandingContactSection() {
                   </div>
                 </div>
 
+                {/* Conditional Fields based on Mode */}
+                {formType === 'CONSULTATION' ? (
+                  <div className="p-3.5 bg-primary-50/50 dark:bg-slate-800/60 border border-primary/20 rounded-xl space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Preferred Date *
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          min={new Date().toISOString().slice(0, 10)}
+                          value={formData.preferredDate}
+                          onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Preferred Time Slot *
+                        </label>
+                        <select
+                          value={formData.preferredTime}
+                          onChange={(e) => setFormData({ ...formData, preferredTime: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        >
+                          <option value="10:00">10:00 AM - 10:45 AM</option>
+                          <option value="11:30">11:30 AM - 12:15 PM</option>
+                          <option value="14:00">02:00 PM - 02:45 PM</option>
+                          <option value="15:30">03:30 PM - 04:15 PM</option>
+                          <option value="17:00">05:00 PM - 05:45 PM</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Consultation Mode *
+                        </label>
+                        <select
+                          value={formData.consultationType}
+                          onChange={(e) => setFormData({ ...formData, consultationType: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        >
+                          <option value="ONLINE">Online Video Call</option>
+                          <option value="IN_PERSON">In-Person Branch Visit</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Preferred Intake
+                      </label>
+                      <select
+                        value={formData.preferredIntake}
+                        onChange={(e) => setFormData({ ...formData, preferredIntake: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                      >
+                        <option value="Fall 2026">Fall 2026 (Aug/Sep)</option>
+                        <option value="Spring 2027">Spring 2027 (Jan/Feb)</option>
+                        <option value="Summer 2027">Summer 2027 (May/Jun)</option>
+                        <option value="Immediate">Immediate / Next Available</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Highest Qualification
+                      </label>
+                      <select
+                        value={formData.highestQualification}
+                        onChange={(e) => setFormData({ ...formData, highestQualification: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                      >
+                        <option value="12th Standard / High School">12th Standard / High School</option>
+                        <option value="Diploma">Diploma</option>
+                        <option value="Bachelor's Degree">Bachelor's Degree</option>
+                        <option value="Master's Degree">Master's Degree</option>
+                        <option value="PhD / Doctorate">PhD / Doctorate</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Your Questions / Note (Optional)
                   </label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     placeholder="Tell us about your educational background, IELTS band score, or queries…"
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
@@ -673,7 +839,11 @@ export function LandingContactSection() {
                   className="landing-btn landing-btn--primary w-full justify-center mt-2"
                 >
                   <FiSend size={15} />
-                  {loading ? 'Submitting Enquiry…' : 'Submit Free Enquiry'}
+                  {loading
+                    ? 'Submitting Request…'
+                    : formType === 'CONSULTATION'
+                      ? 'Confirm & Book Consultation'
+                      : 'Submit Free Enquiry'}
                 </button>
                 <p className="text-[11px] text-slate-500 text-center mt-1">
                   🔒 Your contact information is kept strictly confidential and only used for your study abroad guidance.

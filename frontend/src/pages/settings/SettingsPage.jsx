@@ -106,10 +106,12 @@ export default function SettingsPage() {
         <div className="crm-settings__main">
           {active && (
             <>
-              <header className="crm-settings__main-head">
-                <h2>{active.label}</h2>
-                <p>{active.description}</p>
-              </header>
+              {active.id !== 'team-access' && (
+                <header className="crm-settings__main-head">
+                  <h2>{active.label}</h2>
+                  <p>{active.description}</p>
+                </header>
+              )}
               <div className={`crm-settings__main-body ${active.id === 'team-access' || active.id === 'company' ? 'crm-settings__main-body--wide' : ''}`}>
                 {active.id === 'notifications' && (
                   <div className="crm-settings-notify">

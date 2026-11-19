@@ -17,7 +17,7 @@ import {
 } from '../../utils/tenant.util.js';
 import { ENQUIRY_SORT_FIELDS } from './enquiry.validators.js';
 import { CLOSED_VIEW_STATUSES } from './enquiryStatus.config.js';
-import { notifyUser, notifyCounsellorAssigned } from '../notification/notification.dispatcher.js';
+import { notifyUser, notifyCounsellorAssigned, notifyAppointmentEvent } from '../notification/notification.dispatcher.js';
 import { normalizeEnquiryTags } from './enquiryTags.config.js';
 import { normalizeDocumentCategory } from './enquiryDocument.config.js';
 import { smartReminderService } from './enquirySmartReminder.service.js';
@@ -269,15 +269,18 @@ async function requireEnquiry(id, user) {
   return enquiry;
 }
 
-const mapEnquiryInput = (data) => ({
-  ...data,
-  dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-  passportNo: data.passportNo?.trim() ? data.passportNo.trim().toUpperCase() : null,
-  testsGiven: data.testsGiven || [],
-  tags: data.tags !== undefined ? normalizeEnquiryTags(data.tags) : undefined,
-  lastRemark: data.remark || undefined,
-  lastTouchedAt: new Date(),
-});
+const mapEnquiryInput = (data) => {
+  const { manualCounsellorOverride: _m, applyCourseCounsellor: _a, ...rest } = data;
+  return {
+    ...rest,
+    dateOfBirth: rest.dateOfBirth ? new Date(rest.dateOfBirth) : null,
+    passportNo: rest.passportNo?.trim() ? rest.passportNo.trim().toUpperCase() : null,
+    testsGiven: rest.testsGiven || [],
+    tags: rest.tags !== undefined ? normalizeEnquiryTags(rest.tags) : undefined,
+    lastRemark: rest.remark || undefined,
+    lastTouchedAt: new Date(),
+  };
+};
 
 export const enquiryService = {
   getAll: async (query, user) => {
@@ -308,13 +311,41 @@ export const enquiryService = {
   getById: async (id, user) => {
     const scopeWhere = mergeScope(user, { entity: 'enquiry' });
     let enquiry = await enquiryRepository.findById(id, scopeWhere);
+    if (!enquiry && (user.role?.slug === 'counsellor' || user.role?.slug === 'team_leader') && user.branchId) {
+      const branchEnquiry = await enquiryRepository.findById(id, {
+        branchId: user.branchId,
+        branch: { companyId: user.companyId, deletedAt: null },
+      });
+      if (branchEnquiry) {
+        enquiry = branchEnquiry;
+      }
+    }
     if (!enquiry) throw new AppError('Enquiry not found', 404);
     enquiry = await smartReminderService.evaluateAndProcess(enquiry);
     const companyId = enquiry.branch?.companyId || user.companyId;
     if (companyId) {
       enquiry = await hydrateEnquiryMasterLabels(enquiry, companyId);
     }
-    const photo = (enquiry.documents || []).find((d) => {
+    const enquiryDocs = (enquiry.documents || []).map((d) => ({
+      ...d,
+      source: 'enquiry',
+    }));
+    const studentDocs = (enquiry.student?.documents || []).map((d) => ({
+      ...d,
+      source: 'student',
+      status: d.metadata?.status || d.status || 'UPLOADED',
+    }));
+    const seenFiles = new Set(enquiryDocs.map((d) => d.filePath || d.fileName));
+    const mergedDocs = [...enquiryDocs];
+    for (const sd of studentDocs) {
+      if (!seenFiles.has(sd.filePath || sd.fileName)) {
+        seenFiles.add(sd.filePath || sd.fileName);
+        mergedDocs.push(sd);
+      }
+    }
+    mergedDocs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const photo = mergedDocs.find((d) => {
       if (String(d.category || '').toUpperCase() !== 'PHOTO') return false;
       return String(d.mimeType || '').startsWith('image/')
         || /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName || d.name || d.filePath || '')
@@ -322,6 +353,7 @@ export const enquiryService = {
     });
     return {
       ...enquiry,
+      documents: mergedDocs,
       photoUrl: photo?.filePath || enquiry.photoUrl || null,
     };
   },
@@ -360,7 +392,7 @@ export const enquiryService = {
       }
     }
 
-    const { allowDuplicate: _allowDuplicate, manualCounsellorOverride: _m, applyCourseCounsellor: _a, ...input } = data;
+    const { allowDuplicate: _allowDuplicate, ...input } = data;
     const enquiryCode = await enquiryRepository.generateCode(branch.companyId);
     let status = input.status;
     if (!status) {
@@ -371,7 +403,11 @@ export const enquiryService = {
     const normalizedInput = await normalizeEnquiryMasterFields(input, branch.companyId);
 
     const counsellorResolution = await courseCounsellorMappingService.resolveForEnquiryInput({
-      data: normalizedInput,
+      data: {
+        ...normalizedInput,
+        manualCounsellorOverride: data.manualCounsellorOverride === true,
+        applyCourseCounsellor: data.applyCourseCounsellor === true,
+      },
       user: req.user,
       branchId: branch.id,
     });
@@ -392,7 +428,7 @@ export const enquiryService = {
       await assertCounsellorInTenant(normalizedInput.assignedToId, req.user);
       assignedToId = normalizedInput.assignedToId;
       assignedById = userId;
-      if (input.manualCounsellorOverride) {
+      if (data.manualCounsellorOverride) {
         metadata = courseCounsellorMappingService.buildManualAssignmentMeta(
           {},
           userId,
@@ -972,6 +1008,30 @@ export const enquiryService = {
       await smartReminderService.clearForNewFollowup(id, enquiry.metadata || {});
     }
 
+    // Older followups for this enquiry are now fulfilled/superseded by this newly conducted follow-up
+    await prisma.enquiryFollowup.updateMany({
+      where: {
+        enquiryId: id,
+        id: { not: followup.id },
+        nextDate: { not: null },
+      },
+      data: {
+        nextDate: null,
+      },
+    }).catch(() => {});
+
+    // Complete any open tasks for this enquiry
+    await prisma.task.updateMany({
+      where: {
+        enquiryId: id,
+        status: { in: ['PENDING', 'IN_PROGRESS'] },
+      },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+      },
+    }).catch(() => {});
+
     await enquiryRepository.update(id, {
       lastRemark: data.remark,
       lastTouchedAt: new Date(),
@@ -1019,6 +1079,34 @@ export const enquiryService = {
       newValue: data.remark || undefined,
       req,
     });
+
+    try {
+      const enq = await prisma.enquiry.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          studentId: true,
+          branchId: true,
+          branch: { select: { companyId: true } },
+          student: { select: { id: true, firstName: true, lastName: true } },
+        },
+      });
+      if (enq) {
+        await notifyAppointmentEvent({
+          appointment,
+          student: enq.student,
+          enquiry: enq,
+          counsellorId: data.counsellorId,
+          actorId: userId,
+          companyId: enq.branch?.companyId,
+        });
+      }
+    } catch (e) {
+      console.warn('[enquiry.addAppointment] notifyAppointmentEvent warning:', e.message);
+    }
+
     return appointment;
   },
 
@@ -1676,7 +1764,21 @@ export const enquiryService = {
 
   getDocuments: async (id, user) => {
     const enquiry = await requireEnquiry(id, user);
-    return enquiry.documents || [];
+    const enquiryDocs = (enquiry.documents || []).map((d) => ({ ...d, source: 'enquiry' }));
+    const studentDocs = (enquiry.student?.documents || []).map((d) => ({
+      ...d,
+      source: 'student',
+      status: d.metadata?.status || d.status || 'UPLOADED',
+    }));
+    const seenFiles = new Set(enquiryDocs.map((d) => d.filePath || d.fileName));
+    const merged = [...enquiryDocs];
+    for (const sd of studentDocs) {
+      if (!seenFiles.has(sd.filePath || sd.fileName)) {
+        seenFiles.add(sd.filePath || sd.fileName);
+        merged.push(sd);
+      }
+    }
+    return merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   },
 
   addDocument: async (id, file, userId, category, user) => {

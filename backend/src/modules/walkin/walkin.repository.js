@@ -117,6 +117,148 @@ export const walkinRepository = {
     });
   },
 
+  findDuplicateIdentity: async (companyId, { phone, email, branchId, excludeId } = {}) => {
+    const normalizedPhone = phone ? normalizePhone(phone).slice(-10) : null;
+    const cleanEmail = email && typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : null;
+
+    if (!normalizedPhone && !cleanEmail) return null;
+
+    // 1. Check Students (Highest Lifecycle Stage)
+    const studentOrClauses = [];
+    if (normalizedPhone && normalizedPhone.length >= 8) {
+      studentOrClauses.push({ phone: { contains: normalizedPhone } });
+    }
+    if (cleanEmail) {
+      studentOrClauses.push({ email: cleanEmail });
+    }
+    if (studentOrClauses.length > 0) {
+      const student = await prisma.student.findFirst({
+        where: {
+          deletedAt: null,
+          branch: { companyId },
+          OR: studentOrClauses,
+        },
+        include: {
+          assignedTo: { select: userSelect },
+          branch: { select: branchSelect },
+        },
+      });
+      if (student) {
+        const phoneMatch = normalizedPhone && student.phone && normalizePhone(student.phone).includes(normalizedPhone);
+        const emailMatch = cleanEmail && student.email && student.email.toLowerCase() === cleanEmail;
+        const matchedOn = phoneMatch && emailMatch ? 'both' : (emailMatch ? 'email' : 'phone');
+        return {
+          matchType: 'STUDENT',
+          id: student.id,
+          code: student.studentCode,
+          name: `${student.firstName || ''} ${student.lastName || ''}`.trim() || student.phone,
+          phone: student.phone,
+          email: student.email,
+          status: student.status,
+          branch: student.branch?.name,
+          assignedTo: student.assignedTo ? `${student.assignedTo.firstName || ''} ${student.assignedTo.lastName || ''}`.trim() : null,
+          matchedOn,
+        };
+      }
+    }
+
+    // 2. Check Enquiries
+    const enquiryOrClauses = [];
+    if (normalizedPhone && normalizedPhone.length >= 8) {
+      enquiryOrClauses.push({ mobile: { contains: normalizedPhone } });
+    }
+    if (cleanEmail) {
+      enquiryOrClauses.push({ email: cleanEmail });
+    }
+    if (enquiryOrClauses.length > 0) {
+      const enquiry = await prisma.enquiry.findFirst({
+        where: {
+          ...softDeleteWhere,
+          branch: { companyId },
+          OR: enquiryOrClauses,
+        },
+        include: {
+          assignedTo: { select: userSelect },
+          branch: { select: branchSelect },
+          student: { select: { id: true, studentCode: true, status: true } },
+        },
+      });
+      if (enquiry) {
+        if (enquiry.student) {
+          return {
+            matchType: 'STUDENT',
+            id: enquiry.student.id,
+            code: enquiry.student.studentCode,
+            name: `${enquiry.firstName || ''} ${enquiry.lastName || ''}`.trim() || enquiry.mobile,
+            phone: enquiry.mobile,
+            email: enquiry.email,
+            status: enquiry.student.status,
+            branch: enquiry.branch?.name,
+            assignedTo: enquiry.assignedTo ? `${enquiry.assignedTo.firstName || ''} ${enquiry.assignedTo.lastName || ''}`.trim() : null,
+            matchedOn: (normalizedPhone && cleanEmail) ? 'both' : (cleanEmail ? 'email' : 'phone'),
+          };
+        }
+        const phoneMatch = normalizedPhone && enquiry.mobile && normalizePhone(enquiry.mobile).includes(normalizedPhone);
+        const emailMatch = cleanEmail && enquiry.email && enquiry.email.toLowerCase() === cleanEmail;
+        const matchedOn = phoneMatch && emailMatch ? 'both' : (emailMatch ? 'email' : 'phone');
+        return {
+          matchType: 'ENQUIRY',
+          id: enquiry.id,
+          code: enquiry.enquiryCode,
+          name: `${enquiry.firstName || ''} ${enquiry.lastName || ''}`.trim() || enquiry.mobile,
+          phone: enquiry.mobile,
+          email: enquiry.email,
+          status: enquiry.status,
+          branch: enquiry.branch?.name,
+          assignedTo: enquiry.assignedTo ? `${enquiry.assignedTo.firstName || ''} ${enquiry.assignedTo.lastName || ''}`.trim() : null,
+          matchedOn,
+        };
+      }
+    }
+
+    // 3. Check Leads (Walk-ins)
+    const leadOrClauses = [];
+    if (normalizedPhone && normalizedPhone.length >= 8) {
+      leadOrClauses.push({ phone: { contains: normalizedPhone } });
+    }
+    if (cleanEmail) {
+      leadOrClauses.push({ email: cleanEmail });
+    }
+    if (leadOrClauses.length > 0) {
+      const lead = await prisma.lead.findFirst({
+        where: {
+          ...softDeleteWhere,
+          branch: { companyId },
+          ...(excludeId && { id: { not: excludeId } }),
+          OR: leadOrClauses,
+        },
+        include: {
+          assignedTo: { select: userSelect },
+          branch: { select: branchSelect },
+        },
+      });
+      if (lead) {
+        const phoneMatch = normalizedPhone && lead.phone && normalizePhone(lead.phone).includes(normalizedPhone);
+        const emailMatch = cleanEmail && lead.email && lead.email.toLowerCase() === cleanEmail;
+        const matchedOn = phoneMatch && emailMatch ? 'both' : (emailMatch ? 'email' : 'phone');
+        return {
+          matchType: 'LEAD',
+          id: lead.id,
+          code: lead.leadCode,
+          name: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || lead.phone,
+          phone: lead.phone,
+          email: lead.email,
+          status: lead.status,
+          branch: lead.branch?.name,
+          assignedTo: lead.assignedTo ? `${lead.assignedTo.firstName || ''} ${lead.assignedTo.lastName || ''}`.trim() : null,
+          matchedOn,
+        };
+      }
+    }
+
+    return null;
+  },
+
   create: (data) => prisma.lead.create({
     data,
     include: {

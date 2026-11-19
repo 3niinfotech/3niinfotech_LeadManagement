@@ -7,6 +7,8 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiClock,
+  FiFilter,
+  FiSearch,
   FiTrendingUp,
   FiUser,
   FiXCircle,
@@ -24,6 +26,7 @@ import {
   PortalTable,
 } from '../../components/portal/PortalUi';
 import Button from '../../components/ui/Button';
+import Pagination from '../../components/ui/Pagination';
 import './student-dashboard.theme.css';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -55,6 +58,10 @@ export default function StudentAttendancePage() {
   const [error, setError] = useState('');
   const [viewMonth, setViewMonth] = useState(() => new Date());
   const [batchFilter, setBatchFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,6 +113,66 @@ export default function StudentAttendancePage() {
     });
     return map;
   }, [filteredHistory]);
+
+  // Reset page when search or filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, batchFilter]);
+
+  const statusCounts = useMemo(() => {
+    const counts = { ALL: filteredHistory.length, PRESENT: 0, LATE: 0, ABSENT: 0 };
+    filteredHistory.forEach((r) => {
+      const st = r.status || (r.dailyStatus === 'A' ? 'ABSENT' : 'PRESENT');
+      if (st === 'LATE') counts.LATE += 1;
+      else if (st === 'PRESENT') counts.PRESENT += 1;
+      else if (st === 'ABSENT') counts.ABSENT += 1;
+    });
+    return counts;
+  }, [filteredHistory]);
+
+  const tableData = useMemo(() => {
+    let list = filteredHistory;
+
+    if (statusFilter !== 'ALL') {
+      list = list.filter((r) => {
+        const st = r.status || (r.dailyStatus === 'A' ? 'ABSENT' : 'PRESENT');
+        return st === statusFilter;
+      });
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((r) => {
+        const sDate = r.startAt ? new Date(r.startAt) : new Date(r.date);
+        const dateStr = sDate.toLocaleDateString('en-IN', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }).toLowerCase();
+        const course = (r.course || 'IELTS Coaching').toLowerCase();
+        const batch = (r.batch || 'Batch A').toLowerCase();
+        const teacher = (
+          r.markedBy?.firstName || r.instructor?.firstName || 'Rakesh Iyer'
+        ).toLowerCase();
+        const remarks = (r.remarks || '').toLowerCase();
+        return (
+          dateStr.includes(q) ||
+          course.includes(q) ||
+          batch.includes(q) ||
+          teacher.includes(q) ||
+          remarks.includes(q)
+        );
+      });
+    }
+
+    return list;
+  }, [filteredHistory, statusFilter, searchQuery]);
+
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return tableData.slice(start, start + pageSize);
+  }, [tableData, page, pageSize]);
 
   const calendarCells = useMemo(
     () => buildCalendarDays(viewMonth.getFullYear(), viewMonth.getMonth()),
@@ -398,89 +465,269 @@ export default function StudentAttendancePage() {
         title="Complete Attendance History"
         description="Comprehensive audit of all completed sessions and faculty remarks"
       >
-        {!filteredHistory.length ? (
-          <PortalEmpty
-            title="No sessions logged yet"
-            description="Attendance marked by your instructor will appear here in chronological order."
-          />
-        ) : (
-          <PortalTable minWidth={700}>
+        {/* Table Filter Toolbar */}
+        <div className="p-3.5 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3 bg-surface-2/40">
+          {/* Search Bar */}
+          <div className="relative flex-1 max-w-sm">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-3.5 h-3.5 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search course, batch, faculty or remarks..."
+              className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-border bg-surface text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text text-sm leading-none px-1"
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Status Filter Badges */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setStatusFilter('ALL')}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                statusFilter === 'ALL'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'bg-surface-2 text-text-secondary hover:bg-surface-3 hover:text-text'
+              }`}
+            >
+              All ({statusCounts.ALL})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('PRESENT')}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                statusFilter === 'PRESENT'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-surface-2 text-text-secondary hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${statusFilter === 'PRESENT' ? 'bg-white' : 'bg-emerald-500'}`} />
+              Present ({statusCounts.PRESENT})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('LATE')}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                statusFilter === 'LATE'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-surface-2 text-text-secondary hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-amber-600'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${statusFilter === 'LATE' ? 'bg-white' : 'bg-amber-500'}`} />
+              Late ({statusCounts.LATE})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('ABSENT')}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                statusFilter === 'ABSENT'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'bg-surface-2 text-text-secondary hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${statusFilter === 'ABSENT' ? 'bg-white' : 'bg-rose-500'}`} />
+              Absent ({statusCounts.ABSENT})
+            </button>
+          </div>
+        </div>
+
+        {/* Attendance Data Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <colgroup>
+              <col style={{ width: '22%' }} />
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '21%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '18%' }} />
+            </colgroup>
             <thead>
-              <tr>
-                <th>Date & Time</th>
-                <th>Course / Batch</th>
-                <th>Instructor</th>
-                <th>Status</th>
-                <th>Remarks</th>
+              <tr className="border-b border-border bg-surface-2/60">
+                <th className="py-2.5 px-4 text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                  Date &amp; Time
+                </th>
+                <th className="py-2.5 px-4 text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                  Course / Batch
+                </th>
+                <th className="py-2.5 px-4 text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                  Instructor
+                </th>
+                <th className="py-2.5 px-4 text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="py-2.5 px-4 text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                  Remarks
+                </th>
               </tr>
             </thead>
-            <tbody>
-              {filteredHistory.map((row) => {
-                const sDate = row.startAt ? new Date(row.startAt) : new Date(row.date);
-                const isPres = row.status === 'PRESENT' || row.status === 'LATE';
-                const teacher =
-                  row.markedBy?.firstName || row.instructor?.firstName
-                    ? `${row.markedBy?.firstName || row.instructor?.firstName} ${
-                        row.markedBy?.lastName || row.instructor?.lastName || ''
-                      }`.trim()
-                    : 'Rakesh Iyer';
-
-                return (
-                  <tr key={row.id}>
-                    <td>
-                      <div className="crm-stu-table-cell">
-                        <strong>
-                          {sDate.toLocaleDateString('en-IN', {
-                            weekday: 'short',
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </strong>
-                        <span className="text-xs text-muted">
-                          {sDate.toLocaleTimeString('en-IN', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="crm-stu-table-cell">
-                        <strong>{row.course || 'IELTS Coaching'}</strong>
-                        <span className="text-xs text-muted">{row.batch || 'Batch A — Morning'}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="crm-stu-table-cell">
-                        <span className="text-sm font-medium">{teacher}</span>
-                        <span className="text-xs text-muted">Faculty</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span
-                        className={`crm-stu-badge ${
-                          row.status === 'LATE'
-                            ? 'crm-stu-badge--late'
-                            : isPres
-                            ? 'crm-stu-badge--ok'
-                            : 'crm-stu-badge--absent'
-                        }`}
+            <tbody className="divide-y divide-border/60">
+              {paginatedRows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-12 px-4 text-center">
+                    <p className="text-xs font-semibold text-text">No attendance records match your filter</p>
+                    <p className="text-[11px] text-text-muted mt-0.5">Try clearing your search query or switching status filters.</p>
+                    {(searchQuery || statusFilter !== 'ALL') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setStatusFilter('ALL');
+                        }}
+                        className="mt-2.5 text-xs text-primary font-semibold hover:underline"
                       >
-                        {row.status === 'LATE' ? 'Late (Present)' : isPres ? 'Present' : 'Absent'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="text-sm text-secondary">
-                        {row.remarks || 'Attended full session'}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+                        Reset filters
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ) : (
+                paginatedRows.map((row) => {
+                  const sDate = row.startAt ? new Date(row.startAt) : new Date(row.date);
+                  const status = row.status || (row.dailyStatus === 'A' ? 'ABSENT' : 'PRESENT');
+                  const isPres = status === 'PRESENT';
+                  const isLate = status === 'LATE';
+                  const isAbs = status === 'ABSENT';
+
+                  const teacher =
+                    row.markedBy?.firstName || row.instructor?.firstName
+                      ? `${row.markedBy?.firstName || row.instructor?.firstName} ${
+                          row.markedBy?.lastName || row.instructor?.lastName || ''
+                        }`.trim()
+                      : 'Rakesh Iyer';
+
+                  const initials =
+                    teacher
+                      .split(' ')
+                      .filter(Boolean)
+                      .map((n) => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2) || 'FA';
+
+                  return (
+                    <tr
+                      key={row.id}
+                      className="hover:bg-primary/[0.03] transition-colors"
+                    >
+                      {/* Date & Time */}
+                      <td className="py-3 px-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-semibold text-text text-xs">
+                            {sDate.toLocaleDateString('en-IN', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[11px] text-text-muted font-medium">
+                            <FiClock className="w-3 h-3 text-text-muted shrink-0" />
+                            {sDate.toLocaleTimeString('en-IN', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Course / Batch */}
+                      <td className="py-3 px-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold text-text text-xs">
+                            {row.course || 'IELTS Coaching'}
+                          </span>
+                          <span className="text-[11px] text-text-muted font-medium">
+                            {row.batch || 'Batch A — Morning'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Instructor */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold text-[10px] flex items-center justify-center shrink-0 border border-primary/20">
+                            {initials}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-medium text-text text-xs truncate">
+                              {teacher}
+                            </span>
+                            <span className="text-[10px] text-text-muted">
+                              Faculty
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3 px-4">
+                        {isLate ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 shadow-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                            Late
+                          </span>
+                        ) : isPres ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shadow-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                            Present
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 shadow-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                            Absent
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Remarks */}
+                      <td className="py-3 px-4">
+                        {isAbs ? (
+                          <span className="text-xs text-rose-600/90 dark:text-rose-400/90 font-medium">
+                            {row.remarks && row.remarks !== 'Attended full session'
+                              ? row.remarks
+                              : 'Absent — Session missed'}
+                          </span>
+                        ) : isLate ? (
+                          <span className="text-xs text-amber-700/90 dark:text-amber-400/90 font-medium">
+                            {row.remarks || 'Late arrival recorded'}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-text-secondary">
+                            {row.remarks || 'Attended full session'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
-          </PortalTable>
-        )}
+          </table>
+        </div>
+
+        {/* Bottom Pagination Footer */}
+        <Pagination
+          page={page}
+          limit={pageSize}
+          total={tableData.length}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+          pageSizeOptions={[10, 25, 50]}
+          className="border-t border-border"
+        />
       </PortalPanel>
     </PortalPage>
   );

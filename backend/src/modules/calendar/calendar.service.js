@@ -95,7 +95,7 @@ function transformFollowup(row, user) {
     canEdit: editable,
     canDelete: false,
     canAssign: editable && hasAnyPermission(user.permissions, ['enquiry.assign', 'calendar.assign', 'enquiries:update']),
-    canComplete: false,
+    canComplete: editable && hasAnyPermission(user.permissions, ['calendar.complete', 'enquiry.update', 'enquiries:update']),
     canReschedule: editable && hasAnyPermission(user.permissions, ['calendar.reschedule', 'enquiry.update', 'enquiries:update']),
     meta: { attempt: row.attempt, followupAt: row.followupAt, nextDate: row.nextDate },
   };
@@ -175,7 +175,7 @@ function transformLeadFollowup(row, user) {
     canEdit: editable,
     canDelete: false,
     canAssign: false,
-    canComplete: false,
+    canComplete: editable && hasAnyPermission(user.permissions, ['calendar.complete', 'enquiry.update', 'enquiries:update']),
     canReschedule: editable,
     meta: {},
   };
@@ -366,7 +366,7 @@ function transformVisaExpiry(row) {
   };
 }
 
-function transformEnquiryDemo(row) {
+function transformEnquiryDemo(row, user) {
   const name = enquiryLabel(row.enquiry);
   return {
     id: eventCompositeId(CALENDAR_SOURCE.ENQUIRY_DEMO, row.id),
@@ -394,7 +394,7 @@ function transformEnquiryDemo(row) {
     canEdit: false,
     canDelete: false,
     canAssign: false,
-    canComplete: false,
+    canComplete: Boolean(user && canMutateEnquiry(user)),
     canReschedule: false,
     meta: { attendance: row.attendance, sessionStatus: row.sessionStatus },
   };
@@ -532,7 +532,7 @@ export const calendarService = {
       ...feeInstallments.map((r) => transformFeeInstallmentDue(r)),
       ...appOffers.map((r) => transformApplicationOffer(r)),
       ...visaExpiries.map((r) => transformVisaExpiry(r)),
-      ...demos.map((r) => transformEnquiryDemo(r)),
+      ...demos.map((r) => transformEnquiryDemo(r, user)),
       ...classSessions.map((r) => transformClassSession(r)),
     ];
 
@@ -671,6 +671,18 @@ export const calendarService = {
         message: `Your appointment "${row.title || 'Counseling'}" is marked complete.`,
         link: '/student/counseling',
         metadata: { event: 'APPOINTMENT_COMPLETED', appointmentId: parsed.sourceId },
+      });
+      return { id: compositeId, status: 'COMPLETED' };
+    }
+
+    if (parsed.sourceType === CALENDAR_SOURCE.ENQUIRY_FOLLOWUP) {
+      const row = await calendarRepository.getEnquiryFollowupById(parsed.sourceId);
+      if (!row?.enquiry) throw new AppError('Follow-up not found', 404);
+      await assertEnquiryInTenant(row.enquiry.id, user);
+      await calendarRepository.updateEnquiryFollowup(parsed.sourceId, { nextDate: null });
+      await auditLog({
+        userId: user.id, action: 'STATUS_CHANGE', entityType: 'EnquiryFollowup', entityId: parsed.sourceId,
+        newData: { isCompleted: true, status: 'COMPLETED' }, req,
       });
       return { id: compositeId, status: 'COMPLETED' };
     }

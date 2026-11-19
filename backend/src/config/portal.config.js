@@ -8,7 +8,7 @@ export const PORTALS = {
 };
 
 export const STUDENT_ROLE_SLUGS = ['student_portal'];
-export const AGENT_ROLE_SLUGS = ['partner'];
+export const AGENT_ROLE_SLUGS = ['partner', 'agent', 'partner_agent'];
 
 /** Internal staff + platform roles — counsellors use admin portal */
 export const ADMIN_ROLE_SLUGS = [
@@ -23,6 +23,7 @@ export const ADMIN_ROLE_SLUGS = [
   'visa_officer',
   'finance_manager',
   'finance_executive',
+  'accountant',
   'marketing_manager',
   'marketing_executive',
   'receptionist',

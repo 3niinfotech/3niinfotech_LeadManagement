@@ -133,6 +133,15 @@ export const ROLE_PROFILE_WORKSPACE = {
       { id: 'students', label: 'Students', path: ROUTES.STUDENTS, icon: FiUsers },
     ],
   },
+  accountant: {
+    title: 'Accounts Desk',
+    hint: 'Fee collection, ledgers, and reports',
+    links: [
+      { id: 'fees', label: 'Fees & Invoices', path: ROUTES.INVOICES, icon: FiDollarSign },
+      { id: 'students', label: 'Students', path: ROUTES.STUDENTS, icon: FiUsers },
+      { id: 'reports', label: 'Reports', path: ROUTES.REPORTS, icon: FiActivity },
+    ],
+  },
   telecaller: {
     title: 'Calling desk',
     hint: 'Leads and follow-ups',
@@ -152,6 +161,14 @@ export const ROLE_PROFILE_WORKSPACE = {
   partner: {
     title: 'Partner portal',
     hint: 'Your referred students',
+    links: [
+      { id: 'home', label: 'Agent home', path: ROUTES.AGENT_DASHBOARD, icon: FiGrid },
+      { id: 'students', label: 'My students', path: ROUTES.AGENT_STUDENTS, icon: FiUsers },
+    ],
+  },
+  agent: {
+    title: 'Agent portal',
+    hint: 'Your referred students and applications',
     links: [
       { id: 'home', label: 'Agent home', path: ROUTES.AGENT_DASHBOARD, icon: FiGrid },
       { id: 'students', label: 'My students', path: ROUTES.AGENT_STUDENTS, icon: FiUsers },

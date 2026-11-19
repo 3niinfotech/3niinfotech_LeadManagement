@@ -27,8 +27,8 @@ export const getWalkIn = asyncHandler(async (req, res) => {
 });
 
 export const checkDuplicate = asyncHandler(async (req, res) => {
-  const { phone, branchId, excludeId } = req.query;
-  const data = await walkinService.checkDuplicate(phone, branchId, excludeId, req.user);
+  const { phone, email, branchId, excludeId } = req.query;
+  const data = await walkinService.checkDuplicate({ phone, email, branchId, excludeId }, req.user);
   sendSuccess(res, data);
 });
 

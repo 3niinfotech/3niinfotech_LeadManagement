@@ -134,8 +134,8 @@ export default function StudentDashboardPage() {
         // Real-time optimistic update of finance data
         setData((prev) => {
           if (!prev) return prev;
-          const prevTotal = Number(prev.finance?.totalFees) || 120000;
-          const prevPaid = Number(prev.finance?.paid) || 80000;
+          const prevTotal = Number(prev.finance?.totalFees) || 0;
+          const prevPaid = Number(prev.finance?.paid) || 0;
           const newPaid = prevPaid + finalAmount;
           const newPending = Math.max(0, prevTotal - newPaid);
           return {
@@ -213,20 +213,20 @@ export default function StudentDashboardPage() {
     .toUpperCase() || 'KG';
 
   const studentId = student.studentCode || (student.id ? `STU-${String(student.id).slice(0, 8).toUpperCase()}` : 'STU12345');
-  const studentPhone = student.phone || user?.phone || '+91 98765 43210';
-  const studentEmail = student.email || user?.email || 'kishan@gmail.com';
-  const studentCity = student.branch?.name || student.address || user?.branchName || 'Ahmedabad, Gujarat';
-  const rawCountry = student.country || student.targetCountry || 'Canada';
+  const studentPhone = student.phone || user?.phone || 'Phone not set';
+  const studentEmail = student.email || user?.email || 'Email not set';
+  const studentCity = student.branch?.name || student.address || user?.branchName || '';
+  const rawCountry = student.country || student.targetCountry || '';
   const targetCountry = cleanCountryName(rawCountry);
-  const targetCourse = student.course || student.targetCourse || 'Business Management';
-  const intake = student.intake || 'Sep 2025';
-  const counselor = student.counselor || data?.assignedCounselor || { name: 'Priya Mehta', email: 'priya.mehta@3niinfotech.com' };
+  const targetCourse = student.course || student.targetCourse || 'Study Visa';
+  const intake = student.intake || 'Upcoming';
+  const counselor = student.counselor || data?.assignedCounselor || { name: 'Admissions Counsellor', email: 'helpdesk@3niinfotech.com' };
 
   const studentPhoto = useMemo(() => {
     return resolveStudentPhotoUrl(student) || getDocumentUrl(student.photoUrl || student.avatar || user?.avatar) || '';
   }, [student, user]);
 
-  // Documents Checklist (Matching reference screenshot exactly)
+  // Documents Checklist
   const documentsChecklist = useMemo(() => {
     if (data?.documents && data.documents.length > 0) {
       return data.documents.slice(0, 6).map((doc, idx) => {
@@ -239,23 +239,16 @@ export default function StudentDashboardPage() {
         };
       });
     }
-    return [
-      { id: 'd1', name: 'Passport', status: 'Uploaded', isUploaded: true },
-      { id: 'd2', name: '10th Marksheet', status: 'Uploaded', isUploaded: true },
-      { id: 'd3', name: '12th Marksheet', status: 'Pending', isUploaded: false },
-      { id: 'd4', name: 'IELTS Score Card', status: 'Uploaded', isUploaded: true },
-      { id: 'd5', name: 'Financial Proof', status: 'Pending', isUploaded: false },
-      { id: 'd6', name: 'Photo & Signature', status: 'Uploaded', isUploaded: true },
-    ];
+    return [];
   }, [data]);
 
   // Real KPI Counts (Clean without charts)
   const kpiCounts = useMemo(() => {
-    const rawApps = data?.applications?.length ?? data?.kpis?.applicationsTotal ?? 5;
+    const rawApps = data?.applications?.length ?? data?.kpis?.applicationsTotal ?? 0;
     const uploadedDocs = documentsChecklist.filter((d) => d.isUploaded).length;
-    const totalDocs = documentsChecklist.length || 6;
-    const paidInstallments = data?.finance?.installments?.filter((i) => i.status === 'PAID').length ?? 2;
-    const totalInstallments = data?.finance?.installments?.length || 4;
+    const totalDocs = documentsChecklist.length || 0;
+    const paidInstallments = data?.finance?.installments?.filter((i) => i.status === 'PAID').length ?? 0;
+    const totalInstallments = data?.finance?.installments?.length || 0;
     
     // Clean and concise visa status to prevent multi-line wrap
     let rawVisa = data?.visa?.status ? humanizeStatus(data.visa.status) : (data?.visas?.[0]?.status ? humanizeStatus(data.visas[0].status) : 'In Review');
@@ -273,9 +266,14 @@ export default function StudentDashboardPage() {
 
   // Fee Payments Donut Data
   const feeDonutData = useMemo(() => {
-    const paid = Number(data?.finance?.paid ?? data?.kpis?.totalPaid ?? 80000);
+    const paid = Number(data?.finance?.paid ?? data?.kpis?.totalPaid ?? 0);
     const pending = Number(data?.finance?.pending ?? data?.kpis?.balanceDue ?? 0);
-    const total = paid + pending || 120000;
+    const total = paid + pending || 0;
+    if (total === 0) {
+      return [
+        { name: 'Paid', value: 0, fill: '#10b981', percent: 0 },
+      ];
+    }
     if (pending === 0) {
       return [
         { name: 'Paid', value: paid, fill: '#10b981', percent: 100 },
@@ -288,12 +286,12 @@ export default function StudentDashboardPage() {
   }, [data]);
 
   const totalFeeFormatted = useMemo(() => {
-    const val = Number(data?.finance?.totalFees ?? data?.kpis?.totalFees ?? 120000);
+    const val = Number(data?.finance?.totalFees ?? data?.kpis?.totalFees ?? 0);
     return `₹ ${val.toLocaleString('en-IN')}`;
   }, [data]);
 
   const paidFeeFormatted = useMemo(() => {
-    const val = Number(data?.finance?.paid ?? data?.kpis?.totalPaid ?? 80000);
+    const val = Number(data?.finance?.paid ?? data?.kpis?.totalPaid ?? 0);
     return `₹ ${val.toLocaleString('en-IN')}`;
   }, [data]);
 
@@ -316,64 +314,25 @@ export default function StudentDashboardPage() {
 
   // My Applications (Formatted per CRM standard table - Latest entries prioritized)
   const myApplications = useMemo(() => {
-    const rawList = data?.applications && data.applications.length > 0
+    const rawList = Array.isArray(data?.applications) && data.applications.length > 0
       ? [...data.applications]
-      : [
-          {
-            id: 'app1',
-            country: 'Canada',
-            university: 'McMaster University',
-            course: 'MSc Software Engineering',
-            status: 'CONDITIONAL_OFFER',
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: 'app2',
-            country: 'Canada',
-            university: 'University of Waterloo',
-            course: 'MMath Computer Science',
-            status: 'SUBMITTED',
-            updatedAt: new Date(Date.now() - 3600000).toISOString(),
-          },
-          {
-            id: 'app3',
-            country: 'Canada',
-            university: 'McGill University',
-            course: 'MSc Computer Science',
-            status: 'SUBMITTED',
-            updatedAt: new Date(Date.now() - 86400000).toISOString(),
-          },
-          {
-            id: 'app4',
-            country: 'Canada',
-            university: 'University of Toronto',
-            course: 'MSc Applied Computing',
-            status: 'UNCONDITIONAL_OFFER',
-            updatedAt: new Date(Date.now() - 172800000).toISOString(),
-          },
-          {
-            id: 'app5',
-            country: 'Canada',
-            university: 'University of British Columbia',
-            course: 'Master of Data Science',
-            status: 'UNDER_REVIEW',
-            updatedAt: new Date(Date.now() - 259200000).toISOString(),
-          },
-        ];
+      : [];
+
+    if (!rawList.length) return [];
 
     // Sort by latest updated/submitted/created date descending
     rawList.sort((a, b) => new Date(b.updatedAt || b.submittedAt || b.createdAt || 0) - new Date(a.updatedAt || a.submittedAt || a.createdAt || 0));
 
     return rawList.map((app, idx) => {
-      const rawCountry = app.country || targetCountry || 'Canada';
+      const rawCountry = app.country || targetCountry || 'International';
       const meta = resolveCountryMeta(rawCountry);
-      const iso = meta?.iso || (String(rawCountry).length === 2 ? String(rawCountry).toUpperCase() : 'CA');
+      const iso = meta?.iso || (String(rawCountry).length === 2 ? String(rawCountry).toUpperCase() : 'DE');
       const countryLabel = meta?.label || cleanCountryName(rawCountry);
-      const rawStatus = String(app.status || 'Draft').trim();
+      const rawStatus = String(app.statusName || app.status || 'Draft').trim();
       const stUpper = rawStatus.toUpperCase();
 
       let statusType = 'draft';
-      let statusText = 'Draft';
+      let statusText = rawStatus;
 
       if (stUpper.includes('SUBMIT')) {
         statusType = 'submitted';
@@ -390,9 +349,12 @@ export default function StudentDashboardPage() {
       } else if (stUpper.includes('OFFER') || stUpper.includes('ACCEPT') || stUpper.includes('ENROLL')) {
         statusType = 'submitted';
         statusText = 'Accepted';
-      } else if (stUpper.includes('DRAFT') || stUpper.includes('PROGRESS')) {
+      } else if (stUpper.includes('STARTED') || stUpper.includes('PROGRESS')) {
+        statusType = 'submitted';
+        statusText = app.statusName || 'Application Started';
+      } else if (stUpper.includes('DRAFT')) {
         statusType = 'draft';
-        statusText = stUpper.includes('PROGRESS') ? 'In Progress' : 'Draft';
+        statusText = app.statusName || 'Draft';
       } else {
         statusText = humanizeStatus(rawStatus);
       }
@@ -402,7 +364,7 @@ export default function StudentDashboardPage() {
         iso,
         country: countryLabel,
         university: app.university || app.universityName || 'University',
-        course: app.course || app.program || targetCourse || 'Computer Science',
+        course: app.course || app.program || targetCourse || 'Study Visa',
         status: statusText,
         statusType,
         nextUpdate: (app.updatedAt || app.submittedAt || app.createdAt)
@@ -414,11 +376,11 @@ export default function StudentDashboardPage() {
 
   // Attendance Metrics (Strictly mathematical consistent)
   const attendanceMetrics = useMemo(() => {
-    const rawPresent = Number(data?.attendanceOverview?.present ?? 5);
-    const rawTotal = Number(data?.attendanceOverview?.total ?? 5);
+    const rawPresent = Number(data?.attendanceOverview?.present ?? 0);
+    const rawTotal = Number(data?.attendanceOverview?.total ?? 0);
     const total = Math.max(rawTotal, rawPresent);
     const absent = Math.max(0, total - rawPresent);
-    const pct = total > 0 ? Math.round((rawPresent / total) * 100) : 100;
+    const pct = total > 0 ? Math.round((rawPresent / total) * 100) : 0;
     return { pct, present: rawPresent, absent, total };
   }, [data]);
 
@@ -431,51 +393,10 @@ export default function StudentDashboardPage() {
         iconBg: idx === 0 ? 'rgba(37, 99, 235, 0.12)' : idx === 1 ? 'rgba(6, 182, 212, 0.12)' : idx === 2 ? 'rgba(16, 185, 129, 0.12)' : idx === 3 ? 'rgba(139, 92, 246, 0.12)' : 'rgba(245, 158, 11, 0.12)',
         iconColor: idx === 0 ? '#2563eb' : idx === 1 ? '#0891b2' : idx === 2 ? '#059669' : idx === 3 ? '#7c3aed' : '#d97706',
         title: ac.label || 'Activity logged',
-        time: ac.at ? new Date(ac.at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '10:47 AM',
+        time: ac.at ? new Date(ac.at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Recent',
       }));
     }
-    return [
-      {
-        id: 'ac1',
-        icon: FiFileText,
-        iconBg: 'rgba(37, 99, 235, 0.12)',
-        iconColor: '#2563eb',
-        title: 'Application Submitted — University of Toronto',
-        time: '05:02 PM',
-      },
-      {
-        id: 'ac2',
-        icon: FiFolder,
-        iconBg: 'rgba(6, 182, 212, 0.12)',
-        iconColor: '#0891b2',
-        title: 'Documents Uploaded — IELTS Official Scorecard',
-        time: '10:47 AM',
-      },
-      {
-        id: 'ac3',
-        icon: FiCreditCard,
-        iconBg: 'rgba(16, 185, 129, 0.12)',
-        iconColor: '#059669',
-        title: 'Fee Receipt Generated — ₹40,000 Verified',
-        time: 'Yesterday',
-      },
-      {
-        id: 'ac4',
-        icon: FiHeadphones,
-        iconBg: 'rgba(139, 92, 246, 0.12)',
-        iconColor: '#7c3aed',
-        title: 'Counselling Session Completed with Priya Shah',
-        time: '28 Oct',
-      },
-      {
-        id: 'ac5',
-        icon: FiCalendar,
-        iconBg: 'rgba(245, 158, 11, 0.12)',
-        iconColor: '#d97706',
-        title: 'Enquiry Created — Canada Study Visa',
-        time: '26 Oct',
-      },
-    ];
+    return [];
   }, [data]);
 
   if (loading && !data) return <PortalSkeletonPage />;
@@ -560,13 +481,13 @@ export default function StudentDashboardPage() {
               <div className="crm-sdash-counselor-info">
                 <Avatar
                   src={counselor.photo || counselor.avatar || counselor.profilePic || counselor.image || ''}
-                  name={counselor.name || 'Priya Shah'}
+                  name={counselor.name || 'Admissions Counsellor'}
                   size="xs"
                   className="crm-sdash-counselor-avatar"
                 />
                 <div className="flex flex-col min-w-0">
                   <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold leading-none">Assigned Counselor</span>
-                  <span className="text-xs font-bold text-text truncate leading-tight mt-0.5">{counselor.name || 'Priya Shah'}</span>
+                  <span className="text-xs font-bold text-text truncate leading-tight mt-0.5">{counselor.name || 'Admissions Counsellor'}</span>
                 </div>
               </div>
               <span className="text-[11px] font-semibold text-primary flex items-center gap-0.5 shrink-0 ml-auto pl-1">
@@ -684,15 +605,15 @@ export default function StudentDashboardPage() {
             <div className="crm-sdash-table-wrap">
               <table className="crm-sdash-table">
                 <colgroup>
-                  <col style={{ width: '15%' }} />
-                  <col style={{ width: '55%' }} />
-                  <col style={{ width: '30%' }} />
+                  <col style={{ width: '28%' }} />
+                  <col style={{ width: '40%' }} />
+                  <col style={{ width: '32%' }} />
                 </colgroup>
                 <thead>
                   <tr>
                     <th>Country</th>
-                    <th>Course &amp; University</th>
-                    <th>Status &amp; Timeline</th>
+                    <th>Course &amp; Univ</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -702,13 +623,13 @@ export default function StudentDashboardPage() {
                       onClick={() => navigate(ROUTES.STUDENT_APPLICATIONS)}
                       title={`View ${app.university || app.country} application`}
                     >
-                      <td style={{ width: '15%' }}>
+                      <td>
                         <div className="crm-sdash-table__country-flex">
                           <CountryFlag country={app.country} iso={app.iso} size="xs" className="rounded-[2px] shadow-xs shrink-0" />
-                          <span className="crm-sdash-table__country-name">{app.country}</span>
+                          <span className="crm-sdash-table__country-name" title={app.country}>{app.country}</span>
                         </div>
                       </td>
-                      <td style={{ width: '55%' }}>
+                      <td>
                         <div className="flex flex-col min-w-0 max-w-full">
                           <span className="crm-sdash-app-univ" title={app.university}>
                             {app.university}
@@ -718,11 +639,11 @@ export default function StudentDashboardPage() {
                           </span>
                         </div>
                       </td>
-                      <td style={{ width: '30%' }}>
+                      <td>
                         <div className="flex flex-col items-start gap-1">
                           <span className={`crm-sdash-table-pill crm-sdash-table-pill--${app.statusType}`} title={app.status}>
                             <span className="crm-sdash-table-pill__icon">✦</span>
-                            <span className="truncate">{app.status}</span>
+                            <span className="whitespace-nowrap">{app.status}</span>
                           </span>
                           <span className="text-text-secondary text-[10.5px] font-semibold pl-0.5 whitespace-nowrap">
                             Updated {app.nextUpdate}
@@ -742,8 +663,8 @@ export default function StudentDashboardPage() {
                   <FiLayers className="text-primary text-xs" />
                   <span>{myApplications.length} Applications</span>
                 </span>
-                <span className="text-text-muted text-[11px] font-medium hidden sm:inline">
-                  • 1 Offer • 1 In Review
+                <span className="text-text-muted text-[11px] font-medium hidden md:inline">
+                  • 1 Offer
                 </span>
               </div>
               <button
@@ -1122,12 +1043,12 @@ export default function StudentDashboardPage() {
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-2 border border-border">
                   <Avatar
                     src={counselor.photo || counselor.avatar || counselor.profilePic || counselor.image || ''}
-                    name={counselor.name || 'Priya Mehta'}
+                    name={counselor.name || 'Admissions Counsellor'}
                     size="sm"
                   />
                   <div>
-                    <h4 className="text-xs font-bold text-text">{counselor.name || 'Priya Mehta'}</h4>
-                    <p className="text-xs text-text-muted">{counselor.email || 'priya.mehta@3niinfotech.com'}</p>
+                    <h4 className="text-xs font-bold text-text">{counselor.name || 'Admissions Counsellor'}</h4>
+                    <p className="text-xs text-text-muted">{counselor.email || 'helpdesk@3niinfotech.com'}</p>
                   </div>
                 </div>
 

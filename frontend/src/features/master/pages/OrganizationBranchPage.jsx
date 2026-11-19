@@ -207,7 +207,8 @@ export default function OrganizationBranchPage() {
       cellRenderer: (p) => <StatusPill active={Boolean(p.value)} />,
     },
     createActionsColumn({
-      width: canManage ? 148 : 56,
+      width: canManage ? 156 : 56,
+      pinned: 'right',
       cellRenderer: (p) => {
         const row = p.data;
         if (!row) return null;
@@ -216,7 +217,7 @@ export default function OrganizationBranchPage() {
           <div className="crm-grid-actions" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
-              className="crm-grid-action-btn"
+              className="crm-grid-action-btn crm-grid-action-btn--view"
               title="View"
               aria-label="View"
               onClick={() => openDrawer('view', row)}
@@ -237,7 +238,7 @@ export default function OrganizationBranchPage() {
                 </button>
                 <button
                   type="button"
-                  className="crm-grid-action-btn"
+                  className="crm-grid-action-btn crm-grid-action-btn--toggle"
                   title={row.isActive ? 'Deactivate' : 'Activate'}
                   aria-label="Toggle status"
                   disabled={busy}
@@ -245,7 +246,7 @@ export default function OrganizationBranchPage() {
                 >
                   {row.isActive
                     ? <FiToggleRight className="w-3.5 h-3.5 text-emerald-600" />
-                    : <FiToggleLeft className="w-3.5 h-3.5" />}
+                    : <FiToggleLeft className="w-3.5 h-3.5 text-slate-400" />}
                 </button>
                 <button
                   type="button"
@@ -307,7 +308,9 @@ export default function OrganizationBranchPage() {
               rowData={rows}
               loading={loading}
               fetching={fetching}
-              pagination={false}
+              pagination
+              paginationPageSize={25}
+              paginationPageSizeOptions={[10, 25, 50, 100]}
               getRowId={(p) => p.data.id}
               emptyTitle={search || statusFilter !== 'all' ? 'No matching branches' : 'No branches yet'}
               emptyDescription={

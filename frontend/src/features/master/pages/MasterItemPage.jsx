@@ -280,7 +280,7 @@ export default function MasterItemPage() {
                 </button>
                 <button
                   type="button"
-                  className="crm-grid-action-btn"
+                  className="crm-grid-action-btn crm-grid-action-btn--toggle"
                   title={row.isActive ? 'Deactivate' : 'Activate'}
                   aria-label="Toggle status"
                   disabled={busy}
@@ -288,7 +288,7 @@ export default function MasterItemPage() {
                 >
                   {row.isActive
                     ? <FiToggleRight className="w-3.5 h-3.5 text-emerald-600" />
-                    : <FiToggleLeft className="w-3.5 h-3.5" />}
+                    : <FiToggleLeft className="w-3.5 h-3.5 text-slate-400" />}
                 </button>
                 <button
                   type="button"
@@ -346,10 +346,9 @@ export default function MasterItemPage() {
             }}
             onRefresh={load}
             refreshing={fetching}
-            hint={meta.hint}
             trailing={(
-              <span className="hidden sm:inline text-[12px] text-text-muted tabular-nums pr-1">
-                {pagination.total} {pagination.total === 1 ? meta.singular.toLowerCase() : meta.plural.toLowerCase()}
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 tabular-nums">
+                {pagination.total} {pagination.total === 1 ? meta.singular : meta.plural}
               </span>
             )}
           />

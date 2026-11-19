@@ -58,7 +58,7 @@ export function createSelectionColumn(overrides = {}) {
 
 /** Pinned right actions column — pass pinned: null to keep scrollable */
 export function createActionsColumn({
-  width = 88,
+  width = 112,
   pinned = null,
   headerName = 'Actions',
   cellRenderer,

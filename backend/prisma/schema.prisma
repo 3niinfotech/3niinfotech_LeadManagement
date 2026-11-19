@@ -210,11 +210,28 @@ enum ClassAttendanceStatus {
   HALF_DAY
 }
 
+enum AcademicBatchStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum BatchEnrollmentStatus {
+  ENROLLED
+  COMPLETED
+  DROPPED
+  TRANSFERRED
+}
+
 enum AttendanceMarkSource {
   MANUAL
   BULK
   SUGGESTED
   CORRECTION
+  QR
+  BIOMETRIC
+  SYSTEM
 }
 
 enum ClassAssignmentStatus {
@@ -436,6 +453,8 @@ model Company {
   partners                Partner[]
   roleApplications        RoleApplication[]
   courseCounsellorMappings CourseCounsellorMapping[]
+  expenseCategories       ExpenseCategory[]
+  tasks                   Task[]
 
   @@index([code])
   @@index([countryId])
@@ -480,10 +499,14 @@ model Branch {
   classSessions   ClassSession[]
   classAttendances ClassAttendance[]
   classAssignments ClassAssignment[]
+  tasks            Task[]
   classTests       ClassTest[]
   studyMaterials   StudyMaterial[]
   roleApplications RoleApplication[]
   courseCounsellorMappings CourseCounsellorMapping[]
+  refunds          Refund[]
+  ledgerEntries    AccountLedger[]
+  expenses         Expense[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -683,6 +706,16 @@ model User {
   roleApplicationsApproved RoleApplication[] @relation("RoleApplicationApprovedUser")
   announcementViews        AnnouncementView[]
   courseCounsellorMappings CourseCounsellorMapping[] @relation("CourseCounsellorMappingAssignee")
+  paymentProofsReviewed    PaymentProof[]            @relation("PaymentProofReviewer")
+  refundsRequested         Refund[]                  @relation("RefundRequester")
+  refundsApproved          Refund[]                  @relation("RefundApprover")
+  ledgerEntriesCreated     AccountLedger[]           @relation("LedgerCreatedBy")
+  expensesCreated          Expense[]                 @relation("ExpenseCreator")
+  expensesApproved         Expense[]                 @relation("ExpenseApprover")
+  assignedTasks            Task[]                    @relation("TaskAssignee")
+  createdTasks             Task[]                    @relation("TaskCreator")
+  taskComments             TaskComment[]
+  taskHistory              TaskHistory[]
 
   @@index([email])
   @@index([companyId])
@@ -770,6 +803,7 @@ model Lead {
   assignmentOffers  AssignmentOffer[]
   counsellingSessions CounsellingSession[]
   assignmentAudits  AssignmentAuditLog[]
+  tasks             Task[]
 
   @@index([branchId])
   @@index([assignedToId])
@@ -866,6 +900,9 @@ model Student {
   classSubmissions ClassAssignmentSubmission[]
   classTestResults ClassTestResult[]
   academicRemarks  AcademicRemark[]
+  paymentProofs    PaymentProof[]
+  refunds          Refund[]
+  tasks            Task[]
 
   @@index([branchId])
   @@index([userId])
@@ -895,6 +932,7 @@ model Application {
   updatedBy       String?
 
   student         Student           @relation(fields: [studentId], references: [id])
+  tasks           Task[]
 
   @@index([studentId])
   @@index([status])
@@ -919,6 +957,7 @@ model Visa {
   updatedBy       String?
 
   student         Student    @relation(fields: [studentId], references: [id])
+  tasks           Task[]
 
   @@index([studentId])
   @@index([status])
@@ -932,6 +971,7 @@ model Invoice {
   studentId     String?
   invoiceNo     String        @unique
   amount        Decimal       @db.Decimal(12, 2)
+  amountPaid    Decimal       @default(0) @db.Decimal(12, 2)
   tax           Decimal       @default(0) @db.Decimal(12, 2)
   total         Decimal       @db.Decimal(12, 2)
   currency      String        @default("USD")
@@ -947,6 +987,10 @@ model Invoice {
   updatedBy     String?
 
   student       Student?      @relation(fields: [studentId], references: [id])
+  payments      AdmissionPayment[]
+  paymentProofs PaymentProof[]
+  refunds       Refund[]
+  ledgerEntries AccountLedger[]
 
   @@index([studentId])
   @@index([status])
@@ -1049,9 +1093,10 @@ model Notification {
   id        String           @id @default(uuid())
   userId    String
   type      NotificationType @default(INFO)
-  title     String
+  category  String?          @default("GENERAL") @db.VarChar(50)
+  title     String           @db.VarChar(255)
   message   String           @db.Text
-  link      String?
+  link      String?          @db.VarChar(500)
   isRead    Boolean          @default(false)
   readAt    DateTime?
   metadata  Json             @default("{}")
@@ -1060,6 +1105,7 @@ model Notification {
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+  @@index([userId, category])
   @@index([createdAt])
   @@map("notifications")
 }
@@ -1158,6 +1204,7 @@ model Enquiry {
   auditLogs         EnquiryAuditLog[]
   assignmentLogs    EnquiryAssignmentLog[]
   admission         Admission?
+  tasks             Task[]
 
   @@index([branchId])
   @@index([assignedToId])
@@ -1685,8 +1732,9 @@ model FeeInstallment {
   createdAt  DateTime             @default(now())
   updatedAt  DateTime             @updatedAt
 
-  feePlan  FeePlan            @relation(fields: [feePlanId], references: [id], onDelete: Cascade)
-  payments AdmissionPayment[]
+  feePlan       FeePlan            @relation(fields: [feePlanId], references: [id], onDelete: Cascade)
+  payments      AdmissionPayment[]
+  paymentProofs PaymentProof[]
 
   @@index([feePlanId])
   @@map("fee_installments")
@@ -1696,27 +1744,32 @@ model AdmissionPayment {
   id             String                 @id @default(uuid())
   admissionId    String?
   studentId      String?
-  feePlanId      String
+  invoiceId      String?
+  feePlanId      String?
   installmentId  String?
   amount         Decimal                @db.Decimal(12, 2)
   mode           String
   referenceNo    String?
   receiptNo      String                 @unique
   status         AdmissionPaymentStatus @default(SUCCESS)
-  idempotencyKey String                 @unique
+  idempotencyKey String?                @unique
   createdBy      String
   paidAt         DateTime               @default(now())
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
 
-  admission   Admission?       @relation(fields: [admissionId], references: [id])
-  student     Student?         @relation(fields: [studentId], references: [id])
-  feePlan     FeePlan          @relation(fields: [feePlanId], references: [id])
-  installment FeeInstallment?  @relation(fields: [installmentId], references: [id])
-  receipts    AdmissionReceipt[]
+  admission     Admission?         @relation(fields: [admissionId], references: [id])
+  student       Student?           @relation(fields: [studentId], references: [id])
+  invoice       Invoice?           @relation(fields: [invoiceId], references: [id])
+  feePlan       FeePlan?           @relation(fields: [feePlanId], references: [id])
+  installment   FeeInstallment?    @relation(fields: [installmentId], references: [id])
+  receipts      AdmissionReceipt[]
+  refunds       Refund[]
+  ledgerEntries AccountLedger[]
 
   @@index([admissionId])
   @@index([studentId])
+  @@index([invoiceId])
   @@index([feePlanId])
   @@index([installmentId])
   @@map("admission_payments")
@@ -2555,34 +2608,42 @@ model LearningResource {
 // ─── ACADEMIC CLASS ATTENDANCE (coaching batches — not university Course) ───
 
 model AcademicBatch {
-  id           String    @id @default(uuid())
+  id           String               @id @default(uuid())
   companyId    String
   branchId     String
   code         String
   name         String
+  batchCode    String?
   courseName   String
+  courseId     String?
+  courseLabel  String?
+  maxCapacity  Int?
+  status       AcademicBatchStatus? @default(ACTIVE)
   instructorId String?
+  facultyId    String?
+  teacherId    String?
   room         String?
-  startDate    DateTime?
-  endDate      DateTime?
-  isActive     Boolean   @default(true)
-  metadata     Json      @default("{}")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  description  String?              @db.Text
+  startDate    DateTime?            @db.Date
+  endDate      DateTime?            @db.Date
+  isActive     Boolean              @default(true)
+  metadata     Json?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
   deletedAt    DateTime?
   createdBy    String?
   updatedBy    String?
 
-  company      Company   @relation(fields: [companyId], references: [id])
-  branch       Branch    @relation(fields: [branchId], references: [id])
-  instructor   User?     @relation("BatchInstructor", fields: [instructorId], references: [id])
-  enrollments  BatchEnrollment[]
+  company        Company              @relation(fields: [companyId], references: [id])
+  branch         Branch               @relation(fields: [branchId], references: [id])
+  instructor     User?                @relation("BatchInstructor", fields: [instructorId], references: [id])
+  enrollments    BatchEnrollment[]
   timetableSlots ClassTimetableSlot[]
-  sessions     ClassSession[]
-  assignments  ClassAssignment[]
-  tests        ClassTest[]
-  materials    StudyMaterial[]
-  remarks      AcademicRemark[]
+  sessions       ClassSession[]
+  assignments    ClassAssignment[]
+  tests          ClassTest[]
+  materials      StudyMaterial[]
+  remarks        AcademicRemark[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -2593,17 +2654,21 @@ model AcademicBatch {
 }
 
 model BatchEnrollment {
-  id         String    @id @default(uuid())
-  batchId    String
-  studentId  String
-  enrolledAt DateTime  @default(now())
-  isActive   Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  createdBy  String?
+  id             String                 @id @default(uuid())
+  batchId        String
+  studentId      String
+  enrolledAt     DateTime               @default(now())
+  enrollmentDate DateTime?              @db.Date
+  status         BatchEnrollmentStatus? @default(ENROLLED)
+  remarks        String?                @db.Text
+  isActive       Boolean                @default(true)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  createdBy      String?
+  deletedAt      DateTime?
 
-  batch      AcademicBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  student    Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  batch   AcademicBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([batchId, studentId])
   @@index([studentId])
@@ -2897,4 +2962,292 @@ model RoleApplication {
   @@index([email])
   @@index([roleSlug])
   @@map("role_applications")
+}
+
+// ─── ACCOUNTANT MODULE: PAYMENT PROOFS, REFUNDS, LEDGER, EXPENSES ──────────
+
+enum PaymentProofStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum LedgerEntryType {
+  INCOME
+  PAYMENT
+  EXPENSE
+  REFUND
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+model PaymentProof {
+  id               String             @id @default(uuid())
+  studentId        String
+  invoiceId        String?
+  installmentId    String?
+  amount           Decimal            @db.Decimal(12, 2)
+  paymentMode      String             @default("BANK_TRANSFER")
+  transactionRef   String
+  proofDocumentUrl String             @db.Text
+  notes            String?            @db.Text
+  status           PaymentProofStatus @default(PENDING)
+  reviewNotes      String?            @db.Text
+  reviewedById     String?
+  reviewedAt       DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  invoice     Invoice?        @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  installment FeeInstallment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+  reviewedBy  User?           @relation("PaymentProofReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+  @@index([invoiceId])
+  @@index([installmentId])
+  @@index([status])
+  @@map("payment_proofs")
+}
+
+model Refund {
+  id              String       @id @default(uuid())
+  refundNo        String       @unique
+  branchId        String?
+  studentId       String
+  invoiceId       String?
+  paymentId       String?
+  amount          Decimal      @db.Decimal(12, 2)
+  reason          String       @db.Text
+  status          RefundStatus @default(PENDING)
+  requestedById   String
+  reviewedById    String?
+  reviewedAt      DateTime?
+  rejectionReason String?      @db.Text
+  refundMethod    String?
+  refundTxRef     String?
+  paidAt          DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  branch        Branch?           @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  student       Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  invoice       Invoice?          @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  payment       AdmissionPayment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  requestedBy   User              @relation("RefundRequester", fields: [requestedById], references: [id])
+  reviewedBy    User?             @relation("RefundApprover", fields: [reviewedById], references: [id], onDelete: SetNull)
+  ledgerEntries AccountLedger[]
+
+  @@index([branchId])
+  @@index([studentId])
+  @@index([invoiceId])
+  @@index([paymentId])
+  @@index([status])
+  @@map("refunds")
+}
+
+model AccountLedger {
+  id            String          @id @default(uuid())
+  entryNo       String          @unique
+  branchId      String?
+  entryType     LedgerEntryType
+  amount        Decimal         @db.Decimal(12, 2)
+  isCredit      Boolean
+  balanceAfter  Decimal         @db.Decimal(12, 2)
+  description   String          @db.Text
+  referenceType String?
+  referenceId   String?
+  invoiceId     String?
+  paymentId     String?
+  refundId      String?
+  expenseId     String?
+  createdById   String
+  createdAt     DateTime        @default(now())
+
+  branch    Branch?           @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  invoice   Invoice?          @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  payment   AdmissionPayment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  refund    Refund?           @relation(fields: [refundId], references: [id], onDelete: SetNull)
+  expense   Expense?          @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  createdBy User              @relation("LedgerCreatedBy", fields: [createdById], references: [id])
+
+  @@index([branchId])
+  @@index([entryType])
+  @@index([createdAt])
+  @@index([referenceId])
+  @@map("account_ledger")
+}
+
+model ExpenseCategory {
+  id          String    @id @default(uuid())
+  companyId   String?   @db.VarChar(100)
+  name        String    @db.VarChar(150)
+  code        String    @db.VarChar(50)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company  Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@unique([companyId, code])
+  @@map("expense_categories")
+}
+
+model Expense {
+  id            String        @id @default(uuid())
+  expenseNo     String        @unique
+  branchId      String?
+  categoryId    String
+  title         String
+  amount        Decimal       @db.Decimal(12, 2)
+  expenseDate   DateTime      @default(now())
+  paymentMethod String        @default("BANK_TRANSFER")
+  referenceNo   String?
+  vendorName    String?
+  receiptUrl    String?       @db.Text
+  notes         String?       @db.Text
+  status        ExpenseStatus @default(PENDING)
+  createdById   String
+  approvedById  String?
+  approvedAt    DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  branch        Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  category      ExpenseCategory @relation(fields: [categoryId], references: [id])
+  createdBy     User            @relation("ExpenseCreator", fields: [createdById], references: [id])
+  approvedBy    User?           @relation("ExpenseApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  ledgerEntries AccountLedger[]
+
+  @@index([branchId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([expenseDate])
+  @@map("expenses")
+}
+
+// ─── TASK MANAGEMENT MODULE ──────────────────────────────────────────────────
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskCategory {
+  COUNSELLING
+  DOCUMENT
+  APPLICATION
+  VISA
+  PAYMENT
+  ACADEMIC
+  FOLLOW_UP
+  GENERAL
+}
+
+model Task {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  title           String        @db.VarChar(255)
+  description     String?       @db.Text
+  category        TaskCategory  @default(GENERAL)
+  priority        TaskPriority  @default(MEDIUM)
+  status          TaskStatus    @default(PENDING)
+  dueDate         DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+
+  companyId       String        @db.VarChar(36)
+  branchId        String?       @db.VarChar(36)
+  assignedToId    String?       @db.VarChar(36)
+  createdById     String?       @db.VarChar(36)
+
+  studentId       String?       @db.VarChar(36)
+  enquiryId       String?       @db.VarChar(36)
+  applicationId   String?       @db.VarChar(36)
+  visaId          String?       @db.VarChar(36)
+  documentId      String?       @db.VarChar(36)
+  leadId          String?       @db.VarChar(36)
+
+  dedupKey        String?       @db.VarChar(100)
+  metadata        Json          @default("{}")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch          Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  assignedTo      User?         @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy       User?         @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  student         Student?      @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  enquiry         Enquiry?      @relation(fields: [enquiryId], references: [id], onDelete: SetNull)
+  application     Application?  @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  visa            Visa?         @relation(fields: [visaId], references: [id], onDelete: SetNull)
+  lead            Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  comments        TaskComment[]
+  history         TaskHistory[]
+
+  @@index([companyId])
+  @@index([branchId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([studentId])
+  @@index([dueDate])
+  @@index([dedupKey])
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  taskId    String   @db.VarChar(36)
+  userId    String   @db.VarChar(36)
+  comment   String   @db.Text
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@map("task_comments")
+}
+
+model TaskHistory {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  taskId     String   @db.VarChar(36)
+  userId     String?  @db.VarChar(36)
+  action     String   @db.VarChar(50)
+  oldValue   String?  @db.VarChar(100)
+  newValue   String?  @db.VarChar(100)
+  remark     String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@map("task_history")
 }

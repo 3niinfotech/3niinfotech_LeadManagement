@@ -11,6 +11,12 @@ export const FORCE_DENY_PREFIXES_BY_ROLE = {
   teacher: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'accounts.', 'application.', 'visa.'],
   application_officer: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'accounts.'],
   visa_officer: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'accounts.'],
+  accountant: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'application.', 'visa.', 'reception.'],
+  finance_manager: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'application.', 'visa.', 'reception.'],
+  finance_executive: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'application.', 'visa.', 'reception.'],
+  partner: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'feature.', 'accounts.', 'reception.', 'attendance.', 'teacher.', 'telecaller.'],
+  agent: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'feature.', 'accounts.', 'reception.', 'attendance.', 'teacher.', 'telecaller.'],
+  partner_agent: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'feature.', 'accounts.', 'reception.', 'attendance.', 'teacher.', 'telecaller.'],
 };
 
 /** Reception is an intentionally closed workspace; extra DB grants cannot widen it. */

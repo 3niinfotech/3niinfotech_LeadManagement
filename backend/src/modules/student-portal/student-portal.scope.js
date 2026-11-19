@@ -124,8 +124,9 @@ export function sanitizeApplicationForStudent(app) {
     university: app.university,
     course: app.course,
     intake: app.intake,
-    country: app.country,
+    country: app.country || meta.countryName || meta.country || null,
     status: app.status,
+    statusName: meta.applicationStatusName || meta.statusName || (app.status ? app.status.replace(/_/g, ' ') : 'Draft'),
     applicationNo: app.applicationNo,
     submittedAt: app.submittedAt,
     offerDate: app.offerDate,
@@ -133,5 +134,6 @@ export function sanitizeApplicationForStudent(app) {
     updatedAt: app.updatedAt,
     offerStatus: meta.offerStatus || null,
     importantDates: meta.importantDates || null,
+    metadata: meta,
   };
 }

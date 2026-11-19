@@ -14,8 +14,7 @@ export default function IconButton({
   const variants = {
     default: 'p-2 rounded-sm text-text-secondary hover:bg-row-hover hover:text-text',
     toolbar: `p-2.5 rounded-lg text-text-secondary transition-all duration-200
-      hover:bg-brand-soft hover:text-primary-600 hover:shadow-sm
-      active:scale-95`,
+      hover:bg-brand-soft hover:text-primary-600 hover:shadow-sm`,
   };
 
   return (

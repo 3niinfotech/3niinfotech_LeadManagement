@@ -221,30 +221,32 @@ export default function TeacherClassesPage() {
     <div className="crm-tclasses">
       {/* ── Today's Scheduled Session Quick Action Strip (if scheduled) ── */}
       {todaySchedule && (
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 px-4 rounded-xl border border-blue-200/80 bg-blue-50/60 dark:bg-blue-950/20 dark:border-blue-900/50 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 px-4 rounded-xl border border-border bg-card shadow-xs">
           <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 text-white font-bold text-xs shadow-xs">
-              <FiClock size={16} />
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand/10 text-brand font-semibold text-xs shrink-0">
+              <FiClock size={15} />
             </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-blue-900 dark:text-blue-200">
-                  Today's Lecture: {todaySchedule.batch}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-semibold text-text">
+                  Today's Session: {todaySchedule.batch}
                 </span>
-                <span className="text-[11px] font-semibold text-blue-700 dark:text-blue-300">
-                  ({todaySchedule.timeStr})
-                </span>
+                {todaySchedule.timeStr ? (
+                  <span className="text-xs font-medium text-text-muted">
+                    • {todaySchedule.timeStr}
+                  </span>
+                ) : null}
               </div>
-              <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <div className="flex items-center gap-3 text-xs text-text-muted mt-0.5">
                 {todaySchedule.room && <span>📍 {todaySchedule.room}</span>}
-                <span>👥 {todaySchedule.studentCount} Students</span>
+                <span>👥 {todaySchedule.studentCount} Students Enrolled</span>
               </div>
             </div>
           </div>
           <Button
             size="sm"
             variant="primary"
-            className="flex items-center gap-1.5 font-bold shadow-xs ml-auto"
+            className="flex items-center gap-1.5 font-medium ml-auto text-xs"
             onClick={() => {
               if (todaySchedule.batchId) {
                 navigate(ROUTES.BATCH_DETAIL(todaySchedule.batchId));
@@ -253,7 +255,7 @@ export default function TeacherClassesPage() {
               }
             }}
           >
-            <FiCheckCircle /> Mark Today's Attendance
+            <FiCheckCircle size={13} /> Mark Attendance
           </Button>
         </div>
       )}
@@ -381,18 +383,18 @@ export default function TeacherClassesPage() {
                 : null;
 
               return (
-                <article key={batch.id} className="crm-tbatch-card">
+                <article key={batch.id} className="crm-tbatch-card max-w-xl">
                   <div>
                     {/* Header */}
                     <div className="crm-tbatch-card__head">
-                      <div className="crm-tbatch-card__code-wrap">
-                        <span className="crm-tbatch-card__code">{batch.code || 'BATCH'}</span>
-                        {batch.courseName && (
-                          <span className="crm-tbatch-card__course-tag">{batch.courseName}</span>
-                        )}
+                      <div className="min-w-0">
+                        <span className="text-xs font-semibold text-text-muted">{batch.courseName || batch.code || 'Batch'}</span>
                       </div>
-                      <span className="crm-tbatch-card__status-dot">
-                        ● {batch.isActive ? 'Active' : 'Inactive'}
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${
+                        batch.isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-muted'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${batch.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        {batch.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </div>
 
@@ -403,42 +405,24 @@ export default function TeacherClassesPage() {
                       <div className="crm-tbatch-card__meta-list">
                         {batch.room && (
                           <div className="crm-tbatch-card__meta-item">
-                            <FiMapPin />
+                            <FiMapPin className="text-text-muted" size={13} />
                             <span>{batch.room}</span>
                           </div>
                         )}
                         {timetableText && (
                           <div className="crm-tbatch-card__meta-item">
-                            <FiClock />
+                            <FiClock className="text-text-muted" size={13} />
                             <span>{timetableText}</span>
-                          </div>
-                        )}
-                        {batch.courseName && (
-                          <div className="crm-tbatch-card__meta-item">
-                            <FiLayers />
-                            <span>{batch.courseName}</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Enrolled Students Avatar Stack */}
+                      {/* Enrolled Students Summary */}
                       <div className="crm-tbatch-card__roster-summary">
                         <div className="flex items-center gap-2">
-                          {activeEnrolled.length > 0 && (
-                            <div className="crm-tbatch-card__avatars">
-                              {activeEnrolled.map((en) => {
-                                const stName = `${en.student?.firstName || ''} ${en.student?.lastName || ''}`.trim() || 'Student';
-                                const initials = `${en.student?.firstName?.[0] || 'S'}${en.student?.lastName?.[0] || ''}`.toUpperCase();
-                                return (
-                                  <span key={en.id || en.student?.id} className="crm-tbatch-card__avatar-pill" title={stName}>
-                                    {initials}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          )}
+                          <FiUsers size={13} className="text-text-muted" />
                           <span className="crm-tbatch-card__student-count">
-                            {studentCount} Enrolled {studentCount === 1 ? 'Student' : 'Students'}
+                            {studentCount} Enrolled {studentCount === 1 ? 'Learner' : 'Learners'}
                           </span>
                         </div>
                         <span className="crm-tbatch-card__capacity">
@@ -447,9 +431,9 @@ export default function TeacherClassesPage() {
                       </div>
 
                       {/* Capacity Progress Bar */}
-                      <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div className="w-full bg-border/60 h-1.5 rounded-full overflow-hidden mt-1">
                         <div
-                          className="bg-blue-600 h-full rounded-full transition-all"
+                          className="bg-brand h-full rounded-full transition-all"
                           style={{ width: `${capacityPct}%` }}
                         />
                       </div>
@@ -462,32 +446,32 @@ export default function TeacherClassesPage() {
                       <Button
                         size="xs"
                         variant="primary"
-                        className="flex-1 flex items-center justify-center gap-1.5 shadow-xs font-semibold"
+                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium"
                         onClick={() => navigate(ROUTES.BATCH_DETAIL(batch.id))}
                       >
-                        <FiBookOpen /> Open Batch
+                        <FiBookOpen size={12} /> Open Batch
                       </Button>
 
                       {can(PERMISSIONS.ATTENDANCE_MARK) && (
                         <Button
                           size="xs"
                           variant="outline"
-                          className="flex-1 flex items-center justify-center gap-1.5 font-semibold"
+                          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium"
                           onClick={() => navigate(ROUTES.BATCH_DETAIL(batch.id))}
                         >
-                          <FiCheckCircle /> Attendance
+                          <FiCheckCircle size={12} /> Attendance
                         </Button>
                       )}
                     </div>
 
                     <button
                       type="button"
-                      className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer transition-colors px-2 py-1"
+                      className="text-xs font-medium text-text-muted hover:text-brand flex items-center gap-1 cursor-pointer transition-colors px-2 py-1"
                       onClick={() => {
                         setSelectedBatchForRoster((prev) => (prev === batch.id ? null : batch.id));
                       }}
                     >
-                      Roster <FiChevronDown />
+                      <span>Roster</span> <FiChevronDown size={12} />
                     </button>
                   </div>
 
@@ -612,19 +596,19 @@ export default function TeacherClassesPage() {
 
         {/* Weekly Lecture Timetable Schedule */}
         {batches[0] && (
-          <div className="crm-tside-card mt-3">
+          <div className="crm-tside-card mt-2">
             <div className="crm-tside-card__head">
               <h3 className="crm-tside-card__title">
-                <FiCalendar className="text-primary-600" />
-                Weekly Lecture Timetable &amp; Venue
+                <FiCalendar className="text-brand" />
+                Weekly Timetable
               </h3>
-              <span className="text-[11px] font-bold text-slate-500 font-mono">
+              <span className="text-xs text-text-muted">
                 {batches[0].name}
               </span>
             </div>
-            <div className="crm-tside-card__body">
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                {['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].map((day, idx) => {
+            <div className="crm-tside-card__body !p-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-1.5">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => {
                   const dayNumber = (idx + 1) % 7;
                   const activeSlot = (batches[0].timetableSlots || []).find((s) => s.dayOfWeek === dayNumber);
                   const isToday = new Date().getDay() === dayNumber;
@@ -632,39 +616,29 @@ export default function TeacherClassesPage() {
                   return (
                     <div
                       key={day}
-                      className={`p-2.5 rounded-lg border flex flex-col items-center justify-center text-center transition-all ${
+                      className={`py-1.5 px-2 rounded-lg border text-center transition-all ${
                         isToday
-                          ? 'bg-primary-50/80 dark:bg-primary-950/40 border-primary-300 dark:border-primary-800 ring-1 ring-primary-500/30'
+                          ? 'bg-brand/10 border-brand/40 text-brand'
                           : activeSlot
-                          ? 'bg-slate-50 dark:bg-slate-800/40 border-border'
-                          : 'bg-slate-50/40 dark:bg-slate-900/20 border-border/50 opacity-60'
+                          ? 'bg-card border-border text-text shadow-xs'
+                          : 'bg-bg-page/40 border-border/40 text-text-muted/60'
                       }`}
                     >
-                      <div className="flex items-center gap-1 mb-1">
-                        <span
-                          className={`text-[10px] font-extrabold tracking-wider ${
-                            isToday ? 'text-primary-700 dark:text-primary-300' : 'text-slate-500'
-                          }`}
-                        >
-                          {day.slice(0, 3)}
-                        </span>
-                        {isToday && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary-600 animate-pulse" />
-                        )}
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-xs font-semibold">{day}</span>
+                        {isToday && <span className="w-1.5 h-1.5 rounded-full bg-brand" />}
                       </div>
                       {activeSlot ? (
-                        <>
-                          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 leading-tight">
-                            {activeSlot.startTime} – {activeSlot.endTime}
-                          </span>
+                        <div className="text-[11px] font-medium text-text mt-0.5">
+                          <span className="block leading-tight font-semibold text-brand">{activeSlot.startTime}–{activeSlot.endTime}</span>
                           {activeSlot.room && (
-                            <span className="text-[9.5px] text-slate-400 mt-0.5">
+                            <span className="text-[10px] text-text-muted block truncate mt-0.5">
                               {activeSlot.room}
                             </span>
                           )}
-                        </>
+                        </div>
                       ) : (
-                        <span className="text-[10px] text-slate-400 italic">No slots</span>
+                        <span className="text-[10px] text-text-muted/50 block mt-0.5">—</span>
                       )}
                     </div>
                   );

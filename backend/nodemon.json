@@ -1,0 +1,7 @@
+{
+  "watch": ["src"],
+  "ext": "js,mjs,json",
+  "ignore": ["scripts/*", "src/**/*.test.js", "node_modules/*", "logs/*"],
+  "delay": "1500"
+}
+

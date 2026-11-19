@@ -1,6 +1,6 @@
 import {
   FiPlus, FiEdit2, FiRefreshCw, FiPhone, FiCalendar, FiEdit3, FiUpload,
-  FiTrash2, FiSend, FiXCircle, FiActivity, FiMonitor,
+  FiTrash2, FiSend, FiXCircle, FiActivity, FiMonitor, FiUserCheck,
 } from 'react-icons/fi';
 import {
   formatTimelineDetail,
@@ -11,6 +11,8 @@ import {
 
 const ICONS = {
   CREATE: FiPlus,
+  ASSIGNED: FiUserCheck,
+  COUNSELLOR_ASSIGNED: FiUserCheck,
   UPDATE: FiEdit2,
   STATUS_CHANGE: FiRefreshCw,
   FOLLOWUP: FiPhone,

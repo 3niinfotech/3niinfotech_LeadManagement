@@ -10,6 +10,8 @@ import {
   FiAward,
   FiUsers,
   FiBarChart2,
+  FiGrid,
+  FiList,
 } from 'react-icons/fi';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
@@ -62,6 +64,7 @@ export default function TeacherTestsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [batchFilter, setBatchFilter] = useState('ALL');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -273,7 +276,7 @@ export default function TeacherTestsPage() {
           <FiSearch className="text-slate-400" />
           <input
             type="search"
-            placeholder="Search test name, mock exam, or batch…"
+            placeholder="Search tests by title or batch…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -285,32 +288,32 @@ export default function TeacherTestsPage() {
             className={`crm-tacademic-pill ${statusFilter === 'ALL' ? 'is-active' : ''}`}
             onClick={() => setStatusFilter('ALL')}
           >
-            All Tests
+            All ({rows.length})
           </button>
           <button
             type="button"
             className={`crm-tacademic-pill ${statusFilter === 'COMPLETED' ? 'is-active' : ''}`}
             onClick={() => setStatusFilter('COMPLETED')}
           >
-            Completed
+            Completed ({kpis.completed})
           </button>
           <button
             type="button"
             className={`crm-tacademic-pill ${statusFilter === 'PUBLISHED' ? 'is-active' : ''}`}
             onClick={() => setStatusFilter('PUBLISHED')}
           >
-            Published
+            Scheduled ({kpis.published})
           </button>
           <button
             type="button"
             className={`crm-tacademic-pill ${statusFilter === 'DRAFT' ? 'is-active' : ''}`}
             onClick={() => setStatusFilter('DRAFT')}
           >
-            Drafts
+            Drafts ({kpis.drafts})
           </button>
 
           {batchOptions.length > 1 && (
-            <div className="w-40">
+            <div className="w-36">
               <Select
                 size="sm"
                 searchable={false}
@@ -322,21 +325,40 @@ export default function TeacherTestsPage() {
             </div>
           )}
 
+          <div className="crm-tacademic-view-switch">
+            <button
+              type="button"
+              className={`crm-tacademic-view-btn ${viewMode === 'grid' ? 'is-active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              title="Card Grid View"
+            >
+              <FiGrid />
+            </button>
+            <button
+              type="button"
+              className={`crm-tacademic-view-btn ${viewMode === 'table' ? 'is-active' : ''}`}
+              onClick={() => setViewMode('table')}
+              title="Data Table View"
+            >
+              <FiList />
+            </button>
+          </div>
+
           {canManage && (
             <Button
               size="sm"
               icon={FiPlus}
               onClick={openCreate}
               disabled={batchesLoading || !batchOptions.length}
-              className="shadow-xs font-bold shrink-0 ml-auto"
+              className="shadow-xs font-semibold shrink-0 ml-auto"
             >
-              Schedule New Test
+              Schedule Test
             </Button>
           )}
         </div>
       </div>
 
-      {/* ── Content Grid ── */}
+      {/* ── Content View ── */}
       {!filteredRows.length ? (
         <EmptyState
           title="No tests scheduled"
@@ -347,7 +369,7 @@ export default function TeacherTestsPage() {
             </Button>
           )}
         />
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="crm-tacademic-grid">
           {filteredRows.map((row) => {
             const hasResults = row.status === 'COMPLETED' || Boolean(row.resultsPublished);
@@ -356,81 +378,72 @@ export default function TeacherTestsPage() {
             return (
               <div key={row.id} className="crm-tacademic-card">
                 <div className="crm-tacademic-card__top">
-                  <div className="crm-tacademic-card__header">
-                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg uppercase tracking-wider bg-brand/10 text-brand border border-brand/20">
+                  <div className="crm-tacademic-card__head">
+                    <span className="text-[11px] font-medium text-text-muted truncate">
                       {row.batch?.name || 'Class Batch'}
                     </span>
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-                        isCompleted
-                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
-                          : row.status === 'PUBLISHED'
-                            ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20'
-                            : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
-                      }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : row.status === 'PUBLISHED' ? 'bg-blue-500' : 'bg-amber-500'}`} />
-                      {row.status}
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${
+                      isCompleted
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : row.status === 'PUBLISHED'
+                          ? 'text-brand'
+                          : 'text-amber-600 dark:text-amber-400'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        isCompleted ? 'bg-emerald-500' : row.status === 'PUBLISHED' ? 'bg-brand' : 'bg-amber-500'
+                      }`} />
+                      {isCompleted ? 'Completed' : row.status === 'PUBLISHED' ? 'Scheduled' : 'Draft'}
                     </span>
                   </div>
 
                   <h3
-                    className="crm-tacademic-card__title cursor-pointer hover:text-brand transition-colors"
+                    className="crm-tacademic-card__title hover:text-brand cursor-pointer transition-colors truncate"
                     title={row.name}
                     onClick={() => openResults(row)}
                   >
                     {row.name}
                   </h3>
 
-                  <div className="crm-tacademic-card__meta-bar">
-                    <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                      <FiCalendar size={13} className="text-brand shrink-0" />
-                      Date: <strong>{formatDate(row.testDate)}</strong>
+                  <div className="crm-tacademic-card__meta-row">
+                    <span className="crm-tacademic-card__meta-item">
+                      <FiCalendar size={12} /> {formatDate(row.testDate)}
                     </span>
-                    <span className="text-slate-300 dark:text-slate-600">•</span>
-                    <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                      <FiAward size={13} className="text-amber-500 shrink-0" />
-                      Total: <strong>{row.totalMarks ?? 100} pts</strong>
-                      {row.passingMarks ? ` (Pass: ${row.passingMarks})` : ''}
+                    <span>•</span>
+                    <span className="crm-tacademic-card__meta-item">
+                      <FiAward size={12} /> {row.totalMarks ?? 100} pts {row.passingMarks ? `(Pass: ${row.passingMarks})` : ''}
                     </span>
                   </div>
 
-                  <div className="crm-tacademic-card__stat-box">
-                    <div className="crm-tacademic-card__stat-item">
-                      <strong>{row.totalMarks ?? 100}</strong>
-                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">Max Marks</span>
-                    </div>
-                    <div>
+                  <div className="crm-tacademic-card__stat-strip">
+                    <span className="text-text-muted">Result Status</span>
+                    <span className="font-semibold text-text">
                       {hasResults ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                          ✓ Results declared
-                        </span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">Declared</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
-                          ● Scheduled
-                        </span>
+                        <span className="text-text-muted font-normal">Pending</span>
                       )}
-                    </div>
+                    </span>
                   </div>
                 </div>
 
                 <div className="crm-tacademic-card__foot">
                   <Button
                     size="xs"
-                    variant="primary"
-                    className="font-bold shadow-xs !py-1.5 !px-3 rounded-xl flex items-center gap-1.5"
+                    variant="outline"
+                    className="text-xs font-medium"
                     onClick={() => openResults(row)}
                   >
-                    <FiBarChart2 size={13} /> Results & Grading
+                    <FiBarChart2 size={12} />
+                    <span>Results & Grading</span>
                   </Button>
 
                   {canManage && (
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => openEdit(row)}
                         title="Edit Test"
-                        className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                        className="p-1 rounded hover:bg-bg-page text-text-muted hover:text-text transition-colors cursor-pointer"
                       >
                         <FiEdit2 size={13} />
                       </button>
@@ -438,7 +451,7 @@ export default function TeacherTestsPage() {
                         type="button"
                         onClick={() => setDeleteTarget(row)}
                         title="Delete Test"
-                        className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 text-rose-600 transition-colors cursor-pointer"
+                        className="p-1 rounded hover:bg-rose-50 text-text-muted hover:text-rose-600 transition-colors cursor-pointer"
                       >
                         <FiTrash2 size={13} />
                       </button>
@@ -448,6 +461,88 @@ export default function TeacherTestsPage() {
               </div>
             );
           })}
+        </div>
+      ) : (
+        <div className="crm-tacademic-table-wrap">
+          <table className="crm-tacademic-table">
+            <thead>
+              <tr>
+                <th>Test Title</th>
+                <th>Batch</th>
+                <th>Date</th>
+                <th>Max Marks</th>
+                <th>Passing Marks</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((row) => {
+                const hasResults = row.status === 'COMPLETED' || Boolean(row.resultsPublished);
+                const isCompleted = row.status === 'COMPLETED';
+
+                return (
+                  <tr key={row.id}>
+                    <td>
+                      <span
+                        className="font-semibold text-text hover:text-brand cursor-pointer block truncate max-w-xs"
+                        onClick={() => openResults(row)}
+                      >
+                        {row.name}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="text-text-muted text-xs">{row.batch?.name || '—'}</span>
+                    </td>
+                    <td>
+                      <span className="text-xs">{formatDate(row.testDate)}</span>
+                    </td>
+                    <td>
+                      <span className="text-xs font-medium">{row.totalMarks ?? 100} pts</span>
+                    </td>
+                    <td>
+                      <span className="text-xs text-text-muted">{row.passingMarks || '—'}</span>
+                    </td>
+                    <td>
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium ${
+                        isCompleted ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-brand'}`} />
+                        {isCompleted ? 'Completed' : 'Scheduled'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div className="inline-flex items-center gap-1.5">
+                        <Button size="xs" variant="outline" onClick={() => openResults(row)}>
+                          Results & Grading
+                        </Button>
+                        {canManage && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openEdit(row)}
+                              title="Edit"
+                              className="p-1 rounded hover:bg-bg-page text-text-muted hover:text-text cursor-pointer"
+                            >
+                              <FiEdit2 size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(row)}
+                              title="Delete"
+                              className="p-1 rounded hover:bg-rose-50 text-text-muted hover:text-rose-600 cursor-pointer"
+                            >
+                              <FiTrash2 size={13} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

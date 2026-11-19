@@ -131,8 +131,18 @@ export const enquiryRepository = {
     return { data: rows, pagination: buildPagination(page, limit, total) };
   },
 
-  findById: (id, scopeWhere = {}) => prisma.enquiry.findFirst({
-    where: { id, ...softDeleteWhere, ...scopeWhere },
+  findById: (identifier, scopeWhere = {}) => {
+    const str = String(identifier || '').trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    const idWhere = isUuid
+      ? { OR: [{ id: str }, { enquiryCode: str }] }
+      : { enquiryCode: str };
+    return prisma.enquiry.findFirst({
+      where: {
+        ...idWhere,
+        ...softDeleteWhere,
+        ...scopeWhere,
+      },
     include: {
       branch: true,
       assignedTo: { select: userSelect },
@@ -175,6 +185,10 @@ export const enquiryRepository = {
           phone: true,
           status: true,
           deletedAt: true,
+          documents: {
+            where: { deletedAt: null },
+            orderBy: { createdAt: 'desc' },
+          },
         },
       },
       auditLogs: {
@@ -183,7 +197,8 @@ export const enquiryRepository = {
         include: { user: { select: userSelect } },
       },
     },
-  }),
+  });
+},
 
   create: (data) => prisma.enquiry.create({ data }),
   update: (id, data) => prisma.enquiry.update({ where: { id }, data }),
@@ -354,13 +369,71 @@ export const enquiryRepository = {
     include: { user: { select: userSelect } },
   }),
 
-  getTimeline: (enquiryId) => prisma.enquiryAuditLog.findMany({
-    where: { enquiryId },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      user: { select: userSelect },
-    },
-  }),
+  getTimeline: async (enquiryId) => {
+    const [auditLogs, assignmentLogs] = await Promise.all([
+      prisma.enquiryAuditLog.findMany({
+        where: { enquiryId },
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: userSelect } },
+      }),
+      prisma.enquiryAssignmentLog.findMany({
+        where: { enquiryId },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    const userIds = new Set();
+    assignmentLogs.forEach((l) => {
+      if (l.toUserId) userIds.add(l.toUserId);
+      if (l.fromUserId) userIds.add(l.fromUserId);
+      if (l.actorId) userIds.add(l.actorId);
+    });
+
+    const users = userIds.size > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: Array.from(userIds) } },
+          select: userSelect,
+        })
+      : [];
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    // Check if an assignment is already recorded in auditLogs to prevent duplicates
+    const hasAuditAssignment = auditLogs.some((a) => a.action === 'ASSIGNED');
+
+    const mappedAssignmentLogs = assignmentLogs.map((l) => {
+      const toUser = userMap.get(l.toUserId);
+      const fromUser = l.fromUserId ? userMap.get(l.fromUserId) : null;
+      const actor = l.actorId ? userMap.get(l.actorId) : null;
+      const toName = toUser ? `${toUser.firstName} ${toUser.lastName}`.trim() : 'Counsellor';
+      const fromName = fromUser ? `${fromUser.firstName} ${fromUser.lastName}`.trim() : null;
+      const method = l.assignmentType === 'AUTO' ? 'Auto Assigned' : 'Manually Assigned';
+
+      return {
+        id: `assign-${l.id}`,
+        enquiryId: l.enquiryId,
+        action: 'ASSIGNED',
+        field: 'assignedToId',
+        oldValue: fromName,
+        newValue: toName,
+        description: `Counsellor Assigned – ${toName} (${method})`,
+        createdAt: l.createdAt,
+        user: actor || (l.assignmentType === 'AUTO' ? { firstName: 'System', lastName: 'Auto-Assign Engine' } : null),
+        metadata: {
+          reasons: l.reasons,
+          score: l.score,
+          assignmentType: l.assignmentType,
+        },
+      };
+    });
+
+    // If auditLogs doesn't already have an assignment event, merge them
+    const combined = hasAuditAssignment
+      ? auditLogs
+      : [...auditLogs, ...mappedAssignmentLogs];
+
+    combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return combined;
+  },
 
   createImportBatch: (data) => prisma.enquiryImportBatch.create({ data }),
   updateImportBatch: (id, data) => prisma.enquiryImportBatch.update({ where: { id }, data }),

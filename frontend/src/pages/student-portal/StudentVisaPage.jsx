@@ -77,44 +77,44 @@ export default function StudentVisaPage() {
     {
       id: 'loa',
       title: 'Designated Learning Institution (DLI) Acceptance',
-      detail: 'University of Toronto (DLI #O19332792832) · Official Unconditional LOA',
+      detail: 'Official Acceptance / Offer of Admission Letter on file',
       status: 'VERIFIED',
-      date: '28 Oct 2026',
+      date: 'On File',
     },
     {
       id: 'gic',
-      title: 'Guaranteed Investment Certificate (GIC)',
-      detail: 'Scotiabank Scotia Student GIC Program · CAD $20,635 Certificate on file',
+      title: 'Financial Solvency & Living Expenses Proof',
+      detail: 'Proof of Funds / Bank Solvency Certificate on file',
       status: 'VERIFIED',
-      date: '29 Oct 2026',
+      date: 'On File',
     },
     {
       id: 'tuition',
-      title: '1st Year Full Tuition Fee Payment Receipt',
-      detail: 'CAD $28,500 wire transfer receipt confirmed by U of T Student Accounts',
+      title: 'Tuition Fee Payment / University Deposit',
+      detail: 'Fee Payment Receipt / Confirmation on file',
       status: 'VERIFIED',
-      date: '29 Oct 2026',
+      date: 'On File',
     },
     {
       id: 'ielts',
-      title: 'Language Proficiency Test (IELTS Academic)',
-      detail: 'Band 8.0 Overall (L: 8.5, R: 8.0, W: 7.5, S: 7.5) · TRF attached',
+      title: 'Language Proficiency Credential',
+      detail: 'Official Language / Academic Test Report on file',
       status: 'VERIFIED',
-      date: '15 Oct 2026',
+      date: 'On File',
     },
     {
       id: 'medical',
-      title: 'Upfront eMedical Examination Sheet',
-      detail: 'Apollo Hospitals Bangalore · UMI #7829103 (eMedical Sheet attached)',
+      title: 'Immigration Medical Examination Sheet',
+      detail: 'Medical Examination Sheet attached',
       status: 'VERIFIED',
-      date: '26 Oct 2026',
+      date: 'On File',
     },
     {
       id: 'pcc',
       title: 'Police Clearance Certificate (PCC)',
-      detail: 'Regional Passport Office PSK Bangalore · National Police verification',
+      detail: 'National Police Verification Certificate on file',
       status: 'VERIFIED',
-      date: '27 Oct 2026',
+      date: 'On File',
     },
   ];
 
@@ -128,53 +128,57 @@ export default function StudentVisaPage() {
             <FiShield className="crm-stu-att-kpi-card__icon" />
           </div>
           <div className="crm-stu-att-kpi-card__body">
-            <span className="crm-stu-att-kpi-card__value">1 Permit</span>
-            <span className="crm-stu-chip crm-stu-chip--success">SDS Fast-Track</span>
+            <span className="crm-stu-att-kpi-card__value">{rows.length} {rows.length === 1 ? 'Case' : 'Cases'}</span>
+            <span className={`crm-stu-chip ${rows.length > 0 ? 'crm-stu-chip--success' : 'crm-stu-chip--neutral'}`}>
+              {rows.length > 0 ? 'Active' : 'Advisory Stage'}
+            </span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem', fontSize: '0.8125rem' }}>
-            Canada Student Direct Stream (SDS)
+            {rows[0]?.country ? `${rows[0].country} Study Visa` : 'Study Visa Guidance'}
           </div>
         </div>
 
         <div className="crm-stu-att-kpi-card">
           <div className="crm-stu-att-kpi-card__header">
-            <span className="crm-stu-att-kpi-card__label">GIC Account</span>
+            <span className="crm-stu-att-kpi-card__label">Visa Stream</span>
             <FiCreditCard className="crm-stu-att-kpi-card__icon--green" />
           </div>
           <div className="crm-stu-att-kpi-card__body">
-            <span className="crm-stu-att-kpi-card__value">$20,635 CAD</span>
-            <span className="crm-stu-chip crm-stu-chip--brand">Scotiabank</span>
+            <span className="crm-stu-att-kpi-card__value" style={{ fontSize: '1.0625rem' }}>
+              {rows[0]?.visaType || 'Student Visa'}
+            </span>
+            <span className="crm-stu-chip crm-stu-chip--brand">{rows[0]?.country || 'Destination'}</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem', fontSize: '0.8125rem' }}>
-            Confirmed living funds certificate
+            {rows[0]?.applicationNo ? `Case File: ${rows[0].applicationNo}` : 'Pre-visa document preparation'}
           </div>
         </div>
 
         <div className="crm-stu-att-kpi-card">
           <div className="crm-stu-att-kpi-card__header">
-            <span className="crm-stu-att-kpi-card__label">Upfront Medical</span>
+            <span className="crm-stu-att-kpi-card__label">Document Readiness</span>
             <FiCheckCircle className="crm-stu-att-kpi-card__icon--green" />
           </div>
           <div className="crm-stu-att-kpi-card__body">
-            <span className="crm-stu-att-kpi-card__value">Cleared</span>
-            <span className="crm-stu-chip crm-stu-chip--success">eMedical Passed</span>
+            <span className="crm-stu-att-kpi-card__value">In Review</span>
+            <span className="crm-stu-chip crm-stu-chip--success">Verified Files</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem', fontSize: '0.8125rem' }}>
-            Apollo IME Sheet validated
+            Financial & academic documentation
           </div>
         </div>
 
         <div className="crm-stu-att-kpi-card">
           <div className="crm-stu-att-kpi-card__header">
-            <span className="crm-stu-att-kpi-card__label">Police Clearance</span>
+            <span className="crm-stu-att-kpi-card__label">Visa Advisory</span>
             <FiFileText className="crm-stu-att-kpi-card__icon" />
           </div>
           <div className="crm-stu-att-kpi-card__body">
-            <span className="crm-stu-att-kpi-card__value">Verified</span>
-            <span className="crm-stu-chip crm-stu-chip--brand">PSK Bangalore</span>
+            <span className="crm-stu-att-kpi-card__value">Active</span>
+            <span className="crm-stu-chip crm-stu-chip--brand">Counsellor</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem', fontSize: '0.8125rem' }}>
-            Valid PCC certificate in IRCC record
+            Direct guidance for consulate filing
           </div>
         </div>
       </div>
@@ -213,21 +217,21 @@ export default function StudentVisaPage() {
                   <div style={{ flex: 1, minWidth: 280 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.45rem', flexWrap: 'wrap' }}>
                       <span className="crm-stu-chip crm-stu-chip--brand" style={{ fontWeight: 750, fontSize: '0.75rem' }}>
-                        Destination: {row.country || 'Canada'} 🇨🇦
+                        Destination: {row.country || 'Destination'}
                       </span>
                       <span className="crm-stu-chip crm-stu-chip--neutral" style={{ fontWeight: 650, fontSize: '0.75rem' }}>
-                        Permit: {row.visaType || 'Study Permit (SDS Stream)'}
+                        Permit: {row.visaType || 'Study Visa'}
                       </span>
                       <span className="crm-stu-chip crm-stu-chip--neutral" style={{ fontWeight: 650, fontSize: '0.75rem' }}>
-                        File #: {row.applicationNo || 'IRCC-CAN-2026-9812'}
+                        File #: {row.applicationNo || 'Case File'}
                       </span>
                     </div>
 
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem' }}>
-                      Canadian Study Permit (Student Direct Stream)
+                      {row.country ? `${row.country} Student Visa Application` : 'Student Visa Application'}
                     </h2>
                     <p style={{ fontSize: '0.875rem', fontWeight: 650, color: '#2563eb', margin: 0 }}>
-                      Sponsoring DLI: University of Toronto · Fall 2027 Intake
+                      Course & Session: {row.course || 'Study Abroad Program'}
                     </p>
                   </div>
 
@@ -473,10 +477,10 @@ export default function StudentVisaPage() {
                           </div>
 
                           <h4 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem' }}>
-                            Biometrics Appointment (VFS Global)
+                            Consulate & Biometrics Appointment
                           </h4>
                           <p style={{ fontSize: '0.8125rem', color: '#475569', margin: '0 0 0.85rem', lineHeight: 1.5 }}>
-                            Your SDS dossier has all verified documents attached. Once your visa file is officially lodged with IRCC, a Biometric Instruction Letter (BIL) will be generated. Your counsellor Priya Shah will book your VFS slot.
+                            Your visa dossier has all verified documents attached. Once your visa file is officially lodged, appointment scheduling and submission instructions will be coordinated with your assigned counsellor.
                           </p>
 
                           <div
@@ -493,14 +497,14 @@ export default function StudentVisaPage() {
                           >
                             <div>
                               <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 750, display: 'block' }}>
-                                Biometrics Fee & VFS Center
+                                Visa Lodgment Standing
                               </span>
                               <strong style={{ fontSize: '0.8125rem', color: '#0f172a' }}>
-                                CAD $85 · VFS Global Bangalore (Confirmed Slot Pending)
+                                Pre-Filing Review & Dossier Readiness
                               </strong>
                             </div>
                             <span className="crm-stu-chip crm-stu-chip--brand" style={{ fontSize: '0.75rem' }}>
-                              Pre-Paid
+                              In Progress
                             </span>
                           </div>
                         </div>
@@ -536,17 +540,17 @@ export default function StudentVisaPage() {
                                 border: '1px solid #bfdbfe',
                               }}
                             >
-                              PS
+                              CO
                             </div>
                             <div>
                               <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 750, display: 'block' }}>
-                                Assigned Lead Counsellor
+                                Assigned Study Abroad Counsellor
                               </span>
                               <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>
-                                Priya Shah
+                                Admissions & Visa Advisory Desk
                               </strong>
                               <span style={{ fontSize: '0.75rem', color: '#475569', display: 'block' }}>
-                                Senior Study Abroad Visa Advisor
+                                Direct Student Mentor
                               </span>
                             </div>
                           </div>
@@ -556,7 +560,7 @@ export default function StudentVisaPage() {
                               type="button"
                               className="crm-stu-btn crm-stu-btn--primary"
                               style={{ fontSize: '0.8125rem', padding: '0.45rem 0.95rem' }}
-                              onClick={() => toastService.info('Opening direct priority chat with Priya Shah')}
+                              onClick={() => toastService.info('Opening direct priority chat with your counsellor')}
                             >
                               <FiMessageSquare /> Contact Counsellor
                             </button>
@@ -564,7 +568,7 @@ export default function StudentVisaPage() {
                               type="button"
                               className="crm-stu-btn crm-stu-btn--secondary"
                               style={{ fontSize: '0.8125rem', padding: '0.45rem 0.95rem' }}
-                              onClick={() => toastService.success('Downloading verified SDS document dossier')}
+                              onClick={() => toastService.success('Downloading verified document dossier')}
                             >
                               <FiDownload /> Dossier
                             </button>

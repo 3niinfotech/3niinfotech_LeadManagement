@@ -39,7 +39,7 @@ export const PORTAL_BOTTOM_NAV = {
     { id: 'home', to: ROUTES.AGENT_DASHBOARD, label: 'Home', icon: FiHome },
     { id: 'referrals', to: ROUTES.AGENT_ENQUIRIES, label: 'Referrals', icon: FiMessageCircle, permissions: [PERMISSIONS.ENQUIRIES_VIEW] },
     { id: 'students', to: ROUTES.AGENT_STUDENTS, label: 'Students', icon: FiUsers, permissions: [PERMISSIONS.STUDENTS_VIEW] },
-    { id: 'applications', to: ROUTES.AGENT_APPLICATIONS, label: 'Applications', icon: FiFileText, permissions: [PERMISSIONS.APPLICATIONS_VIEW] },
+    { id: 'visas', to: ROUTES.AGENT_VISAS, label: 'Visas', icon: FiGlobe, permissions: [PERMISSIONS.VISAS_VIEW] },
     { id: 'more', to: ROUTES.AGENT_PROFILE, label: 'More', icon: FiUser, isMore: true },
   ],
 };
@@ -122,22 +122,30 @@ export const PORTAL_NAV = {
   agent: [
     {
       items: [
-        { to: ROUTES.AGENT_DASHBOARD, label: 'Dashboard', icon: FiHome, permissions: [PERMISSIONS.DASHBOARD_VIEW] },
+        { to: ROUTES.AGENT_DASHBOARD, label: 'Dashboard', icon: FiHome, show: true },
       ],
     },
     {
       label: 'Referrals & Admissions',
       items: [
-        { to: ROUTES.AGENT_ENQUIRIES, label: 'My Referrals', icon: FiMessageCircle, permissions: [PERMISSIONS.ENQUIRIES_VIEW] },
+        { to: ROUTES.AGENT_ENQUIRIES, label: 'My Referrals', icon: FiMessageCircle, permissions: [PERMISSIONS.ENQUIRIES_VIEW, PERMISSIONS.LEADS_VIEW] },
         { to: ROUTES.AGENT_STUDENTS, label: 'My Students', icon: FiUsers, permissions: [PERMISSIONS.STUDENTS_VIEW] },
-        { to: ROUTES.AGENT_APPLICATIONS, label: 'Applications', icon: FiFileText, permissions: [PERMISSIONS.APPLICATIONS_VIEW] },
+        { to: ROUTES.AGENT_APPLICATIONS, label: 'Applications', icon: FiFileText, permissions: [PERMISSIONS.APPLICATIONS_VIEW, PERMISSIONS.STUDENTS_VIEW] },
+        { to: ROUTES.AGENT_VISAS, label: 'Visa Tracking', icon: FiGlobe, permissions: [PERMISSIONS.VISAS_VIEW, PERMISSIONS.STUDENTS_VIEW] },
+      ],
+    },
+    {
+      label: 'Finance & Earnings',
+      items: [
+        { to: ROUTES.AGENT_COMMISSIONS, label: 'Commissions', icon: FiDollarSign, show: true },
       ],
     },
     {
       label: 'Workspace',
       items: [
         { to: ROUTES.AGENT_CALENDAR, label: 'Calendar', icon: FiCalendar, permissions: [PERMISSIONS.CALENDAR_VIEW] },
-        { to: ROUTES.AGENT_PROFILE, label: 'My Profile & Agency', icon: FiUser, show: true },
+        { to: ROUTES.AGENT_PROFILE, label: 'Agency Profile', icon: FiUser, show: true },
+        { to: ROUTES.AGENT_REPORTS, label: 'Reports', icon: FiBarChart2, show: true },
       ],
     },
   ],

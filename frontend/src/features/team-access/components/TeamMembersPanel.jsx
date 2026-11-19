@@ -56,6 +56,33 @@ const USER_STATUS_FORM = [
 
 const NON_STAFF_ROLE_SLUGS = new Set(['student_portal', 'partner']);
 
+function getRoleIcon(slug) {
+  const s = String(slug || '').toLowerCase();
+  if (s.includes('teacher') || s.includes('faculty')) return FiBookOpen;
+  if (s.includes('counsellor')) return FiUser;
+  if (s.includes('admin') || s.includes('head') || s.includes('compliance')) return FiShield;
+  if (s.includes('reception')) return FiUserCheck;
+  if (s.includes('account') || s.includes('finance')) return FiBriefcase;
+  if (s.includes('telecall') || s.includes('call')) return FiPhone;
+  if (s.includes('visa') || s.includes('application') || s.includes('doc')) return FiCheckCircle;
+  return FiUser;
+}
+
+function getRoleTabLabel(role) {
+  const s = String(role?.slug || '').toLowerCase();
+  if (s === 'teacher') return 'Teachers / Faculty';
+  if (s === 'counsellor') return 'Counsellors';
+  if (s === 'accountant') return 'Accountants';
+  if (s === 'receptionist') return 'Receptionists';
+  if (s === 'company_admin') return 'Admins';
+  if (s === 'super_admin') return 'Super Admins';
+  if (s === 'telecaller') return 'Telecallers';
+  if (s === 'visa_officer') return 'Visa Officers';
+  if (s === 'application_officer') return 'Application Officers';
+  if (s === 'branch_manager') return 'Branch Managers';
+  return role?.name || role?.slug || 'Staff';
+}
+
 function StatusPill({ status }) {
   const tone = status === 'ACTIVE'
     ? 'crm-staff-status--active'
@@ -121,6 +148,7 @@ export default function TeamMembersPanel({
 
   const [rows, setRows] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [teamSummary, setTeamSummary] = useState(null);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
@@ -162,18 +190,96 @@ export default function TeamMembersPanel({
     [staffRoles],
   );
 
-  const roleFilterOptions = useMemo(
-    () => [{ value: 'all', label: 'All roles' }, ...staffRoles.map((r) => ({ value: r.slug, label: r.name }))],
-    [staffRoles],
-  );
+  const roleCounts = useMemo(() => {
+    const map = {};
+    if (teamSummary?.roles?.length) {
+      teamSummary.roles.forEach((r) => {
+        map[r.slug] = r._count?.users ?? 0;
+      });
+    } else if (rows?.length) {
+      rows.forEach((row) => {
+        const s = row.role?.slug;
+        if (s) map[s] = (map[s] || 0) + 1;
+      });
+    }
+    return map;
+  }, [teamSummary, rows]);
 
-  const QUICK_ROLE_TABS = useMemo(() => [
-    { slug: 'all', label: 'All Staff', icon: FiUsers },
-    { slug: 'teacher', label: 'Teachers / Faculty', icon: FiBookOpen },
-    { slug: 'counsellor', label: 'Counsellors', icon: FiUser },
-    { slug: 'company_admin', label: 'Admins', icon: FiShield },
-    { slug: 'receptionist', label: 'Receptionists', icon: FiUserCheck },
-  ], []);
+  const totalStaffCount = useMemo(() => {
+    if (teamSummary?.roles?.length) {
+      return teamSummary.roles.reduce((acc, r) => acc + (r._count?.users || 0), 0);
+    }
+    return rows.length;
+  }, [teamSummary, rows]);
+
+  const roleFilterOptions = useMemo(() => {
+    const allOption = {
+      value: 'all',
+      label: `All Roles (${totalStaffCount})`,
+    };
+    const options = staffRoles.map((r) => {
+      const count = roleCounts[r.slug] || 0;
+      return {
+        value: r.slug,
+        label: `${r.name} (${count})`,
+      };
+    });
+    return [allOption, ...options];
+  }, [staffRoles, roleCounts, totalStaffCount]);
+
+  const QUICK_ROLE_TABS = useMemo(() => {
+    const allTab = {
+      slug: 'all',
+      label: 'All Staff',
+      icon: FiUsers,
+      count: totalStaffCount,
+    };
+
+    // Standard ordering for common staff roles
+    const priorityOrder = [
+      'counsellor',
+      'teacher',
+      'accountant',
+      'receptionist',
+      'telecaller',
+      'visa_officer',
+      'application_officer',
+      'company_admin',
+    ];
+
+    const dynamicTabs = staffRoles
+      .filter((r) => {
+        const count = roleCounts[r.slug] || 0;
+        return priorityOrder.includes(r.slug) || count > 0;
+      })
+      .map((r) => ({
+        slug: r.slug,
+        label: getRoleTabLabel(r),
+        icon: getRoleIcon(r.slug),
+        count: roleCounts[r.slug] || 0,
+      }));
+
+    // Deduplicate by slug
+    const seen = new Set();
+    const uniqueTabs = [];
+    for (const t of dynamicTabs) {
+      if (!seen.has(t.slug)) {
+        seen.add(t.slug);
+        uniqueTabs.push(t);
+      }
+    }
+
+    uniqueTabs.sort((a, b) => {
+      const idxA = priorityOrder.indexOf(a.slug);
+      const idxB = priorityOrder.indexOf(b.slug);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.label.localeCompare(b.label);
+    });
+
+    return [allTab, ...uniqueTabs];
+  }, [staffRoles, roleCounts, totalStaffCount]);
 
   const loadRoles = useCallback(async () => {
     try {
@@ -205,6 +311,7 @@ export default function TeamMembersPanel({
         staffApi.list(params),
         staffApi.getTeamSummary().catch(() => null),
       ]);
+      if (summaryRes) setTeamSummary(summaryRes);
 
       const rawList = Array.isArray(listRes.data) ? listRes.data : [];
       const list = rawList.filter((r) => !NON_STAFF_ROLE_SLUGS.has(r.role?.slug));
@@ -460,25 +567,6 @@ export default function TeamMembersPanel({
 
   return (
     <div className="crm-team-access-panel">
-      {/* Quick Role Navigation Pills */}
-      <div className="crm-team-quick-roles" role="tablist" aria-label="Filter staff by category">
-        {QUICK_ROLE_TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = roleFilter === tab.slug;
-          return (
-            <button
-              key={tab.slug}
-              type="button"
-              className={`crm-team-quick-pill ${isActive ? 'crm-team-quick-pill--active' : ''}`}
-              onClick={() => setRoleFilter(tab.slug)}
-            >
-              <Icon size={14} className="crm-team-quick-pill__icon" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
       <div className="crm-team-filter-bar">
         <div className="crm-team-filter-field">
           <label>Search Staff</label>
@@ -763,10 +851,17 @@ export default function TeamMembersPanel({
                           className="absolute right-2 text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 border border-blue-200 dark:border-blue-800 px-2 py-1 rounded cursor-pointer transition-colors"
                           onClick={() => {
                             const namePart = (form.firstName.trim() || 'User').replace(/[^a-zA-Z]/g, '') || 'User';
-                            const capName = namePart.charAt(0).toUpperCase() + namePart.slice(1).toLowerCase();
-                            const generated = `${capName}@${new Date().getFullYear()}!`;
+                            const capName = namePart.charAt(0).toUpperCase() + namePart.slice(1, 4).toLowerCase();
+                            const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+                            const randomBytes = new Uint8Array(6);
+                            (window.crypto || window.msCrypto).getRandomValues(randomBytes);
+                            const randomSuffix = Array.from(randomBytes).map((b) => chars[b % chars.length]).join('');
+                            const symbols = ['@', '#', '$', '!', '&'];
+                            const sym = symbols[randomBytes[0] % symbols.length];
+                            const generated = `${capName}${sym}${randomSuffix}${Math.floor(10 + Math.random() * 90)}`;
                             setField('password', generated);
-                            toastService.info(`Password generated: ${generated}`);
+                            setFormErrors((prev) => ({ ...prev, password: '' }));
+                            toastService.info(`Secure unique password generated: ${generated}`);
                           }}
                         >
                           Auto-generate

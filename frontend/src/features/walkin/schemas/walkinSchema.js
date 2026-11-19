@@ -11,6 +11,7 @@ export const walkInFormSchema = z.object({
   phone: z.string().min(8, 'Valid mobile number required').max(20),
   email: z.union([z.literal(''), z.string().email('Valid email')]).optional(),
   city: z.string().max(100).optional().or(z.literal('')),
+  serviceType: z.string().max(100).optional().or(z.literal('')),
   interestedCountry: z.string().max(100).optional().or(z.literal('')),
   interestedCourse: z.string().max(150).optional().or(z.literal('')),
   visitPurpose: z.string().max(200).optional().or(z.literal('')),
@@ -19,6 +20,6 @@ export const walkInFormSchema = z.object({
   assignedToId: optionalUuid,
   notes: z.string().max(2000).optional().or(z.literal('')),
 }).refine(
-  (data) => Boolean(data.assignedToId) || Boolean(data.interestedCourse?.trim()),
-  { message: 'Select a course or counsellor to assign', path: ['assignedToId'] },
+  (data) => Boolean(data.assignedToId) || Boolean(data.interestedCourse?.trim()) || Boolean(data.serviceType?.trim()),
+  { message: 'Select a service, course or counsellor to assign', path: ['assignedToId'] },
 );

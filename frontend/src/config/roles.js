@@ -13,6 +13,7 @@ export const ROLES = {
   VISA_OFFICER: 'visa_officer',
   FINANCE_MANAGER: 'finance_manager',
   FINANCE_EXECUTIVE: 'finance_executive',
+  ACCOUNTANT: 'accountant',
   MARKETING_MANAGER: 'marketing_manager',
   MARKETING_EXECUTIVE: 'marketing_executive',
   RECEPTIONIST: 'receptionist',
@@ -21,6 +22,8 @@ export const ROLES = {
   COMPLIANCE_OFFICER: 'compliance_officer',
   PARTNER_MANAGER: 'partner_manager',
   PARTNER: 'partner',
+  AGENT: 'agent',
+  PARTNER_AGENT: 'partner_agent',
   STUDENT_PORTAL: 'student_portal',
   VIEWER: 'viewer',
 };
@@ -92,6 +95,12 @@ export const ROLE_META = {
     iconBg: 'bg-success-soft text-success',
     description: 'Branch invoices and payment collect',
   },
+  [ROLES.ACCOUNTANT]: {
+    label: 'Accountant',
+    badgeClass: 'bg-emerald-600 text-white',
+    iconBg: 'bg-emerald-50 text-emerald-600',
+    description: 'Fee collection, invoicing, receipts, student ledgers, and financial reports',
+  },
   [ROLES.RECEPTIONIST]: {
     label: 'Receptionist',
     badgeClass: 'bg-brand text-white',
@@ -103,6 +112,18 @@ export const ROLE_META = {
     badgeClass: 'bg-secondary-500 text-white',
     iconBg: 'bg-row-hover text-text-secondary',
     description: 'Read-only access to CRM data',
+  },
+  [ROLES.PARTNER]: {
+    label: 'Partner Agent',
+    badgeClass: 'bg-primary text-white',
+    iconBg: 'bg-primary-soft text-primary',
+    description: 'Partner Agent — refers leads, tracks applicants and commissions',
+  },
+  [ROLES.AGENT]: {
+    label: 'Partner Agent',
+    badgeClass: 'bg-primary text-white',
+    iconBg: 'bg-primary-soft text-primary',
+    description: 'Partner Agent — refers leads, tracks applicants and commissions',
   },
 };
 

@@ -87,29 +87,39 @@ export default function TeamAccessWorkspace({
 
   return (
     <div className="crm-team-access crm-team-access--embedded">
-      <div className="crm-settings-team-bar">
-        {visibleTabs.length > 1 && (
-          <div className="crm-team-access-tabs crm-team-access-tabs--inline" role="tablist">
-            {visibleTabs.map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  className={`crm-team-access-tab ${active ? 'crm-team-access-tab--active' : ''}`}
-                  onClick={() => setTab(tab.id)}
-                >
-                  <Icon size={14} />
-                  <span className="crm-team-access-tab__label">{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <TeamAccessHelpMenu activeTab={activeTab} />
+      {/* ── Single Unified Flex Header: Title & Subtitle Left, Sleek Tabs & Help Right ── */}
+      <div className="crm-team-access-header-flex">
+        <div className="min-w-0">
+          <h2 className="crm-team-access-header-title">Team & Access</h2>
+          <p className="crm-team-access-header-desc">
+            Team members, roles, and permission matrix — all in one place.
+          </p>
+        </div>
+
+        <div className="crm-team-access-header-actions">
+          {visibleTabs.length > 1 && (
+            <div className="crm-team-access-tabs" role="tablist" aria-label="Team and access sections">
+              {visibleTabs.map((tab) => {
+                const Icon = tab.icon;
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className={`crm-team-access-tab ${active ? 'crm-team-access-tab--active' : ''}`}
+                    onClick={() => setTab(tab.id)}
+                  >
+                    <Icon size={14} className="shrink-0" />
+                    <span className="crm-team-access-tab__label">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <TeamAccessHelpMenu activeTab={activeTab} />
+        </div>
       </div>
 
       <SummaryStatBar

@@ -14,8 +14,12 @@ export const FORCE_NO_MASTERS_ROLES = new Set([
   'document_executive',
   'application_officer',
   'visa_officer',
+  'finance_manager',
   'finance_executive',
+  'accountant',
   'partner',
+  'agent',
+  'partner_agent',
   'student_portal',
 ]);
 
@@ -28,7 +32,12 @@ export const FORCE_DENY_PREFIXES_BY_ROLE = {
   teacher: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'accounts.', 'application.', 'visa.'],
   application_officer: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'accounts.'],
   visa_officer: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'accounts.'],
+  accountant: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'application.', 'visa.', 'reception.'],
+  finance_manager: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'application.', 'visa.', 'reception.'],
+  finance_executive: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'application.', 'visa.', 'reception.'],
   partner: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'feature.', 'accounts.', 'reception.', 'attendance.', 'teacher.', 'telecaller.'],
+  agent: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'feature.', 'accounts.', 'reception.', 'attendance.', 'teacher.', 'telecaller.'],
+  partner_agent: ['masters.', 'settings.', 'roles.', 'users.', 'audit.', 'feature.', 'accounts.', 'reception.', 'attendance.', 'teacher.', 'telecaller.'],
 };
 
 export const ADMIN_ROLE_SLUGS = new Set(['super_admin', 'company_admin', 'admin']);
@@ -157,6 +166,15 @@ export const ROLE_ACCESS_GUIDE = [
     hides: 'Masters CRM setup',
     buttons: 'Accounts module',
     notes: 'Company finance.',
+  },
+  {
+    slug: 'accountant',
+    name: 'Accountant',
+    dataScope: 'COMPANY',
+    sees: 'Fee Management, Invoices, Payment Collection, Receipts, Student accounts ledger, Financial Reports, Dashboard',
+    hides: 'Masters, Settings, User & Role Management, Applications, Visas, Reception, Enquiries',
+    buttons: 'Invoice CRUD, Collect Payment, Export CSV/Excel, Print Receipts; Student view-only',
+    notes: 'Dedicated finance & accounting workspace.',
   },
   {
     slug: 'finance_executive',

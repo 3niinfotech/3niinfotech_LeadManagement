@@ -4,7 +4,6 @@ import ModuleToolbar, {
 } from '../../../components/layout/ModuleToolbar';
 import SearchInput from '../../../components/ui/SearchInput';
 import Button from '../../../components/ui/Button';
-import IconButton from '../../../components/ui/IconButton';
 import { FiFilter, FiPlus, FiRefreshCw, FiDownload } from 'react-icons/fi';
 import PermissionGate from '../../../components/common/PermissionGate';
 import { PERMISSIONS } from '../../../config/permissions';
@@ -47,14 +46,17 @@ export default function MasterToolbar({
         >
           Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
         </Button>
-        <IconButton
+        <Button
+          variant="outline"
+          size="sm"
           icon={FiRefreshCw}
-          label="Refresh"
-          variant="toolbar"
+          loading={refreshing}
           onClick={onRefresh}
-          disabled={refreshing}
-          className={refreshing ? 'animate-spin' : ''}
-        />
+          title="Refresh list"
+          aria-label="Refresh list"
+        >
+          <span className="hidden sm:inline">Refresh</span>
+        </Button>
         {canManage && selectedCount > 0 && (
           <>
             <Button size="sm" variant="outline" onClick={onBulkActivate}>

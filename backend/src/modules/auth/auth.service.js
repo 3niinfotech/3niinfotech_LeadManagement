@@ -179,22 +179,8 @@ export const authService = {
 
     if (user.status !== 'ACTIVE') throw new AppError('Account is not active', 403);
 
-    const resolvedPortal = portal || resolvePortalFromRole(user.role.slug);
-    try {
-      assertRoleMatchesPortal(user.role.slug, resolvedPortal);
-    } catch {
-      const correct = resolvePortalFromRole(user.role.slug);
-      const labels = { admin: 'Staff / Admin', student: 'Student', agent: 'Agent' };
-      const roleName = user.role?.name || user.role?.slug || 'This';
-      throw new AppError(
-        `${roleName} accounts sign in at ${labels[correct] || 'Staff'} login — not this portal`,
-        403,
-        {
-          suggestedPortal: correct,
-          suggestedLoginPath: PORTAL_LOGIN_PATHS[correct],
-        },
-      );
-    }
+    // Auto-detect portal directly from the user's assigned role for unified, seamless login
+    const resolvedPortal = resolvePortalFromRole(user.role.slug);
 
     const payload = {
       userId: user.id,

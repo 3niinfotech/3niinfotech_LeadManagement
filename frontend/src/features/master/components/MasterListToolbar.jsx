@@ -4,7 +4,7 @@ import ModuleToolbar, {
 } from '../../../components/layout/ModuleToolbar';
 import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
-import IconButton from '../../../components/ui/IconButton';
+import Button from '../../../components/ui/Button';
 import { FiRefreshCw } from 'react-icons/fi';
 
 export const MASTER_STATUS_OPTIONS = [
@@ -29,72 +29,66 @@ export default function MasterListToolbar({
   filters = [],
   onRefresh,
   refreshing = false,
-  hint,
   trailing,
   children,
 }) {
   return (
-    <div className="shrink-0 border-b border-border bg-card-bg">
-      <ModuleToolbar className="!border-b-0">
-        <ModuleToolbarSearch>
-          <SearchInput
-            value={search}
-            onChange={(e) => onSearchChange?.(e.target.value)}
-            placeholder={searchPlaceholder}
-            aria-label={searchAriaLabel}
+    <ModuleToolbar>
+      <ModuleToolbarSearch>
+        <SearchInput
+          value={search}
+          onChange={(e) => onSearchChange?.(e.target.value)}
+          placeholder={searchPlaceholder}
+          aria-label={searchAriaLabel}
+        />
+      </ModuleToolbarSearch>
+
+      <div className="flex flex-wrap items-center gap-2 min-w-0">
+        {showStatus && onStatusChange && (
+          <ToolbarSelect
+            value={status}
+            onChange={onStatusChange}
+            options={statusOptions}
+            widthClass="w-[148px]"
+            ariaLabel="Filter by status"
           />
-        </ModuleToolbarSearch>
+        )}
 
-        <div className="flex flex-wrap items-center gap-2 min-w-0">
-          {showStatus && onStatusChange && (
-            <ToolbarSelect
-              value={status}
-              onChange={onStatusChange}
-              options={statusOptions}
-              widthClass="w-[148px]"
-              ariaLabel="Filter by status"
-            />
-          )}
+        {filters.map((filter) => (
+          <ToolbarSelect
+            key={filter.key || filter.name}
+            value={filter.value}
+            onChange={filter.onChange}
+            options={filter.options || []}
+            widthClass={filter.widthClass || 'w-[160px]'}
+            placeholder={filter.placeholder}
+            disabled={filter.disabled}
+            allowClear={filter.allowClear}
+            searchable={filter.searchable}
+            ariaLabel={filter.ariaLabel || filter.placeholder || filter.key}
+          />
+        ))}
 
-          {filters.map((filter) => (
-            <ToolbarSelect
-              key={filter.key || filter.name}
-              value={filter.value}
-              onChange={filter.onChange}
-              options={filter.options || []}
-              widthClass={filter.widthClass || 'w-[160px]'}
-              placeholder={filter.placeholder}
-              disabled={filter.disabled}
-              allowClear={filter.allowClear}
-              searchable={filter.searchable}
-              ariaLabel={filter.ariaLabel || filter.placeholder || filter.key}
-            />
-          ))}
+        {children}
+      </div>
 
-          {children}
-        </div>
-
-        <ModuleToolbarActions>
-          {trailing}
-          {onRefresh && (
-            <IconButton
-              icon={FiRefreshCw}
-              label="Refresh"
-              variant="toolbar"
-              onClick={onRefresh}
-              disabled={refreshing}
-              className={refreshing ? 'animate-spin' : ''}
-            />
-          )}
-        </ModuleToolbarActions>
-      </ModuleToolbar>
-
-      {hint ? (
-        <p className="px-4 pb-3 -mt-1 text-[11px] text-text-muted leading-snug">
-          {hint}
-        </p>
-      ) : null}
-    </div>
+      <ModuleToolbarActions className="items-center gap-2.5">
+        {trailing}
+        {onRefresh && (
+          <Button
+            variant="outline"
+            size="sm"
+            icon={FiRefreshCw}
+            loading={refreshing}
+            onClick={onRefresh}
+            title="Refresh list"
+            aria-label="Refresh list"
+          >
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+        )}
+      </ModuleToolbarActions>
+    </ModuleToolbar>
   );
 }
 

@@ -108,10 +108,12 @@ export default function WalkInPage() {
       dispatch(setWalkInActiveView('today'));
       if (lead?.id) dispatch(openWalkInDrawer({ id: lead.id }));
       setFocusFormSignal((n) => n + 1);
+      return result;
     } catch (e) {
       const msg = e?.data?.message || 'Registration failed';
       if (e?.status === 409) toastService.warning(msg);
       else toastService.error(msg);
+      throw e;
     }
   };
 

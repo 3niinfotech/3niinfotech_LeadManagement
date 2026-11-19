@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSelector } from 'react-redux';
@@ -99,6 +100,7 @@ function stripFormExtras(data) {
 }
 
 export default function EnquiryDrawer() {
+  const navigate = useNavigate();
   const user = useSelector(selectUser);
   const { settings } = useCompanyRuntime();
   const enquirySchema = useMemo(
@@ -224,7 +226,8 @@ export default function EnquiryDrawer() {
       );
       refetch();
       if (studentId) {
-        openRouteInNewTab(ROUTES.STUDENT_DETAIL(studentId));
+        closeDrawer();
+        navigate(ROUTES.STUDENT_DETAIL(studentId));
       }
     } catch (err) {
       toastService.error(err?.data?.message || 'Conversion failed');

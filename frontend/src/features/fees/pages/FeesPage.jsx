@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FiDollarSign, FiPlus } from 'react-icons/fi';
+import { useSearchParams } from 'react-router-dom';
+import {
+  FiDollarSign,
+  FiPlus,
+  FiPieChart,
+  FiFileText,
+  FiCheckSquare,
+  FiRotateCcw,
+  FiBook,
+  FiTrendingDown,
+} from 'react-icons/fi';
 import ModulePageCard from '../../../components/layout/ModulePageLayout';
 import Button from '../../../components/ui/Button';
 import Pagination from '../../../components/ui/Pagination';
@@ -17,6 +27,13 @@ import FeesFilters from '../components/FeesFilters';
 import FeesGrid from '../components/FeesGrid';
 import InvoiceCreateModal from '../components/InvoiceCreateModal';
 import InvoiceDetailModal from '../components/InvoiceDetailModal';
+import CollectPaymentModal from '../components/CollectPaymentModal';
+import ReceiptModal from '../components/ReceiptModal';
+import FinancialDashboardTab from '../components/FinancialDashboardTab';
+import PaymentProofsTab from '../components/PaymentProofsTab';
+import RefundsTab from '../components/RefundsTab';
+import AccountingLedgerTab from '../components/AccountingLedgerTab';
+import ExpensesTab from '../components/ExpensesTab';
 
 import {
   useListInvoicesQuery,
@@ -27,16 +44,41 @@ import {
 } from '../redux/feesApiSlice';
 import { useFeesFilters } from '../hooks/useFeesFilters';
 
+const TABS = [
+  { id: 'dashboard', label: 'Financial Dashboard', icon: FiPieChart },
+  { id: 'invoices', label: 'Invoices & Billing', icon: FiFileText },
+  { id: 'proofs', label: 'Payment Proofs', icon: FiCheckSquare },
+  { id: 'refunds', label: 'Refunds', icon: FiRotateCcw },
+  { id: 'ledger', label: 'Accounting Ledger', icon: FiBook },
+  { id: 'expenses', label: 'Operating Expenses', icon: FiTrendingDown },
+];
+
 export default function FeesPage() {
   const { can } = usePermissions();
   const canCreate = can(PERMISSIONS.INVOICES_CREATE);
   const canUpdate = can(PERMISSIONS.INVOICES_UPDATE) || can(PERMISSIONS.INVOICES_EDIT);
   const canDelete = can(PERMISSIONS.INVOICES_DELETE) || can(PERMISSIONS.INVOICES_EDIT);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : 'dashboard'
+  );
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tabId);
+      return next;
+    }, { replace: true });
+  };
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterDraft, setFilterDraft] = useState({});
   const [createOpen, setCreateOpen] = useState(false);
   const [detailId, setDetailId] = useState(null);
+  const [collectInvoice, setCollectInvoice] = useState(null);
+  const [activeReceipt, setActiveReceipt] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [selectedRowIds, setSelectedRowIds] = useState([]);
@@ -63,13 +105,16 @@ export default function FeesPage() {
     refetch,
   } = useListInvoicesQuery(queryParams, {
     placeholderData: (previousData) => previousData,
+    skip: activeTab !== 'invoices',
   });
 
   const {
     data: summary,
     isLoading: summaryLoading,
     refetch: refetchSummary,
-  } = useGetFeesSummaryQuery(summaryParams);
+  } = useGetFeesSummaryQuery(summaryParams, {
+    skip: activeTab !== 'invoices',
+  });
 
   const [updateInvoice] = useUpdateInvoiceMutation();
   const [deleteInvoice] = useDeleteInvoiceMutation();
@@ -175,20 +220,20 @@ export default function FeesPage() {
 
   return (
     <>
-      <div className="h-full min-h-0 flex flex-col">
+      <div className="h-full min-h-0 flex flex-col w-full">
         <ModulePageCard
-          title="Fees"
-          subtitle="Invoices, dues, and collections"
+          title="Accountant & Finance Hub"
+          subtitle="Invoicing, fee collections, payment receipts, refunds, general ledger & expenses"
           icon={FiDollarSign}
           iconColor="primary"
-          scroll="contain"
+          scroll={activeTab === 'invoices' ? 'contain' : 'auto'}
           breadcrumbs={[
             { label: 'Dashboard', path: ROUTES.DASHBOARD },
-            { label: 'Fees' },
+            { label: 'Accounts & Finance' },
           ]}
           actions={(
             <div className="flex items-center gap-2">
-              <MasterManageLink to="/admin/master/currency">Manage Currency</MasterManageLink>
+              <MasterManageLink to="/admin/master/currency">Currency</MasterManageLink>
               {canCreate && (
                 <PermissionGate permission={PERMISSIONS.INVOICES_CREATE}>
                   <Button variant="primary" size="sm" icon={FiPlus} onClick={() => setCreateOpen(true)}>
@@ -199,71 +244,120 @@ export default function FeesPage() {
             </div>
           )}
         >
-          <ModulePageCard.Stats
-            items={statItems}
-            activeFilter={activeSummaryFilter}
-            onSelect={selectSummaryCard}
-            loading={summaryLoading}
-            ariaLabel="Invoice status filters"
-            layout="grid"
-          />
+          {/* ── Sub Navigation Tabs ── */}
+          <div className="flex items-center gap-1 border-b border-border pb-2 px-3 pt-1 overflow-x-auto shrink-0 bg-card-bg">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-all ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-700 dark:bg-primary-950/50 dark:text-primary-300 font-bold shadow-xs'
+                      : 'text-text-muted hover:text-text hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400'}`} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
-          <ModulePageCard.Toolbar>
-            <FeesToolbar
-              search={search}
-              onSearchChange={setSearch}
-              filtersOpen={filtersOpen}
-              onToggleFilters={() => setFiltersOpen((v) => !v)}
-              onCreate={canCreate ? () => setCreateOpen(true) : undefined}
-              onRefresh={handleRefresh}
-              refreshLoading={refreshing || isFetching}
-              onExport={handleExport}
-              exportLoading={exportLoading}
-              selectedCount={selectedRowIds.length}
-            />
-          </ModulePageCard.Toolbar>
+          {/* ── Tab Content ── */}
+          {activeTab === 'invoices' ? (
+            <>
+              <ModulePageCard.Stats
+                items={statItems}
+                activeFilter={activeSummaryFilter}
+                onSelect={selectSummaryCard}
+                loading={summaryLoading}
+                ariaLabel="Invoice status filters"
+                layout="grid"
+              />
 
-          <ModulePageCard.Filters>
-            <FeesFilters
-              open={filtersOpen}
-              values={filterDraft}
-              onChange={setFilterDraft}
-              onSearch={() => applyFilters(filterDraft)}
-              onReset={() => {
-                setFilterDraft({});
-                resetFilters();
-              }}
-              onClose={() => setFiltersOpen(false)}
-            />
-          </ModulePageCard.Filters>
+              <ModulePageCard.Toolbar>
+                <FeesToolbar
+                  search={search}
+                  onSearchChange={setSearch}
+                  filtersOpen={filtersOpen}
+                  onToggleFilters={() => setFiltersOpen((v) => !v)}
+                  onCreate={canCreate ? () => setCreateOpen(true) : undefined}
+                  onRefresh={handleRefresh}
+                  refreshLoading={refreshing || isFetching}
+                  onExport={handleExport}
+                  exportLoading={exportLoading}
+                  selectedCount={selectedRowIds.length}
+                />
+              </ModulePageCard.Toolbar>
 
-          <ModulePageCard.Table className="flex-1 min-h-0">
-            <FeesGrid
-              rows={rows}
-              loading={gridLoading}
-              fetching={gridFetching}
-              onRowClick={(row) => setDetailId(row.id)}
-              onView={(row) => setDetailId(row.id)}
-              onMarkPaid={canUpdate ? handleMarkPaid : undefined}
-              onDelete={canDelete ? handleDelete : undefined}
-              onSelectionChanged={handleSelectionChanged}
-              canUpdate={canUpdate}
-              canDelete={canDelete}
-              onCreate={canCreate ? () => setCreateOpen(true) : undefined}
-            />
-          </ModulePageCard.Table>
+              <ModulePageCard.Filters>
+                <FeesFilters
+                  open={filtersOpen}
+                  values={filterDraft}
+                  onChange={setFilterDraft}
+                  onSearch={() => applyFilters(filterDraft)}
+                  onReset={() => {
+                    setFilterDraft({});
+                    resetFilters();
+                  }}
+                  onClose={() => setFiltersOpen(false)}
+                />
+              </ModulePageCard.Filters>
 
-          <Pagination
-            page={pagination.page || page}
-            limit={pagination.limit || pageSize}
-            total={pagination.total || 0}
-            totalPages={pagination.totalPages || 0}
-            onPageChange={setPage}
-            onPageSizeChange={(limit) => {
-              setPageSize(limit);
-              setPage(1);
-            }}
-          />
+              <ModulePageCard.Table className="flex-1 min-h-0">
+                <FeesGrid
+                  rows={rows}
+                  loading={gridLoading}
+                  fetching={gridFetching}
+                  onRowClick={(row) => setDetailId(row.id)}
+                  onView={(row) => setDetailId(row.id)}
+                  onCollectPayment={(row) => setCollectInvoice(row)}
+                  onMarkPaid={canUpdate ? handleMarkPaid : undefined}
+                  onDelete={canDelete ? handleDelete : undefined}
+                  onSelectionChanged={handleSelectionChanged}
+                  canUpdate={canUpdate}
+                  canDelete={canDelete}
+                  onCreate={canCreate ? () => setCreateOpen(true) : undefined}
+                />
+              </ModulePageCard.Table>
+
+              <Pagination
+                page={pagination.page || page}
+                limit={pagination.limit || pageSize}
+                total={pagination.total || 0}
+                totalPages={pagination.totalPages || 0}
+                onPageChange={setPage}
+                onPageSizeChange={(limit) => {
+                  setPageSize(limit);
+                  setPage(1);
+                }}
+              />
+            </>
+          ) : (
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 w-full">
+              {activeTab === 'dashboard' && (
+                <FinancialDashboardTab
+                  onNavigateTab={handleTabChange}
+                  onOpenInvoice={(inv) => setDetailId(inv.id)}
+                />
+              )}
+              {activeTab === 'proofs' && (
+                <PaymentProofsTab
+                  onPaymentProcessed={(receipt) => {
+                    handleActionSuccess();
+                    if (receipt) setActiveReceipt(receipt);
+                  }}
+                />
+              )}
+              {activeTab === 'refunds' && <RefundsTab />}
+              {activeTab === 'ledger' && <AccountingLedgerTab />}
+              {activeTab === 'expenses' && <ExpensesTab />}
+            </div>
+          )}
         </ModulePageCard>
       </div>
 
@@ -279,6 +373,38 @@ export default function FeesPage() {
         onClose={() => setDetailId(null)}
         onUpdated={handleActionSuccess}
         onDeleted={handleActionSuccess}
+      />
+
+      {/* Collect Payment Modal */}
+      <CollectPaymentModal
+        open={Boolean(collectInvoice)}
+        invoice={collectInvoice}
+        onClose={() => setCollectInvoice(null)}
+        onSuccess={(receipt) => {
+          handleActionSuccess();
+          if (receipt) {
+            setActiveReceipt({
+              ...receipt,
+              invoice: collectInvoice,
+              student: collectInvoice?.student,
+              payment: {
+                ...(receipt.payment || {}),
+                invoice: collectInvoice,
+              },
+            });
+          }
+        }}
+      />
+
+      {/* Receipt Preview & Print Modal */}
+      <ReceiptModal
+        open={Boolean(activeReceipt)}
+        receipt={activeReceipt ? {
+          ...activeReceipt,
+          invoice: activeReceipt.invoice || collectInvoice,
+          student: activeReceipt.student || activeReceipt.invoice?.student || collectInvoice?.student,
+        } : null}
+        onClose={() => setActiveReceipt(null)}
       />
     </>
   );

@@ -41,12 +41,9 @@ export const calendarRepository = {
         : null,
     );
 
-    return prisma.enquiryFollowup.findMany({
+    const rows = await prisma.enquiryFollowup.findMany({
       where: {
-        OR: [
-          { nextDate: { gte: from, lte: to } },
-          { AND: [{ nextDate: null }, { followupAt: { gte: from, lte: to } }] },
-        ],
+        nextDate: { gte: from, lte: to, not: null },
         enquiry: enquiryWhere,
       },
       include: {
@@ -66,12 +63,29 @@ export const calendarRepository = {
             assignedTo: { select: userSelect },
             branch: { select: branchSelect },
             studentId: true,
+            followups: {
+              where: { nextDate: { not: null } },
+              select: { id: true, createdAt: true, nextDate: true },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
           },
         },
       },
-      orderBy: { followupAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       take: 2000,
     });
+
+    // An enquiry's active pending task is ONLY its latest scheduled followup.
+    // Older followups on the same enquiry that have already been superseded by a newer followup
+    // are completed activity history, not open/overdue pending tasks.
+    const activeRows = rows.filter((r) => {
+      const latest = r.enquiry?.followups?.[0];
+      if (!latest) return true;
+      return r.id === latest.id;
+    });
+
+    return activeRows;
   },
 
   findEnquiryAppointments: async ({ user, from, to, branchId, assignedTo, search }) => {

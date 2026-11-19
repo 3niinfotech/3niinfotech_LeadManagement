@@ -4,7 +4,7 @@ import { useGetViewingBranchQuery } from '../../organization/redux/organizationA
 import { onViewingBranchChanged } from '../../../config/viewingBranch.events';
 
 /** Shared report filters — drives backend query params + follows Active Branch. */
-export function useReportFilters(defaultPreset = 'this_month') {
+export function useReportFilters(defaultPreset = 'all_time') {
   const { data: viewing } = useGetViewingBranchQuery();
   const viewingBranchId = viewing?.viewingBranchId || '';
 

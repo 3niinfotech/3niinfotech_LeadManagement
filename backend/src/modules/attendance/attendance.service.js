@@ -298,7 +298,7 @@ export const attendanceService = {
     const batch = await requireBatch(batchId, user);
     const results = [];
     for (const studentId of studentIds) {
-      const student = await assertStudentInTenant(studentId, user);
+      const student = await assertStudentInTenant(studentId, user, { forEnrollment: true });
       if (student.branchId !== batch.branchId) {
         throw new AppError('Student belongs to a different branch', 403);
       }
@@ -450,7 +450,9 @@ export const attendanceService = {
 
     const settings = await companySettings(user);
     const window = attendanceWindowState(session.startAt, session.endAt, settings);
-    const allowOverride = Boolean(payload.force || payload.overrideWindow || user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'super_admin');
+    const roleSlug = typeof user?.role === 'string' ? user.role : user?.role?.slug;
+    const isPrivileged = ['teacher', 'admin', 'super_admin', 'branch_manager'].includes(roleSlug);
+    const allowOverride = Boolean(payload.force || payload.overrideWindow || isPrivileged);
     if (window.locked && !allowOverride) {
       throw new AppError(
         window.state === 'NOT_OPEN'

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FiUserPlus, FiCheck, FiArrowRight, FiExternalLink, FiUser,
 } from 'react-icons/fi';
@@ -6,7 +7,7 @@ import Badge from '../../../../components/ui/Badge';
 import Button from '../../../../components/ui/Button';
 import FormSection from '../../../../components/ui/FormSection';
 import { buildConversionFlow } from '../../utils/enquiryConversion.utils';
-import { ROUTES, openRouteInNewTab } from '../../../../config/routes';
+import { ROUTES } from '../../../../config/routes';
 import ConversionConfirmModal from './ConversionConfirmModal';
 
 function StepCard({ step, index }) {
@@ -32,6 +33,7 @@ export default function ConversionFlowPanel({
   onConvert,
   converting = false,
 }) {
+  const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const flow = useMemo(() => buildConversionFlow(enquiry), [enquiry]);
 
@@ -110,7 +112,7 @@ export default function ConversionFlowPanel({
               <Button
                 variant="outline"
                 icon={FiExternalLink}
-                onClick={() => openRouteInNewTab(ROUTES.STUDENT_DETAIL(flow.studentId))}
+                onClick={() => navigate(ROUTES.STUDENT_DETAIL(flow.studentId))}
               >
                 Open student profile
               </Button>
@@ -130,7 +132,7 @@ export default function ConversionFlowPanel({
         enquiryId={enquiry?.id}
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleConfirm}
-        onOpenStudent={(studentId) => openRouteInNewTab(ROUTES.STUDENT_DETAIL(studentId))}
+        onOpenStudent={(studentId) => navigate(ROUTES.STUDENT_DETAIL(studentId))}
         converting={converting}
       />
     </>

@@ -16,6 +16,15 @@ export function useRelationalMasterOptions(entity, params = {}, { enabled = true
   const [options, setOptions] = useState(() => optionsCache.get(cacheKey) || []);
   const [loading, setLoading] = useState(() => Boolean(enabled && entity && !optionsCache.has(cacheKey)));
 
+  useEffect(() => {
+    if (optionsCache.has(cacheKey)) {
+      setOptions(optionsCache.get(cacheKey));
+      setLoading(false);
+    } else if (enabled && entity) {
+      setLoading(true);
+    }
+  }, [cacheKey, enabled, entity]);
+
   const load = useCallback(async (force = false) => {
     if (!entity || !enabled) {
       setOptions([]);
@@ -48,10 +57,9 @@ export function useRelationalMasterOptions(entity, params = {}, { enabled = true
         const next = Array.isArray(rows) ? rows : [];
         optionsCache.set(cacheKey, next);
         return next;
-      } catch {
-        const next = optionsCache.get(cacheKey) || [];
-        optionsCache.set(cacheKey, next);
-        return next;
+      } catch (err) {
+        // Do not permanently cache errors, so it can retry cleanly
+        return [];
       } finally {
         inflightCache.delete(cacheKey);
       }

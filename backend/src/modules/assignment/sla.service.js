@@ -36,6 +36,7 @@ function mapSlaMinutes(config) {
 
 function hasFirstResponse(enquiry) {
   if (!enquiry) return false;
+  if (enquiry.studentId || enquiry.convertedAt) return true;
   if (enquiry.status && enquiry.status !== 'NEW') return true;
   const followups = enquiry.followups || [];
   if (followups.some((f) => f.stage !== 'REMINDER')) return true;
@@ -66,18 +67,30 @@ async function notifySlaTier({
   const link = `/admin/enquiries/${enquiry.id}`;
   const notified = slaMeta.notifications || {};
 
+  const isWalkIn = ['WALK_IN', 'WALKIN', 'RECEPTION'].includes(
+    String(enquiry.source || '').toUpperCase().replace(/[-\s]/g, '_')
+  );
+
   if (tier === 'warning' && !notified.warning && enquiry.assignedToId) {
+    const warningMsg = isWalkIn
+      ? `${name} requires first response within SLA (${waitMinutes} min waiting in lobby).`
+      : `${name} requires initial contact within SLA (${waitMinutes} min response pending).`;
+
     await notifyUser(enquiry.assignedToId, {
       type: 'WARNING',
       title: `SLA due soon — ${enquiry.enquiryCode}`,
-      message: `${name} requires first response within SLA (${waitMinutes} min waiting).`,
+      message: warningMsg,
       link,
-      metadata: { event: 'SLA_DUE_SOON', enquiryId: enquiry.id, tier, waitMinutes },
+      metadata: { event: 'SLA_DUE_SOON', enquiryId: enquiry.id, tier, waitMinutes, isWalkIn },
     });
     notified.warning = new Date().toISOString();
   }
 
   if ((tier === 'escalate' || tier === 'manager' || tier === 'mandatory_reassign') && !notified.manager) {
+    const breachMsg = isWalkIn
+      ? `${name} has waited ${waitMinutes} minutes in reception lobby without consultation.`
+      : `${name} has been pending initial contact for ${waitMinutes} minutes without required action.`;
+
     await notifyRoles({
       companyId,
       branchId: enquiry.branchId,
@@ -86,9 +99,9 @@ async function notifySlaTier({
       payload: {
         type: 'WARNING',
         title: tier === 'mandatory_reassign' ? `SLA breach — reassignment due` : `SLA breach — ${enquiry.enquiryCode}`,
-        message: `${name} has waited ${waitMinutes} minutes without required action.`,
+        message: breachMsg,
         link,
-        metadata: { event: 'SLA_BREACH', enquiryId: enquiry.id, tier, waitMinutes },
+        metadata: { event: 'SLA_BREACH', enquiryId: enquiry.id, tier, waitMinutes, isWalkIn },
       },
     });
     notified.manager = new Date().toISOString();

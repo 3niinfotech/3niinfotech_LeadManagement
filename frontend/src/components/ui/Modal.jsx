@@ -7,11 +7,26 @@ import ScrollArea from './ScrollArea';
 import { modals } from '../../theme';
 import './modal.theme.css';
 
+const overlayMotion = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.18, ease: 'easeOut' } },
+  exit: { opacity: 0, transition: { duration: 0.14, ease: 'easeIn' } },
+};
+
 const panelMotion = {
-  initial: { opacity: 0, scale: 0.94, y: 16 },
-  animate: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.97, y: 8 },
-  transition: { type: 'spring', damping: 28, stiffness: 360 },
+  initial: { opacity: 0, scale: 0.96, y: 12 },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.96,
+    y: 8,
+    transition: { duration: 0.14, ease: [0.4, 0, 1, 1] },
+  },
 };
 
 export default function Modal({
@@ -46,29 +61,42 @@ export default function Modal({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose?.();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
+
   if (!mounted) return null;
 
   const content = (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
-          <motion.button
-            type="button"
-            aria-label="Close dialog"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+        <motion.div
+          key="crm-modal-wrapper"
+          {...overlayMotion}
+          className="fixed inset-0 z-[999999] flex items-center justify-center p-4 overflow-y-auto"
+        >
+          <div
             className="crm-modal-backdrop fixed inset-0 border-0 cursor-default"
             onClick={onClose}
+            aria-hidden="true"
           />
           <motion.div
+            key="crm-modal-panel"
             {...panelMotion}
             className={`crm-modal-panel relative w-full flex flex-col overflow-hidden ${isForm ? 'crm-modal-panel--form' : compact ? 'crm-modal-panel--compact' : 'max-h-[min(90vh,880px)]'} ${className}`.trim()}
             style={{ maxWidth: sizes[size] }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="crm-modal-title"
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="crm-modal-header flex items-start justify-between gap-3 shrink-0">
               <div className="min-w-0">
@@ -97,7 +125,7 @@ export default function Modal({
               </div>
             )}
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

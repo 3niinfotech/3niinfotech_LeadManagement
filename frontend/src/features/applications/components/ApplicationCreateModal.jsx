@@ -22,6 +22,19 @@ const EMPTY_FORM = {
   applicationNo: '',
 };
 
+const FALLBACK_APPLICATION_STATUSES = [
+  { value: 'Application Started', label: 'Application Started', defaultStatus: true },
+  { value: 'Documents Pending', label: 'Documents Pending' },
+  { value: 'Application Submitted', label: 'Application Submitted' },
+  { value: 'Application Under Review', label: 'Application Under Review' },
+  { value: 'Conditional Offer Received', label: 'Conditional Offer Received' },
+  { value: 'Unconditional Offer Received', label: 'Unconditional Offer Received', setOfferLetter: true },
+  { value: 'Fee Paid', label: 'Fee Paid' },
+  { value: 'Visa Applied', label: 'Visa Applied' },
+  { value: 'Approved', label: 'Approved' },
+  { value: 'Rejected', label: 'Rejected' },
+];
+
 const FORM_ID = 'application-create-form';
 
 function studentLabel(s) {
@@ -29,9 +42,15 @@ function studentLabel(s) {
   return `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.studentCode || 'Student';
 }
 
-export default function ApplicationCreateModal({ open, onClose, onSuccess }) {
+export default function ApplicationCreateModal({
+  open,
+  onClose,
+  onSuccess,
+  defaultStudent,
+  initialStudentId,
+}) {
   const [form, setForm] = useState(EMPTY_FORM);
-  const [statusOptions, setStatusOptions] = useState([]);
+  const [statusOptions, setStatusOptions] = useState(FALLBACK_APPLICATION_STATUSES);
   const [checklist, setChecklist] = useState([]);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [studentSearch, setStudentSearch] = useState('');
@@ -101,17 +120,17 @@ export default function ApplicationCreateModal({ open, onClose, onSuccess }) {
     return base;
   }, [courseOptions, form.course]);
 
-  const statusSelectOptions = useMemo(
-    () => (statusOptions || []).map((o) => ({
+  const statusSelectOptions = useMemo(() => {
+    const list = statusOptions?.length > 0 ? statusOptions : FALLBACK_APPLICATION_STATUSES;
+    return list.map((o) => ({
       value: o.value,
       label: `${o.label}${o.defaultStatus ? ' (Default)' : ''}${o.setOfferLetter ? ' · Offer' : ''}`,
-    })),
-    [statusOptions],
-  );
+    }));
+  }, [statusOptions]);
 
   const reset = useCallback(() => {
     setForm(EMPTY_FORM);
-    setStatusOptions([]);
+    setStatusOptions(FALLBACK_APPLICATION_STATUSES);
     setChecklist([]);
     setStudentSearch('');
     setStudentResults([]);
@@ -127,12 +146,22 @@ export default function ApplicationCreateModal({ open, onClose, onSuccess }) {
       return;
     }
     reloadCountries();
+    if (defaultStudent) {
+      pickStudent(defaultStudent);
+    } else if (initialStudentId) {
+      apiGet(API.STUDENT_BY_ID(initialStudentId))
+        .then((res) => {
+          const s = res?.data || res;
+          if (s) pickStudent(s);
+        })
+        .catch(() => {});
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when modal opens
-  }, [open, reset]);
+  }, [open, reset, defaultStudent, initialStudentId]);
 
   const loadCountryDependents = useCallback(async (nextCountryId) => {
     if (!nextCountryId) {
-      setStatusOptions([]);
+      setStatusOptions(FALLBACK_APPLICATION_STATUSES);
       setChecklist([]);
       return;
     }
@@ -143,9 +172,10 @@ export default function ApplicationCreateModal({ open, onClose, onSuccess }) {
         masterApi.applicationStatusWorkflow(nextCountryId),
         masterApi.applicationChecklistByCountry(nextCountryId),
       ]);
-      const workflow = Array.isArray(workflowRes?.data)
+      const rawWorkflow = Array.isArray(workflowRes?.data)
         ? workflowRes.data
         : (Array.isArray(workflowRes) ? workflowRes : []);
+      const workflow = rawWorkflow.length > 0 ? rawWorkflow : FALLBACK_APPLICATION_STATUSES;
       const docs = Array.isArray(checklistRes?.data)
         ? checklistRes.data
         : (Array.isArray(checklistRes) ? checklistRes : []);
@@ -159,10 +189,13 @@ export default function ApplicationCreateModal({ open, onClose, onSuccess }) {
         applicationStatusMasterId: defaultStatus?.value || workflow[0]?.value || '',
       }));
     } catch (err) {
-      toastService.error(getApiErrorMessage(err, 'Failed to load country workflow'));
-      setStatusOptions([]);
+      console.warn('[ApplicationCreateModal] workflow fetch error:', err);
+      setStatusOptions(FALLBACK_APPLICATION_STATUSES);
       setChecklist([]);
-      setForm((prev) => ({ ...prev, applicationStatusMasterId: '' }));
+      setForm((prev) => ({
+        ...prev,
+        applicationStatusMasterId: FALLBACK_APPLICATION_STATUSES[0].value,
+      }));
     } finally {
       setWorkflowLoading(false);
     }
@@ -180,7 +213,7 @@ export default function ApplicationCreateModal({ open, onClose, onSuccess }) {
     setCourseSearch('');
 
     if (!nextCountryId) {
-      setStatusOptions([]);
+      setStatusOptions(FALLBACK_APPLICATION_STATUSES);
       setChecklist([]);
       return;
     }
@@ -188,6 +221,11 @@ export default function ApplicationCreateModal({ open, onClose, onSuccess }) {
     // Force workflow + checklist for selected country (university/course reload via hook params)
     await loadCountryDependents(nextCountryId);
   };
+
+  useEffect(() => {
+    if (!open || !form.countryId || statusOptions.length > 0 || workflowLoading) return;
+    loadCountryDependents(form.countryId);
+  }, [open, form.countryId, statusOptions.length, workflowLoading, loadCountryDependents]);
 
   useEffect(() => {
     if (!open || selectedStudent || studentSearch.trim().length < 2) {
@@ -287,7 +325,7 @@ export default function ApplicationCreateModal({ open, onClose, onSuccess }) {
     if (nextCountryId) {
       await loadCountryDependents(nextCountryId);
     } else {
-      setStatusOptions([]);
+      setStatusOptions(FALLBACK_APPLICATION_STATUSES);
       setChecklist([]);
       if (full.country) {
         toastService.info(`Country "${full.country}" not found in masters — select Destination Country manually`);

@@ -23,6 +23,8 @@ import {
 } from '../config/feesConstants';
 import toastService from '../../../services/toast/toast.service';
 import alertService from '../../../services/alert/alert.service';
+import CollectPaymentModal from './CollectPaymentModal';
+import ReceiptModal from './ReceiptModal';
 import '../styles/fees.theme.css';
 
 function studentName(s) {
@@ -62,6 +64,8 @@ export default function InvoiceDetailModal({
   const [taxId, setTaxId] = useState('');
   const [currency, setCurrency] = useState('');
   const [paymentModeId, setPaymentModeId] = useState('');
+  const [collectOpen, setCollectOpen] = useState(false);
+  const [viewingReceipt, setViewingReceipt] = useState(null);
 
   useEffect(() => {
     if (!invoice) return;
@@ -307,21 +311,91 @@ export default function InvoiceDetailModal({
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
-              {invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
-                <Button
-                  className="mt-2"
-                  variant="outline-success"
-                  size="sm"
-                  onClick={handleMarkPaid}
-                  loading={saving}
-                >
-                  Mark as paid
-                </Button>
-              )}
+                <div className="flex items-center gap-2 mt-3">
+                  {invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
+                    <>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setCollectOpen(true)}
+                      >
+                        Collect Payment & Receipt
+                      </Button>
+                      <Button
+                        variant="outline-success"
+                        size="sm"
+                        onClick={handleMarkPaid}
+                        loading={saving}
+                      >
+                        Mark as paid
+                      </Button>
+                    </>
+                  )}
+                </div>
             </section>
+
+            {invoice.payments?.length > 0 && (
+              <section className="fees-detail__section">
+                <div className="fees-detail__section-head">
+                  <h4>Recorded Payments & Official Receipts</h4>
+                </div>
+                <div className="space-y-2 mt-2">
+                  {invoice.payments.map((p) => (
+                    <div
+                      key={p.id}
+                      className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <span className="font-bold text-slate-900 dark:text-white block">
+                          {formatMoney(p.amount, invoice.currency)} via {p.mode}
+                        </span>
+                        <span className="font-mono text-[10px] text-slate-500">
+                          {p.receipts?.[0]?.receiptNo || p.receiptNo} • {new Date(p.paidAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {p.receipts?.[0] && (
+                        <button
+                          type="button"
+                          onClick={() => setViewingReceipt(p.receipts[0])}
+                          className="px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 font-semibold text-xs hover:underline cursor-pointer border border-blue-200/50"
+                        >
+                          View Receipt
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </PermissionGate>
         </div>
       )}
+
+      {/* Embedded Collect Payment Modal */}
+      <CollectPaymentModal
+        open={collectOpen}
+        invoice={invoice}
+        onClose={() => setCollectOpen(false)}
+        onSuccess={(receipt) => {
+          onUpdated?.();
+          if (receipt) setViewingReceipt(receipt);
+        }}
+      />
+
+      {/* Embedded Printable Receipt Modal */}
+      <ReceiptModal
+        open={Boolean(viewingReceipt)}
+        receipt={viewingReceipt ? {
+          ...viewingReceipt,
+          invoice,
+          student: invoice?.student,
+          payment: viewingReceipt.payment || {
+            ...(invoice?.payments?.find((p) => p.id === viewingReceipt.paymentId) || {}),
+            invoice,
+          },
+        } : null}
+        onClose={() => setViewingReceipt(null)}
+      />
     </Modal>
   );
 }

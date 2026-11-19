@@ -22,6 +22,8 @@ const FIELD_LABELS = {
 
 const ACTION_META = {
   CREATE: { label: 'Enquiry created', tone: 'success' },
+  ASSIGNED: { label: 'Counsellor assigned', tone: 'success' },
+  COUNSELLOR_ASSIGNED: { label: 'Counsellor assigned', tone: 'success' },
   UPDATE: { label: 'Record updated', tone: 'primary' },
   STATUS_CHANGE: { label: 'Status changed', tone: 'warning' },
   FOLLOWUP: { label: 'Follow-up logged', tone: 'info' },
@@ -62,6 +64,9 @@ export function getTimelineActionMeta(action) {
 
 export function formatTimelineTitle(entry) {
   const meta = getTimelineActionMeta(entry.action);
+  if (entry.action === 'ASSIGNED' || entry.action === 'COUNSELLOR_ASSIGNED') {
+    return entry.description || 'Counsellor assigned';
+  }
   if (entry.action === 'FOLLOWUP' && entry.newValue) {
     return `${getFollowupActionLabel(entry.newValue)} logged`;
   }
@@ -79,6 +84,15 @@ export function formatTimelineTitle(entry) {
 }
 
 export function formatTimelineDetail(entry) {
+  if (entry.action === 'ASSIGNED' || entry.action === 'COUNSELLOR_ASSIGNED') {
+    if (entry.metadata?.reasons && Array.isArray(entry.metadata.reasons) && entry.metadata.reasons.length) {
+      return `Matching criteria: ${entry.metadata.reasons.join(', ')}`;
+    }
+    if (entry.oldValue && entry.newValue) {
+      return `Reassigned from ${entry.oldValue} → ${entry.newValue}`;
+    }
+    return entry.description || (entry.newValue ? `Assigned to ${entry.newValue}` : null);
+  }
   if (entry.description && !entry.field) return entry.description;
   if (entry.field && (entry.oldValue || entry.newValue)) {
     const from = formatFieldValue(entry.field, entry.oldValue);
@@ -130,9 +144,24 @@ export function mergeTimelineEvents(auditLogs = [], enquiry) {
     byId.set(`created-${enquiry.id}`, {
       id: `created-${enquiry.id}`,
       action: 'CREATE',
-      description: `Enquiry ${enquiry.enquiryCode} created`,
+      description: `Enquiry ${enquiry.enquiryCode || ''} created (${enquiry.source || 'Lead'})`.trim(),
       createdAt: enquiry.createdAt,
       user: null,
+    });
+  }
+
+  const hasAssignment = Array.from(byId.values()).some(
+    (e) => e.action === 'ASSIGNED' || e.action === 'COUNSELLOR_ASSIGNED'
+  );
+  if (enquiry?.assignedTo && !hasAssignment) {
+    const cName = `${enquiry.assignedTo.firstName || ''} ${enquiry.assignedTo.lastName || ''}`.trim() || 'Counsellor';
+    byId.set(`assigned-${enquiry.id}`, {
+      id: `assigned-${enquiry.id}`,
+      action: 'ASSIGNED',
+      description: `Counsellor Assigned – ${cName} (Assigned Counsellor)`,
+      createdAt: enquiry.lastTouchedAt || enquiry.createdAt,
+      user: enquiry.assignedBy || { firstName: 'System', lastName: 'Auto-Assign Engine' },
+      newValue: cName,
     });
   }
 

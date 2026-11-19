@@ -139,7 +139,7 @@ export default function ReportsAcademicPage() {
           </ReportMetricGrid>
 
           <div className="crm-report-grid-3">
-            <ReportSectionCard title="Status share" subtitle="Rainbow donut">
+            <ReportSectionCard title="Status share" subtitle="Student status distribution">
               {statusRows.length
                 ? (
                   <ReportDonutChart
@@ -153,7 +153,7 @@ export default function ReportsAcademicPage() {
                 )
                 : <ReportEmpty />}
             </ReportSectionCard>
-            <ReportSectionCard title="Students by status" subtitle="Colorful bars">
+            <ReportSectionCard title="Students by status" subtitle="Enrollment volume per stage">
               {statusRows.length
                 ? (
                   <ReportBarChart
@@ -162,6 +162,7 @@ export default function ReportsAcademicPage() {
                     yKey="count"
                     height={260}
                     layout={statusRows.length <= 4 ? 'horizontal' : 'vertical'}
+                    colorful={false}
                   />
                 )
                 : <ReportEmpty />}

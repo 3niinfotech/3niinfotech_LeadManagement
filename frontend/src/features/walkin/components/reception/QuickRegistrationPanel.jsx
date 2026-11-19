@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSelector } from 'react-redux';
-import { FiSave, FiRotateCcw, FiBookmark, FiRefreshCw, FiUserPlus, FiCheck, FiEdit3, FiZap } from 'react-icons/fi';
+import { FiSave, FiRotateCcw, FiBookmark, FiRefreshCw, FiUserPlus, FiCheck, FiEdit3, FiZap, FiAlertTriangle } from 'react-icons/fi';
 import IconBox from '../../../../components/ui/IconBox';
 import Input from '../../../../components/ui/Input';
 import Select from '../../../../components/ui/Select';
@@ -28,11 +28,23 @@ const DRAFT_KEY = 'crm-enquiry-visitor-draft';
 const PRESENCE_POLL_MS = 8000;
 const OTHER = '__OTHER__';
 
+export const CONSULTANCY_SERVICES = [
+  { value: 'Study Visa', label: 'Study Visa' },
+  { value: 'Visitor / Tourist Visa', label: 'Visitor / Tourist Visa' },
+  { value: 'IELTS Coaching', label: 'IELTS Coaching' },
+  { value: 'PTE Coaching', label: 'PTE Coaching' },
+  { value: 'Spoken English', label: 'Spoken English' },
+  { value: 'Work Visa / Permit', label: 'Work Visa / Permit' },
+  { value: 'Permanent Residency (PR)', label: 'Permanent Residency (PR)' },
+  { value: 'General Consultation', label: 'General Consultation' },
+];
+
 const defaultValues = {
   phone: '',
   fullName: '',
   email: '',
   city: '',
+  serviceType: 'Study Visa',
   interestedCountry: '',
   interestedCourse: '',
   visitPurpose: '',
@@ -58,6 +70,7 @@ export default function QuickRegistrationPanel({
 }) {
   const user = useSelector(selectUser);
   const phoneRef = useRef(null);
+  const [serviceMode, setServiceMode] = useState('Study Visa');
   const [countryMode, setCountryMode] = useState('');
   const [courseMode, setCourseMode] = useState('');
   const [purposeMode, setPurposeMode] = useState('');
@@ -65,14 +78,6 @@ export default function QuickRegistrationPanel({
   const { data: branchesData } = useGetWalkInBranchesQuery();
   const branches = branchesData ?? [];
   const defaultBranchId = user?.branchId || branches[0]?.id || '';
-
-  const { options: countryRows, loading: countriesLoading } = useRelationalMasterOptions('country');
-  const { options: courseRows, loading: coursesLoading } = useRelationalMasterOptions('course');
-  const { options: purposeRows, loading: purposesLoading } = useRelationalMasterOptions('visit-purpose');
-
-  const countryOptions = useMemo(() => withOther(masterSelectOptions(countryRows)), [countryRows]);
-  const courseOptions = useMemo(() => withOther(masterSelectOptions(courseRows, { disambiguate: true })), [courseRows]);
-  const purposeOptions = useMemo(() => withOther(masterSelectOptions(purposeRows)), [purposeRows]);
 
   const {
     register,
@@ -89,11 +94,79 @@ export default function QuickRegistrationPanel({
   });
 
   const phone = watch('phone');
+  const email = watch('email');
+  const serviceType = watch('serviceType') || 'Study Visa';
   const branchId = watch('branchId') || defaultBranchId;
   const interestedCountry = watch('interestedCountry');
   const interestedCourse = watch('interestedCourse');
   const assignedToId = watch('assignedToId');
-  const { match, hasDuplicate } = useWalkInDuplicateCheck({ phone, branchId, enabled: Boolean(branchId) });
+  const effectiveCourse = interestedCourse?.trim() || serviceType;
+
+  const { options: countryRows, loading: countriesLoading } = useRelationalMasterOptions('country');
+
+  // Resolve selected country record & ID to dynamically filter courses
+  const selectedCountryRecord = useMemo(() => {
+    if (!interestedCountry || countryMode === OTHER) return null;
+    const clean = String(interestedCountry).trim().toLowerCase();
+    return countryRows.find((r) =>
+      String(r.name || '').trim().toLowerCase() === clean
+      || String(r.label || '').trim().toLowerCase() === clean
+      || String(r.value || '').trim().toLowerCase() === clean
+      || String(r.id || '').trim().toLowerCase() === clean
+      || String(r.code || '').trim().toLowerCase() === clean
+    );
+  }, [interestedCountry, countryMode, countryRows]);
+
+  const selectedCountryId = selectedCountryRecord?.value || selectedCountryRecord?.id || null;
+
+  // Pass selectedCountryId directly to master options hook so backend queries matching courses
+  const courseParams = useMemo(() => {
+    return selectedCountryId ? { countryId: selectedCountryId } : {};
+  }, [selectedCountryId]);
+
+  const { options: courseRows, loading: coursesLoading } = useRelationalMasterOptions('course', courseParams);
+  const { options: purposeRows, loading: purposesLoading } = useRelationalMasterOptions('visit-purpose');
+
+  // Strictly filter courses for the selected country (college & degree)
+  const filteredCourseRows = useMemo(() => {
+    if (!selectedCountryId && !selectedCountryRecord) return [];
+    return courseRows.filter((course) => {
+      if (course.countryId && selectedCountryId) {
+        return course.countryId === selectedCountryId;
+      }
+      if (course.countryName && selectedCountryRecord?.name) {
+        return course.countryName.toLowerCase() === selectedCountryRecord.name.toLowerCase();
+      }
+      return false;
+    });
+  }, [courseRows, selectedCountryId, selectedCountryRecord]);
+
+  const countryOptions = useMemo(() => withOther(masterSelectOptions(countryRows)), [countryRows]);
+  const courseOptions = useMemo(() => withOther(masterSelectOptions(filteredCourseRows, { disambiguate: true })), [filteredCourseRows]);
+  const purposeOptions = useMemo(() => withOther(masterSelectOptions(purposeRows)), [purposeRows]);
+
+  const { match, hasDuplicate } = useWalkInDuplicateCheck({
+    phone,
+    email,
+    branchId,
+    enabled: Boolean(branchId),
+  });
+
+  // When selected country changes, if existing selected course is not applicable, clear it
+  useEffect(() => {
+    if (selectedCountryId && interestedCourse && courseMode !== OTHER) {
+      const cleanCourse = String(interestedCourse).trim().toLowerCase();
+      const isStillValid = filteredCourseRows.some((r) =>
+        String(r.name || '').trim().toLowerCase() === cleanCourse
+        || String(r.label || '').trim().toLowerCase() === cleanCourse
+        || String(r.value || '').trim().toLowerCase() === cleanCourse
+      );
+      if (!isStillValid) {
+        setValue('interestedCourse', '');
+        setCourseMode('');
+      }
+    }
+  }, [selectedCountryId, filteredCourseRows, interestedCourse, courseMode, setValue]);
 
   const handleCounsellorAssign = useCallback((id) => {
     setValue('assignedToId', id, { shouldValidate: true });
@@ -113,7 +186,7 @@ export default function QuickRegistrationPanel({
     reset: resetCourseAssign,
     isCourseMapped,
   } = useCourseCounsellorAutoAssign({
-    courseLabel: interestedCourse,
+    courseLabel: effectiveCourse,
     branchId,
     assignedToId,
     onAssign: handleCounsellorAssign,
@@ -151,19 +224,37 @@ export default function QuickRegistrationPanel({
 
   const selectedCounsellor = recommendations.find((r) => r.id === assignedToId);
 
+  const draftLoadedRef = useRef(false);
+
   useEffect(() => {
-    reset({ ...defaultValues, branchId: defaultBranchId });
+    if (draftLoadedRef.current) return;
+    draftLoadedRef.current = true;
+
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         reset({ ...defaultValues, ...parsed, branchId: defaultBranchId });
-        if (parsed.interestedCountry) setCountryMode(OTHER);
-        if (parsed.interestedCourse) setCourseMode(OTHER);
-        if (parsed.visitPurpose) setPurposeMode(OTHER);
+        if (parsed.serviceType) {
+          setServiceMode(parsed.serviceType);
+        }
+        if (parsed.interestedCountry) {
+          const isKnown = countryRows.some((r) => r.name === parsed.interestedCountry || r.label === parsed.interestedCountry);
+          setCountryMode(isKnown ? parsed.interestedCountry : OTHER);
+        }
+        if (parsed.interestedCourse) {
+          const isKnown = courseRows.some((r) => r.name === parsed.interestedCourse || r.label === parsed.interestedCourse);
+          setCourseMode(isKnown ? parsed.interestedCourse : OTHER);
+        }
+        if (parsed.visitPurpose) {
+          const isKnown = purposeRows.some((r) => r.name === parsed.visitPurpose || r.label === parsed.visitPurpose);
+          setPurposeMode(isKnown ? parsed.visitPurpose : OTHER);
+        }
+      } else if (defaultBranchId) {
+        setValue('branchId', defaultBranchId);
       }
     } catch { /* ignore */ }
-  }, [defaultBranchId, reset]);
+  }, []); // Only run once on mount — never wipe form on options reload
 
   useEffect(() => {
     if (defaultBranchId) setValue('branchId', defaultBranchId);
@@ -205,6 +296,7 @@ export default function QuickRegistrationPanel({
   const clearForm = () => {
     localStorage.removeItem(DRAFT_KEY);
     reset({ ...defaultValues, branchId: defaultBranchId });
+    setServiceMode('Study Visa');
     setCountryMode('');
     setCourseMode('');
     setPurposeMode('');
@@ -213,39 +305,49 @@ export default function QuickRegistrationPanel({
     phoneRef.current?.focus();
   };
 
-  const submit = (data) => {
-    if (hasDuplicate && match) return;
+  const submit = async (data) => {
+    if (hasDuplicate && match) {
+      toastService.error(
+        `Registration blocked: A ${match.matchType || 'record'} already exists with this ${match.matchedOn === 'both' ? 'mobile and email' : (match.matchedOn || 'details')} (${match.name || match.code || ''}). Duplicate walk-in registration is strictly blocked.`
+      );
+      return;
+    }
 
-    const course = data.interestedCourse?.trim() || '';
+    const course = data.interestedCourse?.trim() || data.serviceType?.trim() || 'Study Visa';
     const counsellorId = data.assignedToId || '';
 
     if (!counsellorId && !course) {
-      toastService.info('Select a course or counsellor');
+      toastService.info('Select a service, course or counsellor');
       return;
     }
     if (!counsellorId && course && mappingWarning) {
-      toastService.info('No default counsellor for this course — pick one manually');
+      toastService.info('No default counsellor for this service — pick one manually');
       return;
     }
 
-    onSubmit({
-      fullName: data.fullName,
-      phone: data.phone,
-      email: data.email || null,
-      city: data.city || null,
-      interestedCountry: data.interestedCountry || null,
-      interestedCourse: course || null,
-      visitPurpose: data.visitPurpose || 'Study Abroad Enquiry',
-      source: data.source,
-      branchId: data.branchId || defaultBranchId,
-      notes: data.notes || null,
-      priority: 'NORMAL',
-      assignedToId: counsellorId || undefined,
-      manualCounsellorOverride: manualMode && Boolean(counsellorId),
-    });
-    localStorage.removeItem(DRAFT_KEY);
-    setManualMode(false);
-    resetCourseAssign();
+    try {
+      if (onSubmit) {
+        await onSubmit({
+          fullName: data.fullName,
+          phone: data.phone,
+          email: data.email || null,
+          city: data.city || null,
+          serviceType: data.serviceType || 'Study Visa',
+          interestedCountry: data.interestedCountry || null,
+          interestedCourse: course,
+          visitPurpose: data.visitPurpose || data.serviceType || 'Study Abroad Enquiry',
+          source: data.source,
+          branchId: data.branchId || defaultBranchId,
+          notes: data.notes || null,
+          priority: 'NORMAL',
+          assignedToId: counsellorId || undefined,
+          manualCounsellorOverride: manualMode && Boolean(counsellorId),
+        });
+      }
+      clearForm();
+    } catch {
+      // Keep form intact if submission failed
+    }
   };
 
   const bindMasterSelect = (mode, setMode, fieldName) => ({
@@ -308,6 +410,19 @@ export default function QuickRegistrationPanel({
 
               <div>
                 <Select
+                  label="Service interested"
+                  options={withOther(CONSULTANCY_SERVICES)}
+                  placeholder="Select service (e.g. Study Visa)"
+                  allowClear={false}
+                  {...bindMasterSelect(serviceMode, setServiceMode, 'serviceType')}
+                />
+                {serviceMode === OTHER && (
+                  <Input className="mt-2" label="Other service" placeholder="Type service" {...register('serviceType')} />
+                )}
+              </div>
+
+              <div>
+                <Select
                   label="Interested country"
                   options={countryOptions}
                   loading={countriesLoading}
@@ -322,15 +437,25 @@ export default function QuickRegistrationPanel({
 
               <div>
                 <Select
-                  label="Course / service"
+                  label="University & Course (Optional)"
                   options={courseOptions}
                   loading={coursesLoading}
-                  placeholder="Select course"
+                  placeholder={
+                    !interestedCountry
+                      ? 'Select country first'
+                      : (coursesLoading ? 'Loading programs…' : 'Not decided yet (or pick program)')
+                  }
                   allowClear
+                  disabled={!interestedCountry}
+                  hint={
+                    !interestedCountry
+                      ? 'Pick country above to view available universities & courses'
+                      : 'Optional — leave empty if university/course is not decided yet'
+                  }
                   {...bindMasterSelect(courseMode, setCourseMode, 'interestedCourse')}
                 />
                 {courseMode === OTHER && (
-                  <Input className="mt-2" label="Other course" placeholder="Type course / service" {...register('interestedCourse')} />
+                  <Input className="mt-2" label="Other university / course" placeholder="Type specific university / course" {...register('interestedCourse')} />
                 )}
               </div>
 
@@ -462,8 +587,15 @@ export default function QuickRegistrationPanel({
         </div>
 
         <div className="crm-reception-register__footer">
-          <Button type="submit" icon={FiSave} loading={loading} disabled={hasDuplicate || courseResolving}>
-            Create &amp; Assign
+          <Button
+            type="submit"
+            icon={hasDuplicate ? FiAlertTriangle : FiSave}
+            loading={loading}
+            disabled={hasDuplicate || courseResolving}
+            variant={hasDuplicate ? 'danger' : 'primary'}
+            id="reception-register-submit-btn"
+          >
+            {hasDuplicate ? 'Duplicate Entry Blocked' : 'Create & Assign'}
           </Button>
           <Button type="button" variant="outline" icon={FiBookmark} onClick={saveDraft}>
             Save draft

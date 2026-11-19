@@ -99,7 +99,7 @@ export function ReportBarChart({
   color,
   colors: seriesColors,
   seriesLabel = 'Count',
-  colorful = true,
+  colorful = false,
 }) {
   const { theme, colors } = useChartTheme();
   const tip = useTooltipStyle();

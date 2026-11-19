@@ -98,6 +98,23 @@ export function useSocket() {
       }
     });
 
+    socket.on('task:new', (task) => {
+      window.dispatchEvent(new CustomEvent('crm-task-new', { detail: task }));
+      window.dispatchEvent(new Event('crm-dashboard-update'));
+      if (task?.priority === 'URGENT' || task?.priority === 'HIGH') {
+        toastService.info(`New Task: ${task.title}`);
+      }
+    });
+
+    socket.on('task:update', (task) => {
+      window.dispatchEvent(new CustomEvent('crm-task-update', { detail: task }));
+      window.dispatchEvent(new Event('crm-dashboard-update'));
+    });
+
+    socket.on('notification:count', ({ unreadCount }) => {
+      window.dispatchEvent(new CustomEvent('crm-unread-count', { detail: { unreadCount } }));
+    });
+
     socket.on('dashboard:update', (data) => {
       window.dispatchEvent(new CustomEvent('crm-dashboard-update', { detail: data }));
     });

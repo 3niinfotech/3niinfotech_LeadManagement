@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { FiCheck, FiChevronDown, FiMapPin } from 'react-icons/fi';
+import { FiCheck, FiChevronDown, FiLayers, FiMapPin } from 'react-icons/fi';
 import { useDispatch } from 'react-redux';
 import {
   useGetViewingBranchQuery,
@@ -51,7 +51,7 @@ export default function NavbarBranchSwitcher() {
   const [setViewingBranch, { isLoading: switching }] = useSetViewingBranchMutation();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(null);
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 260 });
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 280 });
 
   const canSwitch = Boolean(data?.canSwitch);
   const branches = data?.branches || [];
@@ -71,7 +71,7 @@ export default function NavbarBranchSwitcher() {
       const el = triggerRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const width = Math.max(260, Math.min(320, Math.max(rect.width, 260)));
+      const width = Math.max(280, Math.min(340, Math.max(rect.width, 280)));
       let left = rect.right - width;
       left = Math.max(12, Math.min(left, window.innerWidth - width - 12));
       setPos({ top: rect.bottom + 8, left, width });
@@ -150,58 +150,121 @@ export default function NavbarBranchSwitcher() {
             aria-label="Close branch menu"
             onClick={() => setOpen(false)}
           />
-          <ul
-            className="fixed z-[1401] overflow-hidden rounded-xl border border-border bg-card-bg py-1.5 text-[13px] shadow-xl"
-            style={{ top: pos.top, left: pos.left, width: pos.width }}
+          <div
+            className="fixed z-[1401] rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 p-1.5 text-[13px] shadow-2xl backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150"
+            style={{ top: pos.top, left: pos.left, width: Math.max(270, pos.width) }}
             role="listbox"
             aria-label="Select active branch"
           >
-            <li className="px-3 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-wider text-text-muted">
-              Active branch
-            </li>
+            {/* Popover Header */}
+            <div className="flex items-center justify-between px-2.5 py-1.5 pb-2 mb-1 border-b border-slate-100 dark:border-slate-800/80">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                <FiMapPin className="text-brand shrink-0" size={11} />
+                Active Branch
+              </span>
+              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded-md">
+                {branches.length} locations
+              </span>
+            </div>
+
+            {/* All Branches option */}
             {canViewAll && (
-              <li role="option" aria-selected={activeId == null}>
+              <div className="mb-1">
                 <button
                   type="button"
-                  className={`flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors ${
+                  role="option"
+                  aria-selected={activeId == null}
+                  className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left transition-all ${
                     activeId == null
-                      ? 'bg-brand-soft/70 text-brand font-semibold'
-                      : 'text-text hover:bg-row-hover'
+                      ? 'bg-brand/10 text-brand font-semibold shadow-2xs dark:bg-brand/20'
+                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/70'
                   }`}
                   onClick={() => handleSelect(null)}
                 >
-                  <span className="min-w-0 flex-1 truncate">All Branches</span>
-                  {activeId == null ? <FiCheck className="h-4 w-4 shrink-0" /> : null}
+                  <span
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                      activeId == null
+                        ? 'bg-brand text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
+                    }`}
+                  >
+                    <FiLayers size={13} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold leading-tight">All Branches</div>
+                    <div className="text-[10px] font-normal text-slate-400 dark:text-slate-500 leading-tight">
+                      All locations included
+                    </div>
+                  </div>
+                  {activeId == null && (
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-white text-[11px] shadow-xs">
+                      <FiCheck size={11} strokeWidth={2.8} />
+                    </span>
+                  )}
                 </button>
-              </li>
+              </div>
             )}
-            {branches.map((branch) => {
-              const selected = activeId === branch.id;
-              return (
-                <li key={branch.id} role="option" aria-selected={selected}>
+
+            {canViewAll && <div className="my-1 border-t border-slate-100 dark:border-slate-800/80" />}
+
+            {/* Branch List */}
+            <div className="max-h-64 overflow-y-auto space-y-0.5 pr-0.5 custom-scrollbar">
+              {branches.map((branch) => {
+                const selected = activeId === branch.id;
+                const initials = branch.code
+                  ? branch.code.slice(0, 3).toUpperCase()
+                  : (branch.name || 'B').slice(0, 2).toUpperCase();
+
+                return (
                   <button
+                    key={branch.id}
                     type="button"
-                    className={`flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors ${
+                    role="option"
+                    aria-selected={selected}
+                    className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left transition-all ${
                       selected
-                        ? 'bg-brand-soft/70 text-brand font-semibold'
-                        : 'text-text hover:bg-row-hover'
+                        ? 'bg-brand/10 text-brand font-semibold shadow-2xs dark:bg-brand/20'
+                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/70'
                     }`}
                     onClick={() => handleSelect(branch.id)}
                   >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">{branchLabel(branch)}</span>
-                      {branch.city ? (
-                        <span className="block truncate text-[11px] font-normal text-text-muted">
-                          {branch.city}
-                        </span>
-                      ) : null}
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold uppercase transition-colors tracking-tight ${
+                        selected
+                          ? 'bg-brand text-white shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
+                      }`}
+                    >
+                      {initials}
                     </span>
-                    {selected ? <FiCheck className="h-4 w-4 shrink-0" /> : null}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-medium text-slate-800 dark:text-slate-100 truncate leading-snug">
+                        {branchLabel(branch)}
+                      </div>
+                      {branch.city && (
+                        <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
+                          <FiMapPin size={9} className="opacity-70 shrink-0" />
+                          <span className="truncate">{branch.city}</span>
+                        </div>
+                      )}
+                    </div>
+                    {selected && (
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-white text-[11px] shadow-xs">
+                        <FiCheck size={11} strokeWidth={2.8} />
+                      </span>
+                    )}
                   </button>
-                </li>
-              );
-            })}
-          </ul>
+                );
+              })}
+            </div>
+
+            {/* Subtle footer note */}
+            <div className="mt-1 px-2.5 py-1.5 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-800/40 rounded-xl">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight block">
+                Filters CRM records & reports to selected branch
+              </span>
+            </div>
+          </div>
         </>,
         document.body,
       )}

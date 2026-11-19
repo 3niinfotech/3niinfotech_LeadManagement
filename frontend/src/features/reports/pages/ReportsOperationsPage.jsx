@@ -199,7 +199,7 @@ export default function ReportsOperationsPage() {
                 )
                 : <ReportEmpty />}
             </ReportSectionCard>
-            <ReportSectionCard title="Channel share" subtitle="Donut series">
+            <ReportSectionCard title="Channel share" subtitle="Follow-up channel breakdown">
               {fuStages.length
                 ? (
                   <ReportDonutChart

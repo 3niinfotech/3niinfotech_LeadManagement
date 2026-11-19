@@ -120,7 +120,7 @@ export default function EnquiryWorkspace({
   const isEditMode = mode !== 'create';
   const activeTab = VALID_TABS.has(activeTabProp) ? activeTabProp : 'overview';
 
-  const { data: enquiry, refetch, isLoading } = useGetEnquiryQuery(enquiryId, {
+  const { data: enquiry, refetch, isLoading, isError, error } = useGetEnquiryQuery(enquiryId, {
     skip: !enquiryId || mode === 'create',
   });
   const [createEnquiry, { isLoading: creating }] = useCreateEnquiryMutation();
@@ -277,6 +277,34 @@ export default function EnquiryWorkspace({
 
   if (isEditMode && isLoading && !enquiry) {
     return <ContentLoader variant="module" />;
+  }
+
+  if (isEditMode && !enquiry && (isError || (!isLoading && enquiryId))) {
+    return (
+      <div className="h-full min-h-0 flex flex-col p-6 items-center justify-center">
+        <div className="max-w-md w-full p-8 rounded-2xl bg-card border border-border shadow-xs text-center space-y-4">
+          <div className="w-12 h-12 mx-auto rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+            <FiInbox className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-text">
+              Unable to load lead details
+            </h3>
+            <p className="text-xs text-text-muted">
+              {error?.data?.message || error?.message || 'This record could not be loaded. Please refresh or verify permissions.'}
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <Button size="sm" onClick={() => refetch()}>
+              Retry
+            </Button>
+            <Button variant="outline" size="sm" onClick={backToList}>
+              Back to Enquiries
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const title = isEditMode ? undefined : 'Add Enquiry';

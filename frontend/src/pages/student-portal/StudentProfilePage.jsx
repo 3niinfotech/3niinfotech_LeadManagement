@@ -63,9 +63,9 @@ export default function StudentProfilePage() {
       const profile = res.data || null;
       setData(profile);
       setForm({
-        phone: profile?.personal?.phone || profile?.contact?.phone || '+91 98250 11111',
-        address: profile?.personal?.address || profile?.contact?.address || 'A/120, Tirupati Society, Near Balaji Bungalows, Savaliya Circle, Yogi Chowk, Surat, Gujarat 395010',
-        emergencyContact: profile?.contact?.emergencyContact || profile?.personal?.emergencyContact || '+91 98250 11111',
+        phone: profile?.personal?.phone || profile?.contact?.phone || '',
+        address: profile?.personal?.address || profile?.contact?.address || '',
+        emergencyContact: profile?.contact?.emergencyContact || profile?.personal?.emergencyContact || '',
       });
     } catch {
       setError('Unable to load your profile.');
@@ -131,11 +131,8 @@ export default function StudentProfilePage() {
   const academic = data?.academic || {};
   const enrollments = academic.enrollments || [];
   const branchName = data?.system?.branch?.name || '';
-  const counselor = data?.system?.counselor || {
-    name: 'Priya Shah',
-    email: 'priya.shah@3niinfotech.com',
-  };
-  const fullName = `${personal.firstName || ''} ${personal.lastName || ''}`.trim() || 'Aarav Patel';
+  const counselor = data?.counselor || data?.system?.counselor || null;
+  const fullName = `${personal.firstName || ''} ${personal.lastName || ''}`.trim() || 'Student';
   const photoUrl = resolveStudentPhotoUrl(personal) || getDocumentUrl(personal.photoUrl || personal.avatar);
 
   return (
@@ -225,16 +222,18 @@ export default function StudentProfilePage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.1rem', flexWrap: 'wrap', fontSize: '0.8125rem', color: '#64748b' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                   <FiMail style={{ color: '#2563eb' }} />
-                  {personal.email || 'aarav.patel@gmail.com'}
+                  {personal.email || 'Email not provided'}
                 </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                   <FiPhone style={{ color: '#10b981' }} />
-                  {personal.phone || '+91 98250 11111'}
+                  {personal.phone || 'Phone not provided'}
                 </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <FiMapPin style={{ color: '#f59e0b' }} />
-                  Surat, Gujarat, India
-                </span>
+                {branchName ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <FiMapPin style={{ color: '#f59e0b' }} />
+                    {branchName}
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
@@ -270,12 +269,12 @@ export default function StudentProfilePage() {
           </div>
           <div className="crm-stu-att-kpi-card__body">
             <span className="crm-stu-att-kpi-card__value" style={{ fontSize: '1.0625rem' }}>
-              University of Toronto
+              {academic.university || 'University Pending'}
             </span>
-            <span className="crm-stu-chip crm-stu-chip--brand">Canada</span>
+            <span className="crm-stu-chip crm-stu-chip--brand">{academic.country || 'Target Country'}</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.35rem', fontSize: '0.75rem' }}>
-            MScAC · Fall 2027 Session
+            {academic.course || 'Study Visa'}{academic.intake ? ` · ${academic.intake}` : ''}
           </div>
         </div>
 
@@ -286,12 +285,12 @@ export default function StudentProfilePage() {
           </div>
           <div className="crm-stu-att-kpi-card__body">
             <span className="crm-stu-att-kpi-card__value" style={{ fontSize: '1.0625rem', color: '#059669' }}>
-              Unconditional Offer
+              {academic.applicationStatus || (academic.status ? academic.status.replace(/_/g, ' ') : 'Registered')}
             </span>
-            <span className="crm-stu-chip crm-stu-chip--success">Accepted</span>
+            <span className="crm-stu-chip crm-stu-chip--success">{academic.applicationNo ? `#${academic.applicationNo}` : (academic.status || 'Active')}</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.35rem', fontSize: '0.75rem' }}>
-            Dean International Scholarship Awarded
+            {academic.university ? `Application lodged with ${academic.university}` : 'Counselling & profile evaluation'}
           </div>
         </div>
 
@@ -302,28 +301,30 @@ export default function StudentProfilePage() {
           </div>
           <div className="crm-stu-att-kpi-card__body">
             <span className="crm-stu-att-kpi-card__value" style={{ fontSize: '1.0625rem' }}>
-              SDS Fast-Track
+              {academic.country ? `${academic.country} Visa` : 'Study Visa'}
             </span>
-            <span className="crm-stu-chip crm-stu-chip--brand">Study Permit</span>
+            <span className="crm-stu-chip crm-stu-chip--brand">{academic.course || 'Study Visa'}</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.35rem', fontSize: '0.75rem' }}>
-            File #: IRCC-CAN-2026-9812
+            Student Code: {academic.studentCode || 'N/A'}
           </div>
         </div>
 
         <div className="crm-stu-att-kpi-card">
           <div className="crm-stu-att-kpi-card__header">
-            <span className="crm-stu-att-kpi-card__label">Language Credential</span>
+            <span className="crm-stu-att-kpi-card__label">Coaching & Training</span>
             <FiAward className="crm-stu-att-kpi-card__icon--green" />
           </div>
           <div className="crm-stu-att-kpi-card__body">
             <span className="crm-stu-att-kpi-card__value" style={{ fontSize: '1.0625rem' }}>
-              IELTS Band 8.0
+              {enrollments.length > 0 ? (enrollments[0]?.batch || enrollments[0]?.course || 'Active Batch') : 'Academic / Direct'}
             </span>
-            <span className="crm-stu-chip crm-stu-chip--success">TRF Verified</span>
+            <span className={`crm-stu-chip ${enrollments.length > 0 ? 'crm-stu-chip--success' : 'crm-stu-chip--neutral'}`}>
+              {enrollments.length > 0 ? 'Enrolled' : 'Not Enrolled'}
+            </span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.35rem', fontSize: '0.75rem' }}>
-            L: 8.5 · R: 8.5 · W: 7.5 · S: 7.5
+            {enrollments.length > 0 ? (enrollments[0]?.teacher ? `Faculty: ${enrollments[0].teacher}` : 'Batch Assigned') : 'No coaching batches active'}
           </div>
         </div>
       </div>
@@ -379,7 +380,11 @@ export default function StudentProfilePage() {
                     Destination Country
                   </span>
                   <div style={{ marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <CountryFlagLabel country={academic.country || 'Canada'} size="sm" />
+                    {academic.country ? (
+                      <CountryFlagLabel country={academic.country} size="sm" />
+                    ) : (
+                      <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>Not selected yet</span>
+                    )}
                   </div>
                 </div>
 
@@ -388,7 +393,7 @@ export default function StudentProfilePage() {
                     Target University
                   </span>
                   <strong style={{ fontSize: '0.8125rem', color: '#0f172a', display: 'block', marginTop: '0.15rem' }}>
-                    {academic.university || 'University of Toronto'}
+                    {academic.university || 'To be finalized with counsellor'}
                   </strong>
                 </div>
 
@@ -397,7 +402,7 @@ export default function StudentProfilePage() {
                     Degree & Specialization
                   </span>
                   <strong style={{ fontSize: '0.8125rem', color: '#2563eb', display: 'block', marginTop: '0.15rem' }}>
-                    {academic.course || 'Master of Science in Applied Computing (MScAC)'}
+                    {academic.course || 'Study Visa Program'}
                   </strong>
                 </div>
 
@@ -420,7 +425,7 @@ export default function StudentProfilePage() {
                       border: '1px solid #a7f3d0',
                     }}
                   >
-                    <FiCheckCircle /> Unconditional Offer Letter
+                    <FiCheckCircle /> {academic.applicationStatus || (academic.status ? academic.status.replace(/_/g, ' ') : 'Registered')}
                   </span>
                 </div>
 
@@ -429,7 +434,7 @@ export default function StudentProfilePage() {
                     Immigration Category
                   </span>
                   <strong style={{ fontSize: '0.8125rem', color: '#0f172a', display: 'block', marginTop: '0.15rem' }}>
-                    SDS Fast-Track (Study Permit)
+                    {academic.country ? `${academic.country} ` : ''}{academic.course || 'Study Visa'}
                   </strong>
                 </div>
 
@@ -438,7 +443,7 @@ export default function StudentProfilePage() {
                     Academic Session
                   </span>
                   <strong style={{ fontSize: '0.8125rem', color: '#0f172a', display: 'block', marginTop: '0.15rem' }}>
-                    {academic.intake || 'Fall 2027'}
+                    {academic.intake || 'Upcoming Intake'}
                   </strong>
                 </div>
               </div>
@@ -488,7 +493,7 @@ export default function StudentProfilePage() {
                     Date of Birth
                   </span>
                   <strong style={{ fontSize: '0.8125rem', color: '#0f172a', display: 'block', marginTop: '0.15rem' }}>
-                    {formatDate(personal.dateOfBirth) || '02 Dec 2005'}
+                    {formatDate(personal.dateOfBirth) || 'Not provided'}
                   </strong>
                 </div>
 
@@ -497,7 +502,7 @@ export default function StudentProfilePage() {
                     Gender & Nationality
                   </span>
                   <strong style={{ fontSize: '0.8125rem', color: '#0f172a', display: 'block', marginTop: '0.15rem' }}>
-                    {personal.gender || 'Male'} · {personal.nationality || 'Indian'}
+                    {personal.gender || 'Not specified'} · {personal.nationality || 'Not specified'}
                   </strong>
                 </div>
 
@@ -507,11 +512,13 @@ export default function StudentProfilePage() {
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.15rem' }}>
                     <strong style={{ fontSize: '0.8125rem', color: '#0f172a', fontFamily: 'monospace' }}>
-                      {personal.passportNo || 'Z9821045'}
+                      {personal.passportNo || 'Pending submission'}
                     </strong>
-                    <span style={{ fontSize: '0.75rem', color: '#059669', background: '#ecfdf5', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>
-                      VERIFIED
-                    </span>
+                    {personal.passportNo ? (
+                      <span style={{ fontSize: '0.75rem', color: '#059669', background: '#ecfdf5', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>
+                        ON FILE
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
@@ -520,7 +527,7 @@ export default function StudentProfilePage() {
                     Primary Contact
                   </span>
                   <strong style={{ fontSize: '0.8125rem', color: '#0f172a', display: 'block', marginTop: '0.15rem' }}>
-                    {personal.phone || '+91 98250 11111'}
+                    {personal.phone || 'Not provided'}
                   </strong>
                 </div>
 
@@ -529,7 +536,7 @@ export default function StudentProfilePage() {
                     Emergency Phone
                   </span>
                   <strong style={{ fontSize: '0.8125rem', color: '#0f172a', display: 'block', marginTop: '0.15rem' }}>
-                    {data?.contact?.emergencyContact || '+91 98250 11111'}
+                    {data?.contact?.emergencyContact || 'Not provided'}
                   </strong>
                 </div>
 
@@ -538,7 +545,7 @@ export default function StudentProfilePage() {
                     Residential Address
                   </span>
                   <div style={{ fontSize: '0.8125rem', color: '#334155', marginTop: '0.15rem', lineHeight: 1.45, fontWeight: 550 }}>
-                    {personal.address || 'A/120, Tirupati Society, Near Balaji Bungalows, Savaliya Circle, Yogi Chowk, Surat, Gujarat 395010'}
+                    {personal.address || 'Address not submitted. Click "Edit Contact" to update your residential address.'}
                   </div>
                 </div>
               </div>
@@ -562,70 +569,73 @@ export default function StudentProfilePage() {
                     Coaching Enrolment & Academic Qualifications
                   </h3>
                 </div>
-                <span className="crm-stu-chip crm-stu-chip--success" style={{ fontSize: '0.75rem' }}>
-                  Active Batch
+                <span className={`crm-stu-chip ${enrollments.length > 0 ? 'crm-stu-chip--success' : 'crm-stu-chip--neutral'}`} style={{ fontSize: '0.75rem' }}>
+                  {enrollments.length > 0 ? 'Active Batch' : 'Direct / Self-Study'}
                 </span>
               </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.85rem 1rem',
-                  borderRadius: 10,
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  gap: '1rem',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 8,
-                      background: '#eff6ff',
-                      color: '#2563eb',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.1rem',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <FiBookOpen />
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '0.875rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                      {enrollments[0]?.batch || 'IELTS Batch A — Morning'}
-                    </h4>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                      Course: <strong>IELTS Foundation & Band 8+</strong> · Faculty: <strong>{enrollments[0]?.teacher || 'Rakesh Iyer'}</strong>
+              {enrollments.length > 0 ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.85rem 1rem',
+                    borderRadius: 10,
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    gap: '1rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 8,
+                        background: '#eff6ff',
+                        color: '#2563eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.1rem',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <FiBookOpen />
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '0.875rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                        {enrollments[0]?.batch || 'Classroom Batch'}
+                      </h4>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
+                        Course: <strong>{enrollments[0]?.course || 'Exam Prep'}</strong> · Faculty: <strong>{enrollments[0]?.teacher || 'Instructor'}</strong>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>
-                    Mon – Fri · 10:00 AM – 11:30 AM
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      padding: '0.2rem 0.55rem',
-                      borderRadius: 999,
-                      background: '#ecfdf5',
-                      color: '#059669',
-                      border: '1px solid #a7f3d0',
-                    }}
-                  >
-                    Ongoing
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        padding: '0.2rem 0.55rem',
+                        borderRadius: 999,
+                        background: '#ecfdf5',
+                        color: '#059669',
+                        border: '1px solid #a7f3d0',
+                      }}
+                    >
+                      Active
+                    </span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{ padding: '0.85rem 1rem', borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.8125rem' }}>
+                  No coaching batches currently active. Enrolled batches for language training or competitive tests will appear here.
+                </div>
+              )}
 
               <div
                 style={{
@@ -639,10 +649,10 @@ export default function StudentProfilePage() {
               >
                 <div>
                   <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#94a3b8', fontWeight: 750, display: 'block' }}>
-                    Language TRF Score
+                    Language Credentials
                   </span>
                   <strong style={{ fontSize: '0.8125rem', color: '#059669', display: 'block', marginTop: '0.15rem' }}>
-                    IELTS Band 8.0 (L: 8.5, R: 8.5, W: 7.5, S: 7.5)
+                    {enrollments.length > 0 ? 'Batch In Progress' : 'Not submitted yet'}
                   </strong>
                 </div>
 
@@ -651,7 +661,7 @@ export default function StudentProfilePage() {
                     Prior Academic Degree
                   </span>
                   <strong style={{ fontSize: '0.8125rem', color: '#0f172a', display: 'block', marginTop: '0.15rem' }}>
-                    B.Tech Computer Engineering (CGPA 8.8 / 10)
+                    {academic.qualification || 'Higher Secondary / Bachelor Record'}
                   </strong>
                 </div>
               </div>
@@ -687,7 +697,7 @@ export default function StudentProfilePage() {
                     flexShrink: 0,
                   }}
                 >
-                  PS
+                  {counselor?.name ? counselor.name.split(' ').filter(Boolean).map((n) => n[0]).join('').substring(0, 2).toUpperCase() : 'CO'}
                   <span
                     style={{
                       position: 'absolute',
@@ -699,19 +709,19 @@ export default function StudentProfilePage() {
                       background: '#10b981',
                       border: '2px solid #ffffff',
                     }}
-                    title="Online & Available"
+                    title="Active Counsellor"
                   />
                 </div>
 
                 <div>
                   <span style={{ fontSize: '0.75rem', fontWeight: 750, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.04em' }}>
-                    Lead Study Abroad Counsellor
+                    Assigned Study Abroad Counsellor
                   </span>
                   <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: '0.1rem 0' }}>
-                    {counselor?.name || 'Priya Shah'}
+                    {counselor?.name || 'Admissions Advisory Desk'}
                   </h3>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    Senior Advisor · Canada Specialization
+                    {counselor ? 'Direct Student Mentor' : 'Consultancy Desk'}
                   </div>
                 </div>
               </div>
@@ -719,15 +729,15 @@ export default function StudentProfilePage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8125rem', color: '#475569', marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <FiMail style={{ color: '#2563eb' }} />
-                  <span>{counselor?.email || 'priya.shah@3niinfotech.com'}</span>
+                  <span>{counselor?.email || 'support@3niinfotech.com'}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <FiPhone style={{ color: '#10b981' }} />
-                  <span>+91 98765 43210</span>
+                  <span>{counselor?.phone || 'Head Office Helpdesk'}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <FiMapPin style={{ color: '#f59e0b' }} />
-                  <span>Executive Cabin 2 / Google Meet</span>
+                  <span>{branchName ? `${branchName} / In-Person & Online` : 'Head Office / Google Meet'}</span>
                 </div>
               </div>
 
@@ -751,7 +761,7 @@ export default function StudentProfilePage() {
               </div>
             </div>
 
-            {/* SDS Fast-Track Compliance Card */}
+            {/* Profile Verification Checklist Card */}
             <div
               style={{
                 background: '#ffffff',
@@ -771,11 +781,11 @@ export default function StudentProfilePage() {
 
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
                 {[
-                  { label: 'Current Valid Passport (Z9821045)', status: 'Verified' },
-                  { label: 'IELTS TRF Band 8.0 (SDS Qualified)', status: 'Verified' },
-                  { label: '10th & 12th Marksheets & Transcripts', status: 'Verified' },
-                  { label: 'Unconditional Offer Letter Attached', status: 'Verified' },
-                  { label: 'Scotiabank GIC & Financial Solvency', status: 'Initiated' },
+                  { label: 'Current Valid Passport', status: personal.passportNo ? 'On File' : 'Pending' },
+                  { label: 'Academic Qualifications & Records', status: academic.qualification ? 'Documented' : 'Pending Submission' },
+                  { label: 'Primary Application', status: academic.applicationStatus || 'Started' },
+                  { label: 'Assigned Counsellor Advisory', status: counselor ? 'Assigned' : 'Pending' },
+                  { label: 'Student Portal Credentials', status: 'Active' },
                 ].map((item, idx) => (
                   <li
                     key={idx}
@@ -790,14 +800,14 @@ export default function StudentProfilePage() {
                     }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#334155', fontWeight: 550 }}>
-                      <FiCheck style={{ color: '#059669', strokeWidth: 3 }} />
+                      <FiCheck style={{ color: item.status === 'Pending' ? '#94a3b8' : '#059669', strokeWidth: 3 }} />
                       {item.label}
                     </span>
                     <span
                       style={{
                         fontSize: '0.75rem',
                         fontWeight: 700,
-                        color: item.status === 'Verified' ? '#059669' : '#2563eb',
+                        color: item.status === 'Pending' ? '#64748b' : '#059669',
                       }}
                     >
                       {item.status}

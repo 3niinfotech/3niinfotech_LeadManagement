@@ -21,9 +21,37 @@ const workflowView = authorize(
   PERMISSIONS.VISAS_VIEW
 );
 
-/** Legacy MasterItem options keep enquiry/walk-in permissions for compatibility. */
-const legacyView = authorize(PERMISSIONS.ENQUIRIES_VIEW, PERMISSIONS.MASTERS_VIEW);
-const legacyCreate = authorize(PERMISSIONS.ENQUIRIES_CREATE, PERMISSIONS.MASTERS_MANAGE);
+/** Options viewable by any CRM staff who needs dropdowns (reception, counsellor, admin, agent, etc.) */
+const optionsView = authorize(
+  PERMISSIONS.MASTERS_VIEW,
+  PERMISSIONS.ENQUIRIES_VIEW,
+  PERMISSIONS.STUDENTS_VIEW,
+  PERMISSIONS.APPLICATIONS_VIEW,
+  PERMISSIONS.VISAS_VIEW,
+  PERMISSIONS.LEADS_VIEW,
+  'reception.walkin.view',
+  'reception.walkin.create',
+  'reception.walkin.update',
+  'reception.walkin.assign',
+  'student.view',
+  'student.create',
+  'enquiry.view',
+  'enquiry.create',
+  'lead.view',
+  'lead.create',
+  'application.view',
+  'application.create',
+  'visa.view',
+  'visa.create',
+  'dashboard.view',
+);
+const legacyView = optionsView;
+const legacyCreate = authorize(
+  PERMISSIONS.ENQUIRIES_CREATE,
+  PERMISSIONS.MASTERS_MANAGE,
+  'reception.walkin.create',
+  'reception.walkin.update',
+);
 
 router.use(authenticate);
 

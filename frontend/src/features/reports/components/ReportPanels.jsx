@@ -93,7 +93,7 @@ export function SourceReport({ data = [] }) {
         />
       </ReportMetricGrid>
       <div className="crm-report-grid-2">
-        <ReportSectionCard title="Donut · source mix" subtitle="Colorful share">
+        <ReportSectionCard title="Source distribution" subtitle="Channel acquisition breakdown">
           <ReportDonutChart
             data={data}
             nameKey="source"
@@ -103,7 +103,7 @@ export function SourceReport({ data = [] }) {
             centerLabel="Total"
           />
         </ReportSectionCard>
-        <ReportSectionCard title="Pie · source" subtitle="Alternate mix">
+        <ReportSectionCard title="Channel volume" subtitle="Relative enquiry volume by source">
           <ReportPieChart data={data} nameKey="source" valueKey="count" height={300} />
         </ReportSectionCard>
       </div>

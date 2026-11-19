@@ -172,6 +172,23 @@ export const DEFAULT_ROLES = [
     ],
   },
   {
+    name: 'Accountant',
+    slug: 'accountant',
+    description: 'Fee collection, invoicing, payment receipts, student accounts ledger, and financial reports',
+    dataScope: 'COMPANY',
+    hierarchyLevel: 4,
+    parentSlug: 'company_admin',
+    isSystem: true,
+    permissions: [
+      'dashboard.view',
+      ...moduleAll('accounts'),
+      'student.view',
+      'calendar.view',
+      'reports.view',
+      'reports.export',
+    ],
+  },
+  {
     name: 'Finance Executive',
     slug: 'finance_executive',
     dataScope: 'BRANCH',

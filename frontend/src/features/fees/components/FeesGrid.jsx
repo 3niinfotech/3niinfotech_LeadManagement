@@ -27,7 +27,7 @@ function formatDate(value) {
   });
 }
 
-function FeesActions({ onView, onMarkPaid, onDelete, canUpdate, canDelete }) {
+function FeesActions({ onView, onMarkPaid, onCollectPayment, onDelete, canUpdate, canDelete }) {
   return function ActionsCell({ data }) {
     if (!data) return null;
     const canPay = canUpdate && data.status !== 'PAID' && data.status !== 'CANCELLED';
@@ -36,6 +36,19 @@ function FeesActions({ onView, onMarkPaid, onDelete, canUpdate, canDelete }) {
       <GridActionGroup>
         {onView && (
           <GridActionButton action="view" title="View details" onClick={() => onView(data)} />
+        )}
+        {canPay && onCollectPayment && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCollectPayment(data);
+            }}
+            className="p-1 rounded text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-xs font-bold cursor-pointer transition-colors"
+            title="Collect Payment & Receipt"
+          >
+            Collect
+          </button>
         )}
         {canPay && onMarkPaid && (
           <GridActionButton
@@ -59,6 +72,7 @@ export default function FeesGrid({
   onRowClick,
   onView,
   onMarkPaid,
+  onCollectPayment,
   onDelete,
   onSelectionChanged,
   canUpdate = false,
@@ -120,6 +134,14 @@ export default function FeesGrid({
       headerClass: centerHeader,
     },
     {
+      field: 'amountPaid',
+      headerName: 'Paid',
+      width: 110,
+      valueGetter: (p) => formatMoney(p.data?.amountPaid, p.data?.currency),
+      cellClass: `${centerCell} tabular-nums font-semibold text-emerald-600 dark:text-emerald-400`,
+      headerClass: centerHeader,
+    },
+    {
       field: 'amount',
       headerName: 'Amount',
       width: 100,
@@ -167,19 +189,20 @@ export default function FeesGrid({
       headerClass: centerHeader,
     },
     createActionsColumn({
-      width: canUpdate || canDelete ? 108 : 72,
+      width: canUpdate || canDelete ? 148 : 72,
       pinned: 'right',
       headerClass: centerHeader,
       cellClass: `${centerCell} crm-grid-actions-cell`,
       cellRenderer: FeesActions({
         onView: onView || onRowClick,
         onMarkPaid,
+        onCollectPayment,
         onDelete,
         canUpdate,
         canDelete,
       }),
     }),
-  ], [onRowClick, onView, onMarkPaid, onDelete, canUpdate, canDelete]);
+  ], [onRowClick, onView, onMarkPaid, onCollectPayment, onDelete, canUpdate, canDelete]);
 
   return (
     <DataGrid

@@ -62,11 +62,11 @@ export default function StudentFeesPage() {
   }, []);
 
   const summary = bundle?.summary || {
-    totalFees: 120000,
-    paid: 80000,
-    pending: 40000,
-    nextDueAmount: 40000,
-    nextDueDate: '2026-12-29T00:00:00.000Z',
+    totalFees: 0,
+    paid: 0,
+    pending: 0,
+    nextDueAmount: 0,
+    nextDueDate: null,
     currency: 'INR',
   };
 
@@ -75,10 +75,10 @@ export default function StudentFeesPage() {
   const payments = bundle?.payments || [];
   const installments = bundle?.installments || [];
 
-  const totalFeesNum = Number(summary.totalFees) || 120000;
-  const paidNum = Number(summary.paid) || 80000;
+  const totalFeesNum = Number(summary.totalFees) || 0;
+  const paidNum = Number(summary.paid) || 0;
   const pendingNum = Math.max(0, totalFeesNum - paidNum);
-  const paidPercent = totalFeesNum > 0 ? Math.round((paidNum / totalFeesNum) * 100) : 67;
+  const paidPercent = totalFeesNum > 0 ? Math.round((paidNum / totalFeesNum) * 100) : 0;
 
   const donutData = useMemo(() => [
     { name: 'Paid', value: paidNum, fill: '#10b981' },
@@ -86,7 +86,7 @@ export default function StudentFeesPage() {
   ], [paidNum, pendingNum]);
 
   const handlePayNow = () => {
-    const rawDue = Number(summary.nextDueAmount || pendingNum) || 40000;
+    const rawDue = Number(summary.nextDueAmount || pendingNum) || 0;
     initiateRazorpayPayment({
       amount: rawDue,
       description: 'Fee Installment Payment - Aarav Patel',

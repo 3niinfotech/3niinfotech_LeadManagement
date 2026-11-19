@@ -8,7 +8,7 @@ import {
   assertUserInTenant,
   requireTenantCompany,
 } from '../../utils/tenant.util.js';
-import { notifyUser } from '../notification/notification.dispatcher.js';
+import { notifyUser, notifyCounsellorAssignment } from '../notification/notification.dispatcher.js';
 import { leadDetailLink } from '../notification/notification.links.js';
 import { pushAssignmentEvent } from '../notification/notification.push.js';
 import { assignmentRepository } from './assignment.repository.js';
@@ -319,6 +319,23 @@ export const assignmentService = {
       metadata: { leadId, offerId: offer.id },
     });
 
+    if (lead.studentId) {
+      const student = await prisma.student.findUnique({
+        where: { id: lead.studentId },
+        select: { id: true, firstName: true, lastName: true, studentCode: true, branchId: true },
+      });
+      if (student) {
+        await notifyCounsellorAssignment({
+          student,
+          counsellorId,
+          previousCounsellorId: lead.assignedToId || null,
+          actorId,
+          companyId: req.user?.companyId,
+          branchId: lead.branchId,
+        }).catch(() => {});
+      }
+    }
+
     return { lead, offer };
   },
 
@@ -450,6 +467,50 @@ export const assignmentService = {
     });
 
     await assignmentRepository.upsertPresence(counsellorId, enquiry.branchId, { lastAssignedAt: new Date() });
+
+    const counsellorName = `${counsellor.firstName || ''} ${counsellor.lastName || ''}`.trim() || 'Counsellor';
+    try {
+      await prisma.enquiryAuditLog.create({
+        data: {
+          enquiryId,
+          userId,
+          action: 'ASSIGNED',
+          field: 'assignedToId',
+          oldValue: enquiry.assignedToId || null,
+          newValue: counsellorId,
+          description: `Counsellor Assigned – ${counsellorName} (Manually Assigned${reason ? `: ${reason}` : ''})`,
+        },
+      });
+    } catch {
+      // non-blocking
+    }
+
+    if (enquiry.studentId) {
+      const student = await prisma.student.findUnique({
+        where: { id: enquiry.studentId },
+        select: { id: true, firstName: true, lastName: true, studentCode: true, branchId: true },
+      });
+      if (student) {
+        await notifyCounsellorAssignment({
+          student,
+          counsellorId,
+          previousCounsellorId: enquiry.assignedToId || null,
+          actorId: userId,
+          companyId: branch.companyId,
+          branchId: enquiry.branchId,
+        }).catch(() => {});
+      }
+    } else {
+      await notifyUser(counsellorId, {
+        type: 'INFO',
+        category: 'ENQUIRY',
+        title: enquiry.assignedToId ? 'Enquiry Reassigned to You' : 'New Enquiry Assigned to You',
+        message: `${enquiry.firstName} ${enquiry.lastName || ''} (${enquiry.enquiryCode || 'ENQ'}) assigned to you. Reason: ${reason || 'Direct assignment'}.`,
+        link: `/admin/enquiries/${enquiry.id}`,
+        metadata: { enquiryId, priority: 'HIGH' },
+      }).catch(() => {});
+    }
+
     return { enquiry: updated, match };
   },
 

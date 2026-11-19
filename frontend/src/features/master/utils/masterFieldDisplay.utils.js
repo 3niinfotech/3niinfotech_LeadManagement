@@ -25,6 +25,8 @@ export function pairMasterOption(row, { disambiguate = false } = {}) {
     label: String(label),
     code: code || undefined,
     id: id || undefined,
+    countryId: row.countryId || undefined,
+    countryName: row.countryName || undefined,
   };
 }
 

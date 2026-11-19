@@ -26,7 +26,7 @@ const FAQS = [
   {
     id: 1,
     q: 'How do I upload and verify my documents?',
-    a: 'Navigate to Documents, select the category tab (Passport, Academic, Financial), and click "Submit New Document". Your assigned counsellor Priya Shah will review and verify your upload within 24 hours.',
+    a: 'Navigate to Documents, select the category tab (Passport, Academic, Financial), and click "Submit New Document". Your assigned counsellor will review and verify your upload within 24 hours.',
     to: ROUTES.STUDENT_DOCUMENTS,
     badge: 'Documents',
   },
@@ -39,10 +39,10 @@ const FAQS = [
   },
   {
     id: 3,
-    q: 'Where can I track my Canadian Study Permit (SDS)?',
-    a: 'Visit the Visa Process page. It displays your complete IRCC application status, SDS compliance checklist (LOA, GIC, IELTS, Medical, PCC), and upcoming VFS biometrics appointment schedule.',
+    q: 'Where can I track my Study Visa file?',
+    a: 'Visit the Visa Process page. It displays your complete visa application status, compliance checklist, and upcoming appointment schedule.',
     to: ROUTES.STUDENT_VISA,
-    badge: 'Visa & SDS',
+    badge: 'Visa Filing',
   },
   {
     id: 4,
@@ -54,7 +54,7 @@ const FAQS = [
   {
     id: 5,
     q: 'What should I do if my attendance looks incorrect?',
-    a: 'Class attendance is marked live by your instructor during physical and virtual sessions. If you attended and your status is marked absent, submit a correction request below or message Priya Shah.',
+    a: 'Class attendance is marked live by your instructor during physical and virtual sessions. If you attended and your status is marked absent, submit a correction request below or message your assigned counsellor.',
     to: ROUTES.STUDENT_ATTENDANCE,
     badge: 'Attendance',
   },
@@ -86,7 +86,7 @@ export default function StudentHelpPage() {
     setTimeout(() => {
       setSubmitting(false);
       setTicketMsg('');
-      toastService.success('Support query submitted! Ticket #TKT-2026-8910 assigned to Priya Shah.');
+      toastService.success('Support query submitted! Ticket #TKT-2026-8910 assigned to your counsellor.');
     }, 600);
   };
 
@@ -117,9 +117,9 @@ export default function StudentHelpPage() {
           </div>
           <div className="crm-stu-att-kpi-card__body">
             <span className="crm-stu-att-kpi-card__value" style={{ fontSize: '1.25rem' }}>
-              Priya Shah
+              Advisory Desk
             </span>
-            <span className="crm-stu-chip crm-stu-chip--brand">Lead Counsellor</span>
+            <span className="crm-stu-chip crm-stu-chip--brand">Assigned Counsellor</span>
           </div>
           <div className="crm-stu-course-progress-card__sub" style={{ marginTop: '0.45rem', fontSize: '0.8125rem' }}>
             Direct consultation for admissions & visa
@@ -229,7 +229,7 @@ export default function StudentHelpPage() {
                     1-on-1 Advisory Desk
                   </strong>
                   <span style={{ fontSize: '0.75rem', color: '#475569', display: 'block' }}>
-                    Counsellor Priya Shah · In-Person or Google Meet
+                    Assigned Counsellor · In-Person or Google Meet
                   </span>
                 </div>
               </div>
@@ -532,7 +532,7 @@ export default function StudentHelpPage() {
               Submit a Support Query / Report an Issue
             </h3>
             <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.1rem 0 0' }}>
-              Your ticket will be routed directly to Lead Counsellor Priya Shah and the student helpdesk
+              Your ticket will be routed directly to your assigned counsellor and the student helpdesk
             </p>
           </div>
           <span className="crm-stu-chip crm-stu-chip--brand" style={{ fontSize: '0.75rem' }}>
@@ -567,7 +567,7 @@ export default function StudentHelpPage() {
               >
                 <option value="General Enquiry">General Admission Query</option>
                 <option value="Document Verification Status">Document Verification Status</option>
-                <option value="Visa & SDS Filing">Visa & Canadian SDS Filing</option>
+                <option value="Visa & SDS Filing">Visa & Immigration Filing</option>
                 <option value="Fee Receipts & Payment Ledger">Fee Receipts & Payment Ledger</option>
                 <option value="Attendance / Class Correction">Attendance & Class Timetable</option>
               </select>
@@ -606,7 +606,7 @@ export default function StudentHelpPage() {
               required
               value={ticketMsg}
               onChange={(e) => setTicketMsg(e.target.value)}
-              placeholder="Describe your question or issue in detail. Student code (STU-2026-9812) will be auto-attached..."
+              placeholder="Describe your question or issue in detail..."
               style={{
                 width: '100%',
                 padding: '0.65rem 0.75rem',
@@ -621,7 +621,7 @@ export default function StudentHelpPage() {
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '0.35rem' }}>
             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-              Assigned Advisor: <strong>Priya Shah</strong> · Response sent directly to portal notifications
+              Assigned Advisor: <strong>Counsellor Desk</strong> · Response sent directly to portal notifications
             </span>
 
             <button
