@@ -8,6 +8,9 @@
   --bg-input: #FFFFFF;
   --bg-grid-header: #EEF3FA;
   --bg-grid-footer: #F4F7FB;
+  --surface: #FFFFFF;
+  --surface-card: #FFFFFF;
+  --surface-2: #F1F5F9;
   --text-primary: #111827;
   --text-secondary: #6B7280;
   --text-muted: #9CA3AF;
@@ -103,6 +106,9 @@
   --bg-input: #1E293B;
   --bg-grid-header: #141F33;
   --bg-grid-footer: #141F33;
+  --surface: #1E293B;
+  --surface-card: #1E293B;
+  --surface-2: #0F172A;
   --text-primary: #F1F5F9;
   --text-secondary: #94A3B8;
   --text-muted: #64748B;

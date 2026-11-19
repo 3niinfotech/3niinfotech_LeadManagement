@@ -26,7 +26,7 @@ export default function ContentLoader({
 
   const moduleSkeleton = (
     <motion.div
-      className={`flex flex-col h-full min-h-[480px] bg-card-bg border border-card-border rounded-xl overflow-hidden ${className}`}
+      className={`flex flex-col h-full min-h-[480px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden ${className}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
@@ -60,7 +60,7 @@ export default function ContentLoader({
         {Array.from({ length: 6 }).map((_, i) => (
           <motion.div
             key={i}
-            className="p-4 rounded-xl border border-border space-y-3"
+            className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04, duration: 0.3 }}
@@ -71,8 +71,8 @@ export default function ContentLoader({
         ))}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="h-64 rounded-xl border border-border crm-shimmer" />
-        <div className="h-64 rounded-xl border border-border crm-shimmer" />
+        <div className="h-64 rounded-xl border border-slate-200 dark:border-slate-800 crm-shimmer" />
+        <div className="h-64 rounded-xl border border-slate-200 dark:border-slate-800 crm-shimmer" />
       </div>
     </motion.div>
   );

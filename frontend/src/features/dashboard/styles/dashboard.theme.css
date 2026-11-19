@@ -1255,10 +1255,29 @@
 
 /* ── Skeletons ── */
 .crm-dash__skeleton {
-  background: linear-gradient(90deg, var(--surface-2, #f1f5f9) 25%, var(--border, #e2e8f0) 50%, var(--surface-2, #f1f5f9) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--surface-2, #f1f5f9) 25%,
+    var(--border, #e2e8f0) 50%,
+    var(--surface-2, #f1f5f9) 75%
+  );
   background-size: 200% 100%;
   animation: crm-dash-shimmer 1.5s infinite;
   border-radius: var(--radius-card, 10px);
+  border: 1px solid var(--border);
+}
+
+.dark .crm-dash__skeleton,
+html.dark .crm-dash__skeleton,
+[data-theme="dark"] .crm-dash__skeleton {
+  background: linear-gradient(
+    90deg,
+    #1e293b 25%,
+    #334155 50%,
+    #1e293b 75%
+  ) !important;
+  background-size: 200% 100% !important;
+  border: 1px solid #334155 !important;
 }
 
 @keyframes crm-dash-shimmer {

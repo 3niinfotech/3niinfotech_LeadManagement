@@ -30,7 +30,7 @@ export function SkeletonRow({ columns = 6, showCheckbox = true }) {
 export function SkeletonStatBar({ count = 7, variant = 'default' }) {
   if (variant === 'strip' || variant === 'cards') {
     return (
-      <div className="border-b border-border bg-card-bg">
+      <div className="border-b border-border bg-white dark:bg-slate-900">
         <div className="flex overflow-hidden">
           {Array.from({ length: count }).map((_, i) => (
             <div

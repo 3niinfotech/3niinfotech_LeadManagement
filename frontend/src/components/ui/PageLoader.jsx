@@ -18,7 +18,7 @@ export default function PageLoader({
 
   return (
     <div
-      className={`crm-page-loader relative flex flex-1 flex-col items-center justify-center w-full h-full min-h-[240px] overflow-hidden rounded-xl border border-card-border bg-card-bg ${className}`.trim()}
+      className={`crm-page-loader relative flex flex-1 flex-col items-center justify-center w-full h-full min-h-[240px] overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 ${className}`.trim()}
       role="status"
       aria-live="polite"
       aria-label={label}
@@ -28,7 +28,7 @@ export default function PageLoader({
         style={{
           background: `
             radial-gradient(ellipse 70% 55% at 50% 42%, color-mix(in srgb, var(--brand) 10%, transparent) 0%, transparent 68%),
-            linear-gradient(180deg, color-mix(in srgb, var(--brand) 4%, var(--card-bg)) 0%, var(--card-bg) 100%)
+            linear-gradient(180deg, color-mix(in srgb, var(--brand) 4%, var(--bg-card)) 0%, var(--bg-card) 100%)
           `,
         }}
       />

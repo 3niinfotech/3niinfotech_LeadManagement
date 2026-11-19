@@ -15,6 +15,9 @@ export function paletteToCssVars(palette) {
     'bg-input': surface.input,
     'bg-grid-header': surface.gridHeader,
     'bg-grid-footer': surface.gridFooter,
+    surface: surface.card,
+    'surface-card': surface.card,
+    'surface-2': surface.sidebar,
 
     'text-primary': text.primary,
     'text-secondary': text.secondary,

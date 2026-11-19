@@ -296,8 +296,8 @@ const REVENUE_TIMEFRAME_OPTIONS = [
 
 function DashboardSkeleton() {
   return (
-    <div className="crm-dash">
-      <div className="crm-dash__hero crm-dash__skeleton" style={{ minHeight: 80 }} />
+    <div className="crm-dash" aria-busy="true" aria-label="Loading dashboard...">
+      <div className="crm-dash__skeleton" style={{ minHeight: 80 }} />
       <div className="crm-dash__top-kpis">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="crm-dash__skeleton" style={{ minHeight: 105 }} />

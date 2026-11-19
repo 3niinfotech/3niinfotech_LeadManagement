@@ -988,6 +988,44 @@
     animation: crm-shimmer-sweep 1.6s ease-in-out infinite;
   }
 
+  /* Universal Dark Mode Skeletons, Shimmers & Loaders */
+  .dark .crm-shimmer,
+  html.dark .crm-shimmer,
+  [data-theme="dark"] .crm-shimmer {
+    background: #1e293b !important;
+  }
+
+  .dark .crm-shimmer::after,
+  html.dark .crm-shimmer::after,
+  [data-theme="dark"] .crm-shimmer::after {
+    background: linear-gradient(
+      105deg,
+      transparent 0%,
+      transparent 40%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 60%,
+      transparent 100%
+    ) !important;
+  }
+
+  .dark .crm-portal-skeleton,
+  html.dark .crm-portal-skeleton,
+  [data-theme="dark"] .crm-portal-skeleton {
+    background: linear-gradient(
+      90deg,
+      #1e293b 0%,
+      #334155 50%,
+      #1e293b 100%
+    ) !important;
+    background-size: 200% 100% !important;
+  }
+
+  .dark .crm-reception-skeleton-line,
+  html.dark .crm-reception-skeleton-line,
+  [data-theme="dark"] .crm-reception-skeleton-line {
+    background: #1e293b !important;
+  }
+
   /* React Aria DatePicker — global CRM theme */
   .crm-aria-popover {
     z-index: 1600;

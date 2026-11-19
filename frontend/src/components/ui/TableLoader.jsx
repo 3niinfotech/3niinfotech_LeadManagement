@@ -25,7 +25,7 @@ export default function TableLoader({
 
   return (
     <div
-      className="crm-table-loader relative flex flex-col w-full h-full min-h-[220px] overflow-hidden bg-card-bg"
+      className="crm-table-loader relative flex flex-col w-full h-full min-h-[220px] overflow-hidden bg-white dark:bg-slate-900"
       style={{ height }}
       role="status"
       aria-label="Loading table data"
@@ -38,7 +38,7 @@ export default function TableLoader({
 
       {showHeader && (
         <div
-          className="flex items-center gap-2.5 px-3 border-b border-border bg-[color-mix(in_srgb,var(--surface-muted)_70%,var(--card-bg))] shrink-0"
+          className="flex items-center gap-2.5 px-3 border-b border-border bg-slate-50 dark:bg-slate-800/80 shrink-0"
           style={{ height: headerHeight }}
         >
           {showCheckbox && <Skeleton className="w-3.5 h-3.5 shrink-0" rounded="sm" />}
@@ -60,7 +60,7 @@ export default function TableLoader({
               height: rowHeight,
               background:
                 i % 2 === 1
-                  ? 'color-mix(in srgb, var(--surface-muted) 35%, transparent)'
+                  ? 'var(--row-hover)'
                   : undefined,
               ...(stagger ? { animationDelay: `${i * 0.03}s` } : {}),
             }}
@@ -71,7 +71,7 @@ export default function TableLoader({
       </div>
 
       {showPagination && (
-        <div className="flex items-center justify-between gap-3 px-3 h-10 border-t border-border bg-[color-mix(in_srgb,var(--surface-muted)_40%,var(--card-bg))] shrink-0">
+        <div className="flex items-center justify-between gap-3 px-3 h-10 border-t border-border bg-slate-50 dark:bg-slate-800/80 shrink-0">
           <Skeleton className="h-2.5 w-28" />
           <div className="flex items-center gap-1.5">
             <Skeleton className="h-6 w-6" rounded="md" />
