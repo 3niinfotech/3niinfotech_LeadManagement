@@ -253,59 +253,74 @@ export default function StudentReceiptsPage() {
                       setActiveReceiptId(p.id);
                       setSearchParams({ id: String(p.receiptNo || p.id) });
                     }}
+                    className="crm-receipt-list-item"
                     style={{
-                      padding: '0.75rem 0.95rem',
+                      padding: '0.8rem 0.95rem',
                       borderRadius: '10px',
-                      background: isSelected ? '#eff6ff' : '#f8fafc',
-                      border: isSelected ? '1.5px solid #2563eb' : '1px solid #f1f5f9',
+                      background: isSelected ? '#eff6ff' : '#ffffff',
+                      border: isSelected ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
                       cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '0.65rem',
                       transition: 'all 0.15s ease',
-                      boxShadow: isSelected ? '0 2px 6px rgba(37,99,235,0.08)' : 'none',
+                      boxShadow: isSelected ? '0 2px 8px rgba(37,99,235,0.08)' : '0 1px 2px rgba(0,0,0,0.02)',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 8,
-                          background: isSelected ? '#2563eb' : '#ffffff',
-                          color: isSelected ? '#ffffff' : '#2563eb',
-                          border: isSelected ? 'none' : '1px solid #e2e8f0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '1rem',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <FiFileText />
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.1rem' }}>
-                          <strong style={{ fontSize: '0.8125rem', color: '#0f172a' }}>
+                    {/* Top Row: Icon + Receipt No + Date (Left) | Amount + Paid Badge (Right) */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.6rem', marginBottom: '0.45rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 8,
+                            background: isSelected ? '#2563eb' : '#f1f5f9',
+                            color: isSelected ? '#ffffff' : '#2563eb',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.9375rem',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <FiFileText />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {p.receiptNo || p.reference || 'MAIN-REC-2026-00001'}
-                          </strong>
-                          <span className={`crm-stu-chip crm-stu-chip--${methodInfo.tone}`} style={{ fontSize: '0.75rem', padding: '0.05rem 0.4rem' }}>
-                            {methodInfo.label}
+                          </span>
+                          <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'block' }}>
+                            {formatDate(p.date, true)}
                           </span>
                         </div>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>
-                          {formatDate(p.date, true)}
+                      </div>
+
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <strong style={{ fontSize: '0.875rem', color: '#0f172a', fontWeight: 800, display: 'block', lineHeight: 1.2 }}>
+                          {formatMoney(p.amount, currency)}
+                        </strong>
+                        <span style={{ fontSize: '0.6875rem', color: '#059669', fontWeight: 700, display: 'inline-block', marginTop: '0.1rem' }}>
+                          ✓ Paid
                         </span>
                       </div>
                     </div>
 
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <strong style={{ fontSize: '0.9375rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
-                        {formatMoney(p.amount, currency)}
-                      </strong>
-                      <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
-                        ✓ Paid
+                    {/* Bottom Row: Payment Method Tag (Left) + Reference (Right) */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.4rem' }}>
+                      <span
+                        className={`crm-stu-chip crm-stu-chip--${methodInfo.tone}`}
+                        style={{
+                          fontSize: '0.6875rem',
+                          padding: '0.1rem 0.5rem',
+                          maxWidth: '190px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          lineHeight: 1.3
+                        }}
+                      >
+                        {methodInfo.label}
+                      </span>
+                      <span style={{ fontSize: '0.6875rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+                        {p.reference ? `#${String(p.reference).slice(-6)}` : ''}
                       </span>
                     </div>
                   </div>
@@ -540,65 +555,65 @@ export default function StudentReceiptsPage() {
                     </div>
 
                     {/* ── ROW 4: ACCOUNTING LINE ITEMS (WITH INTEGRATED AMOUNT IN WORDS) ── */}
-                    <table className="crm-voucher-ledger-table">
+                    <table className="crm-voucher-ledger-table" style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #94a3b8', marginBottom: '0.75rem', background: '#ffffff' }}>
                       <thead>
-                        <tr>
-                          <th style={{ width: '6%', textAlign: 'center' }}>Sr.</th>
-                          <th style={{ textAlign: 'left' }}>Particulars / Description of Services</th>
-                          <th style={{ width: '13%', textAlign: 'center' }}>SAC Code</th>
-                          <th style={{ width: '12%', textAlign: 'center' }}>Rate</th>
-                          <th style={{ width: '18%', textAlign: 'right' }}>Amount (INR)</th>
+                        <tr style={{ background: '#f8fafc' }}>
+                          <th style={{ width: '6%', textAlign: 'center', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>Sr.</th>
+                          <th style={{ textAlign: 'left', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>Particulars / Description of Services</th>
+                          <th style={{ width: '13%', textAlign: 'center', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>SAC Code</th>
+                          <th style={{ width: '12%', textAlign: 'center', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>Rate</th>
+                          <th style={{ width: '18%', textAlign: 'right', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>Amount (INR)</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr>
-                          <td style={{ textAlign: 'center', fontWeight: 700 }}>1</td>
-                          <td>
+                          <td style={{ textAlign: 'center', fontWeight: 700, border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>1</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>
                             <strong style={{ color: '#0f172a' }}>Tuition &amp; University Advisory Services</strong>
                             <span style={{ display: 'block', fontSize: '0.6875rem', color: '#64748b' }}>
-                              Course Coaching &amp; University Application Filing (Installment)
+                              Course Coaching &amp; University Application Filing (Installment acknowledged)
                             </span>
                           </td>
-                          <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>999293</td>
-                          <td style={{ textAlign: 'center' }}>—</td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#000000' }}>
+                          <td style={{ textAlign: 'center', fontFamily: 'monospace', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>999293</td>
+                          <td style={{ textAlign: 'center', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>—</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#000000', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>
                             ₹{Number(baseAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
                         </tr>
                         <tr>
-                          <td style={{ textAlign: 'center', fontWeight: 700 }}>2</td>
-                          <td>
+                          <td style={{ textAlign: 'center', fontWeight: 700, border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>2</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>
                             Central Goods and Services Tax (CGST @ 9.0%)
                           </td>
-                          <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>999293</td>
-                          <td style={{ textAlign: 'center' }}>9.0%</td>
-                          <td style={{ textAlign: 'right' }}>
+                          <td style={{ textAlign: 'center', fontFamily: 'monospace', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>999293</td>
+                          <td style={{ textAlign: 'center', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>9.0%</td>
+                          <td style={{ textAlign: 'right', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>
                             ₹{Number(halfGst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
                         </tr>
                         <tr>
-                          <td style={{ textAlign: 'center', fontWeight: 700 }}>3</td>
-                          <td>
+                          <td style={{ textAlign: 'center', fontWeight: 700, border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>3</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>
                             State Goods and Services Tax (SGST @ 9.0%)
                           </td>
-                          <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>999293</td>
-                          <td style={{ textAlign: 'center' }}>9.0%</td>
-                          <td style={{ textAlign: 'right' }}>
+                          <td style={{ textAlign: 'center', fontFamily: 'monospace', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>999293</td>
+                          <td style={{ textAlign: 'center', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>9.0%</td>
+                          <td style={{ textAlign: 'right', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>
                             ₹{Number(halfGst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
                         </tr>
                       </tbody>
                       <tfoot>
-                        <tr style={{ background: '#f8fafc', fontWeight: 800, borderTop: '1px solid #cbd5e1' }}>
-                          <td colSpan={4} style={{ textAlign: 'right', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800, borderRight: '1px solid #e2e8f0' }}>
+                        <tr style={{ background: '#f8fafc', fontWeight: 800 }}>
+                          <td colSpan={4} style={{ textAlign: 'right', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800, border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>
                             Total Amount Received (INR):
                           </td>
-                          <td style={{ textAlign: 'right', fontSize: '0.875rem', fontWeight: 900, color: '#000000' }}>
+                          <td style={{ textAlign: 'right', fontSize: '0.875rem', fontWeight: 900, color: '#000000', border: '1px solid #cbd5e1', padding: '0.5rem 0.65rem' }}>
                             ₹{amountNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
                         </tr>
-                        <tr style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-                          <td colSpan={5} style={{ padding: '0.45rem 0.65rem' }}>
+                        <tr style={{ background: '#f8fafc' }}>
+                          <td colSpan={5} style={{ border: '1px solid #cbd5e1', padding: '0.45rem 0.65rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                               <span style={{ fontSize: '0.6875rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 }}>
                                 Amount in Words:

@@ -5109,33 +5109,35 @@ button.crm-stu-btn--secondary:hover,
 
 /* ── ROW 4: ACCOUNTING TABLE (SEAMLESS BORDERS & INTEGRATED AMOUNT IN WORDS) ── */
 .crm-voucher-ledger-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.75rem;
-  border: 1.5px solid #cbd5e1;
-  margin-bottom: 0.75rem;
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 0.75rem !important;
+  border: 1px solid #94a3b8 !important;
+  margin-bottom: 0.75rem !important;
+  background: #ffffff !important;
 }
 
 .crm-voucher-ledger-table th {
-  background: #f8fafc;
-  color: #1e293b;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 0.6875rem;
-  padding: 0.5rem 0.65rem;
-  border: 1px solid #cbd5e1;
+  background: #f8fafc !important;
+  color: #1e293b !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  font-size: 0.6875rem !important;
+  padding: 0.5rem 0.65rem !important;
+  border: 1px solid #cbd5e1 !important;
 }
 
 .crm-voucher-ledger-table td {
-  padding: 0.5rem 0.65rem;
-  border: 1px solid #cbd5e1;
-  color: #334155;
+  padding: 0.5rem 0.65rem !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+  vertical-align: middle !important;
 }
 
 .crm-voucher-ledger-table tfoot td {
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
+  border: 1px solid #cbd5e1 !important;
+  background: #f8fafc !important;
 }
 
 /* ── ROW 5: AMOUNT IN WORDS ── */
