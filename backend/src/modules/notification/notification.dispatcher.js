@@ -2,6 +2,9 @@ import prisma from '../../config/database.js';
 import { notificationService } from './notification.service.js';
 import { pushNotification, pushAssignmentEvent } from './notification.push.js';
 import { taskService } from '../task/task.service.js';
+import { safeSendEmail } from '../../services/email/email.service.js';
+import { wrapEmailTemplate } from '../../services/email/emailTemplates.js';
+import config from '../../config/index.js';
 
 /** Roles that should see reception / walk-in operational alerts for a branch. */
 export const RECEPTION_ALERT_ROLE_SLUGS = [
@@ -30,6 +33,32 @@ export async function notifyUser(userId, payload) {
       metadata: payload.metadata || {},
     });
     pushNotification(userId, notification);
+
+    if (payload.sendEmail || payload.metadata?.sendEmail) {
+      prisma.user.findUnique({ where: { id: userId }, select: { email: true, firstName: true } })
+        .then((u) => {
+          if (u?.email) {
+            const toneMap = {
+              WARNING: 'warning',
+              DANGER: 'danger',
+              SUCCESS: 'success',
+              INFO: 'info',
+            };
+            const mailHtml = wrapEmailTemplate({
+              title: payload.title,
+              preheader: payload.message?.slice(0, 80),
+              badge: payload.category || 'Notification',
+              badgeTone: toneMap[payload.type] || 'primary',
+              bodyHtml: `<p class="email-text">Hello <strong>${u.firstName || 'User'}</strong>,</p><p class="email-text">${payload.message || ''}</p>`,
+              ctaText: payload.link ? 'View Notification' : null,
+              ctaUrl: payload.link ? `${config.smtp?.clientUrl || 'http://localhost:3001'}${payload.link}` : null,
+            });
+            safeSendEmail({ to: u.email, subject: payload.title, html: mailHtml }).catch(() => {});
+          }
+        })
+        .catch(() => {});
+    }
+
     return notification;
   } catch (err) {
     console.error('[notifyUser] failed', userId, payload?.title, err?.message);

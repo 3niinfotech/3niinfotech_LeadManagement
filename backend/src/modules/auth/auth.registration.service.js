@@ -10,6 +10,9 @@ import {
 import { authRepository } from './auth.repository.js';
 import { studentRepository } from '../student/student.repository.js';
 import { enquiryRepository } from '../enquiry/enquiry.repository.js';
+import { safeSendEmail } from '../../services/email/email.service.js';
+import { buildWelcomeEmail } from '../../services/email/emailTemplates.js';
+import config from '../../config/index.js';
 
 const isProd = process.env.NODE_ENV === 'production';
 const passwordField = z.string().min(
@@ -168,6 +171,23 @@ export const registrationService = {
       newData: { portal: 'student', studentId: result.student.id, enquiryId: result.enquiry?.id },
       req,
     });
+
+    // Send Welcome Email to student asynchronously
+    try {
+      const welcome = buildWelcomeEmail({
+        name: `${result.user.firstName || ''} ${result.user.lastName || ''}`.trim() || 'Student',
+        email: result.user.email,
+        roleName: 'Student Portal',
+        loginUrl: `${config.smtp?.clientUrl || 'http://localhost:3001'}/login`,
+      });
+      safeSendEmail({
+        to: result.user.email,
+        subject: welcome.subject,
+        html: welcome.html,
+      }).catch(() => {});
+    } catch (e) {
+      console.warn('[auth.registration] Welcome email non-blocking error:', e?.message);
+    }
 
     return result;
   },

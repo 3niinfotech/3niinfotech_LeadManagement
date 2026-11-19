@@ -8,6 +8,9 @@ import { generateAccessToken, generateRefreshToken } from '../../utils/jwt.util.
 import { authRepository } from './auth.repository.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
 import prisma from '../../config/database.js';
+import { safeSendEmail } from '../../services/email/email.service.js';
+import { buildPasswordResetEmail } from '../../services/email/emailTemplates.js';
+import config from '../../config/index.js';
 import { attachAccessToUser } from '../rbac/rbac.resolve.js';
 import {
   PORTALS,
@@ -393,6 +396,21 @@ export const authService = {
       newData: { sessionsRevoked: true },
       req,
     });
+
+    if (user.email) {
+      try {
+        const mail = buildPasswordResetEmail({
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User',
+          email: user.email,
+          resetTime: new Date().toLocaleString('en-IN'),
+          loginUrl: `${config.smtp?.clientUrl || 'http://localhost:3001'}/login`,
+        });
+        safeSendEmail({ to: user.email, subject: mail.subject, html: mail.html }).catch(() => {});
+      } catch (err) {
+        console.warn('[auth.changePassword] Email dispatch non-blocking error:', err?.message);
+      }
+    }
+
     return { requiresRelogin: true };
   },
 
@@ -464,6 +482,20 @@ export const authService = {
       newData: { portal, sessionsRevoked: true, source: 'forgot_password' },
       req,
     });
+
+    if (user.email) {
+      try {
+        const mail = buildPasswordResetEmail({
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Student',
+          email: user.email,
+          resetTime: new Date().toLocaleString('en-IN'),
+          loginUrl: `${config.smtp?.clientUrl || 'http://localhost:3001'}/login`,
+        });
+        safeSendEmail({ to: user.email, subject: mail.subject, html: mail.html }).catch(() => {});
+      } catch (err) {
+        console.warn('[auth.forgotPassword] Email dispatch non-blocking error:', err?.message);
+      }
+    }
 
     const payload = {
       email: user.email,

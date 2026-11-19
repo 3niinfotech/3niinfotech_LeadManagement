@@ -18,6 +18,8 @@ import {
 import { ENQUIRY_SORT_FIELDS } from './enquiry.validators.js';
 import { CLOSED_VIEW_STATUSES } from './enquiryStatus.config.js';
 import { notifyUser, notifyCounsellorAssigned, notifyAppointmentEvent } from '../notification/notification.dispatcher.js';
+import { safeSendEmail } from '../../services/email/email.service.js';
+import { buildDemoScheduledEmail } from '../../services/email/emailTemplates.js';
 import { normalizeEnquiryTags } from './enquiryTags.config.js';
 import { normalizeDocumentCategory } from './enquiryDocument.config.js';
 import { smartReminderService } from './enquirySmartReminder.service.js';
@@ -1167,6 +1169,43 @@ export const enquiryService = {
       newValue: data.feedback || data.remark || undefined,
       req,
     });
+
+    // Send demo scheduled confirmation email to student
+    if (enquiry.email && (demo.sessionStatus === 'SCHEDULED' || !demo.sessionStatus)) {
+      try {
+        const studentName = `${enquiry.firstName || ''} ${enquiry.lastName || ''}`.trim() || 'Student';
+        const formattedDate = demoDate.toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        });
+        const formattedTime = demoDate.toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        });
+        const facultyName = demo.faculty?.name ||
+          `${demo.faculty?.firstName || ''} ${demo.faculty?.lastName || ''}`.trim() ||
+          'Assigned Faculty';
+
+        const demoEmail = buildDemoScheduledEmail({
+          studentName,
+          courseName: demo.className || enquiry.interestedCourse || 'Trial Coaching Session',
+          demoDate: formattedDate,
+          demoTime: formattedTime,
+          facultyName,
+          batch: demo.batch || 'Regular Batch',
+        });
+
+        safeSendEmail({
+          to: enquiry.email,
+          subject: demoEmail.subject,
+          html: demoEmail.html,
+        }).catch(() => {});
+      } catch (mailErr) {
+        console.warn('[enquiry.addDemo] Demo email dispatch non-blocking error:', mailErr?.message);
+      }
+    }
 
     return demo;
   },

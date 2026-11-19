@@ -25,8 +25,12 @@ const config = {
   smtp: {
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT, 10) || 587,
+    secure: process.env.SMTP_SECURE === 'true' || parseInt(process.env.SMTP_PORT, 10) === 465,
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
+    fromName: process.env.SMTP_FROM_NAME || '3NI INFOTECH Overseas',
+    fromEmail: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'accounts@3ni.io',
+    clientUrl: process.env.CLIENT_URL || 'http://localhost:3001',
   },
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,

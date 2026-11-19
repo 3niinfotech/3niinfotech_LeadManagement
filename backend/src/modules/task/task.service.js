@@ -2,6 +2,9 @@ import prisma from '../../config/database.js';
 import { AppError } from '../../utils/response.util.js';
 import { pushTaskCreated, pushTaskUpdated, pushNotification } from '../notification/notification.push.js';
 import { notificationService } from '../notification/notification.service.js';
+import { safeSendEmail } from '../../services/email/email.service.js';
+import { buildTaskAssignedEmail } from '../../services/email/emailTemplates.js';
+import config from '../../config/index.js';
 
 export const taskService = {
   createTask: async ({
@@ -96,6 +99,28 @@ export const taskService = {
         pushNotification(assignedToId, notif);
       } catch (err) {
         console.error('[taskService.createTask] Failed to notify assignee:', err.message);
+      }
+
+      // Send professional task assignment email
+      if (task.assignedTo?.email) {
+        try {
+          const assigneeName = `${task.assignedTo.firstName || ''} ${task.assignedTo.lastName || ''}`.trim() || 'Team Member';
+          const taskEmail = buildTaskAssignedEmail({
+            taskTitle: title,
+            description,
+            priority,
+            dueDate,
+            assigneeName,
+            taskUrl: `${config.smtp?.clientUrl || 'http://localhost:3001'}/admin/tasks?id=${task.id}`,
+          });
+          safeSendEmail({
+            to: task.assignedTo.email,
+            subject: taskEmail.subject,
+            html: taskEmail.html,
+          }).catch(() => {});
+        } catch (mailErr) {
+          console.warn('[taskService.createTask] Email dispatch non-blocking error:', mailErr.message);
+        }
       }
     }
 

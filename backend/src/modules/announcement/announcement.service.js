@@ -4,6 +4,9 @@ import { hasAnyPermission } from '../rbac/rbac.util.js';
 import { notifyMany, resolveUsersByRoles } from '../notification/notification.dispatcher.js';
 import { getIO } from '../../socket/index.js';
 import { STUDENT_ROLE_SLUGS } from '../../config/portal.config.js';
+import { safeSendEmail } from '../../services/email/email.service.js';
+import { buildAnnouncementEmail } from '../../services/email/emailTemplates.js';
+import config from '../../config/index.js';
 import {
   ANNOUNCEMENT_AUDIENCE_KEYS,
   resolveAnnouncementAudience,
@@ -225,6 +228,38 @@ export async function dispatchAnnouncementNotifications({
         io.to(`role:${companyId}:${slug}`).emit('announcement:published', payload);
       });
     }
+  }
+
+  // Send announcement emails to active recipients asynchronously
+  try {
+    const usersWithEmail = await prisma.user.findMany({
+      where: { id: { in: userIds }, deletedAt: null, status: 'ACTIVE', email: { not: null } },
+      select: { email: true, firstName: true },
+      take: 100, // safeguard batch limit
+    });
+
+    if (usersWithEmail.length > 0) {
+      const audience = resolveAnnouncementAudience(meta.audienceKey);
+      const emailContent = buildAnnouncementEmail({
+        title: record.name || 'Official Announcement',
+        body: record.body || record.description || 'A new announcement has been published.',
+        audience: audience.label || meta.audienceKey,
+        announcementUrl: `${config.smtp?.clientUrl || 'http://localhost:3001'}/admin/master/announcements`,
+      });
+
+      // Dispatch in parallel with safe error isolation
+      Promise.allSettled(
+        usersWithEmail.map((u) =>
+          safeSendEmail({
+            to: u.email,
+            subject: emailContent.subject,
+            html: emailContent.html,
+          })
+        )
+      ).catch(() => {});
+    }
+  } catch (emailErr) {
+    console.warn('[announcement] Non-blocking announcement email error:', emailErr?.message);
   }
 
   const vars = parseVariables(record.variables);

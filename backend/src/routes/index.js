@@ -34,6 +34,7 @@ import roleApplicationRoutes from '../modules/role-application/role-application.
 import announcementRoutes from '../modules/announcement/announcement.routes.js';
 
 import taskRoutes from '../modules/task/task.routes.js';
+import emailRoutes from '../modules/email/email.routes.js';
 
 const router = Router();
 
@@ -71,5 +72,6 @@ router.use('/reminders', reminderRoutes);
 router.use('/search', searchRoutes);
 router.use('/rbac', rbacRoutes);
 router.use('/reports', reportsRoutes);
+router.use('/email', emailRoutes);
 
 export default router;

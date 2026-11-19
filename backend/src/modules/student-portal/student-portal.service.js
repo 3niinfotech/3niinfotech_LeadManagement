@@ -2,6 +2,12 @@ import crypto from 'crypto';
 import prisma from '../../config/database.js';
 import { AppError } from '../../utils/response.util.js';
 import { notifyUser } from '../notification/notification.dispatcher.js';
+import { safeSendEmail } from '../../services/email/email.service.js';
+import {
+  buildStudentDocUploadStaffEmail,
+  buildStudentDocUploadAckEmail,
+} from '../../services/email/emailTemplates.js';
+import config from '../../config/index.js';
 import { applicationRepository } from '../application/application.repository.js';
 import {
   resolveOwnStudent,
@@ -1105,7 +1111,38 @@ export const studentPortalService = {
           link: `/admin/students/${student.id}`,
           metadata: { event: 'STUDENT_DOCUMENT_UPLOAD', documentId: updated.id, studentId: student.id },
         });
+
+        if (student.assignedTo?.email) {
+          const staffMail = buildStudentDocUploadStaffEmail({
+            counselorName: `${student.assignedTo.firstName || ''} ${student.assignedTo.lastName || ''}`.trim(),
+            studentName: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+            studentCode: student.studentCode,
+            documentName: updated.name,
+            category,
+            reviewUrl: `${config.smtp?.clientUrl || 'http://localhost:3001'}/admin/students/${student.id}`,
+          });
+          safeSendEmail({
+            to: student.assignedTo.email,
+            subject: staffMail.subject,
+            html: staffMail.html,
+          }).catch(() => {});
+        }
       }
+
+      const reuploadStudentEmail = user.email || student.user?.email || student.email;
+      if (reuploadStudentEmail) {
+        const ackMail = buildStudentDocUploadAckEmail({
+          studentName: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+          documentName: updated.name,
+          category,
+        });
+        safeSendEmail({
+          to: reuploadStudentEmail,
+          subject: ackMail.subject,
+          html: ackMail.html,
+        }).catch(() => {});
+      }
+
       return sanitizeDocumentForStudent(updated);
     }
 
@@ -1142,7 +1179,38 @@ export const studentPortalService = {
         link: `/admin/students/${student.id}`,
         metadata: { event: 'STUDENT_DOCUMENT_UPLOAD', documentId: created.id, studentId: student.id },
       });
+
+      if (student.assignedTo?.email) {
+        const staffMail = buildStudentDocUploadStaffEmail({
+          counselorName: `${student.assignedTo.firstName || ''} ${student.assignedTo.lastName || ''}`.trim(),
+          studentName: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+          studentCode: student.studentCode,
+          documentName: created.name,
+          category,
+          reviewUrl: `${config.smtp?.clientUrl || 'http://localhost:3001'}/admin/students/${student.id}`,
+        });
+        safeSendEmail({
+          to: student.assignedTo.email,
+          subject: staffMail.subject,
+          html: staffMail.html,
+        }).catch(() => {});
+      }
     }
+
+    const newStudentEmail = user.email || student.user?.email || student.email;
+    if (newStudentEmail) {
+      const ackMail = buildStudentDocUploadAckEmail({
+        studentName: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+        documentName: created.name,
+        category,
+      });
+      safeSendEmail({
+        to: newStudentEmail,
+        subject: ackMail.subject,
+        html: ackMail.html,
+      }).catch(() => {});
+    }
+
     return sanitizeDocumentForStudent(created);
   },
 
