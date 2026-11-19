@@ -319,10 +319,18 @@
 
   .dark .crm-input.crm-field,
   .dark .crm-ant-select.crm-field .ant-select-selector,
-  .dark .crm-aria-date-group.crm-field {
+  .dark .crm-aria-date-group.crm-field,
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="file"]),
+  .dark textarea,
+  .dark select {
     background: var(--bg-card) !important;
     border-color: var(--border);
-    color: var(--text-primary);
+    color: var(--text-primary) !important;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: var(--text-muted) !important;
   }
 
   /* Legacy alias — keep crm-input focus for non-field inputs */

@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { STORAGE_KEYS } from '../../config/storageKeys';
 import { THEMES, TABLE_DENSITY } from '../../config/constants';
+import { applyThemeVariables } from '../../theme/applyTheme';
 
 const uiSlice = createSlice({
   name: 'ui',
@@ -17,6 +18,7 @@ const uiSlice = createSlice({
     setTheme: (state, action) => {
       state.theme = action.payload;
       localStorage.setItem(STORAGE_KEYS.THEME, action.payload);
+      applyThemeVariables(action.payload);
     },
     toggleSidebar: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;

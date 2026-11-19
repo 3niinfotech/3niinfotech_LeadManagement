@@ -443,7 +443,7 @@ export default function ApplicationCreateModal({
                   onChange={(e) => setStudentSearch(e.target.value)}
                   placeholder="Type name or student code..."
                   autoComplete="off"
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-input-bg text-text focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-white dark:bg-slate-800 text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                 />
               </div>
 

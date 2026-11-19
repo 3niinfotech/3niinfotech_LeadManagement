@@ -94,7 +94,7 @@ export function TableFetchOverlay({ className = '' }) {
       role="status"
       aria-label="Refreshing"
     >
-      <div className="pointer-events-none absolute inset-0 bg-card-bg/40" />
+      <div className="pointer-events-none absolute inset-0 bg-white/40 dark:bg-slate-900/40" />
       <div className="relative z-10 h-[2px] w-28 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--brand)_12%,var(--border))]">
         <span className="crm-table-loader__progress-bar block h-full" />
       </div>

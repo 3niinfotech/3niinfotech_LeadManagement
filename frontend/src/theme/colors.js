@@ -90,6 +90,11 @@ export const colors = {
     bg: 'var(--bg-card)',
     border: 'var(--border)',
   },
+  input: {
+    DEFAULT: 'var(--bg-input)',
+    bg: 'var(--bg-input)',
+    border: 'var(--field-border)',
+  },
   background: {
     DEFAULT: 'var(--bg-page)',
   },

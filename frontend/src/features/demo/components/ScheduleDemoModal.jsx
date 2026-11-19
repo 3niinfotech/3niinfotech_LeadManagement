@@ -166,7 +166,7 @@ export default function ScheduleDemoModal({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Type name, phone, email or enquiry ID..."
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-input-bg text-text focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-white dark:bg-slate-800 text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                 />
               </div>
 

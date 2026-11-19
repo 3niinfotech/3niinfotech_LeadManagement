@@ -4,46 +4,46 @@ import ScrollArea from './ScrollArea';
 /** Icon tone — shared across all module pages */
 export const SUMMARY_STAT_TONES = {
   neutral: {
-    bg: 'bg-slate-100',
-    text: 'text-slate-500',
-    activeBg: 'bg-slate-200/80',
-    activeText: 'text-slate-700',
+    bg: 'bg-slate-100 dark:bg-slate-800',
+    text: 'text-slate-600 dark:text-slate-300',
+    activeBg: 'bg-slate-200/80 dark:bg-slate-700/80',
+    activeText: 'text-slate-800 dark:text-slate-100',
   },
   primary: {
-    bg: 'bg-primary-50',
-    text: 'text-primary-600',
-    activeBg: 'bg-primary-100/80',
-    activeText: 'text-primary-700',
+    bg: 'bg-primary-50 dark:bg-primary-950/50',
+    text: 'text-primary-600 dark:text-primary-400',
+    activeBg: 'bg-primary-100/80 dark:bg-primary-900/60',
+    activeText: 'text-primary-700 dark:text-primary-300',
   },
   secondary: {
-    bg: 'bg-slate-100',
-    text: 'text-slate-600',
-    activeBg: 'bg-slate-200/80',
-    activeText: 'text-slate-700',
+    bg: 'bg-slate-100 dark:bg-slate-800',
+    text: 'text-slate-600 dark:text-slate-300',
+    activeBg: 'bg-slate-200/80 dark:bg-slate-700/80',
+    activeText: 'text-slate-700 dark:text-slate-200',
   },
   info: {
-    bg: 'bg-cyan-50',
-    text: 'text-cyan-600',
-    activeBg: 'bg-cyan-100/80',
-    activeText: 'text-cyan-700',
+    bg: 'bg-cyan-50 dark:bg-cyan-950/50',
+    text: 'text-cyan-600 dark:text-cyan-400',
+    activeBg: 'bg-cyan-100/80 dark:bg-cyan-900/60',
+    activeText: 'text-cyan-700 dark:text-cyan-300',
   },
   warning: {
-    bg: 'bg-amber-50',
-    text: 'text-amber-600',
-    activeBg: 'bg-amber-100/80',
-    activeText: 'text-amber-700',
+    bg: 'bg-amber-50 dark:bg-amber-950/50',
+    text: 'text-amber-600 dark:text-amber-400',
+    activeBg: 'bg-amber-100/80 dark:bg-amber-900/60',
+    activeText: 'text-amber-700 dark:text-amber-300',
   },
   success: {
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-600',
-    activeBg: 'bg-emerald-100/80',
-    activeText: 'text-emerald-700',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/50',
+    text: 'text-emerald-600 dark:text-emerald-400',
+    activeBg: 'bg-emerald-100/80 dark:bg-emerald-900/60',
+    activeText: 'text-emerald-700 dark:text-emerald-300',
   },
   danger: {
-    bg: 'bg-red-50',
-    text: 'text-red-600',
-    activeBg: 'bg-red-100/80',
-    activeText: 'text-red-700',
+    bg: 'bg-red-50 dark:bg-red-950/50',
+    text: 'text-red-600 dark:text-red-400',
+    activeBg: 'bg-red-100/80 dark:bg-red-900/60',
+    activeText: 'text-red-700 dark:text-red-300',
   },
 };
 
@@ -62,7 +62,7 @@ function StatShare({ pct, hint, tone, active }) {
       {hint === 'conv' && (
         <span className="block text-[9px] font-medium text-text-muted mt-0.5 leading-none">conv</span>
       )}
-      <span className={`mt-1.5 block h-1 w-full rounded-full bg-slate-100 overflow-hidden ${active ? tone.activeText : tone.text}`}>
+      <span className={`mt-1.5 block h-1 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden ${active ? tone.activeText : tone.text}`}>
         <span
           className="block h-full rounded-full bg-current opacity-50"
           style={{ width: `${hint === 'all' ? 100 : width}%` }}

@@ -879,7 +879,7 @@ export default function Sidebar() {
               placeholder="Filter menu..."
               aria-label="Filter menu"
               tabIndex={collapsed ? -1 : 0}
-              className={`w-full h-8 pl-8 rounded-lg bg-card-bg/80 border border-border/80 text-[13px] text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-primary-600/25 focus:border-primary-600/60 transition-colors ${query ? 'pr-8' : 'pr-2.5'}`}
+              className={`w-full h-8 pl-8 rounded-lg bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 text-[13px] text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-primary-600/25 focus:border-primary-600/60 transition-colors ${query ? 'pr-8' : 'pr-2.5'}`}
             />
             {query && (
               <button

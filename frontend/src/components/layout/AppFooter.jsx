@@ -15,7 +15,7 @@ export default function AppFooter() {
   ].filter(Boolean);
 
   return (
-    <footer className="shrink-0 z-[1000] border-t border-border bg-card-bg/95 backdrop-blur-md">
+    <footer className="shrink-0 z-[1000] border-t border-border bg-white/95 dark:bg-slate-900/95 backdrop-blur-md">
       <div className="px-5 lg:px-6 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[11px] sm:text-xs text-text-muted text-center sm:text-left shrink-0">
           © {year} {company?.name || footerConfig.brand.product}

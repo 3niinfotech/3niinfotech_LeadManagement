@@ -90,7 +90,7 @@ export default function HeaderActionPopover({
           }}
         >
           {!hideHeader && (
-            <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border/70 shrink-0 bg-card-bg/95 backdrop-blur-sm">
+            <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border/70 shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm">
               <h2 className="text-[13px] font-semibold tracking-tight text-text">{title}</h2>
               <div className="flex items-center gap-1">
                 {headerRight}

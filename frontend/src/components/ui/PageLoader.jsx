@@ -43,7 +43,7 @@ export default function PageLoader({
         transition={{ type: 'spring', damping: 22, stiffness: 280, mass: 0.7 }}
       >
         <div
-          className="flex items-center justify-center rounded-2xl border border-border/80 bg-card-bg/90 p-3.5 shadow-sm"
+          className="flex items-center justify-center rounded-2xl border border-border/80 bg-white/90 dark:bg-slate-800/90 p-3.5 shadow-sm"
           style={{ boxShadow: loaderTheme.card?.shadow || 'var(--shadow-loader-card)' }}
         >
           <Loader size={compact ? 'sm' : 'md'} variant="flow" />
