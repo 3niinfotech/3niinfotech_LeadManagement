@@ -44,16 +44,32 @@ export function CompanyRuntimeProvider({ children }) {
   const idleRef = useRef(null);
 
   useEffect(() => {
-    if (!user?.companyId && !user?.id) {
-      setCompany(null);
-      return undefined;
-    }
     let cancelled = false;
     setLoading(true);
-    organizationApi.getCompany()
-      .then((data) => { if (!cancelled) setCompany(data); })
-      .catch(() => { if (!cancelled) setCompany(null); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+
+    if (user?.id) {
+      organizationApi.getCompany()
+        .then((data) => {
+          if (!cancelled && data) setCompany(data);
+        })
+        .catch(() => {
+          // Fallback to public firm endpoint if user does not have settings permissions
+          organizationApi.getPublicCompany?.()
+            .then((pubData) => { if (!cancelled) setCompany(pubData); })
+            .catch(() => { if (!cancelled) setCompany(null); });
+        })
+        .finally(() => { if (!cancelled) setLoading(false); });
+    } else {
+      // Unauthenticated visitor / public website / landing page
+      fetch((import.meta.env.VITE_API_URL || '/api') + '/organization/public')
+        .then((r) => r.json())
+        .then((res) => {
+          if (!cancelled && res?.data) setCompany(res.data);
+        })
+        .catch(() => { if (!cancelled) setCompany(null); })
+        .finally(() => { if (!cancelled) setLoading(false); });
+    }
+
     return () => { cancelled = true; };
   }, [user?.id, user?.companyId]);
 

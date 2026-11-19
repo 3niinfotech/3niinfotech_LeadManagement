@@ -24,6 +24,8 @@ import {
   PortalEmpty,
 } from '../../components/portal/PortalUi';
 import toastService from '../../services/toast/toast.service';
+import { resolvePublicAssetUrl } from '../../config/company-settings.config';
+import { useCompanyRuntime } from '../../features/organization/CompanyRuntime';
 import '../../components/portal/portal.theme.css';
 import './student-dashboard.theme.css';
 
@@ -70,13 +72,17 @@ function formatMethodName(method = '') {
 
 export default function StudentReceiptsPage() {
   const user = useSelector(selectUser);
+  const { company: runtimeCompany } = useCompanyRuntime();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedParamId = searchParams.get('id');
 
   const [payments, setPayments] = useState([]);
+  const [feeCompany, setFeeCompany] = useState(null);
   const [currency, setCurrency] = useState('INR');
   const [loading, setLoading] = useState(true);
   const [activeReceiptId, setActiveReceiptId] = useState(null);
+
+  const company = feeCompany || runtimeCompany || {};
 
   useEffect(() => {
     let cancelled = false;
@@ -87,6 +93,9 @@ export default function StudentReceiptsPage() {
         const pList = bundle.payments || [];
         setPayments(pList);
         setCurrency(bundle.summary?.currency || 'INR');
+        if (bundle.company) {
+          setFeeCompany(bundle.company);
+        }
         if (pList.length > 0) {
           const matched = selectedParamId
             ? pList.find((p) => String(p.receiptNo || p.id) === String(selectedParamId))
@@ -100,6 +109,15 @@ export default function StudentReceiptsPage() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
+    apiGet('/organization/public')
+      .then((res) => {
+        if (!cancelled && res?.data) {
+          setFeeCompany((prev) => prev || res.data);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       cancelled = true;
     };
@@ -430,8 +448,8 @@ export default function StudentReceiptsPage() {
                       <div className="crm-voucher-header-row">
                         <div className="crm-voucher-company-block">
                           <img
-                            src="/assets/images/brand/logo.jpg"
-                            alt="3NI Logo"
+                            src={company?.logo ? resolvePublicAssetUrl(company.logo) : '/assets/images/brand/logo.jpg'}
+                            alt={company?.name || 'Company Logo'}
                             className="crm-voucher-real-logo"
                             onError={(e) => {
                               e.target.style.display = 'none';
@@ -439,16 +457,16 @@ export default function StudentReceiptsPage() {
                           />
                           <div className="crm-voucher-company-details">
                             <h2 className="crm-voucher-company-name">
-                              3NI INFOTECH PRIVATE LIMITED
+                              {company?.legalName || company?.name || '3NI INFOTECH PRIVATE LIMITED'}
                             </h2>
                             <div className="crm-voucher-division-tag">
-                              Overseas Education Advisory &amp; Visa Consultancy Division
+                              {company?.divisionTag || company?.settings?.divisionTag || 'Overseas Education Advisory & Visa Consultancy Division'}
                             </div>
                             <div className="crm-voucher-address-line">
-                              401-404, Silicon Square, Yogi Chowk, Surat, Gujarat 395010
+                              {company?.fullAddress || [company?.addressLine1, company?.addressLine2, company?.city, company?.state, company?.postalCode].filter(Boolean).join(', ') || '101, Shivalik Plaza, SG Highway, Ahmedabad, Gujarat 380015'}
                             </div>
                             <div className="crm-voucher-contact-line">
-                              Tel: +91 98250 11111 &nbsp;·&nbsp; accounts@3ni.io &nbsp;·&nbsp; <strong>GSTIN:</strong> 24AAACC1234F1Z5
+                              Tel: {company?.phone || '+91 79 1234 5678'} &nbsp;·&nbsp; {company?.email || 'info@3niinfotech.com'} &nbsp;·&nbsp; <strong>GSTIN:</strong> {company?.taxNumber || 'GSTIN24AABCU9603R1ZM'}
                             </div>
                           </div>
                         </div>
@@ -474,12 +492,12 @@ export default function StudentReceiptsPage() {
                               </tr>
                               <tr>
                                 <td className="crm-meta-lbl">State:</td>
-                                <td className="crm-meta-val">24 (Gujarat)</td>
+                                <td className="crm-meta-val">{company?.stateCode || '24'} ({company?.state || 'Gujarat'})</td>
                               </tr>
                               <tr>
                                 <td className="crm-meta-lbl">CIN:</td>
                                 <td className="crm-meta-val crm-voucher-dt-val--mono" style={{ fontSize: '0.6875rem' }}>
-                                  U72900GJ2020PTC115000
+                                  {company?.registrationNumber || 'U80900GJ2018PTC105432'}
                                 </td>
                               </tr>
                             </tbody>
@@ -538,11 +556,15 @@ export default function StudentReceiptsPage() {
                               </tr>
                               <tr>
                                 <td className="crm-voucher-dt-lbl">Bank Account:</td>
-                                <td className="crm-voucher-dt-val">HDFC Bank Current A/C (Branch: Yogi Chowk)</td>
+                                <td className="crm-voucher-dt-val">
+                                  {company?.bankName || 'HDFC Bank Current A/C'} {company?.bankBranch ? `(Branch: ${company.bankBranch})` : ''}
+                                </td>
                               </tr>
                               <tr>
                                 <td className="crm-voucher-dt-lbl">Branch / Center:</td>
-                                <td className="crm-voucher-dt-val">Surat Head Office</td>
+                                <td className="crm-voucher-dt-val">
+                                  {user?.branch?.name || (company?.city ? `${company.city} Head Office` : 'Head Office')}
+                                </td>
                               </tr>
                               <tr>
                                 <td className="crm-voucher-dt-lbl">Assigned Desk:</td>
@@ -637,7 +659,7 @@ export default function StudentReceiptsPage() {
 
                       <div className="crm-voucher-stamp-box">
                         <div className="crm-voucher-stamp-title">
-                          [ 3NI E-VERIFIED ]
+                          {company?.stampText || `[ ${(company?.name || '3NI INFOTECH').toUpperCase()} E-VERIFIED ]`}
                         </div>
                         <div className="crm-voucher-stamp-sub">
                           Digitally signed &amp; ledger stamped<br />
@@ -647,10 +669,10 @@ export default function StudentReceiptsPage() {
 
                       <div className="crm-voucher-sign-box">
                         <div className="crm-voucher-sign-company">
-                          For <strong>3NI INFOTECH PRIVATE LIMITED</strong>
+                          For <strong>{company?.legalName || company?.name || '3NI INFOTECH PRIVATE LIMITED'}</strong>
                         </div>
                         <div className="crm-voucher-sign-line">
-                          Authorized Signatory / Accounts Dept.
+                          {company?.signatoryTitle || 'Authorized Signatory / Accounts Dept.'}
                         </div>
                       </div>
                     </div>

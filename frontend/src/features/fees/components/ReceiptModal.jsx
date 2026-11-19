@@ -79,7 +79,9 @@ export default function ReceiptModal({ open, onClose, receipt }) {
   const currency = details.currency || invoice.currency || 'USD';
   const mode = (details.mode || payment.mode || 'BANK_TRANSFER').replace(/_/g, ' ');
   const refNo = details.referenceNo || payment.referenceNo || 'Direct Settlement';
-  const companyName = company?.name || '3ni InfoTech';
+  const companyName = company?.legalName || company?.name || '3ni InfoTech';
+  const companyGstin = company?.taxNumber || '';
+  const companyCin = company?.registrationNumber || '';
   const companyLogo = company?.logo ? resolvePublicAssetUrl(company.logo) : null;
   const companyEmail = company?.email || 'admin@crm.com';
   const companyPhone = company?.phone || branch.phone || '+91 98250 00000';
@@ -360,6 +362,7 @@ export default function ReceiptModal({ open, onClose, receipt }) {
                   <h1 class="org-name">${companyName}</h1>
                   <p class="org-sub">${branchName} · ${branchCity}</p>
                   <p class="org-sub">Contact: ${companyPhone} | Email: ${companyEmail}</p>
+                  ${companyGstin || companyCin ? `<p class="org-sub"><strong>GSTIN:</strong> ${companyGstin || '—'} &nbsp;|&nbsp; <strong>CIN:</strong> ${companyCin || '—'}</p>` : ''}
                   <p class="org-sub">System Portal · Official Accounting &amp; Compliance</p>
                 </td>
                 <td class="doc-title-cell">
@@ -552,6 +555,13 @@ export default function ReceiptModal({ open, onClose, receipt }) {
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-0">
               Contact: {companyPhone} | Email: {companyEmail}
             </p>
+            {(companyGstin || companyCin) && (
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 mb-0">
+                {companyGstin && <span>GSTIN: {companyGstin}</span>}
+                {companyGstin && companyCin && <span> · </span>}
+                {companyCin && <span>CIN: {companyCin}</span>}
+              </p>
+            )}
           </div>
 
           <div className="text-left sm:text-right w-full sm:w-auto">

@@ -10,6 +10,10 @@ import {
 import { auditLog } from '../../middleware/audit.middleware.js';
 import { organizationRepository } from './organization.repository.js';
 import prisma from '../../config/database.js';
+import {
+  getCompanyBrandInfo,
+  invalidateCompanyBrandCache,
+} from '../../utils/companyBrand.util.js';
 
 function requireCompanyId(user) {
   const companyId = requireTenantCompany(user);
@@ -27,6 +31,30 @@ async function assertCountryInTenant(countryId, companyId) {
 }
 
 export const organizationService = {
+  getPublicCompany: async () => {
+    const brand = await getCompanyBrandInfo();
+    const branches = await prisma.branch.findMany({
+      where: { companyId: brand.id, deletedAt: null, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        email: true,
+        phone: true,
+        addressLine1: true,
+        addressLine2: true,
+        city: true,
+        state: true,
+        postalCode: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+    return {
+      ...brand,
+      branches,
+    };
+  },
+
   getCompany: async (user) => {
     const companyId = requireCompanyId(user);
     const company = await organizationRepository.findCompanyById(companyId);
@@ -53,6 +81,8 @@ export const organizationService = {
     }
 
     const updated = await organizationRepository.updateCompany(companyId, data);
+    invalidateCompanyBrandCache();
+    getCompanyBrandInfo().catch(() => {});
     await auditLog({
       userId: user.id,
       action: 'UPDATE',
@@ -84,6 +114,8 @@ export const organizationService = {
         };
 
     const updated = await organizationRepository.updateCompany(companyId, data);
+    invalidateCompanyBrandCache();
+    getCompanyBrandInfo().catch(() => {});
     await auditLog({
       userId: user.id,
       action: 'UPDATE',

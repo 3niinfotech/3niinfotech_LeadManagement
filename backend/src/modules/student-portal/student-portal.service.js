@@ -17,6 +17,7 @@ import {
 } from './student-portal.scope.js';
 
 import { resolveStudentPhotoPath } from '../../utils/studentPhoto.util.js';
+import { getCompanyBrandInfo } from '../../utils/companyBrand.util.js';
 
 const DOC_CATEGORIES = [
   'PHOTO', 'PERSONAL', 'ACADEMIC', 'PASSPORT', 'LANGUAGE_TEST',
@@ -257,16 +258,24 @@ async function loadFeeBundle(studentId) {
 
   let metaFees = null;
   let metaPayments = [];
+  let companyBrand = null;
   try {
     const studentRow = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { metadata: true },
+      select: {
+        metadata: true,
+        companyId: true,
+        branch: { select: { companyId: true } },
+      },
     });
+    companyBrand = await getCompanyBrandInfo(studentRow?.companyId || studentRow?.branch?.companyId);
     if (studentRow?.metadata && typeof studentRow.metadata === 'object') {
       metaFees = studentRow.metadata.fees || null;
       metaPayments = Array.isArray(studentRow.metadata.recentPayments) ? studentRow.metadata.recentPayments : [];
     }
-  } catch (_) {}
+  } catch (_) {
+    companyBrand = await getCompanyBrandInfo();
+  }
 
   const totalFees = Number(metaFees?.totalFees) || (planTotal || invoiceTotal || 0);
   const paid = metaFees?.paid !== undefined
@@ -352,6 +361,7 @@ async function loadFeeBundle(studentId) {
       paidAt: i.paidAt,
     })),
     payments,
+    company: companyBrand,
     feePlan: feePlan
       ? {
         id: feePlan.id,
@@ -1017,6 +1027,7 @@ export const studentPortalService = {
       notifications: mappedNotifications,
       messages: messages.slice(0, 5),
       unreadNotifications: mappedNotifications.filter((n) => !n.isRead).length,
+      company: fees.company,
     };
   },
 
@@ -1040,9 +1051,7 @@ export const studentPortalService = {
         branch: student.branch?.name,
       },
       receipt: payment,
-      company: {
-        name: student.branch?.company?.name || student.company?.name || null,
-      },
+      company: fees.company,
       issuedAt: payment.date,
       printable: true,
     };

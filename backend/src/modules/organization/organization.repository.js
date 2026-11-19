@@ -46,6 +46,12 @@ const branchSelect = {
 };
 
 export const organizationRepository = {
+  findDefaultCompany: () => prisma.company.findFirst({
+    where: { ...softDeleteWhere, isActive: true },
+    select: companySelect,
+    orderBy: { createdAt: 'asc' },
+  }),
+
   findCompanyById: (id) => prisma.company.findFirst({
     where: { id, ...softDeleteWhere },
     select: companySelect,

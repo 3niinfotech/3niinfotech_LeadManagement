@@ -4,12 +4,8 @@
  */
 
 import config from '../../config/index.js';
+import { getCachedCompanyBrand } from '../../utils/companyBrand.util.js';
 
-const BRAND_NAME = '3NI INFOTECH';
-const BRAND_SUBTITLE = 'Overseas Education Advisory & Visa Consultancy';
-const BRAND_ADDRESS = '401-404, Silicon Square, Yogi Chowk, Surat, Gujarat 395010';
-const BRAND_PHONE = '+91 98250 11111';
-const BRAND_EMAIL = 'accounts@3ni.io';
 const CLIENT_URL = config.smtp?.clientUrl || 'http://localhost:3001';
 
 /**
@@ -24,7 +20,16 @@ export function wrapEmailTemplate({
   ctaText = null,
   ctaUrl = null,
   footerNote = null,
+  company = null,
 }) {
+  const brand = company || getCachedCompanyBrand();
+  const brandName = brand.name || '3ni Infotech';
+  const brandLegalName = brand.legalName || brand.name || '3ni Infotech Education & Visa Services Pvt. Ltd.';
+  const brandSubtitle = brand.divisionTag || 'Overseas Education Advisory & Visa Consultancy';
+  const brandAddress = brand.fullAddress || '101, Shivalik Plaza, SG Highway, Ahmedabad, Gujarat 380015';
+  const brandPhone = brand.phone || '+91 79 1234 5678';
+  const brandEmail = brand.email || 'info@3niinfotech.com';
+  const brandWebsite = brand.website || 'https://www.3niinfotech.com';
   const toneColors = {
     primary: { bg: '#e0e7ff', text: '#3730a3', border: '#c7d2fe' },
     success: { bg: '#dcfce7', text: '#166534', border: '#bbf7d0' },
@@ -179,8 +184,8 @@ export function wrapEmailTemplate({
         <div class="main-card">
           <!-- Header -->
           <div class="brand-header">
-            <h1 class="brand-title">${BRAND_NAME}</h1>
-            <p class="brand-sub">${BRAND_SUBTITLE}</p>
+            <h1 class="brand-title">${escapeHtml(brandName.toUpperCase())}</h1>
+            <p class="brand-sub">${escapeHtml(brandSubtitle)}</p>
           </div>
 
           <!-- Content -->
@@ -202,11 +207,12 @@ export function wrapEmailTemplate({
 
           <!-- Footer -->
           <div class="footer-bar">
-            <strong>${BRAND_NAME} PRIVATE LIMITED</strong><br>
-            ${BRAND_ADDRESS}<br>
-            Phone: ${BRAND_PHONE} &bull; Email: <a href="mailto:${BRAND_EMAIL}">${BRAND_EMAIL}</a><br>
+            <strong>${escapeHtml(brandLegalName)}</strong><br>
+            ${escapeHtml(brandAddress)}<br>
+            Phone: ${escapeHtml(brandPhone)} &bull; Email: <a href="mailto:${escapeHtml(brandEmail)}">${escapeHtml(brandEmail)}</a><br>
+            ${brandWebsite ? `<a href="${escapeHtml(brandWebsite)}" target="_blank" style="color: #4f46e5; text-decoration: none; font-size: 11px;">${escapeHtml(brandWebsite)}</a><br>` : ''}
             <span style="display:inline-block; margin-top: 6px; font-size: 11px; color: #94a3b8;">
-              &copy; ${currentYear} 3NI Infotech CRM. This is an automated notification.
+              &copy; ${currentYear} ${escapeHtml(brandName)} CRM. This is an automated notification.
             </span>
           </div>
         </div>

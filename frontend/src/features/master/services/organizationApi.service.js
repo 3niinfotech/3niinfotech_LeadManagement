@@ -11,6 +11,8 @@ function unwrap(res) {
 }
 
 export const organizationApi = {
+  getPublicCompany: async () => unwrap(await apiGet('/organization/public')),
+
   getCompany: async () => unwrap(await apiGet(API.ORGANIZATION_COMPANY)),
 
   updateCompany: async (payload) => unwrap(await apiPut(API.ORGANIZATION_COMPANY, payload)),

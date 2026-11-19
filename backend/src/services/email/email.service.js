@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import config from '../../config/index.js';
+import { getCachedCompanyBrand } from '../../utils/companyBrand.util.js';
 
 let transporter = null;
 let etherealAccount = null;
@@ -67,6 +68,7 @@ async function getTransporter() {
  * Returns current SMTP configuration status
  */
 export function getSmtpStatus() {
+  const brand = getCachedCompanyBrand();
   const { host, port, secure, user, fromName, fromEmail } = config.smtp || {};
   const isConfigured = Boolean(host && user);
 
@@ -76,8 +78,8 @@ export function getSmtpStatus() {
     host: host || 'smtp.ethereal.email (mock)',
     port: port || 587,
     secure: Boolean(secure),
-    fromName: fromName || '3NI INFOTECH Overseas',
-    fromEmail: fromEmail || 'accounts@3ni.io',
+    fromName: fromName || brand.name || '3ni Infotech',
+    fromEmail: fromEmail || brand.email || 'info@3niinfotech.com',
     username: user ? `${user.slice(0, 3)}***@${user.split('@')[1] || ''}` : 'dev-preview',
   };
 }
@@ -98,8 +100,11 @@ export async function safeSendEmail({
   }
 
   try {
+    const brand = getCachedCompanyBrand();
     const client = await getTransporter();
-    const fromAddress = `"${config.smtp?.fromName || '3NI INFOTECH'}" <${config.smtp?.fromEmail || config.smtp?.user || 'accounts@3ni.io'}>`;
+    const defaultFromName = brand.name || '3ni Infotech';
+    const defaultFromEmail = brand.email || config.smtp?.user || 'info@3niinfotech.com';
+    const fromAddress = `"${config.smtp?.fromName || defaultFromName}" <${config.smtp?.fromEmail || defaultFromEmail}>`;
 
     const mailOptions = {
       from: fromAddress,

@@ -7,6 +7,11 @@ import {
   branchStatusSchema,
 } from './organization.validators.js';
 
+export const getPublicCompany = asyncHandler(async (_req, res) => {
+  const data = await organizationService.getPublicCompany();
+  sendSuccess(res, data);
+});
+
 export const getCompany = asyncHandler(async (req, res) => {
   const data = await organizationService.getCompany(req.user);
   sendSuccess(res, data);

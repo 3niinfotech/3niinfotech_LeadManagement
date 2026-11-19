@@ -43,6 +43,10 @@ const view = authorize(
 );
 const manage = authorize(PERMISSIONS.SETTINGS_UPDATE, PERMISSIONS.MASTERS_MANAGE);
 
+// Public endpoint for websites, landing pages, portals, and external clients (no auth required)
+router.get('/public', organizationController.getPublicCompany);
+router.get('/firm', organizationController.getPublicCompany);
+
 router.use(authenticate);
 
 router.get('/company', organizationController.getCompany);
