@@ -3692,8 +3692,11 @@ button.crm-portal-list__item:hover {
     margin: 8mm 10mm;
   }
 
+  :root,
   html,
   body {
+    --portal-sidebar-w: 0px !important;
+    --portal-sidebar-collapsed-w: 0px !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
@@ -3746,6 +3749,8 @@ button.crm-portal-list__item:hover {
     height: auto !important;
     min-height: 0 !important;
     margin: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
     border: none !important;
@@ -3764,14 +3769,15 @@ button.crm-portal-list__item:hover {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 auto !important;
-    padding: 1.25rem 1.5rem !important;
-    border: 1.5px solid #0f172a !important;
-    border-radius: 4px !important;
+    padding: 0 !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
     box-shadow: none !important;
     background: #ffffff !important;
     color: #0f172a !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
+    overflow: hidden !important;
   }
 
   #receipt-print-area *,

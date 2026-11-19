@@ -210,12 +210,6 @@ export default function StudentReceiptsPage() {
       {/* ── 2-Column Responsive Layout: Receipts History (Left) + Live Digital Receipt Preview (Right) ── */}
       <div
         className="crm-receipt-grid-container"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-          gap: '1rem',
-          alignItems: 'start',
-        }}
       >
         {/* Left Column: Transaction Receipts List */}
         <div
@@ -408,73 +402,75 @@ export default function StudentReceiptsPage() {
                     id="receipt-print-area"
                     className="crm-print-document crm-official-voucher"
                   >
-                    {/* ── ROW 1: TOP FULL-WIDTH VOUCHER TITLE (CENTERED) ── */}
+                    {/* ── ROW 1: TOP FULL-WIDTH VOUCHER TITLE (EDGE-TO-EDGE) ── */}
                     <div className="crm-voucher-top-title-bar">
                       <div className="crm-voucher-main-heading">
                         OFFICIAL RECEIPT VOUCHER
                       </div>
                     </div>
 
-                    {/* ── ROW 2: REAL FIRM HEADER & TRANSACTION METADATA ── */}
-                    <div className="crm-voucher-header-row">
-                      <div className="crm-voucher-company-block">
-                        <img
-                          src="/assets/images/brand/logo.jpg"
-                          alt="3NI Logo"
-                          className="crm-voucher-real-logo"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                        <div className="crm-voucher-company-details">
-                          <h2 className="crm-voucher-company-name">
-                            3NI INFOTECH PRIVATE LIMITED
-                          </h2>
-                          <div className="crm-voucher-division-tag">
-                            Overseas Education Advisory &amp; Visa Consultancy Division
-                          </div>
-                          <div className="crm-voucher-contact-line">
-                            401-404, Silicon Square, Yogi Chowk, Surat, Gujarat 395010 · Tel: +91 98250 11111 · accounts@3ni.io
-                          </div>
-                          <div className="crm-voucher-reg-line">
-                            <strong>GSTIN:</strong> 24AAACC1234F1Z5
+                    {/* ── VOUCHER INNER BODY CONTENT ── */}
+                    <div className="crm-voucher-content-body">
+                      {/* ── ROW 2: REAL FIRM HEADER & TRANSACTION METADATA ── */}
+                      <div className="crm-voucher-header-row">
+                        <div className="crm-voucher-company-block">
+                          <img
+                            src="/assets/images/brand/logo.jpg"
+                            alt="3NI Logo"
+                            className="crm-voucher-real-logo"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                          <div className="crm-voucher-company-details">
+                            <h2 className="crm-voucher-company-name">
+                              3NI INFOTECH PRIVATE LIMITED
+                            </h2>
+                            <div className="crm-voucher-division-tag">
+                              Overseas Education Advisory &amp; Visa Consultancy Division
+                            </div>
+                            <div className="crm-voucher-address-line">
+                              401-404, Silicon Square, Yogi Chowk, Surat, Gujarat 395010
+                            </div>
+                            <div className="crm-voucher-contact-line">
+                              Tel: +91 98250 11111 &nbsp;·&nbsp; accounts@3ni.io &nbsp;·&nbsp; <strong>GSTIN:</strong> 24AAACC1234F1Z5
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="crm-voucher-meta-box">
-                        <table className="crm-voucher-meta-table">
-                          <tbody>
-                            <tr>
-                              <td className="crm-meta-lbl">Voucher No:</td>
-                              <td className="crm-meta-val crm-voucher-dt-val--mono">{receiptNumber}</td>
-                            </tr>
-                            <tr>
-                              <td className="crm-meta-lbl">Date &amp; Time:</td>
-                              <td className="crm-meta-val">{receiptDateStr}</td>
-                            </tr>
-                            <tr>
-                              <td className="crm-meta-lbl">Payment Status:</td>
-                              <td className="crm-meta-val">
-                                <span className="crm-voucher-status-stamp">
-                                  ✓ PAID &amp; CLEARED
-                                </span>
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="crm-meta-lbl">State:</td>
-                              <td className="crm-meta-val">24 (Gujarat)</td>
-                            </tr>
-                            <tr>
-                              <td className="crm-meta-lbl">CIN:</td>
-                              <td className="crm-meta-val crm-voucher-dt-val--mono" style={{ fontSize: '0.6875rem' }}>
-                                U72900GJ2020PTC115000
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
+                        <div className="crm-voucher-meta-box">
+                          <table className="crm-voucher-meta-table">
+                            <tbody>
+                              <tr>
+                                <td className="crm-meta-lbl">Voucher No:</td>
+                                <td className="crm-meta-val crm-voucher-dt-val--mono">{receiptNumber}</td>
+                              </tr>
+                              <tr>
+                                <td className="crm-meta-lbl">Date &amp; Time:</td>
+                                <td className="crm-meta-val">{receiptDateStr}</td>
+                              </tr>
+                              <tr>
+                                <td className="crm-meta-lbl">Payment Status:</td>
+                                <td className="crm-meta-val">
+                                  <span className="crm-voucher-status-stamp">
+                                    ✓ PAID &amp; CLEARED
+                                  </span>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="crm-meta-lbl">State:</td>
+                                <td className="crm-meta-val">24 (Gujarat)</td>
+                              </tr>
+                              <tr>
+                                <td className="crm-meta-lbl">CIN:</td>
+                                <td className="crm-meta-val crm-voucher-dt-val--mono" style={{ fontSize: '0.6875rem' }}>
+                                  U72900GJ2020PTC115000
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
 
                     {/* ── ROW 3: STUDENT & BANKING RECORDS (2 BALANCED CARDS) ── */}
                     <div className="crm-voucher-sections-grid">
@@ -651,6 +647,7 @@ export default function StudentReceiptsPage() {
                     </div>
                   </div>
                 </div>
+              </div>
               );
             })()}
           </div>
