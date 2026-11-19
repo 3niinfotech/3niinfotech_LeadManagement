@@ -413,9 +413,6 @@ export default function StudentReceiptsPage() {
                       <div className="crm-voucher-main-heading">
                         OFFICIAL RECEIPT VOUCHER
                       </div>
-                      <div className="crm-voucher-sub-heading">
-                        ORIGINAL FOR RECIPIENT · TAX INVOICE CUM RECEIPT
-                      </div>
                     </div>
 
                     {/* ── ROW 2: REAL FIRM HEADER & TRANSACTION METADATA ── */}
@@ -440,7 +437,7 @@ export default function StudentReceiptsPage() {
                             401-404, Silicon Square, Yogi Chowk, Surat, Gujarat 395010 · Tel: +91 98250 11111 · accounts@3ni.io
                           </div>
                           <div className="crm-voucher-reg-line">
-                            <strong>GSTIN:</strong> 24AAACC1234F1Z5 &nbsp;|&nbsp; <strong>State:</strong> 24 (Gujarat) &nbsp;|&nbsp; <strong>CIN:</strong> U72900GJ2020PTC115000
+                            <strong>GSTIN:</strong> 24AAACC1234F1Z5
                           </div>
                         </div>
                       </div>
@@ -462,6 +459,16 @@ export default function StudentReceiptsPage() {
                                 <span className="crm-voucher-status-stamp">
                                   ✓ PAID &amp; CLEARED
                                 </span>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="crm-meta-lbl">State:</td>
+                              <td className="crm-meta-val">24 (Gujarat)</td>
+                            </tr>
+                            <tr>
+                              <td className="crm-meta-lbl">CIN:</td>
+                              <td className="crm-meta-val crm-voucher-dt-val--mono" style={{ fontSize: '0.6875rem' }}>
+                                U72900GJ2020PTC115000
                               </td>
                             </tr>
                           </tbody>
@@ -536,7 +543,7 @@ export default function StudentReceiptsPage() {
                       </div>
                     </div>
 
-                    {/* ── ROW 4: ACCOUNTING LINE ITEMS (CONCISE & CLEAN) ── */}
+                    {/* ── ROW 4: ACCOUNTING LINE ITEMS (WITH INTEGRATED AMOUNT IN WORDS) ── */}
                     <table className="crm-voucher-ledger-table">
                       <thead>
                         <tr>
@@ -586,26 +593,28 @@ export default function StudentReceiptsPage() {
                         </tr>
                       </tbody>
                       <tfoot>
-                        <tr>
-                          <td colSpan={4} style={{ textAlign: 'right', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        <tr style={{ background: '#f8fafc', fontWeight: 800, borderTop: '1px solid #cbd5e1' }}>
+                          <td colSpan={4} style={{ textAlign: 'right', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 800, borderRight: '1px solid #e2e8f0' }}>
                             Total Amount Received (INR):
                           </td>
                           <td style={{ textAlign: 'right', fontSize: '0.875rem', fontWeight: 900, color: '#000000' }}>
                             ₹{amountNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
                         </tr>
+                        <tr style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                          <td colSpan={5} style={{ padding: '0.45rem 0.65rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '0.6875rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 }}>
+                                Amount in Words:
+                              </span>
+                              <strong style={{ fontSize: '0.8125rem', color: '#0f172a', fontWeight: 800 }}>
+                                {wordsStr}
+                              </strong>
+                            </div>
+                          </td>
+                        </tr>
                       </tfoot>
                     </table>
-
-                    {/* ── ROW 5: AMOUNT IN WORDS ── */}
-                    <div className="crm-voucher-words-strip">
-                      <span className="crm-voucher-words-lbl">
-                        Amount in Words:
-                      </span>
-                      <strong className="crm-voucher-words-val">
-                        {wordsStr}
-                      </strong>
-                    </div>
 
                     {/* ── ROW 6: FOOTER (COMPACT TERMS, STAMP & SIGNATURE) ── */}
                     <div className="crm-voucher-foot">
