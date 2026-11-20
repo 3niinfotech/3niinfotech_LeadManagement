@@ -440,8 +440,7 @@ export default function CommandPalette() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 backdrop-blur-md"
-            style={{ background: 'var(--overlay)' }}
+            className="absolute inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm"
             onClick={close}
           />
 
@@ -450,13 +449,13 @@ export default function CommandPalette() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -14, scale: 0.98 }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="relative w-full max-w-4xl bg-card dark:bg-[#0c1322] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden border border-border/80 dark:border-slate-800/80 ring-1 ring-black/5 dark:ring-white/5"
+            className="relative w-full max-w-4xl bg-white dark:bg-[#0c1322] rounded-2xl shadow-2xl shadow-black/30 dark:shadow-black/70 overflow-hidden border border-slate-200 dark:border-slate-800/80 ring-1 ring-black/5 dark:ring-white/5"
             role="dialog"
             aria-modal="true"
             aria-label="Global search"
           >
             {/* ── Seamless Advance Search Header ── */}
-            <div className="flex items-center gap-3.5 px-6 py-4 border-b border-border/70 dark:border-slate-800/80 bg-card dark:bg-[#0c1322]">
+            <div className="flex items-center gap-3.5 px-6 py-4 border-b border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#0c1322]">
               <FiSearch className="w-5 h-5 text-primary-500 shrink-0" />
 
               <input
@@ -465,7 +464,7 @@ export default function CommandPalette() {
                 onChange={(e) => syncQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search students, enquiries, leads, invoices, or jump to pages..."
-                className="crm-search-input-seamless flex-1 min-w-0 bg-transparent border-0 outline-none text-[15px] font-medium text-text placeholder:text-text-muted/50 p-0 focus:outline-none focus:ring-0 shadow-none"
+                className="crm-search-input-seamless flex-1 min-w-0 bg-transparent border-0 outline-none text-[15px] font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-0 focus:outline-none focus:ring-0 shadow-none"
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -474,7 +473,7 @@ export default function CommandPalette() {
                 <button
                   type="button"
                   onClick={() => syncQuery('')}
-                  className="p-1 rounded-md text-text-muted hover:text-text hover:bg-row-hover transition-colors cursor-pointer"
+                  className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   title="Clear input"
                 >
                   <FiX className="w-4 h-4" />
@@ -499,13 +498,13 @@ export default function CommandPalette() {
                     ? 'bg-danger text-white shadow-md animate-pulse ring-2 ring-danger-400/50'
                     : voiceError
                     ? 'bg-danger-500/15 border border-danger-500/50 text-danger-500 dark:text-danger-400 hover:bg-danger-500/25'
-                    : 'bg-page/70 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 text-text-muted hover:text-primary-500 hover:border-primary-500/40'
+                    : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-500/40'
                 }`}
               >
                 {listening ? <FiMicOff className="w-4 h-4" /> : <FiMic className="w-4 h-4" />}
               </button>
 
-              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-page/80 dark:bg-slate-900/80 border border-border/80 dark:border-slate-800 text-[10px] font-mono font-semibold text-text-muted shrink-0 shadow-2xs">
+              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-semibold text-slate-500 dark:text-slate-400 shrink-0 shadow-2xs">
                 ESC
               </kbd>
             </div>
@@ -518,7 +517,7 @@ export default function CommandPalette() {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="px-6 py-2.5 bg-primary-500/10 dark:bg-primary-950/40 border-b border-primary-500/20 flex items-center justify-between text-xs text-primary-600 dark:text-primary-400"
+                  className="px-6 py-2.5 bg-primary-50 dark:bg-primary-950/40 border-b border-primary-100 dark:border-primary-500/20 flex items-center justify-between text-xs text-primary-700 dark:text-primary-300"
                 >
                   <div className="flex items-center gap-2">
                     <span className="flex h-2.5 w-2.5 relative">
@@ -546,7 +545,7 @@ export default function CommandPalette() {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="px-6 py-2.5 bg-danger-500/10 dark:bg-danger-950/50 border-b border-danger-500/25 flex items-center justify-between gap-3 text-xs text-danger-700 dark:text-danger-300"
+                  className="px-6 py-2.5 bg-danger-50 dark:bg-danger-950/50 border-b border-danger-200 dark:border-danger-500/25 flex items-center justify-between gap-3 text-xs text-danger-700 dark:text-danger-300"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <FiAlertTriangle className="w-4 h-4 shrink-0 text-danger-500" />
@@ -555,7 +554,7 @@ export default function CommandPalette() {
                   <button
                     type="button"
                     onClick={clearVoiceError}
-                    className="p-1 rounded text-danger-400 hover:text-danger-200 hover:bg-danger-500/20 transition-colors shrink-0 cursor-pointer"
+                    className="p-1 rounded text-danger-400 hover:text-danger-600 dark:hover:text-danger-200 hover:bg-danger-100 dark:hover:bg-danger-500/20 transition-colors shrink-0 cursor-pointer"
                     title="Dismiss"
                   >
                     <FiX className="w-3.5 h-3.5" />
@@ -565,7 +564,7 @@ export default function CommandPalette() {
             </AnimatePresence>
 
             {/* ── Category Quick-Filter Chips ── */}
-            <div className="px-6 py-2.5 border-b border-border/60 dark:border-slate-800/70 bg-page/40 dark:bg-slate-900/30 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
+            <div className="px-6 py-2.5 border-b border-slate-200/90 dark:border-slate-800/70 bg-slate-50 dark:bg-slate-900/40 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
               <div className="flex items-center gap-2 shrink-0">
                 {CATEGORIES.map((cat) => {
                   const Icon = cat.icon;
@@ -579,7 +578,7 @@ export default function CommandPalette() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                         isActive
                           ? 'bg-primary-600 text-white shadow-xs'
-                          : 'text-text-muted hover:text-text hover:bg-card dark:hover:bg-slate-800/60 border border-transparent'
+                          : 'bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
@@ -589,7 +588,7 @@ export default function CommandPalette() {
                           className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold tabular-nums ${
                             isActive
                               ? 'bg-white/20 text-white'
-                              : 'bg-slate-200 dark:bg-slate-800 text-text-muted'
+                              : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                           }`}
                         >
                           {count}
@@ -600,36 +599,28 @@ export default function CommandPalette() {
                 })}
               </div>
 
-              <span className="shrink-0 hidden lg:inline-flex rounded-md border border-border/80 dark:border-slate-800 bg-card dark:bg-slate-900/60 px-2.5 py-1 text-[11px] font-medium text-text-muted">
+              <span className="shrink-0 hidden lg:inline-flex rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/90 px-2.5 py-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
                 {user?.role?.name || 'Workspace Search'}
               </span>
             </div>
 
-            {/* Voice Listening Banner */}
-            {listening && (
-              <div className="px-6 py-2.5 bg-danger-soft/50 border-b border-danger/10 text-[12px] text-danger font-medium flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
-                Listening… say a student name, enquiry code, phone number, or page
-              </div>
-            )}
-
             {/* Loading Banner */}
             {(loading || suggestLoading) && trimmed && (
-              <div className="px-6 py-2 border-b border-border/60 dark:border-slate-800/60 flex items-center gap-2 text-xs text-text-muted bg-page/40">
+              <div className="px-6 py-2 border-b border-slate-200 dark:border-slate-800/60 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/40">
                 <Loader size="xs" variant="flow" />
                 {loading ? 'Searching real-time across CRM records…' : 'Fetching suggestions…'}
               </div>
             )}
 
             {/* Results Scroll View */}
-            <ScrollArea axis="y" hideBar className="max-h-[min(520px,58vh)] py-3 px-5">
+            <ScrollArea axis="y" hideBar className="max-h-[min(520px,58vh)] py-3 px-5 bg-white dark:bg-[#0c1322]">
               {!trimmed && history.length > 0 && activeCategory === 'all' && (
                 <div className="flex items-center justify-between px-3 py-1.5 mb-1.5">
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Recent Searches</span>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Recent Searches</span>
                   <button
                     type="button"
                     onClick={handleClearHistory}
-                    className="text-[11px] text-text-muted hover:text-danger flex items-center gap-1 transition-colors cursor-pointer"
+                    className="text-[11px] text-slate-400 hover:text-danger dark:hover:text-danger flex items-center gap-1 transition-colors cursor-pointer"
                   >
                     <FiTrash2 className="w-3 h-3" /> Clear history
                   </button>
@@ -639,7 +630,7 @@ export default function CommandPalette() {
               {loading && isFullSearch && (
                 <div className="py-16 flex flex-col items-center gap-3">
                   <Loader size="sm" variant="flow" />
-                  <p className="text-sm text-text-muted">Searching for &ldquo;{trimmed}&rdquo;…</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Searching for &ldquo;{trimmed}&rdquo;…</p>
                 </div>
               )}
 
@@ -656,11 +647,11 @@ export default function CommandPalette() {
 
               {showEmpty && (
                 <div className="py-16 text-center px-8">
-                  <div className="w-14 h-14 rounded-2xl bg-page border border-border flex items-center justify-center mx-auto mb-4">
-                    <FiSearch className="w-6 h-6 text-text-muted" />
+                  <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center mx-auto mb-4">
+                    <FiSearch className="w-6 h-6 text-slate-400" />
                   </div>
-                  <p className="text-base font-semibold text-text">No results for &ldquo;{trimmed}&rdquo;</p>
-                  <p className="text-sm text-text-muted mt-2 max-w-md mx-auto">
+                  <p className="text-base font-semibold text-slate-800 dark:text-slate-100">No results for &ldquo;{trimmed}&rdquo;</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto">
                     Try refining your keyword, selecting another category tab, or searching by phone / student ID.
                   </p>
                 </div>
@@ -668,22 +659,22 @@ export default function CommandPalette() {
             </ScrollArea>
 
             {/* Footer Toolbar */}
-            <div className="px-6 py-3 border-t border-border/70 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-text-muted bg-page/40 dark:bg-slate-900/40">
+            <div className="px-6 py-3 border-t border-slate-200/90 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60">
               <div className="flex items-center gap-4 flex-wrap">
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded-md bg-card dark:bg-slate-900 border border-border/80 dark:border-slate-800 font-mono text-[10px] shadow-2xs">↑↓</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px] text-slate-600 dark:text-slate-300 shadow-2xs font-semibold">↑↓</kbd>
                   navigate
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded-md bg-card dark:bg-slate-900 border border-border/80 dark:border-slate-800 font-mono text-[10px] shadow-2xs">↵</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px] text-slate-600 dark:text-slate-300 shadow-2xs font-semibold">↵</kbd>
                   open
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded-md bg-card dark:bg-slate-900 border border-border/80 dark:border-slate-800 font-mono text-[10px] shadow-2xs">tab</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px] text-slate-600 dark:text-slate-300 shadow-2xs font-semibold">tab</kbd>
                   switch category
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded-md bg-card dark:bg-slate-900 border border-border/80 dark:border-slate-800 font-mono text-[10px] shadow-2xs">esc</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px] text-slate-600 dark:text-slate-300 shadow-2xs font-semibold">esc</kbd>
                   close
                 </span>
               </div>
@@ -711,9 +702,9 @@ function SearchGroups({ groups, activeIndex, itemRefs, onSelect, onRemoveHistory
         offset += group.items.length;
         return (
           <div key={group.id}>
-            <p className="px-3 py-1.5 text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5">
+            <p className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
               <span>{group.label}</span>
-              <span className="text-[10px] text-text-muted/70 font-mono font-normal">
+              <span className="text-[10px] text-slate-400/80 dark:text-slate-500/80 font-mono font-normal">
                 ({group.items.length})
               </span>
             </p>

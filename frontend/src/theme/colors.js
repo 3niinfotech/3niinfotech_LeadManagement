@@ -87,6 +87,7 @@ export const colors = {
     border: 'var(--border)',
   },
   card: {
+    DEFAULT: 'var(--bg-card)',
     bg: 'var(--bg-card)',
     border: 'var(--border)',
   },

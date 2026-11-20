@@ -42,8 +42,8 @@ export default function SearchResultItem({
         className={`
           flex-1 flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-left border transition-all duration-150 cursor-pointer
           ${active
-            ? 'bg-primary-50/90 dark:bg-primary-950/45 border-primary-500/40 shadow-xs'
-            : 'border-transparent hover:bg-slate-100/70 dark:hover:bg-slate-800/45 hover:border-border/60'}
+            ? 'bg-primary-50 dark:bg-primary-950/50 border-primary-500/40 shadow-xs'
+            : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:border-slate-200/80 dark:hover:border-slate-700/60'}
         `}
       >
         <div
@@ -51,15 +51,15 @@ export default function SearchResultItem({
             ${active
               ? 'bg-primary-600 text-white shadow-xs'
               : variant === 'history'
-                ? 'bg-slate-100 dark:bg-slate-800/80 border border-border/80 text-text-muted'
-                : 'bg-slate-100 dark:bg-slate-800/80 border border-border/80 text-text-muted group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-500/30'}`}
+                ? 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-500/30'}`}
         >
           <Icon className={iconSize.md} />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            <p className="text-[13px] font-semibold text-text truncate">
+            <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 truncate">
               <HighlightText text={title} query={query} />
             </p>
             {badge && (
@@ -69,12 +69,12 @@ export default function SearchResultItem({
             )}
           </div>
           {subtitle && (
-            <p className="text-xs text-text-secondary truncate mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
               <HighlightText text={subtitle} query={query} />
             </p>
           )}
           {(hint || meta) && (
-            <p className={`text-[11px] mt-0.5 truncate ${variant === 'suggestion' ? 'text-text-muted' : 'text-primary-600 dark:text-primary-400 font-medium'}`}>
+            <p className={`text-[11px] mt-0.5 truncate ${variant === 'suggestion' ? 'text-slate-400 dark:text-slate-500' : 'text-primary-600 dark:text-primary-400 font-medium'}`}>
               {hint || meta}
             </p>
           )}
@@ -82,7 +82,7 @@ export default function SearchResultItem({
 
         <FiArrowRight
           className={`${iconSize.sm} shrink-0 transition-all duration-150
-            ${active ? 'text-primary-600 dark:text-primary-400 opacity-100 translate-x-0' : 'text-text-muted opacity-0 -translate-x-1 group-hover:opacity-60'}`}
+            ${active ? 'text-primary-600 dark:text-primary-400 opacity-100 translate-x-0' : 'text-slate-400 dark:text-slate-500 opacity-0 -translate-x-1 group-hover:opacity-75'}`}
         />
       </button>
 
