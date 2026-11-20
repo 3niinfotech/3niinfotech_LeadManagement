@@ -110,10 +110,10 @@ export default function NavbarProfileMenu({ open, onToggle, onClose }) {
         onClick={onToggle}
         aria-expanded={open}
         aria-haspopup="menu"
-        className={`group flex items-center gap-2 h-9 pl-1.5 pr-2.5 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/20
+        className={`group flex items-center gap-2.5 h-10 pl-2 pr-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/20
           ${open
             ? 'bg-brand/10 border-brand/40 shadow-xs'
-            : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs'
+            : 'bg-white/95 dark:bg-slate-900/95 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs'
           }`}
       >
         <div className="relative shrink-0">

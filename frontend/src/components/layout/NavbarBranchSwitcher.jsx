@@ -121,7 +121,7 @@ export default function NavbarBranchSwitcher() {
         disabled={switching}
         title="Active branch — filters all CRM data for your role"
         className={`
-          h-9 inline-flex items-center gap-2 rounded-lg border bg-white dark:bg-slate-900 px-2.5
+          h-10 inline-flex items-center gap-2 rounded-xl border bg-white/95 dark:bg-slate-900/95 px-3
           text-xs font-semibold text-slate-800 dark:text-slate-200 shadow-2xs transition-all
           hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/80
           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/25

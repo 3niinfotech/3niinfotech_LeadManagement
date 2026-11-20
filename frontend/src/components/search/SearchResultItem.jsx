@@ -40,10 +40,10 @@ export default function SearchResultItem({
         type="button"
         onClick={onClick}
         className={`
-          flex-1 flex items-center gap-3 px-3 py-2 rounded-xl text-left border transition-all duration-150 cursor-pointer
+          flex-1 flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-left border transition-all duration-150 cursor-pointer
           ${active
-            ? 'bg-primary-50/80 dark:bg-primary-950/40 border-primary-500/35 shadow-xs'
-            : 'border-transparent hover:bg-slate-100/70 dark:hover:bg-slate-800/50 hover:border-border/60'}
+            ? 'bg-primary-50/90 dark:bg-primary-950/45 border-primary-500/40 shadow-xs'
+            : 'border-transparent hover:bg-slate-100/70 dark:hover:bg-slate-800/45 hover:border-border/60'}
         `}
       >
         <div

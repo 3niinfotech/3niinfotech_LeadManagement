@@ -424,17 +424,17 @@ export default function CommandPalette() {
           />
 
           <motion.div
-            initial={{ opacity: 0, y: -24, scale: 0.96 }}
+            initial={{ opacity: 0, y: -20, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -16, scale: 0.98 }}
+            exit={{ opacity: 0, y: -14, scale: 0.98 }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="relative w-full max-w-4xl bg-card rounded-2xl shadow-dropdown overflow-hidden border border-border"
+            className="relative w-full max-w-4xl bg-card dark:bg-[#0c1322] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden border border-border/80 dark:border-slate-800/80 ring-1 ring-black/5 dark:ring-white/5"
             role="dialog"
             aria-modal="true"
             aria-label="Global search"
           >
             {/* ── Seamless Advance Search Header ── */}
-            <div className="flex items-center gap-3 px-4.5 py-3.5 border-b border-border bg-card">
+            <div className="flex items-center gap-3.5 px-6 py-4 border-b border-border/70 dark:border-slate-800/80 bg-card dark:bg-[#0c1322]">
               <FiSearch className="w-5 h-5 text-primary-500 shrink-0" />
 
               <input
@@ -443,7 +443,7 @@ export default function CommandPalette() {
                 onChange={(e) => syncQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search students, enquiries, leads, invoices, or jump to pages..."
-                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[15px] font-medium text-text placeholder:text-text-muted/60"
+                className="crm-search-input-seamless flex-1 min-w-0 bg-transparent border-0 outline-none text-[15px] font-medium text-text placeholder:text-text-muted/50 p-0 focus:outline-none focus:ring-0 shadow-none"
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -467,21 +467,21 @@ export default function CommandPalette() {
                   className={`p-1.5 rounded-lg transition-all shrink-0 cursor-pointer ${
                     listening
                       ? 'bg-danger text-white shadow-md animate-pulse'
-                      : 'bg-page border border-border text-text-muted hover:text-primary-500 hover:border-primary-500/40'
+                      : 'bg-page/70 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 text-text-muted hover:text-primary-500 hover:border-primary-500/40'
                   }`}
                 >
                   {listening ? <FiMicOff className="w-4 h-4" /> : <FiMic className="w-4 h-4" />}
                 </button>
               )}
 
-              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-page border border-border text-[10px] font-mono font-semibold text-text-muted shrink-0 shadow-2xs">
+              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-page/80 dark:bg-slate-900/80 border border-border/80 dark:border-slate-800 text-[10px] font-mono font-semibold text-text-muted shrink-0 shadow-2xs">
                 ESC
               </kbd>
             </div>
 
             {/* ── Category Quick-Filter Chips ── */}
-            <div className="px-4 py-2 border-b border-border/70 bg-page/50 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
-              <div className="flex items-center gap-1.5 shrink-0">
+            <div className="px-6 py-2.5 border-b border-border/60 dark:border-slate-800/70 bg-page/40 dark:bg-slate-900/30 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-2 shrink-0">
                 {CATEGORIES.map((cat) => {
                   const Icon = cat.icon;
                   const count = categoryCounts[cat.id];
@@ -491,10 +491,10 @@ export default function CommandPalette() {
                       key={cat.id}
                       type="button"
                       onClick={() => setActiveCategory(cat.id)}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                         isActive
                           ? 'bg-primary-600 text-white shadow-xs'
-                          : 'text-text-muted hover:text-text hover:bg-card/80 border border-transparent'
+                          : 'text-text-muted hover:text-text hover:bg-card dark:hover:bg-slate-800/60 border border-transparent'
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
@@ -515,14 +515,14 @@ export default function CommandPalette() {
                 })}
               </div>
 
-              <span className="shrink-0 hidden lg:inline-flex rounded-md border border-border bg-card px-2 py-0.5 text-[11px] font-medium text-text-muted">
+              <span className="shrink-0 hidden lg:inline-flex rounded-md border border-border/80 dark:border-slate-800 bg-card dark:bg-slate-900/60 px-2.5 py-1 text-[11px] font-medium text-text-muted">
                 {user?.role?.name || 'Workspace Search'}
               </span>
             </div>
 
             {/* Voice Listening Banner */}
             {listening && (
-              <div className="px-5 py-2.5 bg-danger-soft/50 border-b border-danger/10 text-[12px] text-danger font-medium flex items-center gap-2">
+              <div className="px-6 py-2.5 bg-danger-soft/50 border-b border-danger/10 text-[12px] text-danger font-medium flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
                 Listening… say a student name, enquiry code, phone number, or page
               </div>
@@ -530,57 +530,16 @@ export default function CommandPalette() {
 
             {/* Loading Banner */}
             {(loading || suggestLoading) && trimmed && (
-              <div className="px-5 py-2 border-b border-border/60 flex items-center gap-2 text-xs text-text-muted bg-page/40">
+              <div className="px-6 py-2 border-b border-border/60 dark:border-slate-800/60 flex items-center gap-2 text-xs text-text-muted bg-page/40">
                 <Loader size="xs" variant="flow" />
                 {loading ? 'Searching real-time across CRM records…' : 'Fetching suggestions…'}
               </div>
             )}
 
-            {/* Quick Actions Row (When Empty Query) */}
-            {!trimmed && (
-              <div className="px-4 py-2 bg-page/30 border-b border-border/60 flex items-center gap-2 overflow-x-auto no-scrollbar">
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider shrink-0 mr-1">
-                  Quick Actions:
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { close(); navigate(ROUTES.ENQUIRY_CREATE); }}
-                  className="px-2.5 py-1 rounded-lg bg-card hover:bg-primary-50 dark:hover:bg-primary-950/40 border border-border hover:border-primary-500/40 text-xs font-semibold text-text flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0"
-                >
-                  <FiPlus className="w-3.5 h-3.5 text-primary-500" />
-                  New Enquiry
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { close(); navigate(ROUTES.STUDENTS); }}
-                  className="px-2.5 py-1 rounded-lg bg-card hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-border hover:border-emerald-500/40 text-xs font-semibold text-text flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0"
-                >
-                  <FiUsers className="w-3.5 h-3.5 text-emerald-500" />
-                  Students Hub
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { close(); navigate(ROUTES.FEES); }}
-                  className="px-2.5 py-1 rounded-lg bg-card hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-border hover:border-amber-500/40 text-xs font-semibold text-text flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0"
-                >
-                  <FiDollarSign className="w-3.5 h-3.5 text-amber-500" />
-                  Fees &amp; Invoices
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { close(); navigate(ROUTES.CALENDAR); }}
-                  className="px-2.5 py-1 rounded-lg bg-card hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-border hover:border-purple-500/40 text-xs font-semibold text-text flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0"
-                >
-                  <FiCalendar className="w-3.5 h-3.5 text-purple-500" />
-                  Calendar
-                </button>
-              </div>
-            )}
-
             {/* Results Scroll View */}
-            <ScrollArea axis="y" hideBar className="max-h-[min(520px,58vh)] py-2.5 px-3">
+            <ScrollArea axis="y" hideBar className="max-h-[min(520px,58vh)] py-3 px-5">
               {!trimmed && history.length > 0 && activeCategory === 'all' && (
-                <div className="flex items-center justify-between px-3 py-1.5 mb-1">
+                <div className="flex items-center justify-between px-3 py-1.5 mb-1.5">
                   <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Recent Searches</span>
                   <button
                     type="button"
@@ -624,22 +583,22 @@ export default function CommandPalette() {
             </ScrollArea>
 
             {/* Footer Toolbar */}
-            <div className="px-5 py-3 border-t border-border flex items-center justify-between text-[11px] text-text-muted bg-page/60">
+            <div className="px-6 py-3 border-t border-border/70 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-text-muted bg-page/40 dark:bg-slate-900/40">
               <div className="flex items-center gap-4 flex-wrap">
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded-md bg-card border border-border font-mono text-[10px] shadow-2xs">↑↓</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded-md bg-card dark:bg-slate-900 border border-border/80 dark:border-slate-800 font-mono text-[10px] shadow-2xs">↑↓</kbd>
                   navigate
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded-md bg-card border border-border font-mono text-[10px] shadow-2xs">↵</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded-md bg-card dark:bg-slate-900 border border-border/80 dark:border-slate-800 font-mono text-[10px] shadow-2xs">↵</kbd>
                   open
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded-md bg-card border border-border font-mono text-[10px] shadow-2xs">tab</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded-md bg-card dark:bg-slate-900 border border-border/80 dark:border-slate-800 font-mono text-[10px] shadow-2xs">tab</kbd>
                   switch category
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded-md bg-card border border-border font-mono text-[10px] shadow-2xs">esc</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded-md bg-card dark:bg-slate-900 border border-border/80 dark:border-slate-800 font-mono text-[10px] shadow-2xs">esc</kbd>
                   close
                 </span>
               </div>

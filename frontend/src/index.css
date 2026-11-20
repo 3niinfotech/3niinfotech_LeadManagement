@@ -352,12 +352,26 @@
   .dark .crm-input.crm-field,
   .dark .crm-ant-select.crm-field .ant-select-selector,
   .dark .crm-aria-date-group.crm-field,
-  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="file"]),
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="file"]):not(.bg-transparent):not(.crm-search-input-seamless):not(.crm-input-transparent),
   .dark textarea,
   .dark select {
     background: var(--bg-card) !important;
     border-color: var(--border);
     color: var(--text-primary) !important;
+  }
+
+  /* Seamless transparent search & utility inputs */
+  .dark input.bg-transparent,
+  .dark input[type="text"].bg-transparent,
+  .dark input[type="search"].bg-transparent,
+  .dark .crm-search-input-seamless,
+  input.crm-search-input-seamless {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
   }
 
   .dark input::placeholder,

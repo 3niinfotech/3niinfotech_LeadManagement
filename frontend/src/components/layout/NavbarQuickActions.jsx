@@ -46,10 +46,10 @@ function CountBadge({ count, tone }) {
   return (
     <span
       className={`
-        pointer-events-none absolute -top-1 -right-1 z-10 flex items-center justify-center
-        min-w-[15px] h-[15px] px-1 text-[9px] font-bold leading-none tabular-nums
+        pointer-events-none absolute top-0.5 right-0.5 z-10 flex items-center justify-center
+        min-w-[14px] h-[14px] px-0.5 text-[8px] font-extrabold leading-none tabular-nums
         rounded-full text-white ${tone.badge || 'bg-brand'}
-        ring-2 ring-white dark:ring-slate-900 shadow-2xs
+        ring-1.5 ring-white dark:ring-slate-900 shadow-2xs
       `}
       aria-hidden
     >
@@ -88,14 +88,14 @@ function QuickActionButton({ action, badge, isActive, onClick, buttonRef }) {
       aria-pressed={isActive}
       className={`
         group relative flex items-center justify-center
-        w-8 h-8 rounded-md transition-all duration-150 focus-ring
+        w-8 h-8 rounded-lg transition-all duration-150 focus-ring cursor-pointer
         ${isActive
-          ? 'bg-brand-soft text-brand ring-1 ring-brand/20'
-          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+          ? 'bg-primary-600 text-white shadow-xs'
+          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60'
         }
       `}
     >
-      <Icon className="w-4 h-4 transition-transform duration-150 group-hover:scale-105" />
+      <Icon className={`w-4 h-4 transition-transform duration-150 group-hover:scale-105 ${isActive ? 'text-white' : ''}`} />
       {badge > 0 && <CountBadge count={badge} tone={tone} />}
 
       {tip && createPortal(
@@ -121,10 +121,10 @@ function UtilityActionButton({ icon: Icon, label, onClick, active, className = '
       title={label}
       aria-label={label}
       className={`
-        flex items-center justify-center w-8 h-8 rounded-md transition-all duration-150 focus-ring
+        flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-150 focus-ring cursor-pointer
         ${active
-          ? 'bg-brand-soft text-brand'
-          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+          ? 'bg-primary-600 text-white shadow-xs'
+          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60'
         } ${className}
       `}
     >
@@ -206,9 +206,9 @@ export default function NavbarQuickActions() {
     <>
       <nav
         aria-label="Quick actions"
-        className="flex items-center h-9 rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs px-1 overflow-visible"
+        className="flex items-center h-10 px-2 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 shadow-2xs overflow-visible"
       >
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-2">
           {primaryActions.map((action) => (
             <QuickActionButton
               key={action.id}
@@ -225,8 +225,8 @@ export default function NavbarQuickActions() {
 
         {secondaryActions.length > 0 && (
           <>
-            <span className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1 shrink-0" aria-hidden />
-            <div className="flex items-center gap-0.5">
+            <span className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1.5 shrink-0" aria-hidden />
+            <div className="flex items-center gap-2">
               {secondaryActions.map((action) => (
                 <QuickActionButton
                   key={action.id}
@@ -243,9 +243,9 @@ export default function NavbarQuickActions() {
           </>
         )}
 
-        <span className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1 shrink-0" aria-hidden />
+        <span className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1.5 shrink-0" aria-hidden />
 
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1.5">
           <UtilityActionButton
             icon={isDark ? FiSun : FiMoon}
             label={isDark ? 'Light mode' : 'Dark mode'}
