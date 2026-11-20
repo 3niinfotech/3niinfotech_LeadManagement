@@ -189,13 +189,37 @@
   }
 
   .crm-ant-select.crm-field .ant-select-selection-item,
-  .crm-ant-select.crm-field .ant-select-selection-placeholder,
-  .crm-ant-select.crm-field .ant-select-selection-search-input {
+  .crm-ant-select.crm-field.ant-select-open .ant-select-selection-item,
+  .crm-ant-select.crm-field.ant-select-focused .ant-select-selection-item,
+  .crm-ant-select .ant-select-selection-item,
+  .crm-ant-select.ant-select-open .ant-select-selection-item,
+  .crm-ant-select.ant-select-focused .ant-select-selection-item,
+  .crm-ant-select .ant-select-content,
+  .crm-ant-select.ant-select-open .ant-select-content,
+  .crm-ant-select.ant-select-focused .ant-select-content,
+  .ant-select .ant-select-content,
+  .ant-select.ant-select-open .ant-select-content,
+  .ant-select.ant-select-focused .ant-select-content {
     color: var(--text-primary) !important;
+    opacity: 1 !important;
+    font-weight: 500;
   }
 
-  .crm-ant-select.crm-field .ant-select-selection-placeholder {
+  .crm-ant-select.crm-field .ant-select-selection-placeholder,
+  .crm-ant-select .ant-select-selection-placeholder {
     color: var(--text-muted) !important;
+    opacity: 1 !important;
+  }
+
+  .dark .crm-ant-select.crm-field .ant-select-selection-placeholder,
+  .dark .crm-ant-select .ant-select-selection-placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+
+  .crm-ant-select.crm-field .ant-select-selection-search-input,
+  .crm-ant-select .ant-select-selection-search-input {
+    color: var(--text-primary) !important;
   }
 
   .crm-ant-select.crm-field .ant-select-selection-item,
@@ -352,7 +376,7 @@
   .dark .crm-input.crm-field,
   .dark .crm-ant-select.crm-field .ant-select-selector,
   .dark .crm-aria-date-group.crm-field,
-  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="file"]):not(.bg-transparent):not(.crm-search-input-seamless):not(.crm-input-transparent):not(.ant-select-input),
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="file"]):not(.bg-transparent):not(.crm-search-input-seamless):not(.crm-input-transparent):not(.ant-select-input):not(.ant-select-selection-search-input):not([class*="ant-select"]),
   .dark textarea,
   .dark select {
     background: var(--bg-card) !important;
@@ -368,13 +392,36 @@
   input.crm-search-input-seamless,
   .ant-select-input,
   .dark .ant-select-input,
-  .crm-ant-select input {
+  .ant-select-selection-search-input,
+  .dark .ant-select-selection-search-input,
+  .crm-ant-select input,
+  .dark .crm-ant-select input,
+  .ant-select input,
+  .dark .ant-select input {
     background: transparent !important;
     background-color: transparent !important;
     border: none !important;
     border-color: transparent !important;
     box-shadow: none !important;
     outline: none !important;
+    color: var(--text-primary) !important;
+  }
+
+  /* Native select and option styling across software */
+  select option {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 6px 10px;
+  }
+
+  .dark select option {
+    background: #1e293b !important;
+    color: #f8fafc !important;
+  }
+
+  .dark select option:checked {
+    background: #2563eb !important;
+    color: #ffffff !important;
   }
 
   .dark input::placeholder,
@@ -1187,7 +1234,16 @@
     border-radius: 10px !important;
     box-shadow: var(--shadow-dropdown) !important;
     padding: 4px !important;
+    border: 1px solid var(--border) !important;
+    background: var(--bg-card) !important;
     pointer-events: auto !important;
+  }
+
+  .dark .crm-ant-select-dropdown,
+  .dark .ant-select-dropdown {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
   }
 
   .ant-select-dropdown-hidden {
@@ -1220,34 +1276,68 @@
     pointer-events: none !important;
   }
 
-  .crm-ant-select-dropdown .ant-select-item {
+  .crm-ant-select-dropdown .ant-select-item,
+  .ant-select-dropdown .ant-select-item {
     border-radius: 6px !important;
     font-size: 13px !important;
     min-height: 36px !important;
     padding: 6px 10px !important;
     color: var(--text-primary) !important;
+    transition: background 0.15s ease, color 0.15s ease;
   }
 
-  .crm-ant-select-dropdown .ant-select-item-option-content {
+  .crm-ant-select-dropdown .ant-select-item-option-content,
+  .ant-select-dropdown .ant-select-item-option-content {
     color: var(--text-primary) !important;
     font-weight: 500;
   }
 
-  .crm-ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  .crm-ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled),
+  .ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
     background: var(--row-hover) !important;
   }
 
-  .crm-ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
-    background: color-mix(in srgb, var(--brand) 10%, var(--bg-card)) !important;
+  .dark .crm-ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled),
+  .dark .ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+    background: #334155 !important;
+  }
+
+  .dark .crm-ant-select-dropdown .ant-select-item-option-active .ant-select-item-option-content,
+  .dark .ant-select-dropdown .ant-select-item-option-active .ant-select-item-option-content {
+    color: #ffffff !important;
+  }
+
+  .crm-ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled),
+  .ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+    background: color-mix(in srgb, var(--brand) 12%, var(--bg-card)) !important;
     font-weight: 600 !important;
   }
 
-  .crm-ant-select-dropdown .ant-select-item-option-selected .ant-select-item-option-content {
+  .dark .crm-ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled),
+  .dark .ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+    background: rgba(59, 130, 246, 0.22) !important;
+  }
+
+  .crm-ant-select-dropdown .ant-select-item-option-selected .ant-select-item-option-content,
+  .ant-select-dropdown .ant-select-item-option-selected .ant-select-item-option-content {
+    color: var(--brand) !important;
+    font-weight: 600 !important;
+  }
+
+  .dark .crm-ant-select-dropdown .ant-select-item-option-selected .ant-select-item-option-content,
+  .dark .ant-select-dropdown .ant-select-item-option-selected .ant-select-item-option-content {
+    color: #93c5fd !important;
+    font-weight: 600 !important;
+  }
+
+  .crm-ant-select-dropdown .ant-select-item-option-state,
+  .ant-select-dropdown .ant-select-item-option-state {
     color: var(--brand) !important;
   }
 
-  .crm-ant-select-dropdown .ant-select-item-option-state {
-    color: var(--brand) !important;
+  .dark .crm-ant-select-dropdown .ant-select-item-option-state,
+  .dark .ant-select-dropdown .ant-select-item-option-state {
+    color: #60a5fa !important;
   }
 
   .crm-select-create-option {
