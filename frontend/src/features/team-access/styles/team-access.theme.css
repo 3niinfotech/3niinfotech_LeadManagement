@@ -2676,3 +2676,496 @@
   box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25) !important;
   cursor: pointer !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DARK MODE COMPREHENSIVE OVERRIDES FOR TEAM & ACCESS HUB
+   Ensures zero light / white backgrounds and proper high-contrast text in dark mode
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.dark .crm-team-filter-bar,
+html.dark .crm-team-filter-bar,
+[data-theme="dark"] .crm-team-filter-bar {
+  background: var(--bg-card, #1e293b) !important;
+  border-color: var(--border, #334155) !important;
+}
+
+.dark .crm-team-filter-field label,
+html.dark .crm-team-filter-field label,
+[data-theme="dark"] .crm-team-filter-field label {
+  color: var(--text-muted, #94a3b8) !important;
+}
+
+.dark .crm-staff-list,
+html.dark .crm-staff-list,
+[data-theme="dark"] .crm-staff-list {
+  background: var(--bg-card, #1e293b) !important;
+  border-color: var(--border, #334155) !important;
+}
+
+.dark .crm-staff-list__head,
+html.dark .crm-staff-list__head,
+[data-theme="dark"] .crm-staff-list__head {
+  background: #141f33 !important;
+  border-bottom-color: var(--border, #334155) !important;
+  color: var(--text-secondary, #94a3b8) !important;
+}
+
+.dark .crm-staff-list-item,
+html.dark .crm-staff-list-item,
+[data-theme="dark"] .crm-staff-list-item {
+  border-bottom-color: var(--border, #334155) !important;
+  background: transparent !important;
+}
+
+.dark .crm-staff-list-item:hover,
+html.dark .crm-staff-list-item:hover,
+[data-theme="dark"] .crm-staff-list-item:hover {
+  background: #1a2436 !important;
+}
+
+.dark .crm-staff-list-item--active,
+html.dark .crm-staff-list-item--active,
+[data-theme="dark"] .crm-staff-list-item--active {
+  background: color-mix(in srgb, var(--brand, #3b82f6) 18%, #1e293b) !important;
+}
+
+.dark .crm-staff-list-item__name,
+html.dark .crm-staff-list-item__name,
+[data-theme="dark"] .crm-staff-list-item__name {
+  color: var(--text-primary, #f1f5f9) !important;
+}
+
+.dark .crm-staff-list-item__email,
+html.dark .crm-staff-list-item__email,
+[data-theme="dark"] .crm-staff-list-item__email {
+  color: var(--text-muted, #94a3b8) !important;
+}
+
+.dark .crm-staff-detail,
+html.dark .crm-staff-detail,
+[data-theme="dark"] .crm-staff-detail {
+  background: var(--bg-card, #1e293b) !important;
+  border-color: var(--border, #334155) !important;
+}
+
+.dark .crm-member-hero,
+html.dark .crm-member-hero,
+[data-theme="dark"] .crm-member-hero {
+  border-bottom-color: var(--border, #334155) !important;
+}
+
+.dark .crm-member-hero__name,
+html.dark .crm-member-hero__name,
+[data-theme="dark"] .crm-member-hero__name {
+  color: var(--text-primary, #f1f5f9) !important;
+}
+
+.dark .crm-member-hero__email,
+html.dark .crm-member-hero__email,
+[data-theme="dark"] .crm-member-hero__email {
+  color: var(--text-muted, #94a3b8) !important;
+}
+
+.dark .crm-hero-action-btn,
+html.dark .crm-hero-action-btn,
+[data-theme="dark"] .crm-hero-action-btn {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark .crm-hero-action-btn:hover:not(:disabled),
+html.dark .crm-hero-action-btn:hover:not(:disabled),
+[data-theme="dark"] .crm-hero-action-btn:hover:not(:disabled) {
+  background: #1e293b !important;
+  border-color: #60a5fa !important;
+  color: #60a5fa !important;
+}
+
+.dark .crm-hero-action-btn--deactivate:hover:not(:disabled),
+html.dark .crm-hero-action-btn--deactivate:hover:not(:disabled),
+[data-theme="dark"] .crm-hero-action-btn--deactivate:hover:not(:disabled) {
+  background: #451a03 !important;
+  border-color: #f59e0b !important;
+  color: #fbbf24 !important;
+}
+
+.dark .crm-hero-action-btn--danger,
+html.dark .crm-hero-action-btn--danger,
+[data-theme="dark"] .crm-hero-action-btn--danger {
+  background: #450a0a !important;
+  border-color: #991b1b !important;
+  color: #f87171 !important;
+}
+
+.dark .crm-hero-action-btn--danger:hover:not(:disabled),
+html.dark .crm-hero-action-btn--danger:hover:not(:disabled),
+[data-theme="dark"] .crm-hero-action-btn--danger:hover:not(:disabled) {
+  background: #7f1d1d !important;
+  border-color: #ef4444 !important;
+  color: #fca5a5 !important;
+}
+
+/* ── Workload Stat KPI Boxes in Dark Mode ── */
+.dark .crm-member-kpi-box,
+html.dark .crm-member-kpi-box,
+[data-theme="dark"] .crm-member-kpi-box {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  box-shadow: none !important;
+}
+
+.dark .crm-member-kpi-box:hover,
+html.dark .crm-member-kpi-box:hover,
+[data-theme="dark"] .crm-member-kpi-box:hover {
+  border-color: #475569 !important;
+}
+
+.dark .crm-member-kpi-box--accent,
+html.dark .crm-member-kpi-box--accent,
+[data-theme="dark"] .crm-member-kpi-box--accent {
+  background: color-mix(in srgb, var(--brand, #3b82f6) 12%, #0f172a) !important;
+  border-color: color-mix(in srgb, var(--brand, #3b82f6) 35%, #334155) !important;
+}
+
+.dark .crm-member-kpi-box__value,
+html.dark .crm-member-kpi-box__value,
+[data-theme="dark"] .crm-member-kpi-box__value {
+  color: #f1f5f9 !important;
+}
+
+.dark .crm-member-kpi-box__label,
+html.dark .crm-member-kpi-box__label,
+[data-theme="dark"] .crm-member-kpi-box__label {
+  color: #94a3b8 !important;
+}
+
+.dark .crm-member-kpi-box__sub,
+html.dark .crm-member-kpi-box__sub,
+[data-theme="dark"] .crm-member-kpi-box__sub {
+  color: #64748b !important;
+}
+
+.dark .crm-member-kpi-box--sky .crm-member-kpi-box__icon,
+html.dark .crm-member-kpi-box--sky .crm-member-kpi-box__icon,
+[data-theme="dark"] .crm-member-kpi-box--sky .crm-member-kpi-box__icon {
+  background: #082f49 !important;
+  color: #38bdf8 !important;
+  border: 1px solid #0369a1 !important;
+}
+
+.dark .crm-member-kpi-box--emerald .crm-member-kpi-box__icon,
+html.dark .crm-member-kpi-box--emerald .crm-member-kpi-box__icon,
+[data-theme="dark"] .crm-member-kpi-box--emerald .crm-member-kpi-box__icon {
+  background: #064e3b !important;
+  color: #34d399 !important;
+  border: 1px solid #047857 !important;
+}
+
+.dark .crm-member-kpi-box--indigo .crm-member-kpi-box__icon,
+html.dark .crm-member-kpi-box--indigo .crm-member-kpi-box__icon,
+[data-theme="dark"] .crm-member-kpi-box--indigo .crm-member-kpi-box__icon {
+  background: #1e1b4b !important;
+  color: #818cf8 !important;
+  border: 1px solid #4338ca !important;
+}
+
+.dark .crm-member-kpi-box--brand .crm-member-kpi-box__icon,
+html.dark .crm-member-kpi-box--brand .crm-member-kpi-box__icon,
+[data-theme="dark"] .crm-member-kpi-box--brand .crm-member-kpi-box__icon {
+  background: color-mix(in srgb, var(--brand, #3b82f6) 20%, transparent) !important;
+  color: #60a5fa !important;
+  border: 1px solid color-mix(in srgb, var(--brand, #3b82f6) 35%, transparent) !important;
+}
+
+/* ── Section Cards (Role & Access, Organization & Contact) in Dark Mode ── */
+.dark .crm-member-section-card,
+html.dark .crm-member-section-card,
+[data-theme="dark"] .crm-member-section-card {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  box-shadow: none !important;
+}
+
+.dark .crm-member-section-card__head,
+html.dark .crm-member-section-card__head,
+[data-theme="dark"] .crm-member-section-card__head {
+  background: #141f33 !important;
+  border-bottom-color: #334155 !important;
+}
+
+.dark .crm-member-section-card__title,
+html.dark .crm-member-section-card__title,
+[data-theme="dark"] .crm-member-section-card__title {
+  color: #f1f5f9 !important;
+}
+
+.dark .crm-member-section-card__subtitle,
+html.dark .crm-member-section-card__subtitle,
+[data-theme="dark"] .crm-member-section-card__subtitle {
+  color: #94a3b8 !important;
+}
+
+.dark .crm-member-section-card__head-icon--slate,
+html.dark .crm-member-section-card__head-icon--slate,
+[data-theme="dark"] .crm-member-section-card__head-icon--slate {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+.dark .crm-member-role-desc-box,
+html.dark .crm-member-role-desc-box,
+[data-theme="dark"] .crm-member-role-desc-box {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark .crm-member-role-name,
+html.dark .crm-member-role-name,
+[data-theme="dark"] .crm-member-role-name {
+  color: #f1f5f9 !important;
+}
+
+.dark .crm-member-role-desc,
+html.dark .crm-member-role-desc,
+[data-theme="dark"] .crm-member-role-desc {
+  color: #94a3b8 !important;
+}
+
+.dark .crm-member-field-label,
+html.dark .crm-member-field-label,
+[data-theme="dark"] .crm-member-field-label {
+  color: #cbd5e1 !important;
+}
+
+.dark .crm-member-manage-role-btn,
+html.dark .crm-member-manage-role-btn,
+[data-theme="dark"] .crm-member-manage-role-btn {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #60a5fa !important;
+}
+
+.dark .crm-member-manage-role-btn:hover,
+html.dark .crm-member-manage-role-btn:hover,
+[data-theme="dark"] .crm-member-manage-role-btn:hover {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.dark .crm-member-fact-row,
+html.dark .crm-member-fact-row,
+[data-theme="dark"] .crm-member-fact-row {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark .crm-member-fact-row:hover,
+html.dark .crm-member-fact-row:hover,
+[data-theme="dark"] .crm-member-fact-row:hover {
+  background: #243046 !important;
+}
+
+.dark .crm-member-fact-icon,
+html.dark .crm-member-fact-icon,
+[data-theme="dark"] .crm-member-fact-icon {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #60a5fa !important;
+}
+
+.dark .crm-member-fact-label,
+html.dark .crm-member-fact-label,
+[data-theme="dark"] .crm-member-fact-label {
+  color: #94a3b8 !important;
+}
+
+.dark .crm-member-fact-val,
+html.dark .crm-member-fact-val,
+[data-theme="dark"] .crm-member-fact-val {
+  color: #f1f5f9 !important;
+}
+
+.dark .crm-member-access-section,
+html.dark .crm-member-access-section,
+[data-theme="dark"] .crm-member-access-section {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+.dark .crm-member-access-section__title,
+html.dark .crm-member-access-section__title,
+[data-theme="dark"] .crm-member-access-section__title {
+  color: #f1f5f9 !important;
+}
+
+.dark .crm-member-access-badge,
+html.dark .crm-member-access-badge,
+[data-theme="dark"] .crm-member-access-badge {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+.dark .crm-member-access-search__input,
+html.dark .crm-member-access-search__input,
+[data-theme="dark"] .crm-member-access-search__input {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark .crm-member-access-chip,
+html.dark .crm-member-access-chip,
+[data-theme="dark"] .crm-member-access-chip {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.dark .crm-member-access-chip:hover,
+html.dark .crm-member-access-chip:hover,
+[data-theme="dark"] .crm-member-access-chip:hover {
+  background: #243046 !important;
+  border-color: #475569 !important;
+}
+
+.dark .crm-member-access-chip__count,
+html.dark .crm-member-access-chip__count,
+[data-theme="dark"] .crm-member-access-chip__count {
+  background: #0f172a !important;
+  color: #94a3b8 !important;
+}
+
+.dark .crm-team-refresh-btn,
+html.dark .crm-team-refresh-btn,
+[data-theme="dark"] .crm-team-refresh-btn {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark .crm-team-refresh-btn:hover,
+html.dark .crm-team-refresh-btn:hover,
+[data-theme="dark"] .crm-team-refresh-btn:hover {
+  background: #1e293b !important;
+  border-color: #60a5fa !important;
+  color: #60a5fa !important;
+}
+
+.dark .crm-staff-tag,
+html.dark .crm-staff-tag,
+[data-theme="dark"] .crm-staff-tag {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+.dark .crm-staff-tag--success,
+html.dark .crm-staff-tag--success,
+[data-theme="dark"] .crm-staff-tag--success {
+  background: #064e3b !important;
+  border-color: #047857 !important;
+  color: #34d399 !important;
+}
+
+.dark .crm-member-detail::-webkit-scrollbar-thumb,
+html.dark .crm-member-detail::-webkit-scrollbar-thumb,
+[data-theme="dark"] .crm-member-detail::-webkit-scrollbar-thumb {
+  background: #334155 !important;
+}
+
+.dark .crm-member-detail::-webkit-scrollbar-thumb:hover,
+html.dark .crm-member-detail::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .crm-member-detail::-webkit-scrollbar-thumb:hover {
+  background: #475569 !important;
+}
+
+/* ── Roles Workspace in Dark Mode ── */
+.dark .crm-roles-workspace__toolbar,
+html.dark .crm-roles-workspace__toolbar,
+[data-theme="dark"] .crm-roles-workspace__toolbar {
+  background: transparent !important;
+}
+
+.dark .crm-roles-workspace__title,
+html.dark .crm-roles-workspace__title,
+[data-theme="dark"] .crm-roles-workspace__title {
+  color: #f1f5f9 !important;
+}
+
+.dark .crm-roles-workspace__subtitle,
+html.dark .crm-roles-workspace__subtitle,
+[data-theme="dark"] .crm-roles-workspace__subtitle {
+  color: #94a3b8 !important;
+}
+
+.dark .crm-roles-sidebar,
+html.dark .crm-roles-sidebar,
+[data-theme="dark"] .crm-roles-sidebar {
+  background: var(--bg-card, #1e293b) !important;
+  border-color: var(--border, #334155) !important;
+}
+
+.dark .crm-roles-sidebar__head,
+html.dark .crm-roles-sidebar__head,
+[data-theme="dark"] .crm-roles-sidebar__head {
+  border-bottom-color: var(--border, #334155) !important;
+}
+
+.dark .crm-roles-sidebar__title,
+html.dark .crm-roles-sidebar__title,
+[data-theme="dark"] .crm-roles-sidebar__title {
+  color: #f1f5f9 !important;
+}
+
+.dark .crm-roles-sidebar__hint,
+html.dark .crm-roles-sidebar__hint,
+[data-theme="dark"] .crm-roles-sidebar__hint {
+  color: #94a3b8 !important;
+}
+
+.dark .crm-roles-sidebar__item,
+html.dark .crm-roles-sidebar__item,
+[data-theme="dark"] .crm-roles-sidebar__item {
+  border-bottom-color: var(--border, #334155) !important;
+  background: transparent !important;
+}
+
+.dark .crm-roles-sidebar__item:hover,
+html.dark .crm-roles-sidebar__item:hover,
+[data-theme="dark"] .crm-roles-sidebar__item:hover {
+  background: #1a2436 !important;
+}
+
+.dark .crm-roles-sidebar__item--active,
+html.dark .crm-roles-sidebar__item--active,
+[data-theme="dark"] .crm-roles-sidebar__item--active {
+  background: color-mix(in srgb, var(--brand, #3b82f6) 18%, #1e293b) !important;
+  border-color: var(--brand, #3b82f6) !important;
+}
+
+.dark .crm-roles-sidebar__name,
+html.dark .crm-roles-sidebar__name,
+[data-theme="dark"] .crm-roles-sidebar__name {
+  color: #f1f5f9 !important;
+}
+
+.dark .crm-roles-sidebar__desc,
+html.dark .crm-roles-sidebar__desc,
+[data-theme="dark"] .crm-roles-sidebar__desc {
+  color: #94a3b8 !important;
+}
+
+.dark .crm-roles-sidebar__users,
+html.dark .crm-roles-sidebar__users,
+[data-theme="dark"] .crm-roles-sidebar__users {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+.dark .crm-roles-sidebar__foot,
+html.dark .crm-roles-sidebar__foot,
+[data-theme="dark"] .crm-roles-sidebar__foot {
+  border-top-color: var(--border, #334155) !important;
+}
+

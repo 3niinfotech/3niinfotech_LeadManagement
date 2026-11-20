@@ -1,6 +1,26 @@
 @import './theme/theme-vars.css';
 @import './theme/scrollbar.theme.css';
 
+:root {
+  --color-card-bg: var(--bg-card);
+  --color-border: var(--border);
+  --color-text: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-brand: var(--brand);
+  --color-row-hover: var(--grid-row-hover);
+}
+
+.dark, html.dark, [data-theme="dark"] {
+  --color-card-bg: var(--bg-card);
+  --color-border: var(--border);
+  --color-text: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-brand: var(--brand);
+  --color-row-hover: var(--grid-row-hover);
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

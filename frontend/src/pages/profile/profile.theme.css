@@ -867,3 +867,366 @@
     font-size: 0.65rem;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DARK MODE COMPREHENSIVE OVERRIDES FOR PROFILE PAGE
+   Fixes bright white shortcut icons, environment icons, security icons,
+   recent activity badges, active tab, and banners in dark mode.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.dark .crm-my-profile-tabs,
+html.dark .crm-my-profile-tabs,
+[data-theme="dark"] .crm-my-profile-tabs {
+  background: var(--bg-card, #1e293b);
+  border-color: var(--border, #334155);
+}
+
+.dark .crm-my-profile-tabs__tab:hover,
+html.dark .crm-my-profile-tabs__tab:hover,
+[data-theme="dark"] .crm-my-profile-tabs__tab:hover {
+  background: #0f172a;
+  color: #f1f5f9;
+}
+
+.dark .crm-my-profile-tabs__tab--active,
+html.dark .crm-my-profile-tabs__tab--active,
+[data-theme="dark"] .crm-my-profile-tabs__tab--active {
+  color: #93c5fd !important;
+  background: #1e3a8a !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.dark .crm-my-profile-hero-card,
+html.dark .crm-my-profile-hero-card,
+[data-theme="dark"] .crm-my-profile-hero-card {
+  background: var(--bg-card, #1e293b);
+  border-color: var(--border, #334155);
+}
+
+.dark .crm-my-profile-avatar-box,
+html.dark .crm-my-profile-avatar-box,
+[data-theme="dark"] .crm-my-profile-avatar-box {
+  background: #0f172a;
+}
+
+.dark .crm-my-profile-card,
+html.dark .crm-my-profile-card,
+[data-theme="dark"] .crm-my-profile-card {
+  background: var(--bg-card, #1e293b);
+  border-color: var(--border, #334155);
+  box-shadow: none;
+}
+
+.dark .crm-my-profile-card__head,
+html.dark .crm-my-profile-card__head,
+[data-theme="dark"] .crm-my-profile-card__head {
+  border-bottom-color: var(--border, #334155);
+}
+
+.dark .crm-my-profile-card__title,
+html.dark .crm-my-profile-card__title,
+[data-theme="dark"] .crm-my-profile-card__title {
+  color: var(--text-primary, #f1f5f9);
+}
+
+.dark .crm-my-profile-card__sub,
+html.dark .crm-my-profile-card__sub,
+[data-theme="dark"] .crm-my-profile-card__sub {
+  color: var(--text-muted, #94a3b8);
+}
+
+/* ── Dark Mode Tone Colors for Shortcut Icons ── */
+.dark .crm-tone-blue, html.dark .crm-tone-blue, [data-theme="dark"] .crm-tone-blue {
+  background: rgba(37, 99, 235, 0.18) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark .crm-tone-green, html.dark .crm-tone-green, [data-theme="dark"] .crm-tone-green,
+.dark .crm-tone-emerald, html.dark .crm-tone-emerald, [data-theme="dark"] .crm-tone-emerald {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.dark .crm-tone-purple, html.dark .crm-tone-purple, [data-theme="dark"] .crm-tone-purple,
+.dark .crm-tone-violet, html.dark .crm-tone-violet, [data-theme="dark"] .crm-tone-violet {
+  background: rgba(139, 92, 246, 0.18) !important;
+  color: #a78bfa !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+}
+
+.dark .crm-tone-orange, html.dark .crm-tone-orange, [data-theme="dark"] .crm-tone-orange,
+.dark .crm-tone-amber, html.dark .crm-tone-amber, [data-theme="dark"] .crm-tone-amber {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+
+.dark .crm-tone-slate, html.dark .crm-tone-slate, [data-theme="dark"] .crm-tone-slate {
+  background: rgba(148, 163, 184, 0.16) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+}
+
+.dark .crm-tone-cyan, html.dark .crm-tone-cyan, [data-theme="dark"] .crm-tone-cyan {
+  background: rgba(6, 182, 212, 0.18) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(6, 182, 212, 0.3) !important;
+}
+
+.dark .crm-tone-rose, html.dark .crm-tone-rose, [data-theme="dark"] .crm-tone-rose {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+/* ── Shortcuts Hover & Add Tile ── */
+.dark .crm-my-profile-shortcut:hover,
+html.dark .crm-my-profile-shortcut:hover,
+[data-theme="dark"] .crm-my-profile-shortcut:hover {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.dark .crm-my-profile-shortcut__label,
+html.dark .crm-my-profile-shortcut__label,
+[data-theme="dark"] .crm-my-profile-shortcut__label {
+  color: var(--text-primary, #f1f5f9);
+}
+
+.dark .crm-my-profile-shortcut--add,
+html.dark .crm-my-profile-shortcut--add,
+[data-theme="dark"] .crm-my-profile-shortcut--add {
+  border-color: #334155;
+  color: var(--text-muted, #94a3b8);
+}
+
+.dark .crm-my-profile-shortcut--add:hover,
+html.dark .crm-my-profile-shortcut--add:hover,
+[data-theme="dark"] .crm-my-profile-shortcut--add:hover {
+  border-color: var(--brand, #3b82f6);
+  color: var(--brand, #3b82f6);
+}
+
+.dark .crm-my-profile-shortcut--add .crm-my-profile-shortcut__icon,
+html.dark .crm-my-profile-shortcut--add .crm-my-profile-shortcut__icon,
+[data-theme="dark"] .crm-my-profile-shortcut--add .crm-my-profile-shortcut__icon {
+  background: #0f172a;
+  color: var(--text-muted, #94a3b8);
+  border-color: #334155;
+}
+
+/* ── Workspace Environment Icons & Rows in Dark Mode ── */
+.dark .crm-my-profile-env-row,
+html.dark .crm-my-profile-env-row,
+[data-theme="dark"] .crm-my-profile-env-row {
+  border-color: #334155;
+}
+
+.dark .crm-my-profile-env-icon,
+html.dark .crm-my-profile-env-icon,
+[data-theme="dark"] .crm-my-profile-env-icon {
+  background: rgba(37, 99, 235, 0.18) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark .crm-my-profile-env-content strong,
+html.dark .crm-my-profile-env-content strong,
+[data-theme="dark"] .crm-my-profile-env-content strong {
+  color: var(--text-primary, #f1f5f9);
+}
+
+.dark .crm-my-profile-env-content span,
+html.dark .crm-my-profile-env-content span,
+[data-theme="dark"] .crm-my-profile-env-content span {
+  color: var(--text-muted, #94a3b8);
+}
+
+/* ── Security & Access Icons, Rows & Pills in Dark Mode ── */
+.dark .crm-my-profile-secure-row,
+html.dark .crm-my-profile-secure-row,
+[data-theme="dark"] .crm-my-profile-secure-row {
+  border-color: #334155;
+}
+
+.dark .crm-my-profile-secure-icon,
+html.dark .crm-my-profile-secure-icon,
+[data-theme="dark"] .crm-my-profile-secure-icon {
+  background: rgba(37, 99, 235, 0.18) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark .crm-my-profile-secure-copy strong,
+html.dark .crm-my-profile-secure-copy strong,
+[data-theme="dark"] .crm-my-profile-secure-copy strong {
+  color: var(--text-primary, #f1f5f9);
+}
+
+.dark .crm-my-profile-secure-copy span,
+html.dark .crm-my-profile-secure-copy span,
+[data-theme="dark"] .crm-my-profile-secure-copy span {
+  color: var(--text-muted, #94a3b8);
+}
+
+.dark .crm-my-profile-pill--neutral,
+html.dark .crm-my-profile-pill--neutral,
+[data-theme="dark"] .crm-my-profile-pill--neutral {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+  border: 1px solid #334155 !important;
+}
+
+.dark .crm-my-profile-pill--success,
+html.dark .crm-my-profile-pill--success,
+[data-theme="dark"] .crm-my-profile-pill--success {
+  background: #064e3b !important;
+  color: #34d399 !important;
+  border: 1px solid #047857 !important;
+}
+
+.dark .crm-my-profile-pill--warning,
+html.dark .crm-my-profile-pill--warning,
+[data-theme="dark"] .crm-my-profile-pill--warning {
+  background: #451a03 !important;
+  color: #fbbf24 !important;
+  border: 1px solid #78350f !important;
+}
+
+/* ── Recent Account Activity Icons & Rows in Dark Mode ── */
+.dark .crm-my-profile-activity__row,
+html.dark .crm-my-profile-activity__row,
+[data-theme="dark"] .crm-my-profile-activity__row {
+  border-color: #334155;
+}
+
+.dark .crm-my-profile-activity__title,
+html.dark .crm-my-profile-activity__title,
+[data-theme="dark"] .crm-my-profile-activity__title {
+  color: var(--text-primary, #f1f5f9);
+}
+
+.dark .crm-my-profile-activity__meta,
+html.dark .crm-my-profile-activity__meta,
+[data-theme="dark"] .crm-my-profile-activity__meta {
+  color: var(--text-muted, #94a3b8);
+}
+
+.dark .crm-my-profile-activity__time,
+html.dark .crm-my-profile-activity__time,
+[data-theme="dark"] .crm-my-profile-activity__time {
+  color: var(--text-muted, #64748b);
+}
+
+.dark .crm-my-profile-activity__icon--success,
+html.dark .crm-my-profile-activity__icon--success,
+[data-theme="dark"] .crm-my-profile-activity__icon--success {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+
+.dark .crm-my-profile-activity__icon--warning,
+html.dark .crm-my-profile-activity__icon--warning,
+[data-theme="dark"] .crm-my-profile-activity__icon--warning {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+.dark .crm-my-profile-activity__icon--info,
+html.dark .crm-my-profile-activity__icon--info,
+[data-theme="dark"] .crm-my-profile-activity__icon--info {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+}
+
+.dark .crm-my-profile-activity__icon--danger,
+html.dark .crm-my-profile-activity__icon--danger,
+[data-theme="dark"] .crm-my-profile-activity__icon--danger {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+}
+
+.dark .crm-my-profile-activity__icon--neutral,
+html.dark .crm-my-profile-activity__icon--neutral,
+[data-theme="dark"] .crm-my-profile-activity__icon--neutral {
+  background: rgba(148, 163, 184, 0.16) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+}
+
+/* ── Workspace Strip & Recent Chips in Dark Mode ── */
+.dark .crm-my-profile-env-item,
+html.dark .crm-my-profile-env-item,
+[data-theme="dark"] .crm-my-profile-env-item {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.dark .crm-my-profile-recent__chip,
+html.dark .crm-my-profile-recent__chip,
+[data-theme="dark"] .crm-my-profile-recent__chip {
+  background: #0f172a;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+.dark .crm-my-profile-recent__chip:hover,
+html.dark .crm-my-profile-recent__chip:hover,
+[data-theme="dark"] .crm-my-profile-recent__chip:hover {
+  background: #1e293b;
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
+.dark .crm-my-profile-tip,
+html.dark .crm-my-profile-tip,
+[data-theme="dark"] .crm-my-profile-tip {
+  background: #1e3a8a !important;
+  border-color: #3b82f6 !important;
+  color: #dbeafe !important;
+}
+
+.dark .crm-my-profile-overview__banner,
+html.dark .crm-my-profile-overview__banner,
+[data-theme="dark"] .crm-my-profile-overview__banner {
+  background: #064e3b !important;
+  border-color: #047857 !important;
+  color: #a7f3d0 !important;
+}
+
+.dark .crm-my-profile-setting-row,
+html.dark .crm-my-profile-setting-row,
+[data-theme="dark"] .crm-my-profile-setting-row {
+  border-bottom-color: #334155;
+}
+
+.dark .crm-my-profile-setting-row select,
+html.dark .crm-my-profile-setting-row select,
+[data-theme="dark"] .crm-my-profile-setting-row select {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+.dark .crm-my-profile-table th,
+html.dark .crm-my-profile-table th,
+[data-theme="dark"] .crm-my-profile-table th {
+  background: #141f33;
+  border-bottom-color: #334155;
+  color: #94a3b8;
+}
+
+.dark .crm-my-profile-table td,
+html.dark .crm-my-profile-table td,
+[data-theme="dark"] .crm-my-profile-table td {
+  border-bottom-color: #334155;
+  color: #f1f5f9;
+}
+

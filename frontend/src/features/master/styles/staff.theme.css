@@ -760,3 +760,77 @@
   min-height: 0;
   overflow-y: auto;
 }
+
+/* ── Dark Mode Overrides for Staff Module ── */
+.dark .crm-staff-list,
+html.dark .crm-staff-list,
+[data-theme="dark"] .crm-staff-list {
+  background: var(--bg-card, #1e293b);
+  border-color: var(--border, #334155);
+}
+
+.dark .crm-staff-list__head,
+html.dark .crm-staff-list__head,
+[data-theme="dark"] .crm-staff-list__head {
+  border-bottom-color: var(--border, #334155);
+  color: var(--text-secondary, #94a3b8);
+}
+
+.dark .crm-staff-list-item,
+html.dark .crm-staff-list-item,
+[data-theme="dark"] .crm-staff-list-item {
+  border-bottom-color: var(--border, #334155);
+  background: transparent;
+}
+
+.dark .crm-staff-list-item:hover,
+html.dark .crm-staff-list-item:hover,
+[data-theme="dark"] .crm-staff-list-item:hover {
+  background: #1a2436;
+}
+
+.dark .crm-staff-list-item--active,
+html.dark .crm-staff-list-item--active,
+[data-theme="dark"] .crm-staff-list-item--active {
+  background: color-mix(in srgb, var(--brand, #3b82f6) 18%, #1e293b);
+}
+
+.dark .crm-staff-list-item__name,
+html.dark .crm-staff-list-item__name,
+[data-theme="dark"] .crm-staff-list-item__name {
+  color: var(--text-primary, #f1f5f9);
+}
+
+.dark .crm-staff-list-item__email,
+html.dark .crm-staff-list-item__email,
+[data-theme="dark"] .crm-staff-list-item__email {
+  color: var(--text-muted, #94a3b8);
+}
+
+.dark .crm-staff-detail,
+html.dark .crm-staff-detail,
+[data-theme="dark"] .crm-staff-detail {
+  background: var(--bg-card, #1e293b);
+  border-color: var(--border, #334155);
+}
+
+.dark .crm-staff-kpi,
+html.dark .crm-staff-kpi,
+[data-theme="dark"] .crm-staff-kpi {
+  background: var(--bg-card, #1e293b);
+  border-color: var(--border, #334155);
+}
+
+.dark .crm-staff-kpi__value,
+html.dark .crm-staff-kpi__value,
+[data-theme="dark"] .crm-staff-kpi__value {
+  color: var(--text-primary, #f1f5f9);
+}
+
+.dark .crm-staff-filters,
+html.dark .crm-staff-filters,
+[data-theme="dark"] .crm-staff-filters {
+  background: var(--bg-card, #1e293b);
+  border-color: var(--border, #334155);
+}
+
