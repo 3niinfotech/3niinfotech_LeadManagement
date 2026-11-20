@@ -12,6 +12,7 @@ const uiSlice = createSlice({
     globalLoading: false,
     commandPaletteOpen: false,
     commandPaletteQuery: '',
+    commandPaletteStartVoice: false,
     drawer: { open: false, content: null, title: '' },
   },
   reducers: {
@@ -35,11 +36,20 @@ const uiSlice = createSlice({
     },
     openCommandPalette: (state, action) => {
       state.commandPaletteOpen = true;
-      if (typeof action.payload === 'string') state.commandPaletteQuery = action.payload;
+      if (typeof action.payload === 'string') {
+        state.commandPaletteQuery = action.payload;
+      } else if (action.payload && typeof action.payload === 'object') {
+        if (typeof action.payload.query === 'string') state.commandPaletteQuery = action.payload.query;
+        if (action.payload.startVoice) state.commandPaletteStartVoice = true;
+      }
+    },
+    consumeCommandPaletteVoiceTrigger: (state) => {
+      state.commandPaletteStartVoice = false;
     },
     closeCommandPalette: (state) => {
       state.commandPaletteOpen = false;
       state.commandPaletteQuery = '';
+      state.commandPaletteStartVoice = false;
     },
     setCommandPaletteQuery: (state, action) => {
       state.commandPaletteQuery = action.payload;
@@ -56,6 +66,7 @@ const uiSlice = createSlice({
 export const {
   setTheme, toggleSidebar, setTableDensity, setGlobalLoading,
   toggleCommandPalette, openCommandPalette, closeCommandPalette, setCommandPaletteQuery,
+  consumeCommandPaletteVoiceTrigger,
   openDrawer, closeDrawer,
 } = uiSlice.actions;
 
@@ -66,5 +77,6 @@ export const selectSidebarCollapsed = (state) => state.ui.sidebarCollapsed;
 export const selectGlobalLoading = (state) => state.ui.globalLoading;
 export const selectCommandPaletteOpen = (state) => state.ui.commandPaletteOpen;
 export const selectCommandPaletteQuery = (state) => state.ui.commandPaletteQuery;
+export const selectCommandPaletteStartVoice = (state) => state.ui.commandPaletteStartVoice;
 export const selectTableDensity = (state) => state.ui.tableDensity;
 export const selectDrawer = (state) => state.ui.drawer;

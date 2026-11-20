@@ -65,8 +65,8 @@ export default function NavbarGlobalSearch() {
         <span className="hidden sm:flex items-center gap-1.5 shrink-0">
           <button
             type="button"
-            onClick={() => dispatch(openCommandPalette(query))}
-            title="Voice search"
+            onClick={() => dispatch(openCommandPalette({ query, startVoice: true }))}
+            title="Voice search (Speak to search)"
             className="flex items-center justify-center w-6 h-6 rounded-md text-text-muted
               hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer"
           >

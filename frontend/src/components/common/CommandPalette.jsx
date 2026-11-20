@@ -18,12 +18,15 @@ import {
   FiCalendar,
   FiArrowRight,
   FiLayers,
+  FiAlertTriangle,
 } from 'react-icons/fi';
 import {
   closeCommandPalette,
   openCommandPalette,
   selectCommandPaletteOpen,
   selectCommandPaletteQuery,
+  selectCommandPaletteStartVoice,
+  consumeCommandPaletteVoiceTrigger,
   setCommandPaletteQuery,
 } from '../../redux/slices/uiSlice';
 import { selectUser } from '../../redux/slices/authSlice';
@@ -115,7 +118,17 @@ export default function CommandPalette() {
     setHistory(getSearchHistory(userId));
   }, [userId]);
 
-  const { listening, supported, toggle: toggleMic, stop: stopMic } = useVoiceSearch((text) => {
+  const autoStartVoice = useSelector(selectCommandPaletteStartVoice);
+
+  const {
+    listening,
+    supported,
+    error: voiceError,
+    clearError: clearVoiceError,
+    start: startMic,
+    toggle: toggleMic,
+    stop: stopMic,
+  } = useVoiceSearch((text) => {
     syncQuery(text);
     setActiveIndex(0);
   });
@@ -319,8 +332,17 @@ export default function CommandPalette() {
   }, [open]);
 
   useEffect(() => {
-    if (!open) stopMic();
-  }, [open, stopMic]);
+    if (!open) {
+      stopMic();
+      clearVoiceError();
+    } else if (autoStartVoice) {
+      dispatch(consumeCommandPaletteVoiceTrigger());
+      const timer = setTimeout(() => {
+        startMic();
+      }, 120);
+      return () => clearTimeout(timer);
+    }
+  }, [open, autoStartVoice, dispatch, startMic, stopMic, clearVoiceError]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -459,25 +481,88 @@ export default function CommandPalette() {
                 </button>
               )}
 
-              {supported && (
-                <button
-                  type="button"
-                  onClick={toggleMic}
-                  title={listening ? 'Stop listening' : 'Voice search'}
-                  className={`p-1.5 rounded-lg transition-all shrink-0 cursor-pointer ${
-                    listening
-                      ? 'bg-danger text-white shadow-md animate-pulse'
-                      : 'bg-page/70 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 text-text-muted hover:text-primary-500 hover:border-primary-500/40'
-                  }`}
-                >
-                  {listening ? <FiMicOff className="w-4 h-4" /> : <FiMic className="w-4 h-4" />}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={toggleMic}
+                title={
+                  !supported
+                    ? 'Voice search not supported in this browser'
+                    : listening
+                    ? 'Stop listening'
+                    : voiceError
+                    ? voiceError
+                    : 'Voice search (Speak to search)'
+                }
+                aria-label="Voice search"
+                className={`p-1.5 rounded-lg transition-all shrink-0 cursor-pointer ${
+                  listening
+                    ? 'bg-danger text-white shadow-md animate-pulse ring-2 ring-danger-400/50'
+                    : voiceError
+                    ? 'bg-danger-500/15 border border-danger-500/50 text-danger-500 dark:text-danger-400 hover:bg-danger-500/25'
+                    : 'bg-page/70 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 text-text-muted hover:text-primary-500 hover:border-primary-500/40'
+                }`}
+              >
+                {listening ? <FiMicOff className="w-4 h-4" /> : <FiMic className="w-4 h-4" />}
+              </button>
 
               <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-page/80 dark:bg-slate-900/80 border border-border/80 dark:border-slate-800 text-[10px] font-mono font-semibold text-text-muted shrink-0 shadow-2xs">
                 ESC
               </kbd>
             </div>
+
+            {/* ── Voice Search Active Listening Banner ── */}
+            <AnimatePresence>
+              {listening && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="px-6 py-2.5 bg-primary-500/10 dark:bg-primary-950/40 border-b border-primary-500/20 flex items-center justify-between text-xs text-primary-600 dark:text-primary-400"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2.5 w-2.5 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-danger-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-danger-500"></span>
+                    </span>
+                    <span className="font-semibold">Listening... Speak now to search</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={stopMic}
+                    className="text-[11px] font-semibold text-danger hover:underline cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ── Voice Search Error Banner ── */}
+            <AnimatePresence>
+              {voiceError && !listening && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="px-6 py-2.5 bg-danger-500/10 dark:bg-danger-950/50 border-b border-danger-500/25 flex items-center justify-between gap-3 text-xs text-danger-700 dark:text-danger-300"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <FiAlertTriangle className="w-4 h-4 shrink-0 text-danger-500" />
+                    <span className="font-medium leading-relaxed">{voiceError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearVoiceError}
+                    className="p-1 rounded text-danger-400 hover:text-danger-200 hover:bg-danger-500/20 transition-colors shrink-0 cursor-pointer"
+                    title="Dismiss"
+                  >
+                    <FiX className="w-3.5 h-3.5" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* ── Category Quick-Filter Chips ── */}
             <div className="px-6 py-2.5 border-b border-border/60 dark:border-slate-800/70 bg-page/40 dark:bg-slate-900/30 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
