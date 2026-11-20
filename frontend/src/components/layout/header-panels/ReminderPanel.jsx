@@ -8,6 +8,7 @@ import {
   FiUser,
   FiCheckCircle,
   FiRefreshCw,
+  FiArrowRight,
 } from 'react-icons/fi';
 import { ROUTES } from '../../../config/routes';
 import {
@@ -160,15 +161,18 @@ export default function ReminderPanel({ onClose }) {
       </div>
 
       {/* ── Professional Solid Action Button ── */}
-      <div className="p-3 border-t border-border bg-page/40">
+      <div className="p-3 border-t border-border bg-page/50">
         <Link
           to={ROUTES.CALENDAR}
           onClick={() => onClose?.()}
-          className="w-full h-8.5 px-3 rounded-lg bg-brand hover:bg-brand/90 text-white text-xs font-medium
-            inline-flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+          className="w-full h-9 px-3.5 rounded-lg bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white text-xs font-semibold
+            inline-flex items-center justify-between transition-all duration-150 shadow-xs hover:shadow-sm"
         >
-          <FiCalendar className="w-3.5 h-3.5" />
-          <span>View all in Calendar</span>
+          <span className="inline-flex items-center gap-2">
+            <FiCalendar className="w-3.5 h-3.5 opacity-90" />
+            <span>View all in Calendar</span>
+          </span>
+          <FiArrowRight className="w-3.5 h-3.5 opacity-80" />
         </Link>
       </div>
     </div>

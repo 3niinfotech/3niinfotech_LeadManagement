@@ -33,6 +33,7 @@ import {
   FiPieChart,
   FiCreditCard,
   FiBell,
+  FiBellOff,
   FiZap,
   FiActivity,
   FiChevronDown,
@@ -836,6 +837,7 @@ export default function AdminDashboard() {
                         strokeWidth={index === hoveredSourceIndex ? 3 : 0}
                         style={{
                           cursor: 'pointer',
+                          outline: 'none',
                           transition: 'all 0.2s ease',
                           filter: index === hoveredSourceIndex ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.18))' : 'none',
                         }}
@@ -1047,6 +1049,7 @@ export default function AdminDashboard() {
                         strokeWidth={index === hoveredAppIndex ? 3 : 0}
                         style={{
                           cursor: 'pointer',
+                          outline: 'none',
                           transition: 'all 0.2s ease',
                           filter: index === hoveredAppIndex ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.18))' : 'none',
                         }}
@@ -1334,28 +1337,41 @@ export default function AdminDashboard() {
             </Link>
           </div>
           <div className="crm-dash__task-queue">
-            {pendingTasksSummary.map((task) => (
-              <Link key={task.id} to={task.link || ROUTES.CALENDAR} className="crm-dash__task-item">
-                <div className="crm-dash__task-left">
-                  <span
-                    style={{
-                      color:
-                        task.urgency === 'danger'
-                          ? '#dc2626'
-                          : task.urgency === 'warning'
-                            ? '#d97706'
-                            : '#2563eb',
-                    }}
-                  >
-                    <FiClock />
+            {pendingTasksSummary && pendingTasksSummary.length > 0 ? (
+              pendingTasksSummary.map((task) => (
+                <Link key={task.id} to={task.link || ROUTES.CALENDAR} className="crm-dash__task-item">
+                  <div className="crm-dash__task-left">
+                    <span
+                      style={{
+                        color:
+                          task.urgency === 'danger'
+                            ? '#dc2626'
+                            : task.urgency === 'warning'
+                              ? '#d97706'
+                              : '#2563eb',
+                      }}
+                    >
+                      <FiClock />
+                    </span>
+                    <span>{task.title}</span>
+                  </div>
+                  <span className={`crm-dash__task-pill crm-dash__task-pill--${task.urgency || 'info'}`}>
+                    {task.count}
                   </span>
-                  <span>{task.title}</span>
+                </Link>
+              ))
+            ) : (
+              <div className="crm-dash__empty-tasks">
+                <div className="crm-dash__empty-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+                  <FiCheckCircle />
                 </div>
-                <span className={`crm-dash__task-pill crm-dash__task-pill--${task.urgency || 'info'}`}>
-                  {task.count}
-                </span>
-              </Link>
-            ))}
+                <h4 className="crm-dash__empty-title">All tasks completed</h4>
+                <p className="crm-dash__empty-desc">No urgent operational items pending at this time.</p>
+                <Link to={ROUTES.CALENDAR} className="crm-dash__empty-action-btn">
+                  Open Calendar
+                </Link>
+              </div>
+            )}
           </div>
         </article>
       </section>
@@ -1420,18 +1436,31 @@ export default function AdminDashboard() {
             </Link>
           </div>
           <div className="crm-dash__announcement-list">
-            {recentAnnouncements.slice(0, 3).map((ann) => (
-              <div key={ann.id} className="crm-dash__announcement-card">
-                <div className="crm-dash__announcement-head">
-                  <span className="crm-dash__announcement-tag">{ann.category || 'General'}</span>
-                  <span className="crm-dash__announcement-time">
-                    {ann.date ? new Date(ann.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Recent'}
-                  </span>
+            {recentAnnouncements && recentAnnouncements.length > 0 ? (
+              recentAnnouncements.slice(0, 3).map((ann) => (
+                <div key={ann.id} className="crm-dash__announcement-card">
+                  <div className="crm-dash__announcement-head">
+                    <span className="crm-dash__announcement-tag">{ann.category || 'General'}</span>
+                    <span className="crm-dash__announcement-time">
+                      {ann.date ? new Date(ann.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Recent'}
+                    </span>
+                  </div>
+                  <h3 className="crm-dash__announcement-title">{ann.title}</h3>
+                  <p className="crm-dash__announcement-desc">{ann.description}</p>
                 </div>
-                <h3 className="crm-dash__announcement-title">{ann.title}</h3>
-                <p className="crm-dash__announcement-desc">{ann.description}</p>
+              ))
+            ) : (
+              <div className="crm-dash__empty-announcements">
+                <div className="crm-dash__empty-icon-wrap" style={{ background: 'rgba(249, 115, 22, 0.12)', color: '#f97316' }}>
+                  <FiBellOff />
+                </div>
+                <h4 className="crm-dash__empty-title">No announcements yet</h4>
+                <p className="crm-dash__empty-desc">No company notices or policy broadcasts published at this time.</p>
+                <Link to={ROUTES.ANNOUNCEMENTS} className="crm-dash__empty-action-btn">
+                  Broadcast Announcement
+                </Link>
               </div>
-            ))}
+            )}
           </div>
         </article>
       </section>

@@ -940,6 +940,17 @@
   min-width: 0;
 }
 
+.crm-recharts,
+.crm-recharts *,
+.crm-recharts *:focus,
+.crm-recharts *:focus-visible,
+.crm-recharts *:active {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
 .crm-recharts .recharts-cartesian-axis-tick-value,
 .crm-recharts .recharts-legend-item-text {
   font-family: inherit;

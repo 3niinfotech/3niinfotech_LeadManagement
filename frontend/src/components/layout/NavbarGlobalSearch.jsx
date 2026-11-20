@@ -40,14 +40,13 @@ export default function NavbarGlobalSearch() {
   return (
     <div className="flex items-center min-w-0 flex-1 max-w-xl lg:max-w-2xl">
       <div
-        className="group w-full flex items-center gap-2 h-9 px-3 rounded-lg
-          border border-border/80 bg-page/50
-          hover:border-border-hover hover:bg-card-bg
-          focus-within:border-brand focus-within:bg-card-bg
-          focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_10%,transparent)]
-          transition-[border-color,box-shadow,background-color] duration-200"
+        className="group w-full flex items-center gap-2.5 h-9 px-3.5 rounded-lg
+          border border-border/80 bg-page/40 hover:bg-page/70 hover:border-primary-500/40
+          focus-within:border-primary-500 focus-within:bg-card-bg
+          focus-within:ring-2 focus-within:ring-primary-500/20
+          transition-all duration-200 cursor-text shadow-2xs"
       >
-        <FiSearch className="w-3.5 h-3.5 text-text-muted shrink-0 group-focus-within:text-brand transition-colors" />
+        <FiSearch className="w-3.5 h-3.5 text-text-muted shrink-0 group-focus-within:text-primary-500 transition-colors" />
 
         <input
           ref={inputRef}
@@ -56,26 +55,26 @@ export default function NavbarGlobalSearch() {
           onChange={handleChange}
           onFocus={handleFocus}
           onClick={() => dispatch(openCommandPalette(query))}
-          placeholder={navbarConfig.search.placeholder}
-          className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13px] text-text placeholder:text-text-muted"
+          placeholder="Search students, enquiries, leads, pages... (Ctrl + K)"
+          className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13px] text-text placeholder:text-text-muted/70 font-normal"
           autoComplete="off"
           spellCheck={false}
           aria-label="Global search"
         />
 
-        <span className="hidden sm:flex items-center gap-1 shrink-0">
+        <span className="hidden sm:flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={() => dispatch(openCommandPalette(query))}
             title="Voice search"
             className="flex items-center justify-center w-6 h-6 rounded-md text-text-muted
-              hover:text-brand hover:bg-brand-soft/60 transition-colors"
+              hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer"
           >
-            <FiMic className="w-3 h-3" />
+            <FiMic className="w-3.5 h-3.5" />
           </button>
-          <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded
-            border border-border/80 bg-card-bg text-[10px] font-medium font-mono text-text-muted leading-none">
-            <FiCommand className="w-2.5 h-2.5" />K
+          <kbd className="hidden md:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md
+            border border-border/80 bg-card-bg text-[10px] font-semibold font-mono text-text-muted leading-none shadow-2xs">
+            <FiCommand className="w-2.5 h-2.5 opacity-80" />K
           </kbd>
         </span>
       </div>

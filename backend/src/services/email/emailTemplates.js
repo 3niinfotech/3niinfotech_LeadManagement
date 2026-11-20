@@ -301,6 +301,8 @@ export function buildPasswordResetEmail({
   resetTime = new Date().toLocaleString('en-IN'),
   loginUrl = `${CLIENT_URL}/login`,
 }) {
+  const brand = getCachedCompanyBrand();
+  const brandPhone = brand?.phone || '+91 79 1234 5678';
   const subject = `Security Alert: Your 3NI Portal Password Was Reset`;
   const bodyHtml = `
     <p class="email-text">Hello <strong>${escapeHtml(name)}</strong>,</p>
@@ -322,7 +324,7 @@ export function buildPasswordResetEmail({
     </div>
 
     <p class="email-text" style="font-size: 13px; color: #dc2626;">
-      If you did not perform this action, please contact our administrative desk immediately at <strong>${BRAND_PHONE}</strong> or reply to this email.
+      If you did not perform this action, please contact our administrative desk immediately at <strong>${escapeHtml(brandPhone)}</strong> or reply to this email.
     </p>
   `;
 
@@ -569,6 +571,8 @@ export function buildDemoScheduledEmail({
   venue = 'Surat Head Office / Online Classroom',
   portalUrl = `${CLIENT_URL}/login`,
 }) {
+  const brand = getCachedCompanyBrand();
+  const brandPhone = brand?.phone || '+91 79 1234 5678';
   const subject = `🎓 Demo Class Scheduled: ${courseName} with 3NI Infotech`;
   const bodyHtml = `
     <p class="email-text">Hello <strong>${escapeHtml(studentName)}</strong>,</p>
@@ -602,7 +606,7 @@ export function buildDemoScheduledEmail({
     </div>
 
     <p class="email-text" style="font-size: 13px; color: #475569;">
-      Please arrive or log in 10 minutes prior to session start. For questions or rescheduling, contact our admissions desk at <strong>${BRAND_PHONE}</strong>.
+      Please arrive or log in 10 minutes prior to session start. For questions or rescheduling, contact our admissions desk at <strong>${escapeHtml(brandPhone)}</strong>.
     </p>
   `;
 

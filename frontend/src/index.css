@@ -56,6 +56,18 @@
   textarea:focus {
     outline: none;
   }
+
+  /* Prevent browser focus outlines / bounding box rectangles on SVG chart elements on click */
+  svg,
+  svg:focus,
+  svg:focus-visible,
+  svg *,
+  svg *:focus,
+  svg *:focus-visible {
+    outline: none !important;
+    outline-offset: 0 !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
 }
 
 @layer components {
@@ -1354,3 +1366,111 @@
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* ==========================================================================
+   GLOBAL CHART FOCUS & SECTOR OUTLINE RESET (ALL CHARTS & RECHARTS)
+   Hides unwanted browser focus borders/bounding boxes when clicking on any
+   chart element (Pie / Donut sectors, Bar columns, Line dots, Area curves).
+   ========================================================================== */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus,
+.recharts-wrapper:focus-visible,
+.recharts-wrapper *:focus-visible,
+.recharts-wrapper:active,
+.recharts-wrapper *:active,
+.recharts-surface,
+.recharts-surface *,
+.recharts-surface:focus,
+.recharts-surface *:focus,
+.recharts-surface:focus-visible,
+.recharts-surface *:focus-visible,
+.recharts-surface:active,
+.recharts-surface *:active,
+.recharts-layer,
+.recharts-layer:focus,
+.recharts-layer:focus-visible,
+.recharts-layer *:focus,
+.recharts-layer *:focus-visible,
+.recharts-sector,
+.recharts-sector:focus,
+.recharts-sector:focus-visible,
+.recharts-sector:active,
+.recharts-pie-sector,
+.recharts-pie-sector:focus,
+.recharts-pie-sector:focus-visible,
+.recharts-pie-sector:active,
+.recharts-pie,
+.recharts-pie:focus,
+.recharts-pie *:focus,
+.recharts-pie *:focus-visible,
+.recharts-bar-rectangles,
+.recharts-bar-rectangle,
+.recharts-bar-rectangle:focus,
+.recharts-bar-rectangle:focus-visible,
+.recharts-bar-rectangle:active,
+.recharts-bar,
+.recharts-bar:focus,
+.recharts-bar *:focus,
+.recharts-bar *:focus-visible,
+.recharts-curve,
+.recharts-curve:focus,
+.recharts-curve:focus-visible,
+.recharts-line,
+.recharts-line:focus,
+.recharts-line *:focus,
+.recharts-line *:focus-visible,
+.recharts-area,
+.recharts-area:focus,
+.recharts-area *:focus,
+.recharts-area *:focus-visible,
+.recharts-dot,
+.recharts-dot:focus,
+.recharts-dot:focus-visible,
+.recharts-active-dot,
+.recharts-active-dot:focus,
+.recharts-active-dot:focus-visible,
+.recharts-legend-item,
+.recharts-legend-item:focus,
+.recharts-legend-item:focus-visible,
+.recharts-responsive-container,
+.recharts-responsive-container *,
+.recharts-responsive-container *:focus,
+.recharts-responsive-container *:focus-visible,
+.crm-dash__donut-container,
+.crm-dash__donut-container *,
+.crm-dash__donut-container *:focus,
+.crm-dash__donut-container *:focus-visible,
+.crm-dash__donut-chart-box,
+.crm-dash__donut-chart-box *,
+.crm-dash__donut-chart-box *:focus,
+.crm-dash__donut-chart-box *:focus-visible,
+[class*="recharts"] {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+svg path:focus,
+svg path:focus-visible,
+svg path:active,
+svg rect:focus,
+svg rect:focus-visible,
+svg rect:active,
+svg circle:focus,
+svg circle:focus-visible,
+svg circle:active,
+svg polygon:focus,
+svg polygon:focus-visible,
+svg polygon:active,
+svg g:focus,
+svg g:focus-visible,
+svg g:active {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+

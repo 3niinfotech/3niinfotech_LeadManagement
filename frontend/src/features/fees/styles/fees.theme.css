@@ -1,4 +1,5 @@
 /* Fees module — create totals + detail modal */
+@import './voucher-document.css';
 
 .fees-create-totals {
   display: grid;
