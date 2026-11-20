@@ -210,11 +210,9 @@ export default function DataGrid({
                 aria-label="Rows per page"
               />
             </div>
+            <span className="crm-grid-footer__divider" aria-hidden />
             <span className="crm-grid-footer__range">
-              <strong>0–0</strong>
-              <span className="text-text-muted"> of </span>
-              <strong>0</strong>
-              <span className="text-text-muted"> records</span>
+              Showing <strong>0–0</strong> of <strong>0</strong> records
             </span>
           </div>
 
@@ -223,16 +221,16 @@ export default function DataGrid({
               Page <strong>0</strong> of <strong>0</strong>
             </span>
             <div className="crm-grid-footer__nav" role="navigation" aria-label="Table pagination">
-              <button type="button" className="crm-grid-footer__btn" disabled aria-label="First page">
+              <button type="button" className="crm-grid-footer__btn" disabled aria-label="First page" title="First page">
                 <FiChevronsLeft className="w-3.5 h-3.5" />
               </button>
-              <button type="button" className="crm-grid-footer__btn" disabled aria-label="Previous page">
+              <button type="button" className="crm-grid-footer__btn" disabled aria-label="Previous page" title="Previous page">
                 <FiChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <button type="button" className="crm-grid-footer__btn" disabled aria-label="Next page">
+              <button type="button" className="crm-grid-footer__btn" disabled aria-label="Next page" title="Next page">
                 <FiChevronRight className="w-3.5 h-3.5" />
               </button>
-              <button type="button" className="crm-grid-footer__btn" disabled aria-label="Last page">
+              <button type="button" className="crm-grid-footer__btn" disabled aria-label="Last page" title="Last page">
                 <FiChevronsRight className="w-3.5 h-3.5" />
               </button>
             </div>

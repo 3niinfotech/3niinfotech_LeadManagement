@@ -6,6 +6,27 @@ import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from '../../config/constants';
 import Select from './Select';
 import '../table/grid.theme.css';
 
+function getPageList(currentPage, totalPages) {
+  if (totalPages <= 1) return [1];
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const pages = [1];
+  if (currentPage > 3) {
+    pages.push('...');
+  }
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+  if (currentPage < totalPages - 2) {
+    pages.push('...');
+  }
+  pages.push(totalPages);
+  return pages;
+}
+
 export default function Pagination({
   page,
   limit = DEFAULT_PAGE_SIZE,
@@ -34,6 +55,8 @@ export default function Pagination({
     [pageSizeOptions],
   );
 
+  const pageList = useMemo(() => getPageList(safePage, safeTotalPages), [safePage, safeTotalPages]);
+
   return (
     <footer className={`crm-grid-footer shrink-0 ${className}`}>
       <div className="crm-grid-footer__left">
@@ -54,13 +77,11 @@ export default function Pagination({
                 aria-label="Rows per page"
               />
             </div>
+            <span className="crm-grid-footer__divider" aria-hidden />
           </>
         )}
         <span className="crm-grid-footer__range">
-          <strong>{from}–{to}</strong>
-          <span className="text-text-muted"> of </span>
-          <strong>{safeTotal}</strong>
-          <span className="text-text-muted"> records</span>
+          Showing <strong>{from}–{to}</strong> of <strong>{safeTotal}</strong> records
         </span>
       </div>
 
@@ -89,6 +110,26 @@ export default function Pagination({
           >
             <FiChevronLeft className="w-3.5 h-3.5" />
           </button>
+
+          {safeTotalPages > 1 && pageList.map((p, idx) => (
+            p === '...' ? (
+              <span key={`ellipsis-${idx}`} className="crm-grid-footer__ellipsis" aria-hidden>
+                …
+              </span>
+            ) : (
+              <button
+                key={p}
+                type="button"
+                className={`crm-grid-footer__btn ${p === safePage ? 'crm-grid-footer__btn--active' : ''}`}
+                onClick={() => onPageChange?.(p)}
+                aria-label={`Page ${p}`}
+                aria-current={p === safePage ? 'page' : undefined}
+              >
+                {p}
+              </button>
+            )
+          ))}
+
           <button
             type="button"
             className="crm-grid-footer__btn"
