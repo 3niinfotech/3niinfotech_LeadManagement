@@ -46,10 +46,10 @@ function CountBadge({ count, tone }) {
   return (
     <span
       className={`
-        pointer-events-none absolute top-0.5 right-0.5 z-10 flex items-center justify-center
-        min-w-[14px] h-[14px] px-0.5 text-[8px] font-extrabold leading-none tabular-nums
+        pointer-events-none absolute -top-0.5 -right-0.5 z-10 flex items-center justify-center
+        min-w-[15px] h-[15px] px-0.5 text-[8.5px] font-bold leading-none tabular-nums
         rounded-full text-white ${tone.badge || 'bg-brand'}
-        ring-1.5 ring-white dark:ring-slate-900 shadow-2xs
+        ring-2 ring-white dark:ring-slate-900 shadow-xs
       `}
       aria-hidden
     >
@@ -206,9 +206,9 @@ export default function NavbarQuickActions() {
     <>
       <nav
         aria-label="Quick actions"
-        className="flex items-center h-10 px-2 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 shadow-2xs overflow-visible"
+        className="flex items-center h-10 px-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 shadow-2xs overflow-visible"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {primaryActions.map((action) => (
             <QuickActionButton
               key={action.id}

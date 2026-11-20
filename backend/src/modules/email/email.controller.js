@@ -1,139 +1,381 @@
-import { asyncHandler, sendSuccess } from '../../utils/response.util.js';
-import emailService, { getSmtpStatus } from '../../services/email/email.service.js';
+import { asyncHandler, sendSuccess, AppError } from '../../utils/response.util.js';
+import emailService, {
+  getSmtpStatus,
+  getOverrideEmailConfig,
+  setOverrideEmailConfig,
+} from '../../services/email/email.service.js';
 import * as templates from '../../services/email/emailTemplates.js';
+import prisma from '../../config/database.js';
+import { getCachedCompanyBrand } from '../../utils/companyBrand.util.js';
+
+export const SYSTEM_TEMPLATES = [
+  {
+    code: 'ENQUIRY_WELCOME',
+    name: 'Enquiry & Visitor Welcome',
+    category: 'Student Journey',
+    eventType: 'ENQUIRY_CREATED',
+    channel: 'EMAIL',
+    subject: 'Welcome to {{companyName}} — Thank you for your visit (Enquiry #{{enquiryCode}})',
+    description: 'Sent automatically to students / visitors immediately after enquiry registration.',
+    variables: ['studentName', 'enquiryCode', 'courseName', 'country', 'counsellorName', 'counsellorPhone', 'companyName'],
+    sampleData: {
+      studentName: 'Aarav Patel',
+      enquiryCode: 'ENQ-2026-0842',
+      courseName: 'IELTS Masterclass & Canada Admissions',
+      country: 'Canada',
+      counsellorName: 'Priya Sharma (Senior Advisor)',
+      counsellorPhone: '+91 98765 43210',
+      companyName: '3ni Infotech',
+    },
+    buildFn: (data) => templates.buildEnquiryWelcomeEmail(data),
+  },
+  {
+    code: 'STUDENT_WELCOME',
+    name: 'Student Portal Access & Onboarding',
+    category: 'Student Journey',
+    eventType: 'STUDENT_CREATED',
+    channel: 'EMAIL',
+    subject: '🎉 Welcome to {{companyName}} Student Portal — Your Student ID: {{studentCode}}',
+    description: 'Sent when an enquiry is converted to an enrolled student, providing portal login credentials.',
+    variables: ['studentName', 'studentCode', 'email', 'tempPassword', 'courseName', 'counsellorName', 'portalUrl', 'companyName'],
+    sampleData: {
+      studentName: 'Aarav Patel',
+      studentCode: 'STU-2026-0149',
+      email: 'aarav.patel@example.com',
+      tempPassword: '123',
+      courseName: 'Postgraduate Diploma in Cloud Computing',
+      counsellorName: 'Ramesh Patel',
+      companyName: '3ni Infotech',
+    },
+    buildFn: (data) => templates.buildStudentPortalWelcomeEmail(data),
+  },
+  {
+    code: 'FEE_RECEIPT',
+    name: 'Fee Payment Receipt & Invoice',
+    category: 'Billing & Invoices',
+    eventType: 'FEE_RECEIPT',
+    channel: 'EMAIL',
+    subject: '🧾 Payment Receipt & Invoice #{{invoiceNo}} — {{companyName}}',
+    description: 'Sent automatically as soon as a student pays tuition, coaching, or visa fees.',
+    variables: ['studentName', 'studentCode', 'invoiceNo', 'amountPaid', 'totalAmount', 'balanceDue', 'paymentMode', 'transactionDate', 'courseName', 'companyName'],
+    sampleData: {
+      studentName: 'Aarav Patel',
+      studentCode: 'STU-2026-0149',
+      invoiceNo: 'INV-2026-0038',
+      amountPaid: 35000,
+      totalAmount: 50000,
+      balanceDue: 15000,
+      paymentMode: 'UPI / Online Banking',
+      courseName: 'IELTS Comprehensive + Canada Visa Advisory',
+      companyName: '3ni Infotech',
+    },
+    buildFn: (data) => templates.buildFeeReceiptInvoiceEmail(data),
+  },
+  {
+    code: 'APPLICATION_UPDATE',
+    name: 'University Application Milestone',
+    category: 'Admissions & Visa',
+    eventType: 'APPLICATION_STATUS',
+    channel: 'EMAIL',
+    subject: '🎉 Offer Received: {{universityName}} — {{status}}',
+    description: 'Sent when application status changes (e.g. Application Submitted, Offer Received).',
+    variables: ['studentName', 'universityName', 'courseName', 'status', 'remarks', 'companyName'],
+    sampleData: {
+      studentName: 'Aarav Patel',
+      universityName: 'Conestoga College, Ontario',
+      courseName: 'Cloud Data Architecture (Fall 2027)',
+      status: 'OFFER_RECEIVED',
+      remarks: 'Letter of Acceptance (LOA) issued with scholarship grant.',
+      companyName: '3ni Infotech',
+    },
+    buildFn: (data) => templates.buildApplicationMilestoneEmail(data),
+  },
+  {
+    code: 'VISA_APPROVED',
+    name: 'Visa Grant & Milestone Update',
+    category: 'Admissions & Visa',
+    eventType: 'VISA_STATUS',
+    channel: 'EMAIL',
+    subject: '🎉 VISA APPROVED: {{country}} (Granted) — {{companyName}}',
+    description: 'Sent when study visa or permit status is updated or approved.',
+    variables: ['studentName', 'country', 'status', 'visaType', 'remarks', 'companyName'],
+    sampleData: {
+      studentName: 'Aarav Patel',
+      country: 'Canada',
+      status: 'VISA_APPROVED',
+      visaType: 'Student Direct Stream (SDS) Study Permit',
+      remarks: 'Visa counterfoil stamped. Passport ready for collection.',
+      companyName: '3ni Infotech',
+    },
+    buildFn: (data) => templates.buildVisaMilestoneEmail(data),
+  },
+  {
+    code: 'DEMO_INVITE',
+    name: 'Coaching Demo & Trial Class',
+    category: 'Student Journey',
+    eventType: 'DEMO_SCHEDULED',
+    channel: 'EMAIL',
+    subject: '🎓 Demo Class Scheduled: {{courseName}} with {{companyName}}',
+    description: 'Sent to student when a faculty demo session or trial class is booked.',
+    variables: ['studentName', 'courseName', 'demoDate', 'demoTime', 'facultyName', 'batch', 'venue', 'companyName'],
+    sampleData: {
+      studentName: 'Aarav Patel',
+      courseName: 'IELTS Academic Masterclass',
+      demoDate: 'Tomorrow, 21 Nov 2026',
+      demoTime: '10:30 AM - 12:00 PM',
+      facultyName: 'Prof. Ramesh Patel',
+      batch: 'Batch Morning A',
+      venue: 'Surat Head Office & Google Meet',
+      companyName: '3ni Infotech',
+    },
+    buildFn: (data) => templates.buildDemoScheduledEmail(data),
+  },
+  {
+    code: 'TASK_ASSIGNED',
+    name: 'Staff Task & Follow-up Assignment',
+    category: 'Operations',
+    eventType: 'TASK_ASSIGNED',
+    channel: 'EMAIL',
+    subject: 'New Task Assigned: {{taskTitle}} ({{priority}} Priority)',
+    description: 'Sent to counselors and staff members when a new CRM task or action item is assigned.',
+    variables: ['taskTitle', 'description', 'priority', 'dueDate', 'assigneeName', 'companyName'],
+    sampleData: {
+      taskTitle: 'Verify Transcripts & GIC Certificate for Aarav Patel',
+      description: 'Check Canadian High Commission financial proof before visa file submission.',
+      priority: 'HIGH',
+      dueDate: new Date(Date.now() + 86400000).toISOString(),
+      assigneeName: 'Priya Sharma',
+      companyName: '3ni Infotech',
+    },
+    buildFn: (data) => templates.buildTaskAssignedEmail(data),
+  },
+  {
+    code: 'ANNOUNCEMENT',
+    name: 'Company Broadcast Notice',
+    category: 'Operations',
+    eventType: 'ANNOUNCEMENT',
+    channel: 'EMAIL',
+    subject: 'Important Notice: {{title}}',
+    description: 'Broadcast email sent to selected branches, staff, or students.',
+    variables: ['title', 'body', 'audience', 'companyName'],
+    sampleData: {
+      title: 'Upcoming University Fair & Visa Masterclass',
+      body: 'Representatives from 15 Canadian and UK institutions will be visiting our campus this weekend.',
+      audience: 'All Students & Parents',
+      companyName: '3ni Infotech',
+    },
+    buildFn: (data) => templates.buildAnnouncementEmail(data),
+  },
+];
 
 export const getStatus = asyncHandler(async (_req, res) => {
   const status = getSmtpStatus();
   sendSuccess(res, status, 'Email service status retrieved');
 });
 
-export const sendTest = asyncHandler(async (req, res) => {
-  const { to, template = 'welcome' } = req.body;
-  const targetEmail = to || req.user?.email || 'test@3ni.io';
+export const updateSettings = asyncHandler(async (req, res) => {
+  const { overrideEmail, enabled } = req.body;
+  setOverrideEmailConfig({ email: overrideEmail, enabled });
+  const status = getSmtpStatus();
+  sendSuccess(res, status, 'Email routing settings updated');
+});
 
-  let rendered;
-  switch (template) {
-    case 'announcement':
-      rendered = templates.buildAnnouncementEmail({
-        title: 'Important Campus Notice: Orientation Batch 2026',
-        body: 'Welcome to the new academic intake at 3NI Infotech. All students and counselors must complete document verification before classes start.',
-        audience: 'All Students & Staff',
-      });
-      break;
-    case 'task':
-      rendered = templates.buildTaskAssignedEmail({
-        taskTitle: 'Verify Passport & Academic Marksheets for Admission',
-        description: 'Check student documents uploaded via portal against embassy rules.',
-        priority: 'HIGH',
-        dueDate: new Date(Date.now() + 86400000).toISOString(),
-        assigneeName: req.user?.firstName || 'Counselor',
-      });
-      break;
-    case 'student_doc_staff':
-      rendered = templates.buildStudentDocUploadStaffEmail({
-        counselorName: req.user?.firstName || 'Counselor',
-        studentName: 'Kishan Ghodasara',
-        studentCode: 'STU-2026-0842',
-        documentName: 'Passport_Front_Back.pdf',
-        category: 'PASSPORT',
-      });
-      break;
-    case 'student_doc_ack':
-      rendered = templates.buildStudentDocUploadAckEmail({
-        studentName: 'Kishan Ghodasara',
-        documentName: 'Passport_Front_Back.pdf',
-        category: 'PASSPORT',
-      });
-      break;
-    case 'demo':
-      rendered = templates.buildDemoScheduledEmail({
-        studentName: 'Kavya Sharma',
-        courseName: 'IELTS Masterclass',
-        demoDate: 'Tomorrow, 20 Nov 2026',
-        demoTime: '10:00 AM - 11:30 AM',
-        facultyName: 'Prof. Ramesh Patel',
-        batch: 'Batch Alpha (Morning)',
-      });
-      break;
-    case 'welcome':
-    default:
-      rendered = templates.buildWelcomeEmail({
-        name: `${req.user?.firstName || 'Kishan'} ${req.user?.lastName || 'Ghodasara'}`.trim(),
-        email: targetEmail,
-        roleName: req.user?.role?.name || 'Student',
-      });
-      break;
+export const getTemplates = asyncHandler(async (req, res) => {
+  const companyId = req.user?.companyId;
+
+  // Fetch custom templates stored in database
+  const dbTemplates = await prisma.communicationTemplate.findMany({
+    where: {
+      deletedAt: null,
+      channel: 'EMAIL',
+      ...(companyId ? { companyId } : {}),
+    },
+  }).catch(() => []);
+
+  const dbMap = new Map(dbTemplates.map((t) => [t.code, t]));
+
+  // Merge with system registry
+  const merged = SYSTEM_TEMPLATES.map((st) => {
+    const dbRow = dbMap.get(st.code);
+    return {
+      code: st.code,
+      name: dbRow?.name || st.name,
+      category: st.category,
+      eventType: dbRow?.eventType || st.eventType,
+      channel: 'EMAIL',
+      subject: dbRow?.subject || st.subject,
+      description: dbRow?.description || st.description,
+      variables: st.variables,
+      isActive: dbRow?.isActive != null ? dbRow.isActive : true,
+      isCustomized: Boolean(dbRow),
+      sampleData: st.sampleData,
+      updatedAt: dbRow?.updatedAt || null,
+    };
+  });
+
+  sendSuccess(res, merged, 'Email templates retrieved');
+});
+
+export const getTemplateByCode = asyncHandler(async (req, res) => {
+  const { code } = req.params;
+  const sys = SYSTEM_TEMPLATES.find((s) => s.code === code);
+  if (!sys) throw new AppError(`Template "${code}" not found`, 404);
+
+  const dbRow = await prisma.communicationTemplate.findFirst({
+    where: {
+      code,
+      deletedAt: null,
+      channel: 'EMAIL',
+    },
+  }).catch(() => null);
+
+  const merged = {
+    code: sys.code,
+    name: dbRow?.name || sys.name,
+    category: sys.category,
+    eventType: dbRow?.eventType || sys.eventType,
+    channel: 'EMAIL',
+    subject: dbRow?.subject || sys.subject,
+    body: dbRow?.body || null,
+    description: dbRow?.description || sys.description,
+    variables: sys.variables,
+    isActive: dbRow?.isActive != null ? dbRow.isActive : true,
+    isCustomized: Boolean(dbRow),
+    sampleData: sys.sampleData,
+  };
+
+  // Render preview
+  const brand = getCachedCompanyBrand();
+  const sampleWithBrand = { ...sys.sampleData, company: brand, companyName: brand.name };
+
+  let preview;
+  if (dbRow?.body) {
+    const renderedBody = templates.renderDynamicTemplate(dbRow.body, sampleWithBrand);
+    const renderedSubject = templates.renderDynamicTemplate(dbRow.subject || sys.subject, sampleWithBrand);
+    preview = {
+      subject: renderedSubject,
+      html: templates.wrapEmailTemplate({
+        title: sys.name,
+        badge: sys.category,
+        badgeTone: 'primary',
+        bodyHtml: renderedBody,
+        company: brand,
+      }),
+    };
+  } else {
+    preview = sys.buildFn(sampleWithBrand);
   }
 
-  const result = await emailService.safeSendEmail({
+  sendSuccess(res, { template: merged, preview }, 'Template details retrieved');
+});
+
+export const updateTemplate = asyncHandler(async (req, res) => {
+  const { code } = req.params;
+  const { subject, body, isActive } = req.body;
+  const companyId = req.user?.companyId;
+
+  const sys = SYSTEM_TEMPLATES.find((s) => s.code === code);
+  if (!sys) throw new AppError(`Template "${code}" not found`, 404);
+
+  const defaultCompany = companyId || (await prisma.company.findFirst({ select: { id: true } }))?.id;
+  if (!defaultCompany) throw new AppError('Company context required', 400);
+
+  const existing = await prisma.communicationTemplate.findFirst({
+    where: {
+      code,
+      companyId: defaultCompany,
+      deletedAt: null,
+    },
+  });
+
+  let saved;
+  if (existing) {
+    saved = await prisma.communicationTemplate.update({
+      where: { id: existing.id },
+      data: {
+        ...(subject !== undefined ? { subject } : {}),
+        ...(body !== undefined ? { body } : {}),
+        ...(isActive !== undefined ? { isActive: Boolean(isActive) } : {}),
+        updatedBy: req.user?.id,
+      },
+    });
+  } else {
+    saved = await prisma.communicationTemplate.create({
+      data: {
+        companyId: defaultCompany,
+        code,
+        name: sys.name,
+        channel: 'EMAIL',
+        subject: subject || sys.subject,
+        body: body || null,
+        eventType: sys.eventType,
+        description: sys.description,
+        isActive: isActive != null ? Boolean(isActive) : true,
+        createdBy: req.user?.id,
+      },
+    });
+  }
+
+  sendSuccess(res, saved, 'Email template updated successfully');
+});
+
+export const sendTestTemplate = asyncHandler(async (req, res) => {
+  const { code } = req.params;
+  const { to, customData = {} } = req.body;
+
+  const sys = SYSTEM_TEMPLATES.find((s) => s.code === code);
+  if (!sys) throw new AppError(`Template "${code}" not found`, 404);
+
+  const dbRow = await prisma.communicationTemplate.findFirst({
+    where: { code, deletedAt: null, channel: 'EMAIL' },
+  }).catch(() => null);
+
+  const brand = getCachedCompanyBrand();
+  const mergedData = {
+    ...sys.sampleData,
+    ...customData,
+    company: brand,
+    companyName: brand.name,
+  };
+
+  let rendered;
+  if (dbRow?.body) {
+    const renderedBody = templates.renderDynamicTemplate(dbRow.body, mergedData);
+    const renderedSubject = templates.renderDynamicTemplate(dbRow.subject || sys.subject, mergedData);
+    rendered = {
+      subject: renderedSubject,
+      html: templates.wrapEmailTemplate({
+        title: sys.name,
+        badge: sys.category,
+        badgeTone: 'primary',
+        bodyHtml: renderedBody,
+        company: brand,
+      }),
+    };
+  } else {
+    rendered = sys.buildFn(mergedData);
+  }
+
+  const override = getOverrideEmailConfig();
+  const targetEmail = to || override.overrideEmail || req.user?.email || 'kachhadiyadarshil2@gmail.com';
+
+  const sendResult = await emailService.safeSendEmail({
     to: targetEmail,
-    subject: `[3NI Portal] ${rendered.subject}`,
+    subject: rendered.subject,
     html: rendered.html,
   });
 
-  sendSuccess(res, { ...result, targetEmail, template }, 'Test email dispatched');
+  sendSuccess(res, { ...sendResult, targetEmail, templateCode: code }, 'Test email successfully dispatched to mailbox');
+});
+
+export const sendTest = asyncHandler(async (req, res) => {
+  const { to, template = 'ENQUIRY_WELCOME' } = req.body;
+  req.params.code = template;
+  return sendTestTemplate(req, res);
 });
 
 export const getTemplatePreview = asyncHandler(async (req, res) => {
   const { templateKey } = req.params;
-  let rendered;
-
-  switch (templateKey) {
-    case 'announcement':
-      rendered = templates.buildAnnouncementEmail({
-        title: 'Official Visa & Enrollment Schedule',
-        body: 'Please review updated intake timeline for Spring 2027 university submissions.',
-        audience: 'All Staff & Counselors',
-      });
-      break;
-    case 'task':
-      rendered = templates.buildTaskAssignedEmail({
-        taskTitle: 'Complete Student Visa SOP Verification',
-        description: 'Verify SOP compliance and university offer acceptance letter.',
-        priority: 'URGENT',
-        dueDate: new Date(Date.now() + 2 * 86400000).toISOString(),
-        assigneeName: 'Priya Mehta',
-      });
-      break;
-    case 'student_doc_staff':
-      rendered = templates.buildStudentDocUploadStaffEmail({
-        counselorName: 'Admissions Officer',
-        studentName: 'Kishan Ghodasara',
-        studentCode: 'STU-2026-0842',
-        documentName: 'Academic_Transcripts_12th.pdf',
-        category: 'ACADEMIC',
-      });
-      break;
-    case 'student_doc_ack':
-      rendered = templates.buildStudentDocUploadAckEmail({
-        studentName: 'Kishan Ghodasara',
-        documentName: 'Academic_Transcripts_12th.pdf',
-        category: 'ACADEMIC',
-      });
-      break;
-    case 'demo':
-      rendered = templates.buildDemoScheduledEmail({
-        studentName: 'Kavya Sharma',
-        courseName: 'IELTS Masterclass Trial',
-        demoDate: '21 Nov 2026',
-        demoTime: '10:00 AM',
-        facultyName: 'Prof. Ramesh Patel',
-      });
-      break;
-    case 'welcome':
-    default:
-      rendered = templates.buildWelcomeEmail({
-        name: 'Kishan Ghodasara',
-        email: 'kishan@gmail.com',
-        roleName: 'Student',
-      });
-      break;
-  }
-
-  if (req.query.format === 'html') {
-    res.setHeader('Content-Type', 'text/html');
-    return res.send(rendered.html);
-  }
-
-  sendSuccess(res, rendered);
+  req.params.code = templateKey;
+  return getTemplateByCode(req, res);
 });

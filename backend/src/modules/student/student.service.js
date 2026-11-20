@@ -27,6 +27,7 @@ import { pickBestCandidate } from '../assignment/assignment.scoring.js';
 import { assignmentRepository } from '../assignment/assignment.repository.js';
 import { AGENT_ROLE_SLUGS } from '../../config/portal.config.js';
 import { ensureStudentPrimaryApplication } from '../student-portal/student-portal.service.js';
+import { triggerStudentWelcome } from '../../services/email/lifecycleEmail.service.js';
 import {
   notifyAgentReferredStudent,
   notifyCounsellorAssignment,
@@ -255,6 +256,13 @@ export const studentService = {
         }).catch(() => {});
       }
     }
+
+    // Trigger automated Student Portal Access & Welcome Email
+    triggerStudentWelcome({
+      student,
+      plainPassword: '123',
+      counsellor: assignedCounsellor?.name ? { name: assignedCounsellor.name } : null,
+    }).catch((e) => console.warn('[student.create] triggerStudentWelcome error:', e.message));
 
     await prisma.activity.create({
       data: { userId, studentId: student.id, action: 'CREATE', description: `Student ${studentCode} created` },

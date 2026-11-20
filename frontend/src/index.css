@@ -199,33 +199,55 @@
   .crm-ant-select.ant-select-focused .ant-select-content,
   .ant-select .ant-select-content,
   .ant-select.ant-select-open .ant-select-content,
-  .ant-select.ant-select-focused .ant-select-content {
+  .ant-select.ant-select-focused .ant-select-content,
+  .ant-select-selection-item {
     color: var(--text-primary) !important;
     opacity: 1 !important;
     font-weight: 500;
   }
 
+  .dark .crm-ant-select.crm-field .ant-select-selection-item,
+  .dark .crm-ant-select .ant-select-selection-item,
+  .dark .ant-select-selection-item,
+  .dark .crm-ant-select .ant-select-content,
+  .dark .ant-select .ant-select-content {
+    color: #f8fafc !important;
+    opacity: 1 !important;
+  }
+
   .crm-ant-select.crm-field .ant-select-selection-placeholder,
-  .crm-ant-select .ant-select-selection-placeholder {
+  .crm-ant-select .ant-select-selection-placeholder,
+  .ant-select-selection-placeholder {
     color: var(--text-muted) !important;
     opacity: 1 !important;
   }
 
   .dark .crm-ant-select.crm-field .ant-select-selection-placeholder,
-  .dark .crm-ant-select .ant-select-selection-placeholder {
+  .dark .crm-ant-select .ant-select-selection-placeholder,
+  .dark .ant-select-selection-placeholder {
     color: #94a3b8 !important;
     opacity: 1 !important;
   }
 
   .crm-ant-select.crm-field .ant-select-selection-search-input,
-  .crm-ant-select .ant-select-selection-search-input {
+  .crm-ant-select .ant-select-selection-search-input,
+  .ant-select-selection-search-input {
     color: var(--text-primary) !important;
   }
 
+  .dark .crm-ant-select.crm-field .ant-select-selection-search-input,
+  .dark .crm-ant-select .ant-select-selection-search-input,
+  .dark .ant-select-selection-search-input {
+    color: #f8fafc !important;
+  }
+
   .crm-ant-select.crm-field .ant-select-selection-item,
-  .crm-ant-select.crm-field .ant-select-selection-placeholder {
-    line-height: calc(var(--field-h) - 2px) !important;
-    font-size: var(--field-fs) !important;
+  .crm-ant-select.crm-field .ant-select-selection-placeholder,
+  .crm-ant-select .ant-select-selection-item,
+  .crm-ant-select .ant-select-selection-placeholder {
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: var(--field-fs, 13px) !important;
   }
 
   .crm-ant-select.crm-field:not(.ant-select-disabled):hover .ant-select-selector {

@@ -14,6 +14,7 @@ import FeatureTogglePanel from '../../features/settings/components/FeatureToggle
 import CompanySettingsWorkspace from '../../features/settings/components/CompanySettingsWorkspace';
 import TeamAccessWorkspace from '../../features/settings/components/TeamAccessWorkspace';
 import MasterHubWorkspace from '../../features/settings/components/MasterHubWorkspace';
+import EmailTemplatesWorkspace from '../../features/settings/components/EmailTemplatesWorkspace';
 import '../../features/settings/styles/settings.theme.css';
 
 export default function SettingsPage() {
@@ -112,7 +113,7 @@ export default function SettingsPage() {
                   <p>{active.description}</p>
                 </header>
               )}
-              <div className={`crm-settings__main-body ${active.id === 'team-access' || active.id === 'company' ? 'crm-settings__main-body--wide' : ''}`}>
+              <div className={`crm-settings__main-body ${active.id === 'team-access' || active.id === 'company' || active.id === 'email-templates' ? 'crm-settings__main-body--wide' : ''}`}>
                 {active.id === 'notifications' && (
                   <div className="crm-settings-notify">
                     <NotificationPreferencesCard embedded />
@@ -128,6 +129,7 @@ export default function SettingsPage() {
                 )}
                 {active.id === 'features' && <FeatureTogglePanel />}
                 {active.id === 'masters' && <MasterHubWorkspace />}
+                {active.id === 'email-templates' && <EmailTemplatesWorkspace />}
               </div>
             </>
           )}

@@ -20,6 +20,7 @@ import { CLOSED_VIEW_STATUSES } from './enquiryStatus.config.js';
 import { notifyUser, notifyCounsellorAssigned, notifyAppointmentEvent } from '../notification/notification.dispatcher.js';
 import { safeSendEmail } from '../../services/email/email.service.js';
 import { buildDemoScheduledEmail } from '../../services/email/emailTemplates.js';
+import { triggerEnquiryWelcome } from '../../services/email/lifecycleEmail.service.js';
 import { normalizeEnquiryTags } from './enquiryTags.config.js';
 import { normalizeDocumentCategory } from './enquiryDocument.config.js';
 import { smartReminderService } from './enquirySmartReminder.service.js';
@@ -464,6 +465,15 @@ export const enquiryService = {
       userId, action: 'CREATE', entityType: 'enquiry', entityId: enquiry.id, newData: enquiry, req,
     });
 
+    // Automated Welcome & Thank You for visit email
+    triggerEnquiryWelcome({
+      enquiry,
+      counsellor: assignedToId ? await prisma.user.findUnique({
+        where: { id: assignedToId },
+        select: { firstName: true, lastName: true, phone: true, email: true },
+      }).then(u => u ? { name: `${u.firstName || ''} ${u.lastName || ''}`.trim(), phone: u.phone, email: u.email } : null).catch(() => null) : null,
+    }).catch((err) => console.warn('[enquiry.service] Welcome email warning:', err.message));
+
     if (counsellorResolution?.source === 'COURSE_AUTO') {
       await courseCounsellorMappingService.applyToEnquiry({
         enquiry,
@@ -567,6 +577,15 @@ export const enquiryService = {
     await auditLog({
       userId, action: 'CREATE', entityType: 'enquiry', entityId: enquiry.id, newData: enquiry, req,
     });
+
+    // Automated Welcome & Thank You for visit email
+    triggerEnquiryWelcome({
+      enquiry,
+      counsellor: assignedToId ? await prisma.user.findUnique({
+        where: { id: assignedToId },
+        select: { firstName: true, lastName: true, phone: true, email: true },
+      }).then(u => u ? { name: `${u.firstName || ''} ${u.lastName || ''}`.trim(), phone: u.phone, email: u.email } : null).catch(() => null) : null,
+    }).catch((err) => console.warn('[enquiry.service] Welcome email warning:', err.message));
 
     await prisma.activity.create({
       data: {

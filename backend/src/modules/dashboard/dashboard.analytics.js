@@ -1517,29 +1517,7 @@ export async function getDashboardAnalytics(query = {}, user) {
           description: a.body ? a.body.slice(0, 120) : 'System and branch operations update.',
           category: a.eventType || 'General',
           date: a.updatedAt,
-        })) : [
-          {
-            id: 'ann-1',
-            title: 'IELTS & PTE New Batch Intake Schedule',
-            description: 'New morning and evening batch registrations starting from Monday across all branches.',
-            category: 'Academic',
-            date: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-          },
-          {
-            id: 'ann-2',
-            title: 'Canada Visa Biometrics Advisory 2025',
-            description: 'Updated guidelines for high commission biometrics appointments and document checklist.',
-            category: 'Immigration',
-            date: new Date(Date.now() - 14 * 3600 * 1000).toISOString(),
-          },
-          {
-            id: 'ann-3',
-            title: 'System Maintenance & CRM Performance Upgrade',
-            description: 'Real-time synchronization and socket listeners enabled across all counsellor desks.',
-            category: 'System',
-            date: new Date(Date.now() - 28 * 3600 * 1000).toISOString(),
-          },
-        ],
+        })) : [],
         roleDistribution: {
           totalRoles: roleDistribution.length,
           items: roleDistribution,

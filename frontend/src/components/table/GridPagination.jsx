@@ -32,10 +32,11 @@ export default function GridPagination({ api, totalRows = 0, pageSizeOptions = P
     page: 0, totalPages: 0, pageSize: 25, from: 0, to: 0,
   });
 
-  const sizeOptions = useMemo(
-    () => pageSizeOptions.map((n) => ({ value: n, label: String(n) })),
-    [pageSizeOptions],
-  );
+  const sizeOptions = useMemo(() => {
+    const activeSize = meta.pageSize || 25;
+    const list = Array.from(new Set([activeSize, ...(pageSizeOptions || [])])).sort((a, b) => a - b);
+    return list.map((n) => ({ value: n, label: String(n) }));
+  }, [meta.pageSize, pageSizeOptions]);
 
   const refresh = useCallback(() => {
     if (!api) return;

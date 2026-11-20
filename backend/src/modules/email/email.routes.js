@@ -7,6 +7,11 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/status', ctrl.getStatus);
+router.put('/settings', ctrl.updateSettings);
+router.get('/templates', ctrl.getTemplates);
+router.get('/templates/:code', ctrl.getTemplateByCode);
+router.put('/templates/:code', ctrl.updateTemplate);
+router.post('/templates/:code/test-send', ctrl.sendTestTemplate);
 router.post('/test-send', ctrl.sendTest);
 router.get('/preview/:templateKey', ctrl.getTemplatePreview);
 

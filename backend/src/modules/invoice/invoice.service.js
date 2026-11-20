@@ -4,6 +4,7 @@ import { parseSort } from '../../utils/response.util.js';
 import { invoiceRepository, INVOICE_SORT_FIELDS } from './invoice.repository.js';
 import prisma from '../../config/database.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
+import { triggerFeeReceipt } from '../../services/email/lifecycleEmail.service.js';
 
 const dateInput = z.string().optional().nullable();
 
@@ -163,6 +164,12 @@ export const invoiceService = {
       newData: record,
       req,
     });
+
+    if (record.status === 'PAID') {
+      const student = record.studentId ? await prisma.student.findUnique({ where: { id: record.studentId } }).catch(() => null) : null;
+      triggerFeeReceipt({ invoice: record, student }).catch((e) => console.warn('[invoice.create] triggerFeeReceipt error:', e.message));
+    }
+
     return record;
   },
 
@@ -221,6 +228,12 @@ export const invoiceService = {
       newData: record,
       req,
     });
+
+    if (record.status === 'PAID' && existing.status !== 'PAID') {
+      const student = record.studentId ? await prisma.student.findUnique({ where: { id: record.studentId } }).catch(() => null) : null;
+      triggerFeeReceipt({ invoice: record, student }).catch((e) => console.warn('[invoice.update] triggerFeeReceipt error:', e.message));
+    }
+
     return record;
   },
 

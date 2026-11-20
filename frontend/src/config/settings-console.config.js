@@ -2,6 +2,7 @@ import {
   FiBell,
   FiBriefcase,
   FiDatabase,
+  FiMail,
   FiShield,
   FiToggleLeft,
 } from 'react-icons/fi';
@@ -64,6 +65,14 @@ export const SETTINGS_CONSOLE_GROUPS = [
         icon: FiDatabase,
         type: 'panel',
         permissions: [PERMISSIONS.MASTERS_VIEW, PERMISSIONS.MASTERS_MANAGE],
+      },
+      {
+        id: 'email-templates',
+        label: 'Email & Lifecycle',
+        description: 'Automated lifecycle emails, SMTP gateway, and live test override controls.',
+        icon: FiMail,
+        type: 'panel',
+        permissions: [PERMISSIONS.SETTINGS_UPDATE, PERMISSIONS.MASTERS_MANAGE],
       },
     ],
   },

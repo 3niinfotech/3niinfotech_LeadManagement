@@ -50,10 +50,10 @@ export default function Pagination({
   const atStart = safePage <= 1;
   const atEnd = safePage >= safeTotalPages;
 
-  const sizeOptions = useMemo(
-    () => pageSizeOptions.map((n) => ({ value: n, label: String(n) })),
-    [pageSizeOptions],
-  );
+  const sizeOptions = useMemo(() => {
+    const list = Array.from(new Set([safeLimit, ...(pageSizeOptions || [])])).sort((a, b) => a - b);
+    return list.map((n) => ({ value: n, label: String(n) }));
+  }, [safeLimit, pageSizeOptions]);
 
   const pageList = useMemo(() => getPageList(safePage, safeTotalPages), [safePage, safeTotalPages]);
 

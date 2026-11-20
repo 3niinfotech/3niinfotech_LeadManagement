@@ -714,11 +714,19 @@
 }
 
 .crm-grid-footer__page-size .crm-ant-select.crm-field .ant-select-content,
-.crm-grid-footer__page-size .crm-ant-select.crm-field .ant-select-selection-item {
+.crm-grid-footer__page-size .crm-ant-select.crm-field .ant-select-selection-item,
+.crm-grid-footer__page-size .crm-ant-select .ant-select-selection-item,
+.crm-grid-footer__page-size .ant-select-selection-item {
   font-weight: 600;
   font-size: 12px;
   text-align: center;
   color: var(--text-primary) !important;
+}
+
+.dark .crm-grid-footer__page-size .crm-ant-select.crm-field .ant-select-selection-item,
+.dark .crm-grid-footer__page-size .crm-ant-select .ant-select-selection-item,
+.dark .crm-grid-footer__page-size .ant-select-selection-item {
+  color: #f8fafc !important;
 }
 
 .crm-grid-footer__page-size .crm-ant-select.crm-field .ant-select-arrow,
