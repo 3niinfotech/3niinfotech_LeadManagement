@@ -8,6 +8,9 @@ router.use(authenticate);
 
 router.get('/status', ctrl.getStatus);
 router.put('/settings', ctrl.updateSettings);
+router.get('/recipients', ctrl.getRecipients);
+router.post('/preview-custom', ctrl.previewCustomEmail);
+router.post('/dispatch-custom', ctrl.dispatchCustomEmail);
 router.get('/templates', ctrl.getTemplates);
 router.get('/templates/:code', ctrl.getTemplateByCode);
 router.put('/templates/:code', ctrl.updateTemplate);

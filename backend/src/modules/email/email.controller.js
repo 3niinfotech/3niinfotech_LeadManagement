@@ -388,3 +388,302 @@ export const getTemplatePreview = asyncHandler(async (req, res) => {
   req.params.code = templateKey;
   return getTemplateByCode(req, res);
 });
+
+/**
+ * Get recipient directory for Targeted & Broadcast email sending
+ */
+export const getRecipients = asyncHandler(async (_req, res) => {
+  const [students, roles, staff] = await Promise.all([
+    prisma.student.findMany({
+      where: { deletedAt: null },
+      select: {
+        id: true,
+        studentCode: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        status: true,
+      },
+      orderBy: { firstName: 'asc' },
+    }),
+    prisma.role.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        users: {
+          where: { deletedAt: null, status: 'ACTIVE' },
+          select: { id: true },
+        },
+      },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.user.findMany({
+      where: { deletedAt: null, status: 'ACTIVE' },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        roleId: true,
+        role: { select: { id: true, name: true, slug: true } },
+      },
+      orderBy: { firstName: 'asc' },
+    }),
+  ]);
+
+  const validStudents = students
+    .filter((s) => s.email && s.email.includes('@'))
+    .map((s) => ({
+      id: s.id,
+      studentCode: s.studentCode,
+      name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.studentCode,
+      email: s.email,
+      phone: s.phone || '',
+      status: s.status,
+    }));
+
+  const roleSummary = roles
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      userCount: r.users ? r.users.length : 0,
+    }))
+    .filter((r) => r.userCount > 0);
+
+  const validStaff = staff
+    .filter((u) => u.email && u.email.includes('@'))
+    .map((u) => ({
+      id: u.id,
+      name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+      email: u.email,
+      roleId: u.roleId,
+      roleName: u.role?.name || 'Staff',
+      roleSlug: u.role?.slug || '',
+    }));
+
+  sendSuccess(res, {
+    students: validStudents,
+    roles: roleSummary,
+    staff: validStaff,
+    counts: {
+      students: validStudents.length,
+      staff: validStaff.length,
+    },
+  }, 'Recipients list retrieved successfully');
+});
+
+/**
+ * Preview a custom composed email before dispatch
+ */
+export const previewCustomEmail = asyncHandler(async (req, res) => {
+  const { subject = 'Notice from 3ni InfoTech', message = '', ctaText = null, ctaUrl = null, recipientName = 'Recipient' } = req.body;
+
+  const brand = getCachedCompanyBrand();
+  const paragraphs = String(message || '')
+    .split(/\n\n+/)
+    .map((para) => `<p class="email-text" style="margin-bottom: 12px; line-height: 1.6;">${templates.escapeHtml(para).replace(/\n/g, '<br/>')}</p>`)
+    .join('');
+
+  const bodyHtml = `
+    <p class="email-text" style="font-weight: 600; color: #0f172a; margin-bottom: 14px;">
+      Hello <strong>${templates.escapeHtml(recipientName)}</strong>,
+    </p>
+    ${paragraphs || '<p class="email-text">This is a preview of your message content.</p>'}
+  `;
+
+  const rawHtml = templates.wrapEmailTemplate({
+    title: subject || 'Announcement',
+    preheader: message ? message.slice(0, 100) : 'Notice from 3ni InfoTech',
+    bodyHtml,
+    ctaText: ctaText ? ctaText.trim() : null,
+    ctaUrl: ctaUrl ? ctaUrl.trim() : null,
+    company: brand,
+    forPreview: true,
+  });
+
+  const previewHtml = templates.renderForPreview(rawHtml);
+  sendSuccess(res, { previewHtml }, 'Custom email preview rendered');
+});
+
+/**
+ * Targeted & Broadcast Email Dispatcher
+ * Sends to: Single Student, All Students, Staff by Role, Single Staff, or Custom Direct Email
+ */
+export const dispatchCustomEmail = asyncHandler(async (req, res) => {
+  const {
+    audienceType, // 'SINGLE_STUDENT' | 'ALL_STUDENTS' | 'ROLE_STAFF' | 'SINGLE_STAFF' | 'CUSTOM_EMAIL'
+    studentId,
+    roleId,
+    staffId,
+    customEmail,
+    subject,
+    message,
+    ctaText,
+    ctaUrl,
+  } = req.body;
+
+  if (!subject || !subject.trim()) {
+    throw new AppError('Subject is required', 400);
+  }
+  if (!message || !message.trim()) {
+    throw new AppError('Email message content is required', 400);
+  }
+
+  let recipients = [];
+
+  switch (audienceType) {
+    case 'SINGLE_STUDENT': {
+      if (!studentId) throw new AppError('Please select a student', 400);
+      const student = await prisma.student.findUnique({
+        where: { id: studentId },
+        select: { id: true, firstName: true, lastName: true, email: true, studentCode: true },
+      });
+      if (!student || !student.email) throw new AppError('Selected student does not have a valid email', 400);
+      recipients.push({
+        email: student.email.trim(),
+        name: `${student.firstName || ''} ${student.lastName || ''}`.trim() || student.studentCode,
+        type: 'Student',
+      });
+      break;
+    }
+
+    case 'ALL_STUDENTS': {
+      const allStudents = await prisma.student.findMany({
+        where: { deletedAt: null },
+        select: { id: true, firstName: true, lastName: true, email: true, studentCode: true },
+      });
+      for (const s of allStudents) {
+        if (s.email && s.email.includes('@')) {
+          recipients.push({
+            email: s.email.trim(),
+            name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.studentCode,
+            type: 'Student',
+          });
+        }
+      }
+      break;
+    }
+
+    case 'ROLE_STAFF': {
+      if (!roleId) throw new AppError('Please select a staff role', 400);
+      const roleUsers = await prisma.user.findMany({
+        where: { roleId, deletedAt: null, status: 'ACTIVE' },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      });
+      for (const u of roleUsers) {
+        if (u.email && u.email.includes('@')) {
+          recipients.push({
+            email: u.email.trim(),
+            name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+            type: 'Staff',
+          });
+        }
+      }
+      break;
+    }
+
+    case 'SINGLE_STAFF': {
+      if (!staffId) throw new AppError('Please select a staff member', 400);
+      const staffUser = await prisma.user.findUnique({
+        where: { id: staffId },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      });
+      if (!staffUser || !staffUser.email) throw new AppError('Selected staff member has no email', 400);
+      recipients.push({
+        email: staffUser.email.trim(),
+        name: `${staffUser.firstName || ''} ${staffUser.lastName || ''}`.trim() || staffUser.email,
+        type: 'Staff',
+      });
+      break;
+    }
+
+    case 'CUSTOM_EMAIL': {
+      if (!customEmail || !customEmail.includes('@')) {
+        throw new AppError('Valid custom email address is required', 400);
+      }
+      recipients.push({
+        email: customEmail.trim(),
+        name: 'Recipient',
+        type: 'Custom',
+      });
+      break;
+    }
+
+    default:
+      throw new AppError(`Invalid audience type "${audienceType}"`, 400);
+  }
+
+  // Deduplicate by email
+  const uniqueRecipients = [];
+  const seenEmails = new Set();
+  for (const r of recipients) {
+    const lower = r.email.toLowerCase();
+    if (!seenEmails.has(lower)) {
+      seenEmails.add(lower);
+      uniqueRecipients.push(r);
+    }
+  }
+
+  if (uniqueRecipients.length === 0) {
+    throw new AppError('No eligible recipients found for this selection', 400);
+  }
+
+  const brand = getCachedCompanyBrand();
+  const paragraphs = String(message)
+    .split(/\n\n+/)
+    .map((para) => `<p class="email-text" style="margin-bottom: 12px; line-height: 1.6;">${templates.escapeHtml(para).replace(/\n/g, '<br/>')}</p>`)
+    .join('');
+
+  const sendResults = [];
+  for (let i = 0; i < uniqueRecipients.length; i++) {
+    const r = uniqueRecipients[i];
+    const bodyHtml = `
+      <p class="email-text" style="font-weight: 600; color: #0f172a; margin-bottom: 14px;">
+        Hello <strong>${templates.escapeHtml(r.name)}</strong>,
+      </p>
+      ${paragraphs}
+    `;
+
+    const fullHtml = templates.wrapEmailTemplate({
+      title: subject.trim(),
+      preheader: message ? message.slice(0, 100) : 'Notice from 3ni InfoTech',
+      bodyHtml,
+      ctaText: ctaText ? ctaText.trim() : null,
+      ctaUrl: ctaUrl ? ctaUrl.trim() : null,
+      company: brand,
+    });
+
+    const result = await emailService.safeSendEmail({
+      to: r.email,
+      subject: subject.trim(),
+      html: fullHtml,
+    });
+
+    sendResults.push({
+      email: r.email,
+      name: r.name,
+      success: Boolean(result?.success),
+      messageId: result?.messageId || null,
+    });
+
+    // Throttling to respect SMTP burst rate limits
+    if (uniqueRecipients.length > 1 && i < uniqueRecipients.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+  }
+
+  const successCount = sendResults.filter((r) => r.success).length;
+  const override = emailService.getOverrideEmailConfig();
+
+  sendSuccess(res, {
+    totalRecipients: uniqueRecipients.length,
+    successCount,
+    failedCount: uniqueRecipients.length - successCount,
+    overrideActive: override.enabled,
+    overrideEmail: override.overrideEmail,
+    details: sendResults.slice(0, 10), // return sample
+  }, `Successfully dispatched email to ${successCount} recipient(s)`);
+});
