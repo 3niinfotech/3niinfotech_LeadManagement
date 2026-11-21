@@ -2,7 +2,7 @@ import {
   FiLayout, FiInbox, FiBookOpen, FiMonitor, FiDollarSign,
   FiBarChart2, FiSliders, FiDatabase, FiGrid, FiHome, FiGlobe, FiTarget,
   FiFileText, FiMail, FiUsers, FiBriefcase, FiShield, FiCalendar, FiUserPlus,
-  FiClipboard, FiCheckCircle,
+  FiClipboard, FiCheckCircle, FiSend,
 } from 'react-icons/fi';
 import * as FiIcons from 'react-icons/fi';
 import { ROUTES } from './routes';
@@ -212,6 +212,15 @@ export const sidebarMenuStructure = [
     icon: FiBarChart2,
     permission: PERMISSIONS.REPORTS_VIEW,
     children: buildReportsSidebarChildren(),
+  },
+  {
+    id: 'email-compose',
+    label: 'Compose & Send Email',
+    description: 'Targeted student & staff email dispatcher',
+    icon: FiSend,
+    path: ROUTES.EMAIL_COMPOSE || '/admin/settings?tab=email-templates&compose=true',
+    permissions: [PERMISSIONS.SETTINGS_VIEW, PERMISSIONS.ENQUIRIES_VIEW, PERMISSIONS.STUDENTS_VIEW],
+    keywords: ['email', 'compose', 'send email', 'broadcast', 'mail', 'notification'],
   },
   {
     id: 'team-access',

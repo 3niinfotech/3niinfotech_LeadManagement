@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
   FiMail,
   FiSend,
@@ -207,6 +208,37 @@ export default function EmailTemplatesWorkspace() {
     fetchTemplates();
     fetchHistory();
   }, [fetchStatus, fetchTemplates, fetchHistory]);
+
+  const [searchParams] = useSearchParams();
+
+  // Listen for sidebar click or query param: ?compose=true
+  useEffect(() => {
+    const isCompose = searchParams.get('compose') === 'true' || searchParams.get('compose') === '1';
+    if (isCompose) {
+      setComposeOpen(true);
+      fetchDirectory();
+    }
+  }, [searchParams, fetchDirectory]);
+
+  // Listen for custom event when sidebar item is clicked directly
+  useEffect(() => {
+    const handleOpen = () => {
+      setComposeOpen(true);
+      fetchDirectory();
+    };
+    window.addEventListener('crm:open-email-compose', handleOpen);
+    return () => window.removeEventListener('crm:open-email-compose', handleOpen);
+  }, [fetchDirectory]);
+
+  const handleCloseCompose = () => {
+    setComposeOpen(false);
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('compose')) {
+      params.delete('compose');
+      const newQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+      window.history.replaceState(null, '', newQuery);
+    }
+  };
 
   const handleSaveOverride = async () => {
     setSavingOverride(true);
@@ -959,7 +991,7 @@ export default function EmailTemplatesWorkspace() {
 
                   <button
                     type="button"
-                    onClick={() => setComposeOpen(false)}
+                    onClick={handleCloseCompose}
                     className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                   >
                     <FiX className="w-5 h-5" />
@@ -1311,7 +1343,7 @@ export default function EmailTemplatesWorkspace() {
                 <div className="flex items-center gap-2 self-end sm:self-auto">
                   <button
                     type="button"
-                    onClick={() => setComposeOpen(false)}
+                    onClick={handleCloseCompose}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                   >
                     Cancel

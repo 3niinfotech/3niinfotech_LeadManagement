@@ -43,6 +43,7 @@ export const PHASE1_ROOT_IDS = new Set([
   'reports-outstanding',
   'reports-targets',
   'reports-export',
+  'email-compose',
   'team-access',
   'settings',
 ]);

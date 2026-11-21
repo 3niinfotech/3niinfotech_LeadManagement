@@ -48,6 +48,7 @@ export const ROUTES = {
   REPORTS_TARGETS: '/admin/reports/targets',
   REPORTS_EXPORT: '/admin/reports/export',
   SETTINGS: '/admin/settings',
+  EMAIL_COMPOSE: '/admin/settings?tab=email-templates&compose=true',
   USERS: '/admin/users',
   TEAM_ACCESS: '/admin/users',
   ROLES: '/admin/users?tab=roles',

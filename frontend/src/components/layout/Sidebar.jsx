@@ -692,6 +692,11 @@ function SidebarItem({
   const link = (
     <NavLink
       to={item.path}
+      onClick={() => {
+        if (item.id === 'email-compose') {
+          window.dispatchEvent(new CustomEvent('crm:open-email-compose'));
+        }
+      }}
       className="block outline-none focus:outline-none focus-visible:outline-none"
     >
       <motion.div
