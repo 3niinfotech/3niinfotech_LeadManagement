@@ -693,9 +693,13 @@
 /* Embedded workspaces — full power, no redirect cards */
 .crm-settings__main-body--wide {
   padding: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
 }
 
 .crm-settings-embed-loading {
