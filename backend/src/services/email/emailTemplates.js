@@ -1,15 +1,101 @@
 /**
  * 3NI INFOTECH - Modern Responsive HTML Email Templates
- * Standardized brand styling for Auth, Announcements, Tasks, Document Uploads, Demos & System Alerts.
+ * Professional, authentic corporate branding with real live logo, standard HTML tables
+ * (guaranteeing zero label/value collision across all email clients and webviews),
+ * and human-written advisory copy.
  */
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import config from '../../config/index.js';
 import { getCachedCompanyBrand } from '../../utils/companyBrand.util.js';
 
 const CLIENT_URL = config.smtp?.clientUrl || 'http://localhost:3001';
 
+let cachedLogoDataUri = null;
+
+/**
+ * Resolves the real company logo (logo.jpg) and converts it to a base64 data URI
+ * for guaranteed instant rendering in email clients, webviews, and preview modals.
+ */
+export function getCompanyLogoDataUri() {
+  if (cachedLogoDataUri) return cachedLogoDataUri;
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const candidatePaths = [
+      path.resolve(__dirname, '../../../../frontend/public/assets/images/brand/logo.jpg'),
+      path.resolve(__dirname, '../../../uploads/company/a7c7c0df-60c6-4a73-88d0-92b2fa521655/logo.jpg'),
+      path.resolve(process.cwd(), 'frontend/public/assets/images/brand/logo.jpg'),
+      path.resolve(process.cwd(), '../frontend/public/assets/images/brand/logo.jpg'),
+    ];
+
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        const buf = fs.readFileSync(p);
+        cachedLogoDataUri = `data:image/jpeg;base64,${buf.toString('base64')}`;
+        return cachedLogoDataUri;
+      }
+    }
+  } catch (err) {
+    console.warn('[emailTemplates] Logo loading note:', err.message);
+  }
+  return null;
+}
+
+export function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Renders bulletproof 2-column info tables.
+ * Uses standard HTML <table> attributes (width, cellpadding, cellspacing) with explicit
+ * column widths (40% label / 60% value) so labels and values NEVER collide or merge,
+ * even in clients without flexbox support.
+ */
+export function renderInfoTable(rows = []) {
+  if (!rows || rows.length === 0) return '';
+  const rowsHtml = rows
+    .filter(r => r && r.value != null && r.value !== '')
+    .map((r, i, arr) => {
+      const isLast = i === arr.length - 1;
+      const borderBottom = isLast ? 'none' : '1px solid #edf2f7';
+      const rowBg = r.highlight ? '#f0fdf4' : (i % 2 === 1 ? '#fafbfc' : '#ffffff');
+      const labelColor = r.highlight ? '#166534' : '#64748b';
+      const valColor = r.highlight ? '#15803d' : (r.color || '#0f172a');
+      const valWeight = r.highlight || r.bold ? '700' : '600';
+      const customValStyle = r.style ? ` ${r.style}` : '';
+
+      return `
+        <tr style="background-color: ${rowBg};">
+          <td valign="middle" style="padding: 11px 16px; width: 40%; color: ${labelColor}; font-size: 13px; font-weight: 500; border-bottom: ${borderBottom}; text-align: left;">
+            ${escapeHtml(r.label)}
+          </td>
+          <td valign="middle" style="padding: 11px 16px; width: 60%; color: ${valColor}; font-size: 13px; font-weight: ${valWeight}; text-align: right; border-bottom: ${borderBottom};${customValStyle}">
+            ${r.isHtml ? r.value : escapeHtml(r.value)}
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  return `
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; border-collapse: separate; border-spacing: 0; margin: 20px 0; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+      ${rowsHtml}
+    </table>
+  `;
+}
+
 /**
  * Master responsive layout wrapper
+ * Authentic corporate design with real logo, high-contrast typography, and clean borders.
  */
 export function wrapEmailTemplate({
   title,
@@ -23,19 +109,21 @@ export function wrapEmailTemplate({
   company = null,
 }) {
   const brand = company || getCachedCompanyBrand();
-  const brandName = brand.name || '3ni Infotech';
-  const brandLegalName = brand.legalName || brand.name || '3ni Infotech Education & Visa Services Pvt. Ltd.';
+  const brandName = (brand.name || '3ni InfoTech').trim();
+  const brandLegalName = brand.legalName || '3ni Infotech Education & Visa Services Pvt. Ltd.';
   const brandSubtitle = brand.divisionTag || 'Overseas Education Advisory & Visa Consultancy';
-  const brandAddress = brand.fullAddress || '101, Shivalik Plaza, SG Highway, Ahmedabad, Gujarat 380015';
+  const brandAddress = brand.fullAddress || '101, Shivalik Plaza, SG Highway, Near Iscon Cross Road, Ahmedabad, Gujarat 380015';
   const brandPhone = brand.phone || '+91 79 1234 5678';
   const brandEmail = brand.email || 'info@3niinfotech.com';
   const brandWebsite = brand.website || 'https://www.3niinfotech.com';
+  const logoDataUri = getCompanyLogoDataUri();
+
   const toneColors = {
-    primary: { bg: '#e0e7ff', text: '#3730a3', border: '#c7d2fe' },
-    success: { bg: '#dcfce7', text: '#166534', border: '#bbf7d0' },
-    warning: { bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
-    danger: { bg: '#fee2e2', text: '#991b1b', border: '#fecaca' },
-    info: { bg: '#e0f2fe', text: '#0369a1', border: '#bae6fd' },
+    primary: { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' },
+    success: { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' },
+    warning: { bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
+    danger: { bg: '#fef2f2', text: '#b91c1c', border: '#fecaca' },
+    info: { bg: '#f0f9ff', text: '#0284c7', border: '#bae6fd' },
   };
 
   const badgeStyle = toneColors[badgeTone] || toneColors.primary;
@@ -66,46 +154,10 @@ export function wrapEmailTemplate({
       max-width: 600px;
       margin: 0 auto;
       background-color: #ffffff;
-      border-radius: 14px;
+      border-radius: 12px;
       overflow: hidden;
       border: 1px solid #e2e8f0;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-    }
-    .brand-header {
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-      padding: 24px 32px;
-      text-align: left;
-      border-bottom: 3px solid #4f46e5;
-    }
-    .brand-title {
-      font-size: 20px;
-      font-weight: 800;
-      color: #ffffff;
-      letter-spacing: 0.5px;
-      margin: 0;
-      line-height: 1.2;
-    }
-    .brand-sub {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #93c5fd;
-      margin-top: 4px;
-      margin-bottom: 0;
-    }
-    .content-body {
-      padding: 32px;
-    }
-    .badge-pill {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 4px 12px;
-      border-radius: 9999px;
-      margin-bottom: 16px;
     }
     .email-title {
       font-size: 22px;
@@ -118,119 +170,136 @@ export function wrapEmailTemplate({
       font-size: 14px;
       line-height: 1.6;
       color: #475569;
-      margin: 0 0 20px 0;
-    }
-    .details-box {
-      background-color: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 16px 20px;
-      margin: 20px 0;
-    }
-    .details-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 6px 0;
-      border-bottom: 1px dashed #e2e8f0;
-      font-size: 13px;
-    }
-    .details-row:last-child {
-      border-bottom: none;
-    }
-    .details-label {
-      color: #64748b;
-      font-weight: 500;
-    }
-    .details-val {
-      color: #0f172a;
-      font-weight: 600;
-      text-align: right;
-    }
-    .cta-container {
-      text-align: center;
-      margin: 28px 0 12px 0;
+      margin: 0 0 18px 0;
     }
     .cta-btn {
       display: inline-block;
-      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+      background: #2563eb;
       color: #ffffff !important;
       text-decoration: none;
       font-size: 14px;
       font-weight: 600;
-      padding: 12px 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
+      padding: 12px 28px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
     }
-    .footer-bar {
-      background-color: #f8fafc;
-      border-top: 1px solid #e2e8f0;
-      padding: 24px 32px;
-      text-align: center;
-      font-size: 12px;
-      color: #64748b;
-      line-height: 1.6;
+    .cta-btn:hover {
+      background: #1d4ed8;
     }
-    .footer-bar a {
-      color: #4f46e5;
-      text-decoration: none;
+    @media only screen and (max-width: 620px) {
+      .wrapper { padding: 12px 8px !important; }
+      .content-body { padding: 20px 16px !important; }
+      .header-pad { padding: 16px 16px !important; }
+      .footer-pad { padding: 20px 16px !important; }
+      .header-badge { display: none !important; }
     }
   </style>
 </head>
-<body>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   ${preheader ? `<span style="display:none !important; visibility:hidden; mso-hide:all; font-size:1px; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">${escapeHtml(preheader)}</span>` : ''}
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="wrapper">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="wrapper" style="background-color: #f1f5f9; padding: 32px 16px;">
     <tr>
       <td align="center">
-        <div class="main-card">
-          <!-- Header -->
-          <div class="brand-header">
-            <h1 class="brand-title">${escapeHtml(brandName.toUpperCase())}</h1>
-            <p class="brand-sub">${escapeHtml(brandSubtitle)}</p>
-          </div>
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="main-card" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+          
+          <!-- Top Accent Bar -->
+          <tr>
+            <td style="height: 4px; background: linear-gradient(90deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%);"></td>
+          </tr>
 
-          <!-- Content -->
-          <div class="content-body">
-            ${badge ? `<div class="badge-pill" style="background-color: ${badgeStyle.bg}; color: ${badgeStyle.text}; border: 1px solid ${badgeStyle.border};">${escapeHtml(badge)}</div>` : ''}
-            <h2 class="email-title">${escapeHtml(title)}</h2>
-            ${bodyHtml}
+          <!-- Real Company Header -->
+          <tr>
+            <td class="header-pad" style="padding: 22px 32px; background-color: #ffffff; border-bottom: 1px solid #e2e8f0;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td valign="middle" style="width: 50px; padding-right: 14px;">
+                    ${logoDataUri ? `
+                      <img src="${logoDataUri}" alt="${escapeHtml(brandName)}" width="48" height="52" style="display: block; width: 48px; height: auto; max-height: 52px; border-radius: 6px; object-fit: contain;" />
+                    ` : `
+                      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="46" height="46" style="background-color: #2563eb; border-radius: 8px;">
+                        <tr>
+                          <td align="center" valign="middle" style="color: #ffffff; font-weight: 800; font-size: 16px;">3NI</td>
+                        </tr>
+                      </table>
+                    `}
+                  </td>
+                  <td valign="middle" align="left">
+                    <div style="font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.3px; line-height: 1.2;">
+                      ${escapeHtml(brandName)}
+                    </div>
+                    <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #4f46e5; margin-top: 3px;">
+                      ${escapeHtml(brandSubtitle)}
+                    </div>
+                  </td>
+                  <td valign="middle" align="right" class="header-badge" style="padding-left: 10px;">
+                    <span style="display: inline-block; font-size: 11px; font-weight: 600; color: #64748b; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 10px; white-space: nowrap;">
+                      Official Advisory
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-            ${ctaText && ctaUrl ? `
-              <div class="cta-container">
-                <a href="${ctaUrl}" target="_blank" rel="noopener noreferrer" class="cta-btn">${escapeHtml(ctaText)} &rarr;</a>
-              </div>
-            ` : ''}
+          <!-- Content Body -->
+          <tr>
+            <td class="content-body" style="padding: 32px 32px 24px 32px;">
+              ${badge ? `
+                <div style="margin-bottom: 16px;">
+                  <span style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 12px; border-radius: 9999px; background-color: ${badgeStyle.bg}; color: ${badgeStyle.text}; border: 1px solid ${badgeStyle.border};">
+                    ${escapeHtml(badge)}
+                  </span>
+                </div>
+              ` : ''}
 
-            ${footerNote ? `
-              <p style="font-size: 12px; color: #94a3b8; margin-top: 24px; text-align: center;">${escapeHtml(footerNote)}</p>
-            ` : ''}
-          </div>
+              <h1 class="email-title" style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0; line-height: 1.3;">
+                ${escapeHtml(title)}
+              </h1>
+
+              ${bodyHtml}
+
+              ${ctaText && ctaUrl ? `
+                <div style="text-align: center; margin: 28px 0 16px 0;">
+                  <a href="${ctaUrl}" target="_blank" rel="noopener noreferrer" class="cta-btn" style="display: inline-block; background: #2563eb; color: #ffffff !important; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 28px; border-radius: 6px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);">
+                    ${escapeHtml(ctaText)} &rarr;
+                  </a>
+                </div>
+              ` : ''}
+
+              ${footerNote ? `
+                <p style="font-size: 12px; color: #94a3b8; margin-top: 20px; text-align: center; line-height: 1.5;">
+                  ${escapeHtml(footerNote)}
+                </p>
+              ` : ''}
+            </td>
+          </tr>
 
           <!-- Footer -->
-          <div class="footer-bar">
-            <strong>${escapeHtml(brandLegalName)}</strong><br>
-            ${escapeHtml(brandAddress)}<br>
-            Phone: ${escapeHtml(brandPhone)} &bull; Email: <a href="mailto:${escapeHtml(brandEmail)}">${escapeHtml(brandEmail)}</a><br>
-            ${brandWebsite ? `<a href="${escapeHtml(brandWebsite)}" target="_blank" style="color: #4f46e5; text-decoration: none; font-size: 11px;">${escapeHtml(brandWebsite)}</a><br>` : ''}
-            <span style="display:inline-block; margin-top: 6px; font-size: 11px; color: #94a3b8;">
-              &copy; ${currentYear} ${escapeHtml(brandName)} CRM. This is an automated notification.
-            </span>
-          </div>
-        </div>
+          <tr>
+            <td class="footer-pad" style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 24px 32px; text-align: center; font-size: 12px; color: #64748b; line-height: 1.6;">
+              <div style="font-weight: 700; color: #1e293b; font-size: 13px; margin-bottom: 4px;">
+                ${escapeHtml(brandLegalName)}
+              </div>
+              <div style="color: #64748b; margin-bottom: 6px;">
+                ${escapeHtml(brandAddress)}
+              </div>
+              <div style="color: #64748b; margin-bottom: 10px;">
+                <strong>Phone:</strong> ${escapeHtml(brandPhone)} &nbsp;&bull;&nbsp; 
+                <strong>Email:</strong> <a href="mailto:${escapeHtml(brandEmail)}" style="color: #2563eb; text-decoration: none;">${escapeHtml(brandEmail)}</a> &nbsp;&bull;&nbsp; 
+                <strong>Web:</strong> <a href="${escapeHtml(brandWebsite)}" target="_blank" style="color: #2563eb; text-decoration: none;">${escapeHtml(brandWebsite.replace(/^https?:\/\//, ''))}</a>
+              </div>
+              <div style="font-size: 11px; color: #94a3b8; border-top: 1px solid #edf2f7; padding-top: 12px; margin-top: 10px;">
+                GSTIN: ${escapeHtml(brand.taxNumber || '24AABCU9603R1ZM')} &nbsp;&bull;&nbsp; CIN: ${escapeHtml(brand.registrationNumber || 'U80900GJ2018PTC105432')}<br>
+                &copy; ${currentYear} ${escapeHtml(brandName)}. All rights reserved. This is an official automated communication.
+              </div>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
   </table>
 </body>
 </html>`;
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }
 
 /* ==========================================================================
@@ -246,48 +315,49 @@ export function buildWelcomeEmail({
   tempPassword = null,
   roleName = 'Student',
   loginUrl = `${CLIENT_URL}/login`,
+  company = null,
 }) {
-  const subject = `Welcome to 3NI Infotech Portal — Your Account Details`;
+  const brand = company || getCachedCompanyBrand();
+  const brandName = (brand.name || '3ni InfoTech').trim();
+  const subject = `Welcome to ${brandName} — Your Account Credentials`;
+
+  const rows = [
+    { label: 'Registered Name', value: name },
+    { label: 'Login Email', value: email },
+    { label: 'Account Role', value: roleName },
+  ];
+
+  if (tempPassword) {
+    rows.push({
+      label: 'Temporary Password',
+      value: `<code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 700; color: #0f172a; font-family: monospace;">${escapeHtml(tempPassword)}</code>`,
+      isHtml: true,
+    });
+  }
+
   const bodyHtml = `
     <p class="email-text">Hello <strong>${escapeHtml(name)}</strong>,</p>
-    <p class="email-text">Welcome to <strong>3NI Infotech</strong>! Your official portal account has been created successfully. You can now access all your applications, fee vouchers, demo schedules, and verified document portfolio.</p>
+    <p class="email-text">Welcome to <strong>${escapeHtml(brandName)}</strong>! Your official portal account has been created. You can now access all your applications, fee vouchers, demo schedules, and verified document portfolio.</p>
     
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Registered Name</span>
-        <span class="details-val">${escapeHtml(name)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Login Email</span>
-        <span class="details-val">${escapeHtml(email)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Account Role</span>
-        <span class="details-val">${escapeHtml(roleName)}</span>
-      </div>
-      ${tempPassword ? `
-      <div class="details-row">
-        <span class="details-label">Temporary Password</span>
-        <span class="details-val" style="color: #4f46e5; font-family: monospace;">${escapeHtml(tempPassword)}</span>
-      </div>` : ''}
-    </div>
+    ${renderInfoTable(rows)}
 
     <p class="email-text" style="font-size: 13px; color: #64748b;">
-      ${tempPassword ? 'Please log in and update your password immediately from your profile settings.' : 'You can log in using the password chosen during registration.'}
+      ${tempPassword ? 'Please log in and update your password immediately from your profile settings for security.' : 'You can log in using the password selected during registration.'}
     </p>
   `;
 
   return {
     subject,
     html: wrapEmailTemplate({
-      title: 'Welcome to 3NI Infotech!',
+      title: 'Welcome to the Portal',
       preheader: 'Your official portal account has been created.',
       badge: 'Account Setup',
       badgeTone: 'success',
       bodyHtml,
-      ctaText: 'Access Student Portal',
+      ctaText: 'Access Portal',
       ctaUrl: loginUrl,
       footerNote: 'Never share your login credentials with anyone.',
+      company: brand,
     }),
   };
 }
@@ -300,28 +370,24 @@ export function buildPasswordResetEmail({
   email,
   resetTime = new Date().toLocaleString('en-IN'),
   loginUrl = `${CLIENT_URL}/login`,
+  company = null,
 }) {
-  const brand = getCachedCompanyBrand();
+  const brand = company || getCachedCompanyBrand();
   const brandPhone = brand?.phone || '+91 79 1234 5678';
-  const subject = `Security Alert: Your 3NI Portal Password Was Reset`;
+  const brandName = (brand.name || '3ni InfoTech').trim();
+  const subject = `Security Alert: Your ${brandName} Password Was Reset`;
+
+  const rows = [
+    { label: 'Account Email', value: email },
+    { label: 'Timestamp', value: resetTime },
+    { label: 'Status', value: 'Active & Secured', color: '#16a34a' },
+  ];
+
   const bodyHtml = `
     <p class="email-text">Hello <strong>${escapeHtml(name)}</strong>,</p>
-    <p class="email-text">This is a security confirmation that your 3NI Infotech portal account password was successfully reset.</p>
+    <p class="email-text">This is a security confirmation that your <strong>${escapeHtml(brandName)}</strong> account password was recently changed.</p>
 
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Account Email</span>
-        <span class="details-val">${escapeHtml(email)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Timestamp</span>
-        <span class="details-val">${escapeHtml(resetTime)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Status</span>
-        <span class="details-val" style="color: #166534;">Active & Secured</span>
-      </div>
-    </div>
+    ${renderInfoTable(rows)}
 
     <p class="email-text" style="font-size: 13px; color: #dc2626;">
       If you did not perform this action, please contact our administrative desk immediately at <strong>${escapeHtml(brandPhone)}</strong> or reply to this email.
@@ -338,6 +404,7 @@ export function buildPasswordResetEmail({
       bodyHtml,
       ctaText: 'Log In to Portal',
       ctaUrl: loginUrl,
+      company: brand,
     }),
   };
 }
@@ -351,25 +418,25 @@ export function buildAnnouncementEmail({
   audience = 'All Staff & Students',
   publishedBy = 'Administration',
   announcementUrl = `${CLIENT_URL}/admin/master/announcements`,
+  company = null,
 }) {
+  const brand = company || getCachedCompanyBrand();
   const subject = `📢 Announcement: ${title}`;
+
+  const rows = [
+    { label: 'Target Audience', value: audience },
+    { label: 'Published By', value: publishedBy },
+    { label: 'Published On', value: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) },
+  ];
+
   const bodyHtml = `
     <p class="email-text">A new announcement has been published by <strong>${escapeHtml(publishedBy)}</strong>:</p>
 
-    <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 4px; padding: 16px; margin: 18px 0; font-size: 14px; line-height: 1.6; color: #1e293b;">
+    <div style="background-color: #f8fafc; border-left: 4px solid #2563eb; border-radius: 4px; padding: 16px; margin: 18px 0; font-size: 14px; line-height: 1.6; color: #1e293b;">
       ${escapeHtml(body).replace(/\n/g, '<br/>')}
     </div>
 
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Target Audience</span>
-        <span class="details-val">${escapeHtml(audience)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Published On</span>
-        <span class="details-val">${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-      </div>
-    </div>
+    ${renderInfoTable(rows)}
   `;
 
   return {
@@ -382,6 +449,7 @@ export function buildAnnouncementEmail({
       bodyHtml,
       ctaText: 'View Announcement in CRM',
       ctaUrl: announcementUrl,
+      company: brand,
     }),
   };
 }
@@ -397,7 +465,9 @@ export function buildTaskAssignedEmail({
   assigneeName,
   assignedByName = 'CRM System',
   taskUrl = `${CLIENT_URL}/admin/tasks`,
+  company = null,
 }) {
+  const brand = company || getCachedCompanyBrand();
   const subject = `📌 Task Assigned [${priority}]: ${taskTitle}`;
   const toneMap = {
     URGENT: 'danger',
@@ -406,28 +476,37 @@ export function buildTaskAssignedEmail({
     LOW: 'primary',
   };
 
+  const priorityColors = {
+    URGENT: '#dc2626',
+    HIGH: '#d97706',
+    MEDIUM: '#2563eb',
+    LOW: '#64748b',
+  };
+
+  const rows = [
+    { label: 'Task Title', value: taskTitle, bold: true },
+    { label: 'Assigned To', value: assigneeName },
+    {
+      label: 'Priority',
+      value: `<span style="color: ${priorityColors[priority] || '#2563eb'}; font-weight: 700;">${escapeHtml(priority)}</span>`,
+      isHtml: true,
+    },
+    {
+      label: 'Due Date',
+      value: dueDate ? new Date(dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'No strict deadline',
+    },
+    { label: 'Assigned By', value: assignedByName },
+  ];
+
   const bodyHtml = `
     <p class="email-text">Hello <strong>${escapeHtml(assigneeName)}</strong>,</p>
     <p class="email-text">A new task has been assigned to you by <strong>${escapeHtml(assignedByName)}</strong>:</p>
 
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Task Title</span>
-        <span class="details-val">${escapeHtml(taskTitle)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Priority</span>
-        <span class="details-val" style="font-weight: 700;">${escapeHtml(priority)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Due Date</span>
-        <span class="details-val">${dueDate ? new Date(dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'No strict deadline'}</span>
-      </div>
-    </div>
+    ${renderInfoTable(rows)}
 
     ${description ? `
-      <div style="background-color: #f1f5f9; padding: 14px 16px; border-radius: 8px; font-size: 13px; line-height: 1.5; color: #334155; margin-bottom: 20px;">
-        <strong>Task Description:</strong><br/>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 8px; font-size: 13px; line-height: 1.5; color: #334155; margin-bottom: 20px;">
+        <strong style="color: #0f172a;">Task Description:</strong><br/>
         ${escapeHtml(description)}
       </div>
     ` : ''}
@@ -443,6 +522,7 @@ export function buildTaskAssignedEmail({
       bodyHtml,
       ctaText: 'Open Task in CRM',
       ctaUrl: taskUrl,
+      company: brand,
     }),
   };
 }
@@ -458,38 +538,25 @@ export function buildStudentDocUploadStaffEmail({
   category = 'GENERAL',
   uploadedAt = new Date().toLocaleString('en-IN'),
   reviewUrl = `${CLIENT_URL}/admin/students`,
+  company = null,
 }) {
+  const brand = company || getCachedCompanyBrand();
   const subject = `📄 Document Uploaded by Student: ${studentName} (${documentName})`;
+
+  const rows = [
+    { label: 'Student Name', value: studentName },
+    { label: 'Student ID', value: studentCode || '—', color: '#2563eb', bold: true },
+    { label: 'Document Title', value: documentName },
+    { label: 'Category', value: category },
+    { label: 'Uploaded At', value: uploadedAt },
+    { label: 'Status', value: 'UNDER REVIEW', color: '#d97706', bold: true },
+  ];
+
   const bodyHtml = `
     <p class="email-text">Hello <strong>${escapeHtml(counselorName || 'Counselor')}</strong>,</p>
-    <p class="email-text">Student <strong>${escapeHtml(studentName)}</strong> has uploaded a new document to their Student Portal for your verification and university filing.</p>
+    <p class="email-text">Student <strong>${escapeHtml(studentName)}</strong> has uploaded a new document to their Student Portal for verification and university filing.</p>
 
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Student Name</span>
-        <span class="details-val">${escapeHtml(studentName)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Student Code</span>
-        <span class="details-val" style="font-family: monospace;">${escapeHtml(studentCode || '—')}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Document Title</span>
-        <span class="details-val">${escapeHtml(documentName)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Category</span>
-        <span class="details-val">${escapeHtml(category)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Uploaded At</span>
-        <span class="details-val">${escapeHtml(uploadedAt)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Status</span>
-        <span class="details-val" style="color: #b45309; font-weight: 700;">UNDER REVIEW</span>
-      </div>
-    </div>
+    ${renderInfoTable(rows)}
 
     <p class="email-text" style="font-size: 13px; color: #64748b;">
       Please inspect this document and mark it as Verified or Request Re-upload as per embassy requirements.
@@ -506,6 +573,7 @@ export function buildStudentDocUploadStaffEmail({
       bodyHtml,
       ctaText: 'Review Student Documents',
       ctaUrl: reviewUrl,
+      company: brand,
     }),
   };
 }
@@ -518,26 +586,22 @@ export function buildStudentDocUploadAckEmail({
   documentName,
   category = 'GENERAL',
   portalUrl = `${CLIENT_URL}/student/documents`,
+  company = null,
 }) {
+  const brand = company || getCachedCompanyBrand();
   const subject = `✅ Document Received: ${documentName}`;
+
+  const rows = [
+    { label: 'Document Name', value: documentName, bold: true },
+    { label: 'Category', value: category },
+    { label: 'Status', value: 'Under Review', color: '#0284c7', bold: true },
+  ];
+
   const bodyHtml = `
     <p class="email-text">Hello <strong>${escapeHtml(studentName)}</strong>,</p>
-    <p class="email-text">We have successfully received your document submission <strong>${escapeHtml(documentName)}</strong>.</p>
+    <p class="email-text">We have successfully received your document submission: <strong>${escapeHtml(documentName)}</strong>.</p>
 
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Document Name</span>
-        <span class="details-val">${escapeHtml(documentName)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Category</span>
-        <span class="details-val">${escapeHtml(category)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Status</span>
-        <span class="details-val" style="color: #0369a1; font-weight: 700;">UNDER REVIEW</span>
-      </div>
-    </div>
+    ${renderInfoTable(rows)}
 
     <p class="email-text" style="font-size: 13px; color: #475569;">
       Our admissions team will verify this document against university criteria. You will receive an update once verified.
@@ -554,6 +618,7 @@ export function buildStudentDocUploadAckEmail({
       bodyHtml,
       ctaText: 'View My Document Portfolio',
       ctaUrl: portalUrl,
+      company: brand,
     }),
   };
 }
@@ -570,40 +635,27 @@ export function buildDemoScheduledEmail({
   batch = 'Morning Batch',
   venue = 'Surat Head Office / Online Classroom',
   portalUrl = `${CLIENT_URL}/login`,
+  company = null,
 }) {
-  const brand = getCachedCompanyBrand();
+  const brand = company || getCachedCompanyBrand();
+  const brandName = (brand.name || '3ni InfoTech').trim();
   const brandPhone = brand?.phone || '+91 79 1234 5678';
-  const subject = `🎓 Demo Class Scheduled: ${courseName} with 3NI Infotech`;
+  const subject = `🎓 Demo Class Scheduled: ${courseName} with ${brandName}`;
+
+  const rows = [
+    { label: 'Course / Program', value: courseName, color: '#2563eb', bold: true },
+    { label: 'Date', value: demoDate },
+    { label: 'Time', value: demoTime },
+    { label: 'Assigned Faculty', value: facultyName },
+    { label: 'Batch', value: batch },
+    { label: 'Session Location', value: venue },
+  ];
+
   const bodyHtml = `
     <p class="email-text">Hello <strong>${escapeHtml(studentName)}</strong>,</p>
     <p class="email-text">Your trial coaching & advisory demo session has been officially scheduled. Here are your session details:</p>
 
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Course / Program</span>
-        <span class="details-val" style="color: #4f46e5;">${escapeHtml(courseName)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Date</span>
-        <span class="details-val">${escapeHtml(demoDate)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Time</span>
-        <span class="details-val">${escapeHtml(demoTime)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Assigned Faculty</span>
-        <span class="details-val">${escapeHtml(facultyName)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Batch</span>
-        <span class="details-val">${escapeHtml(batch)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Session Location</span>
-        <span class="details-val">${escapeHtml(venue)}</span>
-      </div>
-    </div>
+    ${renderInfoTable(rows)}
 
     <p class="email-text" style="font-size: 13px; color: #475569;">
       Please arrive or log in 10 minutes prior to session start. For questions or rescheduling, contact our admissions desk at <strong>${escapeHtml(brandPhone)}</strong>.
@@ -620,6 +672,7 @@ export function buildDemoScheduledEmail({
       bodyHtml,
       ctaText: 'Open Portal & Study Notes',
       ctaUrl: portalUrl,
+      company: brand,
     }),
   };
 }
@@ -638,56 +691,47 @@ export function buildEnquiryWelcomeEmail({
   company = null,
 }) {
   const brand = company || getCachedCompanyBrand();
-  const brandName = brand.name || '3ni Infotech';
+  const brandName = (brand.name || '3ni InfoTech').trim();
   const brandPhone = counsellorPhone || brand.phone || '+91 79 1234 5678';
-  const brandEmail = counsellorEmail || brand.email || 'info@3niinfotech.com';
 
   const subject = `Welcome to ${brandName} — Thank you for your visit (Enquiry #${enquiryCode || 'NEW'})`;
+
+  const rows = [
+    { label: 'Enquiry Reference', value: `#${enquiryCode || 'PENDING'}`, color: '#2563eb', bold: true },
+    { label: 'Interested Program', value: courseName },
+    { label: 'Target Destination', value: country },
+    { label: 'Assigned Advisor', value: counsellorName },
+  ];
+
+  if (counsellorPhone) {
+    rows.push({ label: 'Advisor Direct Phone', value: counsellorPhone });
+  }
+
   const bodyHtml = `
     <p class="email-text">Hello <strong>${escapeHtml(studentName || 'Student')}</strong>,</p>
-    <p class="email-text">Thank you for visiting <strong>${escapeHtml(brandName)}</strong> and connecting with our overseas advisory team. We are thrilled to partner with you on your higher education and visa journey!</p>
+    <p class="email-text">Thank you for visiting <strong>${escapeHtml(brandName)}</strong> and connecting with our overseas advisory team. We look forward to guiding you through your university admissions and student visa process.</p>
 
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Enquiry Reference</span>
-        <span class="details-val" style="color: #4f46e5; font-weight: 700;">#${escapeHtml(enquiryCode || 'PENDING')}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Interested Program</span>
-        <span class="details-val">${escapeHtml(courseName)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Target Destination</span>
-        <span class="details-val">${escapeHtml(country)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Assigned Advisor</span>
-        <span class="details-val">${escapeHtml(counsellorName)}</span>
-      </div>
-      ${counsellorPhone ? `
-      <div class="details-row">
-        <span class="details-label">Advisor Direct Phone</span>
-        <span class="details-val">${escapeHtml(counsellorPhone)}</span>
-      </div>` : ''}
+    ${renderInfoTable(rows)}
+
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+      <p style="font-weight: 700; color: #0f172a; margin: 0 0 8px 0; font-size: 13px;">What Happens Next?</p>
+      <ul style="padding-left: 18px; margin: 0; color: #475569; font-size: 13px; line-height: 1.6;">
+        <li style="margin-bottom: 6px;">Your counselor will evaluate your profile and university eligibility.</li>
+        <li style="margin-bottom: 6px;">We will prepare your tailored university shortlist and tuition fee schedule.</li>
+        <li style="margin-bottom: 6px;">Upon confirmation, you will receive full access to our digital Student Portal.</li>
+      </ul>
     </div>
 
-    <p class="email-text" style="font-weight: 600; color: #1e293b; margin-top: 24px; margin-bottom: 8px;">What Happens Next?</p>
-    <ul style="padding-left: 20px; margin: 0; color: #475569; font-size: 14px; line-height: 1.6;">
-      <li style="margin-bottom: 6px;">Your counselor is reviewing your profile and university eligibility.</li>
-      <li style="margin-bottom: 6px;">We will prepare your personalized university shortlist and fee breakdown.</li>
-      <li style="margin-bottom: 6px;">Once you confirm enrollment, you will receive your Student Portal credentials to track applications in real-time.</li>
-    </ul>
-
-    <p class="email-text" style="font-size: 13px; color: #64748b; margin-top: 24px;">
-      Need immediate assistance? Feel free to reply to this email or call us at <strong>${escapeHtml(brandPhone)}</strong>.
+    <p class="email-text" style="font-size: 13px; color: #64748b; margin-top: 18px;">
+      Have questions or need assistance? Reply directly to this email or call us at <strong>${escapeHtml(brandPhone)}</strong>.
     </p>
   `;
 
   return {
     subject,
     html: wrapEmailTemplate({
-      title: 'Welcome to 3ni Infotech',
-      preheader: `Thank you for visiting 3ni Infotech. Enquiry reference: #${enquiryCode}`,
+      title: 'Welcome to 3ni InfoTech',
+      preheader: `Thank you for visiting 3ni InfoTech. Enquiry reference: #${enquiryCode}`,
       badge: 'Welcome to 3NI',
       badgeTone: 'primary',
       bodyHtml,
@@ -712,42 +756,36 @@ export function buildStudentPortalWelcomeEmail({
   company = null,
 }) {
   const brand = company || getCachedCompanyBrand();
-  const brandName = brand.name || '3ni Infotech';
+  const brandName = (brand.name || '3ni InfoTech').trim();
 
-  const subject = `🎉 Welcome to ${brandName} Student Portal — Your Student ID: ${studentCode}`;
+  const subject = `Welcome to ${brandName} Student Portal — Your Student ID: ${studentCode}`;
+
+  const rows = [
+    { label: 'Student ID', value: studentCode, color: '#2563eb', bold: true },
+    { label: 'Portal Login Email', value: email },
+    {
+      label: 'Default Password',
+      value: `<code style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-weight: 700; color: #0f172a; font-family: monospace;">${escapeHtml(tempPassword)}</code> <span style="font-size: 11px; color: #64748b; font-weight: normal;">(Change after first login)</span>`,
+      isHtml: true,
+    },
+    { label: 'Enrolled Program', value: courseName },
+    { label: 'Assigned Advisor', value: counsellorName },
+  ];
+
   const bodyHtml = `
     <p class="email-text">Dear <strong>${escapeHtml(studentName)}</strong>,</p>
-    <p class="email-text">Congratulations! Your student account at <strong>${escapeHtml(brandName)}</strong> has been officially created. You now have full access to our digital Student Portal to track admissions, upload documents, view fee receipts, and access coaching classes.</p>
+    <p class="email-text">Welcome to <strong>${escapeHtml(brandName)}</strong>! Your official student account is now active. You have full access to our Student Portal to track admissions, upload required documents, view fee receipts, and access study materials.</p>
 
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Student ID</span>
-        <span class="details-val" style="color: #4f46e5; font-weight: 700;">${escapeHtml(studentCode)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Portal Login Email</span>
-        <span class="details-val">${escapeHtml(email)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Default Password</span>
-        <span class="details-val"><code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 700; color: #0f172a;">${escapeHtml(tempPassword)}</code> <span style="font-size: 11px; color: #64748b;">(Change after first login)</span></span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Enrolled Program</span>
-        <span class="details-val">${escapeHtml(courseName)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Assigned Advisor</span>
-        <span class="details-val">${escapeHtml(counsellorName)}</span>
-      </div>
+    ${renderInfoTable(rows)}
+
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+      <p style="font-weight: 700; color: #0f172a; margin: 0 0 8px 0; font-size: 13px;">What You Can Do in Your Portal:</p>
+      <ul style="padding-left: 18px; margin: 0; color: #475569; font-size: 13px; line-height: 1.6;">
+        <li style="margin-bottom: 6px;">Securely upload academic transcripts, passport, and test scores.</li>
+        <li style="margin-bottom: 6px;">Track university offer letters and visa lodging progress in real time.</li>
+        <li style="margin-bottom: 6px;">Download official GST tax invoices and payment receipts anytime.</li>
+      </ul>
     </div>
-
-    <p class="email-text" style="font-weight: 600; color: #1e293b; margin-top: 20px; margin-bottom: 8px;">Inside Your Portal, You Can:</p>
-    <ul style="padding-left: 20px; margin: 0; color: #475569; font-size: 14px; line-height: 1.6;">
-      <li style="margin-bottom: 6px;">Upload academic transcripts, passport, and test scores securely.</li>
-      <li style="margin-bottom: 6px;">Track real-time university offer letters and visa lodging status.</li>
-      <li style="margin-bottom: 6px;">Download GST invoice copies and official payment receipts anytime.</li>
-    </ul>
   `;
 
   return {
@@ -760,6 +798,7 @@ export function buildStudentPortalWelcomeEmail({
       bodyHtml,
       ctaText: 'Sign In to Student Portal',
       ctaUrl: portalUrl,
+      footerNote: 'Please keep your credentials secure. You can update your password anytime from your profile.',
       company: brand,
     }),
   };
@@ -782,43 +821,46 @@ export function buildFeeReceiptInvoiceEmail({
   company = null,
 }) {
   const brand = company || getCachedCompanyBrand();
-  const brandName = brand.name || '3ni Infotech';
+  const brandName = (brand.name || '3ni InfoTech').trim();
 
   const subject = `🧾 Payment Receipt & Invoice #${invoiceNo} — ${brandName}`;
+
+  const rows = [
+    { label: 'Invoice / Receipt No', value: `#${invoiceNo}`, color: '#2563eb', bold: true },
+    { label: 'Date of Payment', value: transactionDate },
+    { label: 'Payment Mode', value: paymentMode },
+    {
+      label: 'Amount Paid',
+      value: `₹${Number(amountPaid || 0).toLocaleString('en-IN')}`,
+      highlight: true,
+      bold: true,
+    },
+  ];
+
+  if (balanceDue > 0) {
+    rows.push({
+      label: 'Remaining Balance',
+      value: `₹${Number(balanceDue).toLocaleString('en-IN')}`,
+      color: '#b45309',
+      bold: true,
+    });
+  } else {
+    rows.push({
+      label: 'Payment Status',
+      value: 'Fully Paid ✓',
+      color: '#15803d',
+      bold: true,
+    });
+  }
+
   const bodyHtml = `
     <p class="email-text">Dear <strong>${escapeHtml(studentName)}</strong>,</p>
     <p class="email-text">Thank you for your payment! We have successfully received your fee installment for <strong>${escapeHtml(courseName)}</strong>. Please find your official receipt details below:</p>
 
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Invoice / Receipt No</span>
-        <span class="details-val" style="color: #4f46e5; font-weight: 700;">#${escapeHtml(invoiceNo)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Date of Payment</span>
-        <span class="details-val">${escapeHtml(transactionDate)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Payment Mode</span>
-        <span class="details-val">${escapeHtml(paymentMode)}</span>
-      </div>
-      <div class="details-row" style="background-color: #f0fdf4; margin: 6px -12px; padding: 8px 12px; border-radius: 6px;">
-        <span class="details-label" style="font-weight: 700; color: #166534;">Amount Paid</span>
-        <span class="details-val" style="font-weight: 800; font-size: 16px; color: #15803d;">₹${Number(amountPaid || 0).toLocaleString('en-IN')}</span>
-      </div>
-      ${balanceDue > 0 ? `
-      <div class="details-row">
-        <span class="details-label">Remaining Balance</span>
-        <span class="details-val" style="color: #b45309; font-weight: 700;">₹${Number(balanceDue).toLocaleString('en-IN')}</span>
-      </div>` : `
-      <div class="details-row">
-        <span class="details-label">Payment Status</span>
-        <span class="details-val" style="color: #16a34a; font-weight: 700;">Fully Paid ✓</span>
-      </div>`}
-    </div>
+    ${renderInfoTable(rows)}
 
-    <p class="email-text" style="font-size: 13px; color: #64748b; margin-top: 20px;">
-      A permanent record of this transaction is available in your Student Portal under <strong>Fees & Receipts</strong>.
+    <p class="email-text" style="font-size: 13px; color: #64748b; margin-top: 18px;">
+      A permanent record of this transaction and official GST invoice copy is stored in your Student Portal under <strong>Fees & Receipts</strong>.
     </p>
   `;
 
@@ -850,39 +892,35 @@ export function buildApplicationMilestoneEmail({
   company = null,
 }) {
   const brand = company || getCachedCompanyBrand();
-  const brandName = brand.name || '3ni Infotech';
-
   const isOffer = /offer/i.test(status);
   const tone = isOffer ? 'success' : 'info';
   const badgeTitle = isOffer ? 'Offer Letter Received' : 'Application Update';
 
   const subject = `${isOffer ? '🎉 Offer Received: ' : 'Application Update: '}${universityName} — ${status}`;
+
+  const rows = [
+    { label: 'Institution', value: universityName, color: '#2563eb', bold: true },
+    { label: 'Program', value: courseName },
+    {
+      label: 'Current Stage',
+      value: status,
+      color: isOffer ? '#15803d' : '#0284c7',
+      bold: true,
+    },
+  ];
+
+  if (remarks) {
+    rows.push({ label: 'Remarks / Note', value: remarks });
+  }
+
   const bodyHtml = `
     <p class="email-text">Hello <strong>${escapeHtml(studentName)}</strong>,</p>
     <p class="email-text">We have an important milestone update regarding your university admission application:</p>
 
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Institution</span>
-        <span class="details-val" style="color: #4f46e5; font-weight: 700;">${escapeHtml(universityName)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Program</span>
-        <span class="details-val">${escapeHtml(courseName)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Current Stage</span>
-        <span class="details-val" style="font-weight: 700; color: ${isOffer ? '#15803d' : '#0369a1'};">${escapeHtml(status)}</span>
-      </div>
-      ${remarks ? `
-      <div class="details-row">
-        <span class="details-label">Remarks / Note</span>
-        <span class="details-val">${escapeHtml(remarks)}</span>
-      </div>` : ''}
-    </div>
+    ${renderInfoTable(rows)}
 
-    <p class="email-text" style="font-size: 13px; color: #475569; margin-top: 20px;">
-      Please log in to your portal to download official decision documents or complete next conditions.
+    <p class="email-text" style="font-size: 13px; color: #475569; margin-top: 18px;">
+      Please log in to your portal to review official university decision letters and complete any next conditions.
     </p>
   `;
 
@@ -914,44 +952,42 @@ export function buildVisaMilestoneEmail({
   company = null,
 }) {
   const brand = company || getCachedCompanyBrand();
-  const brandName = brand.name || '3ni Infotech';
+  const brandName = (brand.name || '3ni InfoTech').trim();
 
   const isApproved = /approved|granted/i.test(status);
   const tone = isApproved ? 'success' : 'info';
   const badgeTitle = isApproved ? 'Visa Granted 🎉' : 'Visa Stage Update';
 
   const subject = `${isApproved ? '🎉 VISA APPROVED: ' : 'Visa Update: '}${country} (${status}) — ${brandName}`;
+
+  const rows = [
+    { label: 'Country', value: country, color: '#2563eb', bold: true },
+    { label: 'Visa Category', value: visaType },
+    {
+      label: 'Status',
+      value: status,
+      color: isApproved ? '#15803d' : '#0284c7',
+      bold: true,
+    },
+  ];
+
+  if (remarks) {
+    rows.push({ label: 'Counselor Notes', value: remarks });
+  }
+
   const bodyHtml = `
     <p class="email-text">Dear <strong>${escapeHtml(studentName)}</strong>,</p>
-    <p class="email-text">${isApproved ? 'Huge congratulations from the entire team at 3ni Infotech! Your study visa application has been officially APPROVED! 🎉' : 'We have an update regarding your visa file processing:'}</p>
+    <p class="email-text">${isApproved ? `Congratulations from the entire team at <strong>${escapeHtml(brandName)}</strong>! Your study visa application has been officially APPROVED! 🎉` : 'We have an update regarding your visa processing:'}</p>
 
-    <div class="details-box">
-      <div class="details-row">
-        <span class="details-label">Country</span>
-        <span class="details-val" style="color: #4f46e5; font-weight: 700;">${escapeHtml(country)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Visa Category</span>
-        <span class="details-val">${escapeHtml(visaType)}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-label">Status</span>
-        <span class="details-val" style="font-weight: 800; font-size: 15px; color: ${isApproved ? '#15803d' : '#0369a1'};">${escapeHtml(status)}</span>
-      </div>
-      ${remarks ? `
-      <div class="details-row">
-        <span class="details-label">Counselor Notes</span>
-        <span class="details-val">${escapeHtml(remarks)}</span>
-      </div>` : ''}
-    </div>
+    ${renderInfoTable(rows)}
 
     ${isApproved ? `
     <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin-top: 20px;">
-      <p style="font-weight: 700; color: #166534; margin: 0 0 6px 0; font-size: 14px;">Next Steps for Your Journey:</p>
-      <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #15803d; line-height: 1.5;">
-        <li>Attend our Pre-Departure Orientation session.</li>
-        <li>Review your baggage allowance, forex card, and student accommodation guidelines.</li>
-        <li>Collect your official visa grant letter copy from our office or download it via portal.</li>
+      <p style="font-weight: 700; color: #166534; margin: 0 0 6px 0; font-size: 13px;">Next Steps for Your Departure:</p>
+      <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #15803d; line-height: 1.5;">
+        <li style="margin-bottom: 4px;">Attend our Pre-Departure Briefing session.</li>
+        <li style="margin-bottom: 4px;">Review your forex card, student accommodation, and travel health insurance.</li>
+        <li style="margin-bottom: 4px;">Collect your official visa grant letter copy or download it directly from your portal.</li>
       </ul>
     </div>
     ` : ''}

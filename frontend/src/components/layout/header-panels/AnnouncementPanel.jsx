@@ -74,8 +74,8 @@ export default function AnnouncementPanel({ onClose }) {
   const roleLabel = user?.role?.name || user?.role?.slug || 'your role';
 
   return (
-    <div>
-      <div className="crm-ann-panel__summary">
+    <div className="flex flex-col h-full min-h-0 flex-1 overflow-hidden bg-card text-text">
+      <div className="crm-ann-panel__summary shrink-0 z-10">
         <div className="crm-ann-panel__stats">
           <span className="crm-ann-panel__stat">
             <strong>{items.length}</strong>
@@ -105,7 +105,7 @@ export default function AnnouncementPanel({ onClose }) {
         )}
       </div>
 
-      <p className="px-4 py-1.5 text-[10px] text-text-muted border-b border-border/60">
+      <p className="px-4 py-1.5 text-[10px] text-text-muted border-b border-border/60 shrink-0 z-10">
         Showing announcements for
         {' '}
         <span className="font-semibold text-text-secondary">{roleLabel}</span>

@@ -205,8 +205,8 @@ export default function NotificationPanel({ onClose, compact = false }) {
   };
 
   return (
-    <div className={compact ? '' : 'space-y-4'}>
-      <div className="px-4 pt-3 pb-2 border-b border-border bg-gradient-to-b from-brand-soft/40 to-page/30">
+    <div className="flex flex-col h-full min-h-0 flex-1 overflow-hidden bg-card text-text">
+      <div className="shrink-0 px-4 pt-3 pb-2 border-b border-border bg-gradient-to-b from-brand-soft/40 to-page/30 z-10">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[12px] text-text-secondary">
             <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-md bg-brand text-white text-[11px] font-bold tabular-nums mr-1.5">
@@ -225,7 +225,7 @@ export default function NotificationPanel({ onClose, compact = false }) {
         </div>
       </div>
 
-      <div className="px-2 py-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2">
         {loading && !list.length ? (
           <p className="text-sm text-text-muted py-8 text-center">Loading notifications…</p>
         ) : list.length === 0 ? (
@@ -239,7 +239,7 @@ export default function NotificationPanel({ onClose, compact = false }) {
             </p>
           </div>
         ) : (
-          <ul className="space-y-1 max-h-[340px] overflow-y-auto no-scrollbar">
+          <ul className="space-y-1">
             {list.map((item) => {
               const tone = resolveTone(item);
               const Icon = tone.Icon;
@@ -287,7 +287,7 @@ export default function NotificationPanel({ onClose, compact = false }) {
       </div>
 
       {list.length > 0 && (
-        <div className="px-3 py-2.5 border-t border-border bg-page/30 flex gap-2">
+        <div className="shrink-0 px-3 py-2.5 border-t border-border bg-card shadow-sm flex gap-2 z-10">
           <button
             type="button"
             className="flex-1 h-9 rounded-lg border border-border text-[12px] font-semibold text-text hover:bg-row-hover transition-colors"

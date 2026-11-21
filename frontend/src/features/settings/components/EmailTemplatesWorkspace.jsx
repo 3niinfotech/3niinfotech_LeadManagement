@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FiMail,
   FiSend,
@@ -17,9 +18,9 @@ import {
   FiSliders,
   FiX,
   FiZap,
+  FiInfo,
+  FiCheckSquare,
 } from 'react-icons/fi';
-import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
 import ContentLoader from '../../../components/ui/ContentLoader';
 import { apiGet, apiPut, apiPost } from '../../../api/apiClient';
 import toastService from '../../../services/toast/toast.service';
@@ -27,7 +28,7 @@ import toastService from '../../../services/toast/toast.service';
 const CATEGORY_TABS = [
   { id: 'all', label: 'All Templates' },
   { id: 'Student Journey', label: 'Student Journey' },
-  { id: 'Billing & Accounts', label: 'Billing & Accounts' },
+  { id: 'Billing & Invoices', label: 'Billing & Invoices' },
   { id: 'Admissions & Visa', label: 'Admissions & Visa' },
   { id: 'Security & Staff', label: 'Security & Staff' },
 ];
@@ -43,13 +44,17 @@ export default function EmailTemplatesWorkspace() {
   const [overrideActive, setOverrideActive] = useState(true);
   const [savingOverride, setSavingOverride] = useState(false);
 
+  // Quick dispatch tester state
+  const [quickTemplate, setQuickTemplate] = useState('ENQUIRY_WELCOME');
+  const [quickRecipient, setQuickRecipient] = useState('kachhadiyadarshil2@gmail.com');
+  const [quickSending, setQuickSending] = useState(false);
+
   // Active Template Preview & Edit Modal
   const [activeTemplate, setActiveTemplate] = useState(null);
   const [editSubject, setEditSubject] = useState('');
   const [editBody, setEditBody] = useState('');
   const [editIsActive, setEditIsActive] = useState(true);
   const [previewHtml, setPreviewHtml] = useState('');
-  const [previewTab, setPreviewTab] = useState('preview'); // 'preview' | 'code'
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [testingCode, setTestingCode] = useState(null);
 
@@ -58,7 +63,9 @@ export default function EmailTemplatesWorkspace() {
       const res = await apiGet('/email/status');
       if (res?.data) {
         setSmtpStatus(res.data);
-        setOverrideTo(res.data.overrideToEmail || 'kachhadiyadarshil2@gmail.com');
+        const savedTo = res.data.overrideToEmail || 'kachhadiyadarshil2@gmail.com';
+        setOverrideTo(savedTo);
+        setQuickRecipient(savedTo);
         setOverrideActive(res.data.overrideEnabled ?? true);
       }
     } catch (e) {
@@ -92,7 +99,8 @@ export default function EmailTemplatesWorkspace() {
         overrideEnabled: overrideActive,
         overrideToEmail: overrideTo.trim(),
       });
-      toastService.success(`Email routing updated. Live tests directed to ${overrideTo}`);
+      toastService.success(`Email routing updated. Live tests routed to ${overrideTo}`);
+      setQuickRecipient(overrideTo.trim());
       fetchStatus();
     } catch (e) {
       toastService.error(e?.response?.data?.message || 'Failed to update override configuration');
@@ -104,16 +112,22 @@ export default function EmailTemplatesWorkspace() {
   const handleOpenEditor = async (tpl) => {
     setActiveTemplate(tpl);
     setEditSubject(tpl.subject);
-    setEditBody(tpl.body);
+    setEditBody('Loading template content...');
     setEditIsActive(tpl.isActive ?? true);
-    setPreviewTab('preview');
+    setPreviewHtml('<p style="padding:24px;color:#64748b;font-family:sans-serif;">Loading live preview...</p>');
     try {
       const res = await apiGet(`/email/templates/${tpl.code}`);
-      if (res?.data?.previewHtml) {
-        setPreviewHtml(res.data.previewHtml);
+      const tplData = res?.data?.template;
+      const prevHtml = res?.data?.preview?.html || res?.data?.previewHtml || '';
+      if (tplData) {
+        setEditSubject(tplData.subject || tpl.subject);
+        setEditBody(tplData.body || prevHtml);
+        setEditIsActive(tplData.isActive ?? true);
       }
+      setPreviewHtml(prevHtml);
     } catch {
-      setPreviewHtml('<p>Preview unavailable</p>');
+      toastService.error('Failed to load template content');
+      setPreviewHtml('<p style="padding:24px;color:#ef4444;font-family:sans-serif;">Preview unavailable</p>');
     }
   };
 
@@ -141,13 +155,33 @@ export default function EmailTemplatesWorkspace() {
     const target = (customRecipient || overrideTo || 'kachhadiyadarshil2@gmail.com').trim();
     try {
       const res = await apiPost(`/email/templates/${templateCode}/test-send`, {
+        to: target,
         recipient: target,
+        subject: activeTemplate?.code === templateCode ? editSubject : undefined,
+        body: activeTemplate?.code === templateCode ? editBody : undefined,
       });
-      toastService.success(`🚀 Test email sent to ${res?.data?.sentTo || target}! Check your Gmail inbox.`);
+      toastService.success(`🚀 Test email sent to ${res?.data?.targetEmail || target}! Check your Gmail inbox.`);
     } catch (e) {
       toastService.error(e?.response?.data?.message || 'Failed to send test email');
     } finally {
       setTestingCode(null);
+    }
+  };
+
+  const handleQuickSend = async () => {
+    if (!quickTemplate) return;
+    setQuickSending(true);
+    const target = (quickRecipient || overrideTo || 'kachhadiyadarshil2@gmail.com').trim();
+    try {
+      const res = await apiPost(`/email/templates/${quickTemplate}/test-send`, {
+        to: target,
+        recipient: target,
+      });
+      toastService.success(`🚀 Live test email for "${quickTemplate}" delivered to ${res?.data?.targetEmail || target}! Check your Gmail inbox.`);
+    } catch (e) {
+      toastService.error(e?.response?.data?.message || 'Failed to send test email');
+    } finally {
+      setQuickSending(false);
     }
   };
 
@@ -161,12 +195,12 @@ export default function EmailTemplatesWorkspace() {
   }, [templates, selectedCategory]);
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6 max-w-7xl pb-12">
       {/* ── Top Header / Live Diagnostics & Safe Override Banner ── */}
       <div className="rounded-2xl p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-xl border border-indigo-500/20">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <span className="flex h-3 w-3 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
@@ -177,10 +211,13 @@ export default function EmailTemplatesWorkspace() {
               <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-slate-300 font-mono">
                 {smtpStatus?.host || 'smtp.hostinger.com'}:{smtpStatus?.port || 587}
               </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono">
+                User: {smtpStatus?.user || 'info@3niinfotech.com'}
+              </span>
             </div>
             <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
               <FiMail className="w-5 h-5 text-indigo-400" />
-              Automated Student & Staff Lifecycle Emails
+              Automated Student &amp; Staff Lifecycle Emails
             </h2>
             <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
               Fully automated lifecycle notifications from Enquiry visit &rarr; Student Registration &rarr; Fee Receipts &rarr; University Offers &rarr; Visa Approvals. Protected with intelligent anti-spam cooldowns.
@@ -226,6 +263,69 @@ export default function EmailTemplatesWorkspace() {
                 {savingOverride ? 'Saving...' : 'Save'}
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Instant Test Center Box (How to Test) ── */}
+      <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/20 p-4 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5">
+              <FiSend className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              1-Click Live Email Dispatch Tester
+            </h4>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Select any template below and click <strong>&quot;Send Test Email Now&quot;</strong> to instantly verify live delivery into your Gmail inbox.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={quickTemplate}
+              onChange={(e) => setQuickTemplate(e.target.value)}
+              className="text-xs px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
+            >
+              {templates.map((t) => (
+                <option key={t.code} value={t.code}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="email"
+              value={quickRecipient}
+              onChange={(e) => setQuickRecipient(e.target.value)}
+              placeholder="kachhadiyadarshil2@gmail.com"
+              className="text-xs px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono focus:outline-none min-w-[220px]"
+            />
+
+            <button
+              type="button"
+              onClick={handleQuickSend}
+              disabled={quickSending}
+              className="px-4 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 transition-colors cursor-pointer shadow-xs inline-flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <FiSend className={quickSending ? 'animate-bounce' : ''} />
+              {quickSending ? 'Sending...' : 'Send Test Email Now'}
+            </button>
+          </div>
+        </div>
+
+        {/* Step-by-Step Testing Guide Pills */}
+        <div className="mt-3 pt-3 border-t border-indigo-100 dark:border-indigo-900/40 grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px] text-slate-600 dark:text-slate-400">
+          <div className="flex items-start gap-2">
+            <span className="flex h-5 w-5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-bold items-center justify-center shrink-0 text-[10px]">1</span>
+            <span><strong>1-Click Dispatch:</strong> Click &quot;Send Test&quot; on any card or above. Email arrives in 10-15s.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="flex h-5 w-5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-bold items-center justify-center shrink-0 text-[10px]">2</span>
+            <span><strong>Live Enquiry Test:</strong> Register an enquiry at <em>CRM / Enquiry</em> &rarr; welcome email is auto-sent.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="flex h-5 w-5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-bold items-center justify-center shrink-0 text-[10px]">3</span>
+            <span><strong>Live Fee Test:</strong> Mark an invoice <em>PAID</em> in <em>Finance &rarr; Invoices</em> &rarr; receipt email is auto-sent.</span>
           </div>
         </div>
       </div>
@@ -317,8 +417,8 @@ export default function EmailTemplatesWorkspace() {
                       <strong className="text-slate-400 dark:text-slate-500">Subject:</strong> {tpl.subject}
                     </div>
                     <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
-                      <span><strong>Trigger:</strong> {tpl.trigger}</span>
-                      <span><strong>Cooldown:</strong> {tpl.cooldown}</span>
+                      <span><strong>Trigger:</strong> {tpl.trigger || 'Lifecycle Event'}</span>
+                      <span><strong>Cooldown:</strong> {tpl.cooldown || '5-min window'}</span>
                     </div>
                   </div>
                 </div>
@@ -338,7 +438,7 @@ export default function EmailTemplatesWorkspace() {
                     type="button"
                     onClick={() => handleSendTest(tpl.code)}
                     disabled={isTesting}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-600 hover:bg-primary-700 text-white transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer shadow-xs disabled:opacity-50"
                   >
                     <FiSend className={`w-3.5 h-3.5 ${isTesting ? 'animate-bounce' : ''}`} />
                     {isTesting ? 'Sending Test...' : 'Send Test to My Email'}
@@ -350,142 +450,144 @@ export default function EmailTemplatesWorkspace() {
         </div>
       )}
 
-      {/* ── Template Edit & Live HTML Preview Modal ── */}
-      {activeTemplate && (
-        <div className="fixed inset-0 z-[1400] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
-                  {activeTemplate.category} &bull; {activeTemplate.code}
-                </span>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Edit Template: {activeTemplate.name}
-                </h3>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300 mr-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editIsActive}
-                    onChange={(e) => setEditIsActive(e.target.checked)}
-                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  Template Active
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setActiveTemplate(null)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  <FiX className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column: Form Editors */}
-              <div className="space-y-4">
+      {/* ── Template Edit & Live HTML Preview Modal (Portaled to Body to prevent scroll lock) ── */}
+      {activeTemplate &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 bg-slate-900/75 backdrop-blur-xs overflow-y-auto">
+            <div className="relative w-full max-w-7xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col my-auto max-h-[94vh]">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Subject Line
-                  </label>
-                  <input
-                    type="text"
-                    value={editSubject}
-                    onChange={(e) => setEditSubject(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-primary-500 font-medium"
-                  />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+                    {activeTemplate.category} &bull; {activeTemplate.code}
+                  </span>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Edit Template: {activeTemplate.name}
+                  </h3>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Available Variables (Click to append into subject)
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editIsActive}
+                      onChange={(e) => setEditIsActive(e.target.checked)}
+                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    Template Active
                   </label>
-                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                    {activeTemplate.variables?.map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => insertVariable(v)}
-                        className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-600 hover:border-indigo-400 transition-colors cursor-pointer"
-                      >
-                        {`{{${v}}}`}
-                      </button>
-                    ))}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTemplate(null)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <FiX className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body: Generous Side-by-Side Split */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+                {/* Left Column: Form Editors */}
+                <div className="space-y-4 flex flex-col min-h-0">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Subject Line
+                    </label>
+                    <input
+                      type="text"
+                      value={editSubject}
+                      onChange={(e) => setEditSubject(e.target.value)}
+                      className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-primary-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Available Variables (Click to append into subject)
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                      {activeTemplate.variables?.map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => insertVariable(v)}
+                          className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-600 hover:border-indigo-400 transition-colors cursor-pointer"
+                        >
+                          {`{{${v}}}`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 flex flex-col min-h-[260px]">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Email Body (HTML / Responsive Markup)
+                    </label>
+                    <textarea
+                      rows={14}
+                      value={editBody}
+                      onChange={(e) => setEditBody(e.target.value)}
+                      className="w-full flex-1 text-xs font-mono p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-primary-500 leading-relaxed resize-y"
+                    />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Email Body (HTML / Responsive Markup)
-                  </label>
-                  <textarea
-                    rows={12}
-                    value={editBody}
-                    onChange={(e) => setEditBody(e.target.value)}
-                    className="w-full text-xs font-mono p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-primary-500 leading-relaxed"
-                  />
+                {/* Right Column: Live Responsive Preview */}
+                <div className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-slate-950 min-h-[500px]">
+                  <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <FiEye className="w-3.5 h-3.5 text-primary-500" />
+                      Live Student Inbox Preview
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      Real-time HTML Rendering &bull; Official Branding
+                    </span>
+                  </div>
+                  <div className="flex-1 p-2 bg-slate-200/50 dark:bg-black/50 overflow-y-auto flex flex-col">
+                    <iframe
+                      title="Live Email Preview"
+                      srcDoc={editBody || previewHtml}
+                      className="w-full flex-1 min-h-[520px] rounded-lg bg-white shadow-inner border-0"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Right Column: Live Responsive Preview */}
-              <div className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-slate-950">
-                <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <FiEye className="w-3.5 h-3.5 text-primary-500" />
-                    Live Student Inbox Preview
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    Sample Data Pre-populated
-                  </span>
-                </div>
-                <div className="flex-1 p-2 bg-slate-200/50 dark:bg-black/50 overflow-y-auto min-h-[380px]">
-                  <iframe
-                    title="Live Email Preview"
-                    srcDoc={previewHtml}
-                    className="w-full h-full min-h-[440px] rounded-lg bg-white shadow-inner border-0"
-                  />
+              {/* Modal Footer */}
+              <div className="px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleSendTest(activeTemplate.code)}
+                  disabled={testingCode === activeTemplate.code}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+                >
+                  <FiSend className={`w-3.5 h-3.5 ${testingCode === activeTemplate.code ? 'animate-bounce' : ''}`} />
+                  {testingCode === activeTemplate.code ? 'Dispatching Test...' : `Send Test to ${overrideTo}`}
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTemplate(null)}
+                    className="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveTemplate}
+                    disabled={savingTemplate}
+                    className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+                  >
+                    {savingTemplate ? 'Saving Changes...' : 'Save Template'}
+                  </button>
                 </div>
               </div>
             </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => handleSendTest(activeTemplate.code)}
-                disabled={testingCode === activeTemplate.code}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer"
-              >
-                <FiSend className="w-3.5 h-3.5" />
-                {testingCode === activeTemplate.code ? 'Sending...' : `Send Test to ${overrideTo}`}
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveTemplate(null)}
-                  className="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveTemplate}
-                  disabled={savingTemplate}
-                  className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors cursor-pointer shadow-xs disabled:opacity-50"
-                >
-                  {savingTemplate ? 'Saving Changes...' : 'Save Template'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

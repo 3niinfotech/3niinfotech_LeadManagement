@@ -229,21 +229,6 @@ export const getTemplateByCode = asyncHandler(async (req, res) => {
     },
   }).catch(() => null);
 
-  const merged = {
-    code: sys.code,
-    name: dbRow?.name || sys.name,
-    category: sys.category,
-    eventType: dbRow?.eventType || sys.eventType,
-    channel: 'EMAIL',
-    subject: dbRow?.subject || sys.subject,
-    body: dbRow?.body || null,
-    description: dbRow?.description || sys.description,
-    variables: sys.variables,
-    isActive: dbRow?.isActive != null ? dbRow.isActive : true,
-    isCustomized: Boolean(dbRow),
-    sampleData: sys.sampleData,
-  };
-
   // Render preview
   const brand = getCachedCompanyBrand();
   const sampleWithBrand = { ...sys.sampleData, company: brand, companyName: brand.name };
@@ -266,7 +251,26 @@ export const getTemplateByCode = asyncHandler(async (req, res) => {
     preview = sys.buildFn(sampleWithBrand);
   }
 
-  sendSuccess(res, { template: merged, preview }, 'Template details retrieved');
+  const merged = {
+    code: sys.code,
+    name: dbRow?.name || sys.name,
+    category: sys.category,
+    eventType: dbRow?.eventType || sys.eventType,
+    channel: 'EMAIL',
+    subject: dbRow?.subject || sys.subject,
+    body: dbRow?.body || preview?.html || '',
+    description: dbRow?.description || sys.description,
+    variables: sys.variables,
+    isActive: dbRow?.isActive != null ? dbRow.isActive : true,
+    isCustomized: Boolean(dbRow),
+    sampleData: sys.sampleData,
+  };
+
+  sendSuccess(res, {
+    template: merged,
+    preview,
+    previewHtml: preview?.html || '',
+  }, 'Template details retrieved');
 });
 
 export const updateTemplate = asyncHandler(async (req, res) => {
@@ -321,7 +325,7 @@ export const updateTemplate = asyncHandler(async (req, res) => {
 
 export const sendTestTemplate = asyncHandler(async (req, res) => {
   const { code } = req.params;
-  const { to, customData = {} } = req.body;
+  const { to, recipient, subject, body, customData = {} } = req.body;
 
   const sys = SYSTEM_TEMPLATES.find((s) => s.code === code);
   if (!sys) throw new AppError(`Template "${code}" not found`, 404);
@@ -338,10 +342,13 @@ export const sendTestTemplate = asyncHandler(async (req, res) => {
     companyName: brand.name,
   };
 
+  const activeBody = body || dbRow?.body || null;
+  const activeSubject = subject || dbRow?.subject || sys.subject;
+
   let rendered;
-  if (dbRow?.body) {
-    const renderedBody = templates.renderDynamicTemplate(dbRow.body, mergedData);
-    const renderedSubject = templates.renderDynamicTemplate(dbRow.subject || sys.subject, mergedData);
+  if (activeBody) {
+    const renderedBody = templates.renderDynamicTemplate(activeBody, mergedData);
+    const renderedSubject = templates.renderDynamicTemplate(activeSubject, mergedData);
     rendered = {
       subject: renderedSubject,
       html: templates.wrapEmailTemplate({
@@ -357,7 +364,7 @@ export const sendTestTemplate = asyncHandler(async (req, res) => {
   }
 
   const override = getOverrideEmailConfig();
-  const targetEmail = to || override.overrideEmail || req.user?.email || 'kachhadiyadarshil2@gmail.com';
+  const targetEmail = to || recipient || override.overrideEmail || req.user?.email || 'kachhadiyadarshil2@gmail.com';
 
   const sendResult = await emailService.safeSendEmail({
     to: targetEmail,

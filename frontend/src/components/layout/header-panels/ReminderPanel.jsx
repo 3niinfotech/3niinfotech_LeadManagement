@@ -55,9 +55,9 @@ export default function ReminderPanel({ onClose }) {
   }, [activeTab, overdue, today, upcoming]);
 
   return (
-    <div className="flex flex-col bg-card text-text select-none">
+    <div className="flex flex-col h-full min-h-0 flex-1 overflow-hidden bg-card text-text select-none">
       {/* ── Modern Underline Tabs ── */}
-      <div className="px-4 border-b border-border bg-card">
+      <div className="shrink-0 px-4 border-b border-border bg-card z-10">
         <div className="flex items-center gap-5 overflow-x-auto no-scrollbar">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -89,7 +89,7 @@ export default function ReminderPanel({ onClose }) {
       </div>
 
       {/* Scope Subheader */}
-      <div className="px-4 py-2 border-b border-border/60 bg-page/30 flex items-center justify-between text-[11px] text-text-muted">
+      <div className="shrink-0 px-4 py-2 border-b border-border/60 bg-page/30 flex items-center justify-between text-[11px] text-text-muted z-10">
         <span className="inline-flex items-center gap-1.5 truncate">
           <FiUser className="w-3 h-3 text-text-muted shrink-0" />
           <span className="capitalize">{scopeHint}</span>
@@ -101,7 +101,7 @@ export default function ReminderPanel({ onClose }) {
       </div>
 
       {/* ── Reminders List ── */}
-      <div className="px-3 py-2.5 max-h-[360px] overflow-y-auto no-scrollbar">
+      <div className="px-3 py-2.5 flex-1 min-h-0 overflow-y-auto no-scrollbar">
         {loading && !total ? (
           <div className="py-12 flex flex-col items-center justify-center text-text-muted">
             <FiRefreshCw className="w-5 h-5 animate-spin text-brand mb-2" />
@@ -161,7 +161,7 @@ export default function ReminderPanel({ onClose }) {
       </div>
 
       {/* ── Professional Solid Action Button ── */}
-      <div className="p-3 border-t border-border bg-page/50">
+      <div className="shrink-0 p-3 border-t border-border bg-card shadow-sm z-10">
         <Link
           to={ROUTES.CALENDAR}
           onClick={() => onClose?.()}
