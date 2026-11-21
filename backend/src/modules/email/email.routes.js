@@ -9,6 +9,8 @@ router.use(authenticate);
 router.get('/status', ctrl.getStatus);
 router.put('/settings', ctrl.updateSettings);
 router.get('/recipients', ctrl.getRecipients);
+router.get('/history', ctrl.getEmailHistory);
+router.delete('/history/:id', ctrl.deleteEmailHistory);
 router.post('/preview-custom', ctrl.previewCustomEmail);
 router.post('/dispatch-custom', ctrl.dispatchCustomEmail);
 router.get('/templates', ctrl.getTemplates);

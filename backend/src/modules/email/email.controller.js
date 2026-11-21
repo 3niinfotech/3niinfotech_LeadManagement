@@ -678,12 +678,196 @@ export const dispatchCustomEmail = asyncHandler(async (req, res) => {
   const successCount = sendResults.filter((r) => r.success).length;
   const override = emailService.getOverrideEmailConfig();
 
+  // ── 1. Create In-App Notifications for Recipients ──
+  try {
+    const senderName = `${req.user?.firstName || ''} ${req.user?.lastName || ''}`.trim() || req.user?.email || 'CRM Team';
+    const notifTitle = `✉️ Email: ${subject.trim()}`;
+    const notifMsg = message.trim().slice(0, 180);
+
+    // Identify user IDs for staff / student recipients
+    const recipientEmails = uniqueRecipients.map((r) => r.email.toLowerCase());
+    const matchedUsers = await prisma.user.findMany({
+      where: {
+        email: { in: recipientEmails },
+        deletedAt: null,
+        status: 'ACTIVE',
+        id: { not: req.user?.id }, // Don't notify the sender themselves
+      },
+      select: { id: true },
+    });
+
+    if (matchedUsers.length > 0) {
+      await prisma.notification.createMany({
+        data: matchedUsers.map((u) => ({
+          userId: u.id,
+          type: 'INFO',
+          category: 'EMAIL_ANNOUNCEMENT',
+          title: notifTitle,
+          message: notifMsg,
+          link: '/admin/settings?tab=email-templates',
+          metadata: { senderName, subject: subject.trim() },
+        })),
+      });
+    }
+  } catch (notifErr) {
+    console.warn('[emailController] Failed to dispatch in-app notifications:', notifErr.message);
+  }
+
+  // ── 2. Record Sent Email in Activity & History Log ──
+  let logRecord = null;
+  try {
+    const senderName = `${req.user?.firstName || ''} ${req.user?.lastName || ''}`.trim() || req.user?.email || 'Admin';
+    const senderRole = req.user?.role?.name || 'Staff';
+
+    // Build human-readable audience label
+    let audienceLabel = 'Direct Recipient';
+    if (audienceType === 'ALL_STUDENTS') audienceLabel = `All Students (${uniqueRecipients.length})`;
+    else if (audienceType === 'SINGLE_STUDENT') audienceLabel = `Student: ${uniqueRecipients[0]?.name || ''}`;
+    else if (audienceType === 'ROLE_STAFF') audienceLabel = `Role Staff (${uniqueRecipients.length})`;
+    else if (audienceType === 'SINGLE_STAFF') audienceLabel = `Staff: ${uniqueRecipients[0]?.name || ''}`;
+    else if (audienceType === 'CUSTOM_EMAIL') audienceLabel = `Custom: ${customEmail}`;
+
+    logRecord = await prisma.activity.create({
+      data: {
+        userId: req.user?.id || null,
+        studentId: studentId && (audienceType === 'SINGLE_STUDENT') ? studentId : null,
+        action: 'EMAIL_DISPATCH',
+        description: subject.trim(),
+        metadata: {
+          audienceType,
+          audienceLabel,
+          senderName,
+          senderRole,
+          senderEmail: req.user?.email || '',
+          recipientCount: uniqueRecipients.length,
+          successCount,
+          recipients: uniqueRecipients.map((r) => ({ email: r.email, name: r.name, type: r.type })),
+          subject: subject.trim(),
+          message: message.trim(),
+          ctaText: ctaText ? ctaText.trim() : null,
+          ctaUrl: ctaUrl ? ctaUrl.trim() : null,
+          overrideActive: override.enabled,
+          overrideEmail: override.overrideEmail,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: { select: { id: true, name: true, slug: true } },
+          },
+        },
+      },
+    });
+  } catch (logErr) {
+    console.error('[emailController] Failed to log email activity:', logErr.message);
+  }
+
   sendSuccess(res, {
     totalRecipients: uniqueRecipients.length,
     successCount,
     failedCount: uniqueRecipients.length - successCount,
     overrideActive: override.enabled,
     overrideEmail: override.overrideEmail,
-    details: sendResults.slice(0, 10), // return sample
+    logId: logRecord?.id || null,
+    details: sendResults.slice(0, 10),
   }, `Successfully dispatched email to ${successCount} recipient(s)`);
+});
+
+/**
+ * Get Email Dispatch History Logs
+ * Super Admin & Company Admin see all dispatched emails with sender details.
+ * Other roles see emails dispatched by them.
+ */
+export const getEmailHistory = asyncHandler(async (req, res) => {
+  const user = req.user;
+  const isSuperOrCompanyAdmin = ['super_admin', 'company_admin'].includes(user?.role?.slug);
+
+  const where = {
+    action: 'EMAIL_DISPATCH',
+    ...(!isSuperOrCompanyAdmin ? { userId: user.id } : {}),
+  };
+
+  const logs = await prisma.activity.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          role: { select: { id: true, name: true, slug: true } },
+        },
+      },
+      student: {
+        select: {
+          id: true,
+          studentCode: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  const formatted = logs.map((l) => {
+    const meta = l.metadata || {};
+    const senderName = l.user
+      ? `${l.user.firstName || ''} ${l.user.lastName || ''}`.trim() || l.user.email
+      : meta.senderName || 'Admin / System';
+    const senderRole = l.user?.role?.name || meta.senderRole || 'Staff';
+
+    return {
+      id: l.id,
+      createdAt: l.createdAt,
+      sender: {
+        id: l.user?.id || null,
+        name: senderName,
+        email: l.user?.email || meta.senderEmail || '',
+        role: senderRole,
+      },
+      audienceType: meta.audienceType || 'CUSTOM',
+      audienceLabel: meta.audienceLabel || 'Direct Email',
+      recipientCount: meta.recipientCount || 1,
+      successCount: meta.successCount || 1,
+      subject: l.description || meta.subject || 'No Subject',
+      message: meta.message || '',
+      ctaText: meta.ctaText || null,
+      ctaUrl: meta.ctaUrl || null,
+      recipients: meta.recipients || [],
+      overrideActive: Boolean(meta.overrideActive),
+      overrideEmail: meta.overrideEmail || null,
+      student: l.student,
+    };
+  });
+
+  sendSuccess(res, formatted, 'Email history retrieved successfully');
+});
+
+/**
+ * Delete an Email Dispatch Log Record
+ */
+export const deleteEmailHistory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const user = req.user;
+  const isSuperOrCompanyAdmin = ['super_admin', 'company_admin'].includes(user?.role?.slug);
+
+  const existing = await prisma.activity.findUnique({ where: { id } });
+  if (!existing || existing.action !== 'EMAIL_DISPATCH') {
+    throw new AppError('Email log record not found', 404);
+  }
+
+  if (!isSuperOrCompanyAdmin && existing.userId !== user.id) {
+    throw new AppError('You do not have permission to delete this log', 403);
+  }
+
+  await prisma.activity.delete({ where: { id } });
+  sendSuccess(res, { id }, 'Email log deleted successfully');
 });

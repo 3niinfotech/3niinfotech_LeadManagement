@@ -4,7 +4,7 @@ import fs from 'fs';
 
 const CHROME_PATH = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
 const ARTIFACT_DIR = 'C:\\Users\\01\'\\.gemini\\antigravity\\brain\\9fe329b4-e9fe-43b2-b382-0d1765faf0a4';
-const TEMP_USER_DATA = path.join(process.env.TEMP || 'C:\\Temp', 'chrome-pup-email-' + Date.now());
+const TEMP_USER_DATA = path.join(process.env.TEMP || 'C:\\Temp', 'chrome-pup-email-full-' + Date.now());
 
 async function run() {
   fs.mkdirSync(TEMP_USER_DATA, { recursive: true });
@@ -45,66 +45,81 @@ async function run() {
     console.log('2. Logged in, waiting for dashboard...');
 
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
-    await new Promise((r) => setTimeout(r, 3000));
-    console.log('Current URL after login:', page.url());
+    await new Promise((r) => setTimeout(r, 2500));
 
     console.log('3. Navigating to Email Templates Settings...');
     await page.goto('http://localhost:3000/admin/settings?tab=email-templates', {
       waitUntil: 'networkidle2',
       timeout: 30000,
     });
-    await new Promise((r) => setTimeout(r, 3000));
+    await new Promise((r) => setTimeout(r, 2500));
 
-    // Capture main workspace with "Compose & Send Email" button
-    const screen1 = path.join(ARTIFACT_DIR, 'email_workspace_with_compose_btn.png');
+    // Open Compose modal
+    console.log('4. Clicking Compose Email button...');
+    await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find((b) =>
+        b.textContent.includes('Compose Email')
+      );
+      if (btn) btn.click();
+    });
+    await new Promise((r) => setTimeout(r, 2500));
+
+    // Capture open compose modal with students view
+    const screen1 = path.join(ARTIFACT_DIR, 'compose_streamlined_students.png');
     await page.screenshot({ path: screen1 });
     console.log('Saved:', screen1);
 
-    // Click "Compose & Send Email" button
-    console.log('4. Clicking Compose & Send Email button...');
+    // Switch to Staff Team channel
+    console.log('5. Switching to Staff Team channel...');
     await page.evaluate(() => {
       const btn = Array.from(document.querySelectorAll('button')).find((b) =>
-        b.textContent.includes('Compose & Send Email')
+        b.textContent.includes('Staff Team')
       );
       if (btn) btn.click();
     });
+    await new Promise((r) => setTimeout(r, 2000));
 
-    await new Promise((r) => setTimeout(r, 2500));
-
-    // Capture open compose modal (Single Student view)
-    const screen2 = path.join(ARTIFACT_DIR, 'compose_email_modal_open.png');
+    const screen2 = path.join(ARTIFACT_DIR, 'compose_streamlined_staff_role.png');
     await page.screenshot({ path: screen2 });
     console.log('Saved:', screen2);
 
-    // Switch to Staff by Role
-    console.log('5. Switching to Staff by Role...');
+    // Click "Send to..."
+    console.log('6. Dispatching email to role staff...');
     await page.evaluate(() => {
       const btn = Array.from(document.querySelectorAll('button')).find((b) =>
-        b.textContent.includes('Staff by Role')
+        b.textContent.includes('Send to')
       );
       if (btn) btn.click();
     });
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 4500));
 
-    const screen3 = path.join(ARTIFACT_DIR, 'compose_email_staff_role.png');
+    // Switch to "Sent History & Logs" tab
+    console.log('7. Switching to Sent History & Logs tab...');
+    await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find((b) =>
+        b.textContent.includes('Sent History & Logs')
+      );
+      if (btn) btn.click();
+    });
+    await new Promise((r) => setTimeout(r, 2500));
+
+    const screen3 = path.join(ARTIFACT_DIR, 'email_sent_history_logs.png');
     await page.screenshot({ path: screen3 });
     console.log('Saved:', screen3);
 
-    // Switch to All Students broadcast
-    console.log('6. Switching to All Students broadcast...');
+    // Click "View" on the first history item
+    console.log('8. Viewing history item modal...');
     await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll('button')).find((b) =>
-        b.textContent.includes('All Students')
-      );
-      if (btn) btn.click();
+      const viewBtn = document.querySelector('table tbody tr button[title="View Email Details"]');
+      if (viewBtn) viewBtn.click();
     });
     await new Promise((r) => setTimeout(r, 2000));
 
-    const screen4 = path.join(ARTIFACT_DIR, 'compose_email_all_students.png');
+    const screen4 = path.join(ARTIFACT_DIR, 'email_history_view_modal.png');
     await page.screenshot({ path: screen4 });
     console.log('Saved:', screen4);
 
-    console.log('All screenshots verified successfully!');
+    console.log('All end-to-end steps successfully verified!');
   } catch (err) {
     console.error('Test error:', err);
   } finally {

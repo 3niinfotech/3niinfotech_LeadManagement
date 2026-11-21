@@ -12,28 +12,21 @@ import {
   FiLayers,
   FiAtSign,
   FiSearch,
-  FiCheck,
-  FiExternalLink,
-  FiEdit3,
+  FiTrash2,
+  FiRepeat,
+  FiClock,
+  FiCheckCircle,
 } from 'react-icons/fi';
 import ContentLoader from '../../../components/ui/ContentLoader';
-import { apiGet, apiPut, apiPost } from '../../../api/apiClient';
+import { apiGet, apiPut, apiPost, apiDelete } from '../../../api/apiClient';
 import toastService from '../../../services/toast/toast.service';
 
 const CATEGORY_TABS = [
-  { id: 'all', label: 'All Templates' },
+  { id: 'all', label: 'All Lifecycle Templates' },
   { id: 'Student Journey', label: 'Student Journey' },
   { id: 'Billing & Invoices', label: 'Billing & Invoices' },
   { id: 'Admissions & Visa', label: 'Admissions & Visa' },
   { id: 'Operations', label: 'Operations' },
-];
-
-const AUDIENCE_OPTIONS = [
-  { id: 'SINGLE_STUDENT', label: 'Single Student', icon: FiUser },
-  { id: 'ALL_STUDENTS', label: 'All Students', icon: FiUsers },
-  { id: 'ROLE_STAFF', label: 'Staff by Role', icon: FiLayers },
-  { id: 'SINGLE_STAFF', label: 'Single Staff', icon: FiUser },
-  { id: 'CUSTOM_EMAIL', label: 'Direct Email', icon: FiAtSign },
 ];
 
 const PRESET_MESSAGES = [
@@ -79,6 +72,9 @@ const PRESET_MESSAGES = [
 ];
 
 export default function EmailTemplatesWorkspace() {
+  // Top Workspace Tab: 'templates' | 'history'
+  const [activeMainTab, setActiveMainTab] = useState('templates');
+
   const [smtpStatus, setSmtpStatus] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -99,16 +95,35 @@ export default function EmailTemplatesWorkspace() {
   const [testingCode, setTestingCode] = useState(null);
   const [showCodeEditor, setShowCodeEditor] = useState(false);
 
-  // Compose & Send Modal State
+  // History State
+  const [historyLogs, setHistoryLogs] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
+  const [viewingHistoryItem, setViewingHistoryItem] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+
+  // ── Compose & Send Modal State ──
   const [composeOpen, setComposeOpen] = useState(false);
   const [directory, setDirectory] = useState({ students: [], roles: [], staff: [], counts: { students: 0, staff: 0 } });
   const [loadingDirectory, setLoadingDirectory] = useState(false);
-  const [audienceType, setAudienceType] = useState('SINGLE_STUDENT');
+
+  // High-Level Channel: 'STUDENTS' | 'STAFF' | 'CUSTOM'
+  const [targetChannel, setTargetChannel] = useState('STUDENTS');
+
+  // Students Channel Sub-scope: 'ALL' | 'SINGLE'
+  const [studentScope, setStudentScope] = useState('ALL');
   const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [selectedRoleId, setSelectedRoleId] = useState('');
-  const [selectedStaffId, setSelectedStaffId] = useState('');
-  const [customEmail, setCustomEmail] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
+
+  // Staff Channel Sub-scope: Role + Member
+  const [selectedRoleId, setSelectedRoleId] = useState('');
+  const [staffScope, setStaffScope] = useState('ALL_ROLE'); // 'ALL_ROLE' | 'SINGLE_MEMBER'
+  const [selectedStaffId, setSelectedStaffId] = useState('');
+
+  // Custom Direct Email Channel
+  const [customEmail, setCustomEmail] = useState('');
+
+  // Content
   const [composeSubject, setComposeSubject] = useState('Important Update from 3ni InfoTech');
   const [composeMessage, setComposeMessage] = useState(
     'We are writing to share an important advisory regarding your overseas application and academic schedule.\n\nPlease review your portal updates or reach out to your assigned counselor if you require any assistance.'
@@ -116,6 +131,7 @@ export default function EmailTemplatesWorkspace() {
   const [includeCta, setIncludeCta] = useState(false);
   const [ctaText, setCtaText] = useState('Visit Student Portal');
   const [ctaUrl, setCtaUrl] = useState('https://www.3niinfotech.com');
+
   const [composePreviewHtml, setComposePreviewHtml] = useState('');
   const [generatingPreview, setGeneratingPreview] = useState(false);
   const [sendingCompose, setSendingCompose] = useState(false);
@@ -172,10 +188,25 @@ export default function EmailTemplatesWorkspace() {
     }
   }, [selectedStudentId, selectedRoleId, selectedStaffId]);
 
+  const fetchHistory = useCallback(async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await apiGet('/email/history');
+      if (res?.data) {
+        setHistoryLogs(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load email history', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStatus();
     fetchTemplates();
-  }, [fetchStatus, fetchTemplates]);
+    fetchHistory();
+  }, [fetchStatus, fetchTemplates, fetchHistory]);
 
   const handleSaveOverride = async () => {
     setSavingOverride(true);
@@ -254,56 +285,92 @@ export default function EmailTemplatesWorkspace() {
     }
   };
 
-  // Compose Modal Handlers
+  // ── Compose Modal Handlers ──
   const handleOpenCompose = () => {
     setComposeOpen(true);
     fetchDirectory();
   };
 
-  // Recipient resolution for live label display
-  const selectedRecipientLabel = useMemo(() => {
-    if (audienceType === 'SINGLE_STUDENT') {
-      const s = directory.students.find((item) => item.id === selectedStudentId);
-      return s ? `${s.name} (${s.email})` : 'Select a student';
-    }
-    if (audienceType === 'ALL_STUDENTS') {
-      return `All Active Students (${directory.counts.students} recipients)`;
-    }
-    if (audienceType === 'ROLE_STAFF') {
-      const r = directory.roles.find((item) => item.id === selectedRoleId);
-      return r ? `${r.name} Staff (${r.userCount} members)` : 'Select a role';
-    }
-    if (audienceType === 'SINGLE_STAFF') {
-      const u = directory.staff.find((item) => item.id === selectedStaffId);
-      return u ? `${u.name} (${u.roleName} • ${u.email})` : 'Select staff member';
-    }
-    if (audienceType === 'CUSTOM_EMAIL') {
-      return customEmail ? customEmail.trim() : 'Enter direct email address';
-    }
-    return '';
-  }, [audienceType, selectedStudentId, selectedRoleId, selectedStaffId, customEmail, directory]);
+  // Staff filtered by the currently chosen role
+  const staffInSelectedRole = useMemo(() => {
+    if (!selectedRoleId) return directory.staff;
+    return directory.staff.filter((s) => s.roleId === selectedRoleId);
+  }, [directory.staff, selectedRoleId]);
 
-  // Recipient name for template preview
-  const previewRecipientName = useMemo(() => {
-    if (audienceType === 'SINGLE_STUDENT') {
-      const s = directory.students.find((item) => item.id === selectedStudentId);
-      return s ? s.name : 'Student';
+  // When selected role changes, default staff member
+  useEffect(() => {
+    if (staffInSelectedRole.length > 0) {
+      if (!staffInSelectedRole.some((s) => s.id === selectedStaffId)) {
+        setSelectedStaffId(staffInSelectedRole[0].id);
+      }
     }
-    if (audienceType === 'ALL_STUDENTS') {
-      return 'Student';
-    }
-    if (audienceType === 'ROLE_STAFF') {
-      const r = directory.roles.find((item) => item.id === selectedRoleId);
-      return r ? `${r.name} Team Member` : 'Staff Member';
-    }
-    if (audienceType === 'SINGLE_STAFF') {
-      const u = directory.staff.find((item) => item.id === selectedStaffId);
-      return u ? u.name : 'Staff Member';
-    }
-    return 'Valued Recipient';
-  }, [audienceType, selectedStudentId, selectedRoleId, selectedStaffId, directory]);
+  }, [selectedRoleId, staffInSelectedRole, selectedStaffId]);
 
-  // Trigger live email preview in modal
+  // Resolved dynamic audience descriptor
+  const audienceSummary = useMemo(() => {
+    if (targetChannel === 'STUDENTS') {
+      if (studentScope === 'ALL') {
+        return {
+          type: 'ALL_STUDENTS',
+          label: `All Active Students (${directory.counts.students} recipients)`,
+          previewName: 'Student',
+          count: directory.counts.students,
+        };
+      }
+      const s = directory.students.find((item) => item.id === selectedStudentId);
+      return {
+        type: 'SINGLE_STUDENT',
+        label: s ? `${s.name} (${s.email})` : 'Select Student',
+        previewName: s ? s.name : 'Student',
+        count: 1,
+      };
+    }
+
+    if (targetChannel === 'STAFF') {
+      const roleObj = directory.roles.find((r) => r.id === selectedRoleId);
+      const roleName = roleObj?.name || 'Staff';
+
+      if (staffScope === 'ALL_ROLE') {
+        const count = roleObj?.userCount || staffInSelectedRole.length || 1;
+        return {
+          type: 'ROLE_STAFF',
+          label: `All ${roleName}s (${count} members)`,
+          previewName: `${roleName} Team Member`,
+          count,
+        };
+      }
+      const u = staffInSelectedRole.find((item) => item.id === selectedStaffId);
+      return {
+        type: 'SINGLE_STAFF',
+        label: u ? `${u.name} (${u.roleName} • ${u.email})` : 'Select Staff Member',
+        previewName: u ? u.name : 'Staff Member',
+        count: 1,
+      };
+    }
+
+    if (targetChannel === 'CUSTOM') {
+      return {
+        type: 'CUSTOM_EMAIL',
+        label: customEmail ? customEmail.trim() : 'Enter direct email',
+        previewName: 'Valued Recipient',
+        count: 1,
+      };
+    }
+
+    return { type: 'CUSTOM_EMAIL', label: '', previewName: 'Recipient', count: 1 };
+  }, [
+    targetChannel,
+    studentScope,
+    selectedStudentId,
+    selectedRoleId,
+    staffScope,
+    selectedStaffId,
+    customEmail,
+    directory,
+    staffInSelectedRole,
+  ]);
+
+  // Live preview update
   const updateComposePreview = useCallback(async () => {
     setGeneratingPreview(true);
     try {
@@ -312,26 +379,25 @@ export default function EmailTemplatesWorkspace() {
         message: composeMessage,
         ctaText: includeCta ? ctaText : null,
         ctaUrl: includeCta ? ctaUrl : null,
-        recipientName: previewRecipientName,
+        recipientName: audienceSummary.previewName,
       });
       if (res?.data?.previewHtml) {
         setComposePreviewHtml(res.data.previewHtml);
       }
     } catch {
-      // preview failure silently handled
+      // preview error handled
     } finally {
       setGeneratingPreview(false);
     }
-  }, [composeSubject, composeMessage, includeCta, ctaText, ctaUrl, previewRecipientName]);
+  }, [composeSubject, composeMessage, includeCta, ctaText, ctaUrl, audienceSummary.previewName]);
 
-  // Update preview when compose modal is open and inputs change
   useEffect(() => {
     if (!composeOpen) return;
     const timer = setTimeout(() => {
       updateComposePreview();
     }, 280);
     return () => clearTimeout(timer);
-  }, [composeOpen, composeSubject, composeMessage, includeCta, ctaText, ctaUrl, previewRecipientName, updateComposePreview]);
+  }, [composeOpen, composeSubject, composeMessage, includeCta, ctaText, ctaUrl, audienceSummary.previewName, updateComposePreview]);
 
   // Filter students in dropdown
   const filteredStudents = useMemo(() => {
@@ -367,36 +433,22 @@ export default function EmailTemplatesWorkspace() {
       toastService.error('Please write an email message');
       return;
     }
-    if (audienceType === 'SINGLE_STUDENT' && !selectedStudentId) {
-      toastService.error('Please select a student');
-      return;
-    }
-    if (audienceType === 'ROLE_STAFF' && !selectedRoleId) {
-      toastService.error('Please select a staff role');
-      return;
-    }
-    if (audienceType === 'SINGLE_STAFF' && !selectedStaffId) {
-      toastService.error('Please select a staff member');
-      return;
-    }
-    if (audienceType === 'CUSTOM_EMAIL' && (!customEmail || !customEmail.includes('@'))) {
-      toastService.error('Please enter a valid email address');
-      return;
-    }
+
+    const payload = {
+      audienceType: audienceSummary.type,
+      studentId: audienceSummary.type === 'SINGLE_STUDENT' ? selectedStudentId : undefined,
+      roleId: audienceSummary.type === 'ROLE_STAFF' ? selectedRoleId : undefined,
+      staffId: audienceSummary.type === 'SINGLE_STAFF' ? selectedStaffId : undefined,
+      customEmail: audienceSummary.type === 'CUSTOM_EMAIL' ? customEmail : undefined,
+      subject: composeSubject,
+      message: composeMessage,
+      ctaText: includeCta ? ctaText : null,
+      ctaUrl: includeCta ? ctaUrl : null,
+    };
 
     setSendingCompose(true);
     try {
-      const res = await apiPost('/email/dispatch-custom', {
-        audienceType,
-        studentId: selectedStudentId,
-        roleId: selectedRoleId,
-        staffId: selectedStaffId,
-        customEmail,
-        subject: composeSubject,
-        message: composeMessage,
-        ctaText: includeCta ? ctaText : null,
-        ctaUrl: includeCta ? ctaUrl : null,
-      });
+      const res = await apiPost('/email/dispatch-custom', payload);
 
       const count = res?.data?.successCount || 1;
       const isOverridden = res?.data?.overrideActive;
@@ -409,13 +461,76 @@ export default function EmailTemplatesWorkspace() {
       } else {
         toastService.success(`Dispatched email successfully to ${count} recipient(s)!`);
       }
+
       setComposeOpen(false);
+      fetchHistory(); // Refresh history table immediately
     } catch (err) {
       toastService.error(err?.response?.data?.message || 'Failed to dispatch email');
     } finally {
       setSendingCompose(false);
     }
   };
+
+  // ── Edit & Resend From History ──
+  const handleEditAndResend = (log) => {
+    setComposeSubject(log.subject || '');
+    setComposeMessage(log.message || '');
+    if (log.ctaText) {
+      setIncludeCta(true);
+      setCtaText(log.ctaText);
+      setCtaUrl(log.ctaUrl || 'https://www.3niinfotech.com');
+    } else {
+      setIncludeCta(false);
+    }
+
+    // Set audience channels
+    if (log.audienceType === 'ALL_STUDENTS') {
+      setTargetChannel('STUDENTS');
+      setStudentScope('ALL');
+    } else if (log.audienceType === 'SINGLE_STUDENT') {
+      setTargetChannel('STUDENTS');
+      setStudentScope('SINGLE');
+      if (log.student?.id) setSelectedStudentId(log.student.id);
+    } else if (log.audienceType === 'ROLE_STAFF') {
+      setTargetChannel('STAFF');
+      setStaffScope('ALL_ROLE');
+    } else if (log.audienceType === 'SINGLE_STAFF') {
+      setTargetChannel('STAFF');
+      setStaffScope('SINGLE_MEMBER');
+    } else {
+      setTargetChannel('CUSTOM');
+      if (log.recipients?.[0]?.email) setCustomEmail(log.recipients[0].email);
+    }
+
+    setComposeOpen(true);
+    fetchDirectory();
+  };
+
+  // ── Delete History Log ──
+  const handleDeleteHistory = async (id) => {
+    setDeletingId(id);
+    try {
+      await apiDelete(`/email/history/${id}`);
+      toastService.success('Email record removed from log');
+      setHistoryLogs((prev) => prev.filter((item) => item.id !== id));
+      if (viewingHistoryItem?.id === id) setViewingHistoryItem(null);
+    } catch (err) {
+      toastService.error(err?.response?.data?.message || 'Failed to delete record');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const filteredHistory = useMemo(() => {
+    if (!historySearch.trim()) return historyLogs;
+    const q = historySearch.toLowerCase();
+    return historyLogs.filter(
+      (h) =>
+        (h.subject && h.subject.toLowerCase().includes(q)) ||
+        (h.sender?.name && h.sender.name.toLowerCase().includes(q)) ||
+        (h.audienceLabel && h.audienceLabel.toLowerCase().includes(q))
+    );
+  }, [historyLogs, historySearch]);
 
   const filteredTemplates = useMemo(() => {
     if (selectedCategory === 'all') return templates;
@@ -424,15 +539,15 @@ export default function EmailTemplatesWorkspace() {
 
   return (
     <div className="w-full flex-1 min-h-0 overflow-y-auto px-4 sm:px-4 py-5 space-y-5 mx-auto">
-      {/* ── Header & Action Bar ── */}
+      {/* ── Top Header & Actions ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
           <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <FiMail className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-            Email Templates &amp; Direct Dispatch
+            Email Communications Hub
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Automated lifecycle notifications, targeted student dispatches, role announcements, and SMTP routing.
+            Automated lifecycle notifications, role announcements, targeted student dispatches, and audit history.
           </p>
         </div>
 
@@ -465,57 +580,63 @@ export default function EmailTemplatesWorkspace() {
             </button>
           </div>
 
-          {/* Primary Action Button: Compose & Send Email */}
+          {/* Primary Action Button: Compose Email */}
           <button
             type="button"
             onClick={handleOpenCompose}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors cursor-pointer"
           >
             <FiSend className="w-3.5 h-3.5" />
-            Compose &amp; Send Email
+            Compose Email
           </button>
         </div>
       </div>
 
-      {/* ── Category Filter Tabs & Refresh ── */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-          {CATEGORY_TABS.map((tab) => {
-            const count =
-              tab.id === 'all'
-                ? templates.length
-                : templates.filter((t) => t.category === tab.id).length;
-            const isSelected = selectedCategory === tab.id;
+      {/* ── Main Section Tabs: Templates vs Sent History ── */}
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveMainTab('templates')}
+            className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeMainTab === 'templates'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <FiLayers className="w-3.5 h-3.5" />
+            Lifecycle Templates
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+              {templates.length}
+            </span>
+          </button>
 
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setSelectedCategory(tab.id)}
-                className={`text-xs px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                {tab.label}
-                <span
-                  className={`ml-1.5 text-[10px] px-1.5 py-0.2 rounded-full ${
-                    isSelected
-                      ? 'bg-white/20 dark:bg-slate-900/20 text-white dark:text-slate-900'
-                      : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveMainTab('history');
+              fetchHistory();
+            }}
+            className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeMainTab === 'history'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <FiClock className="w-3.5 h-3.5" />
+            Sent History &amp; Logs
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+              {historyLogs.length}
+            </span>
+          </button>
         </div>
 
         <button
           type="button"
-          onClick={fetchTemplates}
+          onClick={() => {
+            fetchTemplates();
+            fetchHistory();
+          }}
           className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer transition-colors"
         >
           <FiRefreshCw className="w-3.5 h-3.5" />
@@ -523,101 +644,283 @@ export default function EmailTemplatesWorkspace() {
         </button>
       </div>
 
-      {/* ── Templates Grid ── */}
-      {loading ? (
-        <ContentLoader message="Loading email templates..." />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-8">
-          {filteredTemplates.map((tpl) => {
-            const isTesting = testingCode === tpl.code;
-            return (
-              <div
-                key={tpl.code}
-                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between"
-              >
-                <div className="space-y-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                        {tpl.category}
-                      </span>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-1.5">
-                        {tpl.name}
-                      </h3>
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ── TAB 1: SYSTEM LIFECYCLE TEMPLATES ─────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {activeMainTab === 'templates' && (
+        <div className="space-y-4">
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            {CATEGORY_TABS.map((tab) => {
+              const count =
+                tab.id === 'all'
+                  ? templates.length
+                  : templates.filter((t) => t.category === tab.id).length;
+              const isSelected = selectedCategory === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(tab.id)}
+                  className={`text-xs px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-blue-50 dark:bg-blue-950/60 border border-blue-500 text-blue-700 dark:text-blue-300'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {tab.label}
+                  <span className="ml-1.5 text-[10px] opacity-75 font-mono">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {loading ? (
+            <ContentLoader message="Loading email templates..." />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-8">
+              {filteredTemplates.map((tpl) => {
+                const isTesting = testingCode === tpl.code;
+                return (
+                  <div
+                    key={tpl.code}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                            {tpl.category}
+                          </span>
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-1.5">
+                            {tpl.name}
+                          </h3>
+                        </div>
+
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            tpl.isActive
+                              ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                          }`}
+                        >
+                          {tpl.isActive ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                        {tpl.description}
+                      </p>
+
+                      <div className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 truncate">
+                        <strong className="text-slate-400 dark:text-slate-500">Subject:</strong> {tpl.subject}
+                      </div>
                     </div>
 
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        tpl.isActive
-                          ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                      }`}
-                    >
-                      {tpl.isActive ? 'Active' : 'Disabled'}
-                    </span>
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditor(tpl)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      >
+                        <FiEye className="w-3.5 h-3.5 text-slate-500" />
+                        Preview
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSendTest(tpl.code)}
+                        disabled={isTesting}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-600 hover:bg-primary-700 text-white transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        <FiSend className={`w-3.5 h-3.5 ${isTesting ? 'animate-bounce' : ''}`} />
+                        {isTesting ? 'Sending...' : 'Send Test'}
+                      </button>
+                    </div>
                   </div>
-
-                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                    {tpl.description}
-                  </p>
-
-                  <div className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 truncate">
-                    <strong className="text-slate-400 dark:text-slate-500">Subject:</strong> {tpl.subject}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditor(tpl)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                  >
-                    <FiEye className="w-3.5 h-3.5 text-slate-500" />
-                    Preview
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSendTest(tpl.code)}
-                    disabled={isTesting}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-600 hover:bg-primary-700 text-white transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    <FiSend className={`w-3.5 h-3.5 ${isTesting ? 'animate-bounce' : ''}`} />
-                    {isTesting ? 'Sending...' : 'Send Test'}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* ── COMPOSE & SEND TARGETED / BROADCAST EMAIL MODAL ───────────── */}
+      {/* ── TAB 2: SENT HISTORY & DISPATCH LOGS ───────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {activeMainTab === 'history' && (
+        <div className="space-y-3">
+          {/* History Search & Controls */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="relative w-full max-w-sm">
+              <FiSearch className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search history by subject, sender, or audience..."
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <span className="text-xs text-slate-500">
+              Showing <strong>{filteredHistory.length}</strong> sent logs
+            </span>
+          </div>
+
+          {loadingHistory ? (
+            <ContentLoader message="Loading sent email logs..." />
+          ) : filteredHistory.length === 0 ? (
+            <div className="p-12 text-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <FiMail className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                No Email History Records Yet
+              </h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                Emails composed and dispatched to students or staff will be permanently logged here with sender info, delivery status, and re-send capabilities.
+              </p>
+              <button
+                type="button"
+                onClick={handleOpenCompose}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+              >
+                <FiSend className="w-3.5 h-3.5" />
+                Compose First Email
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="py-2.5 px-3.5">Date &amp; Time</th>
+                      <th className="py-2.5 px-3.5">Sender (Staff)</th>
+                      <th className="py-2.5 px-3.5">Target Audience</th>
+                      <th className="py-2.5 px-3.5">Subject</th>
+                      <th className="py-2.5 px-3.5">Status</th>
+                      <th className="py-2.5 px-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                    {filteredHistory.map((item) => {
+                      const isDeleting = deletingId === item.id;
+                      const dateStr = new Date(item.createdAt).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+
+                      return (
+                        <tr
+                          key={item.id}
+                          className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                        >
+                          <td className="py-3 px-3.5 whitespace-nowrap text-slate-500 font-mono text-[11px]">
+                            {dateStr}
+                          </td>
+
+                          <td className="py-3 px-3.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-slate-900 dark:text-white">
+                                {item.sender?.name || 'Admin'}
+                              </span>
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">
+                                {item.sender?.role || 'Staff'}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="py-3 px-3.5">
+                            <span className="inline-flex items-center gap-1 font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded text-[11px]">
+                              {item.audienceLabel || 'Direct Email'}
+                            </span>
+                          </td>
+
+                          <td className="py-3 px-3.5 max-w-xs truncate font-medium text-slate-800 dark:text-slate-200">
+                            {item.subject}
+                          </td>
+
+                          <td className="py-3 px-3.5 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                              <FiCheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                              Delivered ({item.successCount || 1})
+                            </span>
+                          </td>
+
+                          <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* View Details */}
+                              <button
+                                type="button"
+                                onClick={() => setViewingHistoryItem(item)}
+                                title="View Email Details"
+                                className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                              >
+                                <FiEye className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Edit & Resend */}
+                              <button
+                                type="button"
+                                onClick={() => handleEditAndResend(item)}
+                                title="Edit & Resend"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors cursor-pointer"
+                              >
+                                <FiRepeat className="w-3 h-3" />
+                                Edit &amp; Resend
+                              </button>
+
+                              {/* Delete */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteHistory(item.id)}
+                                disabled={isDeleting}
+                                title="Delete from log"
+                                className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950/50 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                              >
+                                <FiTrash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ── COMPOSE & SEND EMAIL MODAL (CLEAN & STREAMLINED) ──────────── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       {composeOpen &&
         createPortal(
           <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-xs overflow-y-auto">
             <div className="relative w-full max-w-6xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col my-auto max-h-[94vh]">
               {/* Modal Header */}
-              <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-900/50">
-                    <FiSend className="w-4 h-4" />
+              <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-900/50">
+                    <FiSend className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                      Compose &amp; Send Email
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                      Compose Email
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Deliver official communications to a specific student, entire batch, or staff department.
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Targeted notifications for students, entire batches, or staff teams.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* View Mode Selector */}
+                  {/* View Mode Switcher */}
                   <div className="flex rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 text-xs">
                     <button
                       type="button"
@@ -625,7 +928,7 @@ export default function EmailTemplatesWorkspace() {
                       className={`px-2.5 py-1 rounded font-semibold transition-colors cursor-pointer ${
                         composeTab === 'split'
                           ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                          : 'text-slate-600 dark:text-slate-400'
                       }`}
                     >
                       Side-by-Side
@@ -636,10 +939,10 @@ export default function EmailTemplatesWorkspace() {
                       className={`px-2.5 py-1 rounded font-semibold transition-colors cursor-pointer ${
                         composeTab === 'editor'
                           ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                          : 'text-slate-600 dark:text-slate-400'
                       }`}
                     >
-                      Editor Only
+                      Editor
                     </button>
                     <button
                       type="button"
@@ -647,17 +950,17 @@ export default function EmailTemplatesWorkspace() {
                       className={`px-2.5 py-1 rounded font-semibold transition-colors cursor-pointer ${
                         composeTab === 'preview'
                           ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                          : 'text-slate-600 dark:text-slate-400'
                       }`}
                     >
-                      Preview Only
+                      Preview
                     </button>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setComposeOpen(false)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                   >
                     <FiX className="w-5 h-5" />
                   </button>
@@ -666,170 +969,213 @@ export default function EmailTemplatesWorkspace() {
 
               {/* Modal Body */}
               <div className="flex-1 min-h-0 overflow-hidden flex flex-row divide-x divide-slate-200 dark:divide-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                {/* ── LEFT PANE: Composer Form ── */}
+                {/* ── LEFT PANE: Form Controls ── */}
                 {(composeTab === 'split' || composeTab === 'editor') && (
                   <div
                     className={`${
                       composeTab === 'split' ? 'w-full md:w-1/2' : 'w-full max-w-3xl mx-auto'
-                    } p-4 sm:p-5 space-y-4 overflow-y-auto`}
+                    } p-4 space-y-3.5 overflow-y-auto`}
                   >
-                    {/* Step 1: Select Recipient Audience */}
-                    <div className="space-y-1.5">
+                    {/* Audience Channel Pill Switcher */}
+                    <div className="space-y-1">
                       <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
-                        1. Select Target Recipient / Audience:
+                        Recipient Channel:
                       </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                        {AUDIENCE_OPTIONS.map((opt) => {
-                          const Icon = opt.icon;
-                          const isSelected = audienceType === opt.id;
-                          return (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              onClick={() => setAudienceType(opt.id)}
-                              className={`flex items-center gap-1.5 p-2 rounded-lg text-xs font-semibold border transition-all text-left cursor-pointer ${
-                                isSelected
-                                  ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500'
-                                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
-                              }`}
-                            >
-                              <Icon
-                                className={`w-3.5 h-3.5 shrink-0 ${
-                                  isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'
-                                }`}
-                              />
-                              <span className="truncate">{opt.label}</span>
-                            </button>
-                          );
-                        })}
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setTargetChannel('STUDENTS')}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                            targetChannel === 'STUDENTS'
+                              ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500'
+                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <FiUsers className="w-3.5 h-3.5 text-blue-500" />
+                          <span>Students</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setTargetChannel('STAFF')}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                            targetChannel === 'STAFF'
+                              ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500'
+                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <FiLayers className="w-3.5 h-3.5 text-blue-500" />
+                          <span>Staff Team</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setTargetChannel('CUSTOM')}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                            targetChannel === 'CUSTOM'
+                              ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500'
+                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <FiAtSign className="w-3.5 h-3.5 text-blue-500" />
+                          <span>Custom Email</span>
+                        </button>
                       </div>
                     </div>
 
-                    {/* Step 1.1: Audience Target Specific Picker */}
-                    <div className="p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
-                      {/* SINGLE STUDENT */}
-                      {audienceType === 'SINGLE_STUDENT' && (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                              Search &amp; Pick Student:
-                            </label>
-                            <span className="text-[10px] text-slate-500">
-                              {filteredStudents.length} of {directory.counts.students} students
-                            </span>
-                          </div>
-                          <div className="relative">
-                            <FiSearch className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
-                            <input
-                              type="text"
-                              placeholder="Type student name, student code, or email..."
-                              value={studentSearch}
-                              onChange={(e) => setStudentSearch(e.target.value)}
-                              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
-                            />
-                          </div>
-                          <select
-                            value={selectedStudentId}
-                            onChange={(e) => setSelectedStudentId(e.target.value)}
-                            className="w-full text-xs p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-medium"
+                    {/* CHANNEL 1: STUDENTS TARGET PICKER */}
+                    {targetChannel === 'STUDENTS' && (
+                      <div className="p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setStudentScope('ALL')}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                              studentScope === 'ALL'
+                                ? 'bg-blue-600 text-white shadow-xs'
+                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}
                           >
-                            <option value="">-- Choose Student --</option>
-                            {filteredStudents.map((s) => (
-                              <option key={s.id} value={s.id}>
-                                {s.name} ({s.studentCode}) • {s.email}
-                              </option>
-                            ))}
-                          </select>
+                            All Students ({directory.counts.students})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setStudentScope('SINGLE')}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                              studentScope === 'SINGLE'
+                                ? 'bg-blue-600 text-white shadow-xs'
+                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}
+                          >
+                            Specific Student
+                          </button>
                         </div>
-                      )}
 
-                      {/* ALL STUDENTS */}
-                      {audienceType === 'ALL_STUDENTS' && (
-                        <div className="flex items-start gap-2 text-xs text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded-lg border border-blue-200 dark:border-blue-900/50">
-                          <FiUsers className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                          <div>
-                            <p className="font-semibold">Broadcast to All Students</p>
-                            <p className="text-[11px] text-blue-700/80 dark:text-blue-400/80 mt-0.5">
-                              This email will be delivered to all{' '}
-                              <strong>{directory.counts.students} active students</strong> registered in the CRM.
-                            </p>
+                        {studentScope === 'SINGLE' && (
+                          <div className="space-y-1.5 pt-1">
+                            <div className="relative">
+                              <FiSearch className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
+                              <input
+                                type="text"
+                                placeholder="Search by name, student ID, or email..."
+                                value={studentSearch}
+                                onChange={(e) => setStudentSearch(e.target.value)}
+                                className="w-full pl-8 pr-2.5 py-1 text-xs rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                              />
+                            </div>
+                            <select
+                              value={selectedStudentId}
+                              onChange={(e) => setSelectedStudentId(e.target.value)}
+                              className="w-full text-xs p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white font-medium"
+                            >
+                              <option value="">-- Choose Student ({filteredStudents.length} matches) --</option>
+                              {filteredStudents.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.name} ({s.studentCode}) • {s.email}
+                                </option>
+                              ))}
+                            </select>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                    )}
 
-                      {/* STAFF BY ROLE */}
-                      {audienceType === 'ROLE_STAFF' && (
-                        <div className="space-y-1.5">
+                    {/* CHANNEL 2: STAFF & ROLE TARGET PICKER */}
+                    {targetChannel === 'STAFF' && (
+                      <div className="p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                        <div className="space-y-1">
                           <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                            Select Staff Role / Department:
+                            1. Select Staff Role:
                           </label>
                           <select
                             value={selectedRoleId}
                             onChange={(e) => setSelectedRoleId(e.target.value)}
-                            className="w-full text-xs p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-medium"
+                            className="w-full text-xs p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white font-medium"
                           >
-                            <option value="">-- Choose Role --</option>
+                            <option value="">-- Choose Staff Role --</option>
                             {directory.roles.map((r) => (
                               <option key={r.id} value={r.id}>
-                                {r.name} ({r.userCount} active staff member
-                                {r.userCount > 1 ? 's' : ''})
+                                {r.name} ({r.userCount} member{r.userCount > 1 ? 's' : ''})
                               </option>
                             ))}
                           </select>
                         </div>
-                      )}
 
-                      {/* SINGLE STAFF MEMBER */}
-                      {audienceType === 'SINGLE_STAFF' && (
-                        <div className="space-y-1.5">
+                        <div className="space-y-1 pt-1">
                           <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                            Select Staff Member:
+                            2. Member Scope:
                           </label>
-                          <select
-                            value={selectedStaffId}
-                            onChange={(e) => setSelectedStaffId(e.target.value)}
-                            className="w-full text-xs p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-medium"
-                          >
-                            <option value="">-- Choose Staff User --</option>
-                            {directory.staff.map((u) => (
-                              <option key={u.id} value={u.id}>
-                                {u.name} ({u.roleName}) • {u.email}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setStaffScope('ALL_ROLE')}
+                              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                staffScope === 'ALL_ROLE'
+                                  ? 'bg-blue-600 text-white shadow-xs'
+                                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                              }`}
+                            >
+                              All in this Role ({staffInSelectedRole.length})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setStaffScope('SINGLE_MEMBER')}
+                              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                staffScope === 'SINGLE_MEMBER'
+                                  ? 'bg-blue-600 text-white shadow-xs'
+                                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                              }`}
+                            >
+                              Specific Member
+                            </button>
+                          </div>
 
-                      {/* DIRECT EMAIL ADDRESS */}
-                      {audienceType === 'CUSTOM_EMAIL' && (
-                        <div className="space-y-1.5">
-                          <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                            Direct Recipient Email Address:
-                          </label>
-                          <input
-                            type="email"
-                            placeholder="client@example.com, parent@mail.com"
-                            value={customEmail}
-                            onChange={(e) => setCustomEmail(e.target.value)}
-                            className="w-full text-xs px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-blue-500"
-                          />
+                          {staffScope === 'SINGLE_MEMBER' && (
+                            <div className="pt-1.5">
+                              <select
+                                value={selectedStaffId}
+                                onChange={(e) => setSelectedStaffId(e.target.value)}
+                                className="w-full text-xs p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white font-medium"
+                              >
+                                <option value="">-- Choose Staff Member ({staffInSelectedRole.length}) --</option>
+                                {staffInSelectedRole.map((u) => (
+                                  <option key={u.id} value={u.id}>
+                                    {u.name} • {u.email}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {/* Selected Summary Pill */}
-                      <div className="pt-1 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                        <strong className="text-slate-700 dark:text-slate-300">Audience:</strong>
-                        <span className="truncate text-blue-600 dark:text-blue-400 font-semibold">
-                          {selectedRecipientLabel}
+                    {/* CHANNEL 3: CUSTOM DIRECT EMAIL */}
+                    {targetChannel === 'CUSTOM' && (
+                      <div className="p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                          Recipient Email Address:
+                        </label>
+                        <input
+                          type="email"
+                          placeholder="client@example.com, parent@mail.com"
+                          value={customEmail}
+                          onChange={(e) => setCustomEmail(e.target.value)}
+                          className="w-full text-xs px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                    )}
+
+                    {/* Quick Template Starters */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                          Template Starters (Optional):
+                        </label>
+                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold truncate max-w-[200px]">
+                          Target: {audienceSummary.label}
                         </span>
                       </div>
-                    </div>
-
-                    {/* Step 2: Preset Templates Shortcut */}
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                        Quick Template Starters (Optional):
-                      </label>
                       <select
                         onChange={(e) => {
                           const idx = Number(e.target.value);
@@ -838,10 +1184,10 @@ export default function EmailTemplatesWorkspace() {
                           }
                         }}
                         defaultValue=""
-                        className="w-full text-xs p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500"
+                        className="w-full text-xs p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
                       >
                         <option value="" disabled>
-                          -- Select a starter topic or compose custom --
+                          -- Choose a preset message starter --
                         </option>
                         {PRESET_MESSAGES.map((preset, idx) => (
                           <option key={idx} value={idx}>
@@ -851,7 +1197,7 @@ export default function EmailTemplatesWorkspace() {
                       </select>
                     </div>
 
-                    {/* Step 3: Subject Line */}
+                    {/* Subject Line */}
                     <div className="space-y-1">
                       <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
                         Subject Line:
@@ -865,27 +1211,22 @@ export default function EmailTemplatesWorkspace() {
                       />
                     </div>
 
-                    {/* Step 4: Email Message */}
+                    {/* Email Message */}
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
-                          Message Content:
-                        </label>
-                        <span className="text-[10px] text-slate-400">
-                          Separate paragraphs with blank lines
-                        </span>
-                      </div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Message Content:
+                      </label>
                       <textarea
-                        rows={5}
+                        rows={4}
                         value={composeMessage}
                         onChange={(e) => setComposeMessage(e.target.value)}
-                        placeholder="Write your email announcement or message here..."
+                        placeholder="Write your email message here (paragraphs supported)..."
                         className="w-full text-xs p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:border-blue-500"
                       />
                     </div>
 
-                    {/* Step 5: Optional Call-To-Action (CTA) Button */}
-                    <div className="p-3 bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                    {/* Action Button CTA */}
+                    <div className="p-2.5 bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1.5">
                       <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800 dark:text-slate-200">
                         <input
                           type="checkbox"
@@ -893,48 +1234,42 @@ export default function EmailTemplatesWorkspace() {
                           onChange={(e) => setIncludeCta(e.target.checked)}
                           className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                         />
-                        Include Call-to-Action (Action Button)
+                        Include Action Button (Link)
                       </label>
 
                       {includeCta && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                          <div>
-                            <label className="block text-[10px] text-slate-500 mb-0.5">Button Label:</label>
-                            <input
-                              type="text"
-                              value={ctaText}
-                              onChange={(e) => setCtaText(e.target.value)}
-                              placeholder="e.g. View Student Portal"
-                              className="w-full text-xs px-2.5 py-1.5 rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] text-slate-500 mb-0.5">Button Link (URL):</label>
-                            <input
-                              type="url"
-                              value={ctaUrl}
-                              onChange={(e) => setCtaUrl(e.target.value)}
-                              placeholder="https://..."
-                              className="w-full text-xs px-2.5 py-1.5 rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
-                            />
-                          </div>
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <input
+                            type="text"
+                            value={ctaText}
+                            onChange={(e) => setCtaText(e.target.value)}
+                            placeholder="Button Label"
+                            className="text-xs px-2.5 py-1 rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                          />
+                          <input
+                            type="url"
+                            value={ctaUrl}
+                            onChange={(e) => setCtaUrl(e.target.value)}
+                            placeholder="https://..."
+                            className="text-xs px-2.5 py-1 rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
+                          />
                         </div>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* ── RIGHT PANE: Live Responsive Email Preview ── */}
+                {/* ── RIGHT PANE: Live Email Preview ── */}
                 {(composeTab === 'split' || composeTab === 'preview') && (
                   <div
                     className={`${
                       composeTab === 'split' ? 'w-full md:w-1/2' : 'w-full'
-                    } p-4 sm:p-5 flex flex-col bg-slate-100 dark:bg-black/40 min-h-[420px]`}
+                    } p-4 flex flex-col bg-slate-100 dark:bg-black/40 min-h-[420px]`}
                   >
-                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-200 dark:border-slate-800">
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                         <FiEye className="w-3.5 h-3.5 text-blue-600" />
-                        Live Inbox Preview (Official 3ni InfoTech Template)
+                        Live Inbox Preview (Official 3ni Layout)
                       </span>
                       {generatingPreview && (
                         <span className="text-[10px] text-slate-400 animate-pulse">
@@ -957,17 +1292,16 @@ export default function EmailTemplatesWorkspace() {
                 )}
               </div>
 
-              {/* Modal Footer & Actions */}
-              <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
-                {/* Safe Test Mode Banner */}
+              {/* Modal Footer */}
+              <div className="px-5 py-2.5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shrink-0">
                 <div className="text-xs">
                   {overrideActive ? (
-                    <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-medium">
+                    <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-medium text-[11px]">
                       <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                      Safe Test Mode is ON: outgoing email will route to <strong>{overrideTo}</strong>
+                      Safe Test Mode: Routed to <strong>{overrideTo}</strong>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
+                    <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium text-[11px]">
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       Live Delivery: Sending directly to recipient mailbox
                     </span>
@@ -978,7 +1312,7 @@ export default function EmailTemplatesWorkspace() {
                   <button
                     type="button"
                     onClick={() => setComposeOpen(false)}
-                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -987,16 +1321,112 @@ export default function EmailTemplatesWorkspace() {
                     type="button"
                     onClick={handleSendCustomEmail}
                     disabled={sendingCompose}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer disabled:opacity-50"
                   >
                     <FiSend className={`w-3.5 h-3.5 ${sendingCompose ? 'animate-bounce' : ''}`} />
                     {sendingCompose
-                      ? 'Dispatching Email...'
-                      : audienceType === 'ALL_STUDENTS'
-                      ? `Broadcast to All Students (${directory.counts.students})`
-                      : 'Send Email Now'}
+                      ? 'Dispatching...'
+                      : `Send to ${audienceSummary.label}`}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ── VIEW SENT EMAIL DETAILS MODAL (FROM HISTORY) ─────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {viewingHistoryItem &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 backdrop-blur-xs overflow-y-auto">
+            <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col my-auto max-h-[90vh]">
+              <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
+                    Dispatched Email Record
+                  </span>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    {viewingHistoryItem.subject}
+                  </h3>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setViewingHistoryItem(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-3 text-xs p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Sender:</span>
+                    <strong className="text-slate-800 dark:text-slate-200">
+                      {viewingHistoryItem.sender?.name} ({viewingHistoryItem.sender?.role})
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Dispatched At:</span>
+                    <strong className="text-slate-800 dark:text-slate-200">
+                      {new Date(viewingHistoryItem.createdAt).toLocaleString('en-IN')}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Audience:</span>
+                    <strong className="text-blue-600">
+                      {viewingHistoryItem.audienceLabel}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Delivery:</span>
+                    <strong className="text-emerald-600">
+                      {viewingHistoryItem.successCount} of {viewingHistoryItem.recipientCount} successful
+                    </strong>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Message Body:
+                  </h4>
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                    {viewingHistoryItem.message}
+                  </div>
+                </div>
+
+                {viewingHistoryItem.ctaText && (
+                  <div className="text-xs">
+                    <span className="text-slate-400">Action Button: </span>
+                    <span className="font-semibold text-blue-600">{viewingHistoryItem.ctaText}</span>
+                    <span className="text-slate-400"> ({viewingHistoryItem.ctaUrl})</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleEditAndResend(viewingHistoryItem);
+                    setViewingHistoryItem(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                >
+                  <FiRepeat className="w-3.5 h-3.5" />
+                  Edit &amp; Resend This Email
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewingHistoryItem(null)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>,
