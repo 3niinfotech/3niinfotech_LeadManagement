@@ -203,7 +203,7 @@ export default function EmailTemplatesWorkspace() {
   }, [templates, selectedCategory]);
 
   return (
-    <div className="w-full flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-6 space-y-6 mx-auto">
+    <div className="w-full flex-1 min-h-0 overflow-y-auto px-4 py-6 space-y-6 mx-auto">
       
       {/* ── Top Header & Gateway Diagnostics (Clean CRM Theme) ── */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs">

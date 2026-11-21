@@ -1,9 +1,24 @@
+import fs from 'fs';
+import path from 'path';
 import nodemailer from 'nodemailer';
 import config from '../../config/index.js';
 import { getCachedCompanyBrand } from '../../utils/companyBrand.util.js';
 
 let transporter = null;
 let etherealAccount = null;
+
+function resolveCompanyLogoPath() {
+  const candidates = [
+    path.resolve(process.cwd(), 'frontend/public/assets/images/brand/logo.jpg'),
+    path.resolve(process.cwd(), '../frontend/public/assets/images/brand/logo.jpg'),
+    path.resolve(process.cwd(), 'backend/uploads/company/a7c7c0df-60c6-4a73-88d0-92b2fa521655/logo.jpg'),
+    path.resolve(process.cwd(), 'uploads/company/a7c7c0df-60c6-4a73-88d0-92b2fa521655/logo.jpg'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
 
 /**
  * Initialize or return existing Nodemailer transporter
@@ -151,13 +166,26 @@ export async function safeSendEmail({
       }
     }
 
+    const mailAttachments = [...(attachments || [])];
+    if (finalHtml && finalHtml.includes('cid:company-logo') && !mailAttachments.some((a) => a.cid === 'company-logo@3niinfotech.com')) {
+      const logoPath = resolveCompanyLogoPath();
+      if (logoPath) {
+        mailAttachments.push({
+          filename: 'logo.jpg',
+          path: logoPath,
+          cid: 'company-logo@3niinfotech.com',
+          contentDisposition: 'inline',
+        });
+      }
+    }
+
     const mailOptions = {
       from: fromAddress,
       to: targetRecipient,
       subject: finalSubject,
       html: finalHtml,
       text: text || finalHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
-      attachments,
+      attachments: mailAttachments,
     };
 
     const info = await client.sendMail(mailOptions);

@@ -241,14 +241,18 @@ export const getTemplateByCode = asyncHandler(async (req, res) => {
       subject: renderedSubject,
       html: templates.wrapEmailTemplate({
         title: sys.name,
-        badge: sys.category,
-        badgeTone: 'primary',
         bodyHtml: renderedBody,
         company: brand,
+        forPreview: true,
       }),
     };
   } else {
-    preview = sys.buildFn(sampleWithBrand);
+    preview = sys.buildFn({ ...sampleWithBrand, forPreview: true });
+  }
+
+  const finalPreviewHtml = templates.renderForPreview(preview?.html || '');
+  if (preview) {
+    preview.html = finalPreviewHtml;
   }
 
   const merged = {
@@ -258,7 +262,7 @@ export const getTemplateByCode = asyncHandler(async (req, res) => {
     eventType: dbRow?.eventType || sys.eventType,
     channel: 'EMAIL',
     subject: dbRow?.subject || sys.subject,
-    body: dbRow?.body || preview?.html || '',
+    body: dbRow?.body || finalPreviewHtml || '',
     description: dbRow?.description || sys.description,
     variables: sys.variables,
     isActive: dbRow?.isActive != null ? dbRow.isActive : true,
@@ -269,7 +273,7 @@ export const getTemplateByCode = asyncHandler(async (req, res) => {
   sendSuccess(res, {
     template: merged,
     preview,
-    previewHtml: preview?.html || '',
+    previewHtml: finalPreviewHtml,
   }, 'Template details retrieved');
 });
 
@@ -353,8 +357,6 @@ export const sendTestTemplate = asyncHandler(async (req, res) => {
       subject: renderedSubject,
       html: templates.wrapEmailTemplate({
         title: sys.name,
-        badge: sys.category,
-        badgeTone: 'primary',
         bodyHtml: renderedBody,
         company: brand,
       }),

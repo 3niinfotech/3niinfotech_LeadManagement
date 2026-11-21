@@ -80,9 +80,7 @@ export async function triggerEnquiryWelcome({ enquiry, counsellor = null, compan
     emailContent = {
       subject: renderedSubject,
       html: templates.wrapEmailTemplate({
-        title: 'Welcome to 3ni Infotech',
-        badge: 'Enquiry Received',
-        badgeTone: 'primary',
+        title: 'Thank you for your enquiry',
         bodyHtml: renderedBody,
         ctaText: 'Explore Programs',
         ctaUrl: brand.website || 'https://www.3niinfotech.com',
