@@ -32,6 +32,11 @@ export const updateBatch = asyncHandler(async (req, res) => {
   sendSuccess(res, batch, 'Batch updated');
 });
 
+export const deleteBatch = asyncHandler(async (req, res) => {
+  await attendanceService.deleteBatch(req.params.id, req.user, req);
+  sendSuccess(res, null, 'Batch deleted');
+});
+
 export const enrollStudents = asyncHandler(async (req, res) => {
   const { studentIds } = enrollSchema.parse(req.body);
   const data = await attendanceService.enrollStudents(req.params.id, studentIds, req.user, req);

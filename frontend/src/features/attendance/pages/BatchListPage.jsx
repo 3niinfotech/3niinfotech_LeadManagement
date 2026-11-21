@@ -8,10 +8,12 @@ import Button from '../../../components/ui/Button';
 import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
 import FilterPanel from '../../../components/ui/FilterPanel';
+import Modal from '../../../components/ui/Modal';
+import toastService from '../../../services/toast/toast.service';
 import { ROUTES } from '../../../config/routes';
 import { PERMISSIONS } from '../../../config/permissions';
 import PermissionGate from '../../../components/common/PermissionGate';
-import { useGetBatchesQuery } from '../redux/attendanceApiSlice';
+import { useGetBatchesQuery, useDeleteBatchMutation } from '../redux/attendanceApiSlice';
 import {
   buildBatchListSummary,
   buildBatchListSummaryItems,
@@ -29,6 +31,10 @@ export default function BatchListPage() {
   const [instructorFilter, setInstructorFilter] = useState('all');
   const [courseFilter, setCourseFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingBatch, setEditingBatch] = useState(null);
+  const [deletingBatch, setDeletingBatch] = useState(null);
+
+  const [deleteBatch, { isLoading: isDeleting }] = useDeleteBatchMutation();
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 300);
@@ -84,6 +90,18 @@ export default function BatchListPage() {
 
   const openBatch = (batch) => {
     if (batch?.id) navigate(ROUTES.BATCH_DETAIL(batch.id));
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingBatch?.id) return;
+    try {
+      await deleteBatch(deletingBatch.id).unwrap();
+      toastService.success(`Batch "${deletingBatch.name}" deleted successfully`);
+      setDeletingBatch(null);
+      refetch();
+    } catch (e) {
+      toastService.error(e?.data?.message || 'Could not delete batch');
+    }
   };
 
   return (
@@ -191,6 +209,9 @@ export default function BatchListPage() {
             fetching={isFetching}
             onRowClick={openBatch}
             onOpen={openBatch}
+            onEdit={(b) => setEditingBatch(b)}
+            onDelete={(b) => setDeletingBatch(b)}
+            canManage={true}
             emptyTitle={batches.length ? 'No batches match filters' : 'No batches yet'}
             emptyDescription={batches.length
               ? 'Widen filters or clear search.'
@@ -204,13 +225,75 @@ export default function BatchListPage() {
         </ModulePageCard.Table>
       </ModulePageCard>
 
+      {/* Create Batch Modal */}
       <BatchCreateModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={(id) => {
-          if (id) navigate(ROUTES.BATCH_DETAIL(id));
-        }}
+        onCreated={() => refetch()}
       />
+
+      {/* Edit Batch Modal (Pre-populated with selected batch data) */}
+      <BatchCreateModal
+        open={Boolean(editingBatch)}
+        batch={editingBatch}
+        onClose={() => setEditingBatch(null)}
+        onCreated={() => refetch()}
+      />
+
+      {/* Delete Batch Confirmation Modal */}
+      <Modal
+        open={Boolean(deletingBatch)}
+        onClose={() => setDeletingBatch(null)}
+        title="Delete Batch"
+        subtitle={`Confirm permanent removal of ${deletingBatch?.name || 'batch'}`}
+        size="sm"
+        compact
+        footer={(
+          <>
+            <Button variant="outline" onClick={() => setDeletingBatch(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              loading={isDeleting}
+              onClick={handleConfirmDelete}
+            >
+              Delete Batch
+            </Button>
+          </>
+        )}
+      >
+        <div className="text-xs text-text-secondary space-y-2.5 py-1">
+          <p>
+            Are you sure you want to permanently delete batch{' '}
+            <strong className="text-text font-bold">{deletingBatch?.name}</strong>{' '}
+            (<span className="font-mono text-text-muted">{deletingBatch?.code}</span>)?
+          </p>
+          <div className="p-3 rounded-lg border border-border bg-bg-page/70 text-[11px] space-y-1.5">
+            <div className="flex justify-between">
+              <span className="text-text-muted">Course:</span>
+              <strong className="text-text font-semibold">{deletingBatch?.courseName || '—'}</strong>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-muted">Assigned Faculty:</span>
+              <strong className="text-text font-semibold">{deletingBatch?.instructor ? `${deletingBatch.instructor.firstName || ''} ${deletingBatch.instructor.lastName || ''}`.trim() : 'Unassigned'}</strong>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-muted">Enrolled Students:</span>
+              <strong className="text-text font-semibold">{deletingBatch?._count?.enrollments ?? 0} students</strong>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-muted">Total Sessions:</span>
+              <strong className="text-text font-semibold">{deletingBatch?._count?.sessions ?? 0} sessions</strong>
+            </div>
+          </div>
+          {Number(deletingBatch?._count?.enrollments) > 0 && (
+            <div className="p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-[11px] font-medium leading-relaxed">
+              ⚠️ Attention: This batch has {deletingBatch._count.enrollments} enrolled student(s). Deleting will archive this batch and unenroll them.
+            </div>
+          )}
+        </div>
+      </Modal>
     </>
   );
 }

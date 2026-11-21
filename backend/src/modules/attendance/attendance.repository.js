@@ -61,6 +61,10 @@ export const attendanceRepository = {
 
   createBatch: (data) => prisma.academicBatch.create({ data }),
   updateBatch: (id, data) => prisma.academicBatch.update({ where: { id }, data }),
+  deleteBatch: (id, userId) => prisma.academicBatch.update({
+    where: { id },
+    data: { deletedAt: new Date(), isActive: false, updatedBy: userId },
+  }),
 
   findEnrollment: (batchId, studentId) => prisma.batchEnrollment.findUnique({
     where: { batchId_studentId: { batchId, studentId } },

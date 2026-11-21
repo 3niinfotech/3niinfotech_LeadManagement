@@ -17,6 +17,7 @@ router.get('/batches', authorize(PERMISSIONS.ATTENDANCE_VIEW), attendanceControl
 router.post('/batches', manage, attendanceController.createBatch);
 router.get('/batches/:id', view, attendanceController.getBatch);
 router.put('/batches/:id', manage, attendanceController.updateBatch);
+router.delete('/batches/:id', manage, attendanceController.deleteBatch);
 router.post('/batches/:id/enroll', manage, attendanceController.enrollStudents);
 router.delete('/batches/:id/enroll/:studentId', manage, attendanceController.unenrollStudent);
 router.post('/batches/:id/timetable', manage, attendanceController.addTimetableSlot);

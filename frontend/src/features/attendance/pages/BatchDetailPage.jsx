@@ -22,6 +22,7 @@ import {
   FiEye,
   FiX,
   FiTrash2,
+  FiEdit2,
 } from 'react-icons/fi';
 import ModulePageCard from '../../../components/layout/ModulePageLayout';
 import Button from '../../../components/ui/Button';
@@ -37,6 +38,7 @@ import { usePermissions } from '../../../hooks/usePermissions';
 import {
   useGetBatchQuery,
   useUpdateBatchMutation,
+  useDeleteBatchMutation,
   useEnrollStudentsMutation,
   useUnenrollStudentMutation,
   useAddTimetableSlotMutation,
@@ -51,6 +53,7 @@ import {
   BATCH_WEEKDAYS,
   buildBatchDetailSummaryItems,
 } from '../config/batchSummary.config';
+import BatchCreateModal from '../components/BatchCreateModal';
 import '../styles/teacher-students.css';
 import '../styles/batches.theme.css';
 
@@ -81,8 +84,12 @@ export default function BatchDetailPage() {
   const [enroll] = useEnrollStudentsMutation();
   const [unenroll] = useUnenrollStudentMutation();
   const [updateBatch, { isLoading: assigning }] = useUpdateBatchMutation();
+  const [deleteBatch, { isLoading: deletingBatch }] = useDeleteBatchMutation();
   const [addSlot, { isLoading: addingSlot }] = useAddTimetableSlotMutation();
   const [generate, { isLoading: generating }] = useGenerateSessionsMutation();
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   // Active Workspace Tab: 'students' | 'sessions' | 'timetable' | 'settings'
   const [activeTab, setActiveTab] = useState('students');
@@ -188,6 +195,16 @@ export default function BatchDetailPage() {
       refetch();
     } catch (e) {
       toastService.error(e?.data?.message || 'Could not assign instructor');
+    }
+  };
+
+  const handleConfirmDeleteBatch = async () => {
+    try {
+      await deleteBatch(id).unwrap();
+      toastService.success(`Batch "${batch?.name || ''}" deleted successfully`);
+      navigate(ROUTES.BATCHES);
+    } catch (e) {
+      toastService.error(e?.data?.message || 'Could not delete batch');
     }
   };
 
@@ -1191,6 +1208,25 @@ export default function BatchDetailPage() {
                         <span className="font-bold text-text mt-0.5 block">{batch.branch?.name || 'Main Campus'}</span>
                       </div>
                     </div>
+
+                    <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        icon={FiEdit2}
+                        onClick={() => setEditModalOpen(true)}
+                      >
+                        Edit Details
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        icon={FiTrash2}
+                        onClick={() => setDeleteModalOpen(true)}
+                      >
+                        Delete Batch
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1412,6 +1448,65 @@ export default function BatchDetailPage() {
           </div>
         </Modal>
       )}
+
+      {/* Edit Batch Modal */}
+      <BatchCreateModal
+        open={editModalOpen}
+        batch={batch}
+        onClose={() => setEditModalOpen(false)}
+        onCreated={() => refetch()}
+      />
+
+      {/* Delete Batch Confirmation Modal */}
+      <Modal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Delete Batch"
+        subtitle={`Confirm permanent removal of ${batch?.name || 'batch'}`}
+        size="sm"
+        compact
+        footer={(
+          <>
+            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              loading={deletingBatch}
+              onClick={handleConfirmDeleteBatch}
+            >
+              Delete Batch
+            </Button>
+          </>
+        )}
+      >
+        <div className="text-xs text-text-secondary space-y-2.5 py-1">
+          <p>
+            Are you sure you want to permanently delete batch{' '}
+            <strong className="text-text font-bold">{batch?.name}</strong>{' '}
+            (<span className="font-mono text-text-muted">{batch?.code}</span>)?
+          </p>
+          <div className="p-3 rounded-lg border border-border bg-bg-page/70 text-[11px] space-y-1.5">
+            <div className="flex justify-between">
+              <span className="text-text-muted">Course:</span>
+              <strong className="text-text font-semibold">{batch?.courseName || '—'}</strong>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-muted">Assigned Faculty:</span>
+              <strong className="text-text font-semibold">{batch?.instructor ? instructorName(batch.instructor) : 'Unassigned'}</strong>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-muted">Enrolled Students:</span>
+              <strong className="text-text font-semibold">{enrollmentsAll.length} students</strong>
+            </div>
+          </div>
+          {enrollmentsAll.length > 0 && (
+            <div className="p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-[11px] font-medium leading-relaxed">
+              ⚠️ Attention: This batch has {enrollmentsAll.length} enrolled student(s). Deleting will archive this batch and unenroll them.
+            </div>
+          )}
+        </div>
+      </Modal>
     </ModulePageCard>
   );
 }

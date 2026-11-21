@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { FiPlus } from 'react-icons/fi';
+import { FiPlus, FiEdit2 } from 'react-icons/fi';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
-import { useCreateBatchMutation } from '../redux/attendanceApiSlice';
+import { useCreateBatchMutation, useUpdateBatchMutation } from '../redux/attendanceApiSlice';
 import { userService } from '../../../services/user/user.service';
 import toastService from '../../../services/toast/toast.service';
 
@@ -13,12 +13,17 @@ function instructorLabel(user) {
   return `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
 }
 
-export default function BatchCreateModal({ open, onClose, onCreated }) {
-  const [createBatch, { isLoading }] = useCreateBatchMutation();
+export default function BatchCreateModal({ open, onClose, onCreated, batch = null }) {
+  const isEdit = Boolean(batch?.id);
+  const [createBatch, { isLoading: isCreating }] = useCreateBatchMutation();
+  const [updateBatch, { isLoading: isUpdating }] = useUpdateBatchMutation();
+  const isLoading = isCreating || isUpdating;
+
   const [name, setName] = useState('');
   const [courseName, setCourseName] = useState('');
   const [room, setRoom] = useState('');
   const [instructorId, setInstructorId] = useState('');
+  const [isActive, setIsActive] = useState(true);
   const [teacherOptions, setTeacherOptions] = useState([{ value: '', label: 'No instructor yet' }]);
 
   useEffect(() => {
@@ -40,13 +45,20 @@ export default function BatchCreateModal({ open, onClose, onCreated }) {
   }, [open]);
 
   useEffect(() => {
-    if (!open) {
+    if (open && batch) {
+      setName(batch.name || '');
+      setCourseName(batch.courseName || '');
+      setRoom(batch.room || '');
+      setInstructorId(batch.instructorId || batch.instructor?.id || '');
+      setIsActive(batch.isActive !== false);
+    } else if (open) {
       setName('');
       setCourseName('');
       setRoom('');
       setInstructorId('');
+      setIsActive(true);
     }
-  }, [open]);
+  }, [open, batch]);
 
   const submit = async () => {
     if (!name.trim() || !courseName.trim()) {
@@ -54,17 +66,32 @@ export default function BatchCreateModal({ open, onClose, onCreated }) {
       return;
     }
     try {
-      const created = await createBatch({
-        name: name.trim(),
-        courseName: courseName.trim(),
-        room: room.trim() || undefined,
-        instructorId: instructorId || undefined,
-      }).unwrap();
-      toastService.success('Batch created');
-      onCreated?.(created?.id || created?.data?.id);
-      onClose?.();
+      if (isEdit) {
+        await updateBatch({
+          id: batch.id,
+          name: name.trim(),
+          courseName: courseName.trim(),
+          room: room.trim() || null,
+          instructorId: instructorId || null,
+          isActive,
+        }).unwrap();
+        toastService.success(`Batch "${name.trim()}" updated successfully`);
+        onCreated?.(batch.id);
+        onClose?.();
+      } else {
+        const created = await createBatch({
+          name: name.trim(),
+          courseName: courseName.trim(),
+          room: room.trim() || undefined,
+          instructorId: instructorId || undefined,
+          isActive,
+        }).unwrap();
+        toastService.success(`Batch "${name.trim()}" created successfully`);
+        onCreated?.(created?.id || created?.data?.id);
+        onClose?.();
+      }
     } catch (e) {
-      toastService.error(e?.data?.message || 'Could not create batch');
+      toastService.error(e?.data?.message || (isEdit ? 'Could not update batch' : 'Could not create batch'));
     }
   };
 
@@ -72,14 +99,20 @@ export default function BatchCreateModal({ open, onClose, onCreated }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="New batch"
-      subtitle="Name, course, room, and teacher"
+      title={isEdit ? 'Edit Batch' : 'New Batch'}
+      subtitle={isEdit ? `Update details and assignments for ${batch?.code || 'batch'}` : 'Name, course, room, and teacher'}
       size="md"
       compact
       footer={(
         <>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button icon={FiPlus} loading={isLoading} onClick={submit}>Create batch</Button>
+          <Button
+            icon={isEdit ? FiEdit2 : FiPlus}
+            loading={isLoading}
+            onClick={submit}
+          >
+            {isEdit ? 'Update Batch' : 'Create Batch'}
+          </Button>
         </>
       )}
     >
@@ -111,6 +144,20 @@ export default function BatchCreateModal({ open, onClose, onCreated }) {
           options={teacherOptions}
           placeholder="Select teacher"
         />
+        {isEdit && (
+          <div className="sm:col-span-2">
+            <Select
+              label="Batch Status"
+              value={isActive ? 'active' : 'inactive'}
+              onChange={(e) => setIsActive(e.target.value === 'active')}
+              options={[
+                { value: 'active', label: 'Active (Ongoing)' },
+                { value: 'inactive', label: 'Inactive / Completed' },
+              ]}
+              allowClear={false}
+            />
+          </div>
+        )}
       </div>
     </Modal>
   );

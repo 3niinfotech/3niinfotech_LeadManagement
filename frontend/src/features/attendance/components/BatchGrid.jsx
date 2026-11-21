@@ -22,6 +22,9 @@ export default function BatchGrid({
   fetching = false,
   onRowClick,
   onOpen,
+  onEdit,
+  onDelete,
+  canManage = true,
   emptyTitle,
   emptyDescription,
   emptyActionLabel,
@@ -107,21 +110,35 @@ export default function BatchGrid({
     {
       colId: 'actions',
       headerName: '',
-      width: 72,
+      width: canManage ? 116 : 60,
       sortable: false,
       cellRenderer: (p) => (
         <GridActionGroup>
           <GridActionButton
             action="view"
-            title="Open batch"
+            title="Open Batch"
             onClick={() => onOpen?.(p.data)}
           />
+          {canManage && (
+            <>
+              <GridActionButton
+                action="edit"
+                title="Edit Batch"
+                onClick={() => onEdit?.(p.data)}
+              />
+              <GridActionButton
+                action="delete"
+                title="Delete Batch"
+                onClick={() => onDelete?.(p.data)}
+              />
+            </>
+          )}
         </GridActionGroup>
       ),
       cellClass: centerCell,
       headerClass: centerHeader,
     },
-  ], [onOpen]);
+  ], [onOpen, onEdit, onDelete, canManage]);
 
   return (
     <DataGrid

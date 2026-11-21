@@ -46,6 +46,10 @@ export const attendanceApi = createApi({
       query: ({ id, ...body }) => ({ url: API.ACADEMIC_BATCH(id), method: 'PUT', body }),
       invalidatesTags: (_r, _e, { id }) => ['Batches', { type: 'BatchDetail', id }],
     }),
+    deleteBatch: builder.mutation({
+      query: (id) => ({ url: API.ACADEMIC_BATCH(id), method: 'DELETE' }),
+      invalidatesTags: ['Batches'],
+    }),
     enrollStudents: builder.mutation({
       query: ({ id, studentIds }) => ({
         url: API.ACADEMIC_BATCH_ENROLL(id),
@@ -104,6 +108,7 @@ export const {
   useGetBatchQuery,
   useCreateBatchMutation,
   useUpdateBatchMutation,
+  useDeleteBatchMutation,
   useEnrollStudentsMutation,
   useUnenrollStudentMutation,
   useAddTimetableSlotMutation,

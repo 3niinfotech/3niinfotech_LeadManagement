@@ -294,6 +294,15 @@ export const attendanceService = {
     return updated;
   },
 
+  deleteBatch: async (id, user, req) => {
+    const existing = await requireBatch(id, user);
+    const deleted = await attendanceRepository.deleteBatch(id, user.id);
+    await auditLog({
+      userId: user.id, action: 'DELETE', entityType: 'AcademicBatch', entityId: id, oldData: existing, req,
+    });
+    return deleted;
+  },
+
   enrollStudents: async (batchId, studentIds, user, req) => {
     const batch = await requireBatch(batchId, user);
     const results = [];
