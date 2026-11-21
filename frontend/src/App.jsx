@@ -24,6 +24,7 @@ import { PERMISSIONS } from './config/permissions';
 import { PORTALS } from './config/portal.config';
 import { useSocket } from './hooks/useSocket';
 import ReminderAlertHost from './components/layout/ReminderAlertHost';
+import DocumentTitleManager from './components/common/DocumentTitleManager';
 import { lazyImport } from './utils/lazyImport';
 
 const LandingPage = lazyImport(() => import('./pages/landing/LandingPage'));
@@ -574,6 +575,7 @@ function AppShell() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
+        <DocumentTitleManager />
         <AuthInitGate>
           <FeatureBootstrap />
           <AssignmentHeartbeat />

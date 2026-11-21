@@ -31,9 +31,6 @@ function applyBranding(settings, company) {
   if (settings.headerColour) root.style.setProperty('--navbar-bg', settings.headerColour);
   if (settings.fontColour) root.style.setProperty('--color-text', settings.fontColour);
   if (settings.favicon) applyFavicon(resolvePublicAssetUrl(settings.favicon));
-  if (settings.portalTitle || company?.name) {
-    document.title = settings.portalTitle || company.name;
-  }
 }
 
 export function CompanyRuntimeProvider({ children }) {

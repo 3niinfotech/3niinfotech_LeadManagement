@@ -431,6 +431,19 @@ export default function EmailTemplatesWorkspace() {
     return () => clearTimeout(timer);
   }, [composeOpen, composeSubject, composeMessage, includeCta, ctaText, ctaUrl, audienceSummary.previewName, updateComposePreview]);
 
+  // Dynamic Page Title in Email Hub
+  useEffect(() => {
+    if (composeOpen) {
+      document.title = 'Compose & Send Email | 3ni InfoTech';
+    } else if (activeTemplate) {
+      document.title = `${activeTemplate.name} — Preview | 3ni InfoTech`;
+    } else if (activeMainTab === 'history') {
+      document.title = 'Sent Email History & Logs | 3ni InfoTech';
+    } else {
+      document.title = 'Email Lifecycle Templates | 3ni InfoTech';
+    }
+  }, [composeOpen, activeTemplate, activeMainTab]);
+
   // Filter students in dropdown
   const filteredStudents = useMemo(() => {
     if (!studentSearch.trim()) return directory.students;
@@ -606,7 +619,7 @@ export default function EmailTemplatesWorkspace() {
               type="button"
               onClick={handleSaveOverride}
               disabled={savingOverride}
-              className="px-2.5 py-1 text-xs font-semibold rounded bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 transition-colors cursor-pointer"
+              className="px-3 py-1 text-xs font-semibold rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors cursor-pointer shadow-xs disabled:opacity-50"
             >
               {savingOverride ? '...' : 'Save'}
             </button>
@@ -632,13 +645,17 @@ export default function EmailTemplatesWorkspace() {
             onClick={() => setActiveMainTab('templates')}
             className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeMainTab === 'templates'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent'
             }`}
           >
             <FiLayers className="w-3.5 h-3.5" />
             Lifecycle Templates
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+              activeMainTab === 'templates'
+                ? 'bg-blue-700/90 text-white'
+                : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+            }`}>
               {templates.length}
             </span>
           </button>
@@ -651,13 +668,17 @@ export default function EmailTemplatesWorkspace() {
             }}
             className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeMainTab === 'history'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent'
             }`}
           >
             <FiClock className="w-3.5 h-3.5" />
             Sent History &amp; Logs
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+              activeMainTab === 'history'
+                ? 'bg-blue-700/90 text-white'
+                : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+            }`}>
               {historyLogs.length}
             </span>
           </button>
@@ -1524,7 +1545,7 @@ export default function EmailTemplatesWorkspace() {
                       type="button"
                       onClick={handleSaveTemplate}
                       disabled={savingTemplate}
-                      className="px-3 py-1 rounded text-xs font-semibold bg-slate-900 text-white dark:bg-white dark:text-slate-900 cursor-pointer"
+                      className="px-3 py-1 rounded-md text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors cursor-pointer disabled:opacity-50"
                     >
                       {savingTemplate ? 'Saving...' : 'Save Subject'}
                     </button>
